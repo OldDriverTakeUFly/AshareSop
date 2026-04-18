@@ -15,7 +15,10 @@ build/
 *.db
 *.sqlite
 data/
-storage/
+
+# Allow stockhot/storage code but not runtime data
+/stockhot/storage/files/
+/stockhot/storage/database/*.db
 
 # Environment
 .env
