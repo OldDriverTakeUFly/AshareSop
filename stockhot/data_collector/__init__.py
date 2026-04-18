@@ -4,11 +4,21 @@ from datetime import datetime
 from typing import Any
 
 from stockhot.data_collector.clients.mock import MockClient
+from stockhot.data_collector.clients.tencent import TencentClient
 from stockhot.data_collector.clients.eastmoney import EastMoneyClient
 from stockhot.core.config import TOP_N_STOCKS, TOP_N_SECTORS, TOP_N_FUNDS
 from stockhot.storage.database import save_daily_data
 
 USE_MOCK = True
+USE_TENCENT = False
+
+
+def _get_client():
+    if USE_MOCK:
+        return MockClient()
+    if USE_TENCENT:
+        return TencentClient()
+    return EastMoneyClient()
 
 
 def run_collection(date: str | None = None) -> dict:
@@ -16,7 +26,7 @@ def run_collection(date: str | None = None) -> dict:
     target_date = date or datetime.now().strftime("%Y-%m-%d")
     print(f"[DataCollector] 采集日期: {target_date}")
 
-    client = MockClient() if USE_MOCK else EastMoneyClient()
+    client = _get_client()
 
     gainers = client.get_gainers(TOP_N_STOCKS)
     losers = client.get_losers(TOP_N_STOCKS)
@@ -45,23 +55,19 @@ def run_collection(date: str | None = None) -> dict:
 
 def get_gainers(limit: int = 20) -> list[dict[str, Any]]:
     """获取涨跌幅排行"""
-    client = MockClient() if USE_MOCK else EastMoneyClient()
-    return client.get_gainers(limit)
+    return _get_client().get_gainers(limit)
 
 
 def get_losers(limit: int = 20) -> list[dict[str, Any]]:
     """获取跌幅排行"""
-    client = MockClient() if USE_MOCK else EastMoneyClient()
-    return client.get_losers(limit)
+    return _get_client().get_losers(limit)
 
 
 def get_sector_performance() -> list[dict[str, Any]]:
     """获取板块表现"""
-    client = MockClient() if USE_MOCK else EastMoneyClient()
-    return client.get_sectors(TOP_N_SECTORS)
+    return _get_client().get_sectors(TOP_N_SECTORS)
 
 
 def get_fund_flow() -> list[dict[str, Any]]:
     """获取资金流向"""
-    client = MockClient() if USE_MOCK else EastMoneyClient()
-    return client.get_fund_flow(TOP_N_FUNDS)
+    return _get_client().get_fund_flow(TOP_N_FUNDS)
