@@ -27,19 +27,20 @@ class EastMoneyClient(BaseClient):
             url = f"{self.BASE_URL}/api/qt/clist/get"
             params = {
                 "pn": 1,
-                "pz": limit,
-                "po": 0,
+                "pz": limit * 3,
+                "po": 1,
                 "np": 1,
-                "ut": "bd1d3dd5b7e0d041c6c2fa054a3c0a9d",
+                "ut": "bd1d9ddb04089700cf9c27f6f7426281",
                 "fltt": 2,
                 "invt": 2,
                 "fid": "f3",
-                "fs": "m:0+t:80,m:0+t:81,m:1+t:80,m:1+t:81",
-                "fields": "f1,f2,f3,f4,f5,f6,f12,f13,f14",
+                "fs": "m:0+t:6,m:0+t:80,m:1+t:2",
+                "fields": "f2,f3,f4,f5,f6,f12,f14",
             }
             resp = self.session.get(url, params=params, timeout=10)
             data = resp.json()
-            return self._parse_stock_list(data.get("data", {}).get("diff", []))
+            results = self._parse_stock_list(data.get("data", {}).get("diff", []))
+            return [s for s in results if not s.get("name", "").startswith("N")][:limit]
         except Exception as e:
             raise DataSourceError(f"获取涨幅排行失败: {e}")
 
@@ -49,19 +50,20 @@ class EastMoneyClient(BaseClient):
             url = f"{self.BASE_URL}/api/qt/clist/get"
             params = {
                 "pn": 1,
-                "pz": limit,
-                "po": 1,
+                "pz": limit * 3,
+                "po": 0,
                 "np": 1,
-                "ut": "bd1d3dd5b7e0d041c6c2fa054a3c0a9d",
+                "ut": "bd1d9ddb04089700cf9c27f6f7426281",
                 "fltt": 2,
                 "invt": 2,
                 "fid": "f3",
-                "fs": "m:0+t:80,m:0+t:81,m:1+t:80,m:1+t:81",
-                "fields": "f1,f2,f3,f4,f5,f6,f12,f13,f14",
+                "fs": "m:0+t:6,m:0+t:80,m:1+t:2",
+                "fields": "f2,f3,f4,f5,f6,f12,f14",
             }
             resp = self.session.get(url, params=params, timeout=10)
             data = resp.json()
-            return self._parse_stock_list(data.get("data", {}).get("diff", []))
+            results = self._parse_stock_list(data.get("data", {}).get("diff", []))
+            return [s for s in results if not s.get("name", "").startswith("N")][:limit]
         except Exception as e:
             raise DataSourceError(f"获取跌幅排行失败: {e}")
 
