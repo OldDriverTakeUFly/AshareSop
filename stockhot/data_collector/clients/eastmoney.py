@@ -1,10 +1,9 @@
 """EastMoney data client for StockHot-CN."""
 
-import re
 import json
-from datetime import datetime
+import urllib.request
+import urllib.parse
 from typing import Any
-import requests
 from stockhot.data_collector.clients.base import BaseClient
 from stockhot.core.exceptions import DataSourceError
 
@@ -15,11 +14,19 @@ class EastMoneyClient(BaseClient):
     BASE_URL = "https://push2.eastmoney.com"
 
     def __init__(self):
-        self.session = requests.Session()
-        self.session.headers.update({
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-            "Referer": "https://quote.eastmoney.com/",
-        })
+        import os
+        for k in ["http_proxy", "https_proxy", "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "all_proxy", "no_proxy", "NO_PROXY"]:
+            os.environ.pop(k, None)
+        self.opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+        self.opener.addheaders = [
+            ("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"),
+            ("Referer", "https://quote.eastmoney.com/"),
+        ]
+
+    def _fetch(self, url: str, params: dict) -> dict:
+        full_url = f"{url}?{urllib.parse.urlencode(params)}"
+        resp = self.opener.open(full_url, timeout=10)
+        return json.loads(resp.read().decode("utf-8"))
 
     def get_gainers(self, limit: int = 20) -> list[dict[str, Any]]:
         """获取涨幅排行"""
@@ -37,8 +44,7 @@ class EastMoneyClient(BaseClient):
                 "fs": "m:0+t:6,m:0+t:80,m:1+t:2",
                 "fields": "f2,f3,f4,f5,f6,f12,f14",
             }
-            resp = self.session.get(url, params=params, timeout=10)
-            data = resp.json()
+            data = self._fetch(url, params)
             results = self._parse_stock_list(data.get("data", {}).get("diff", []))
             return [s for s in results if not s.get("name", "").startswith("N")][:limit]
         except Exception as e:
@@ -60,8 +66,7 @@ class EastMoneyClient(BaseClient):
                 "fs": "m:0+t:6,m:0+t:80,m:1+t:2",
                 "fields": "f2,f3,f4,f5,f6,f12,f14",
             }
-            resp = self.session.get(url, params=params, timeout=10)
-            data = resp.json()
+            data = self._fetch(url, params)
             results = self._parse_stock_list(data.get("data", {}).get("diff", []))
             return [s for s in results if not s.get("name", "").startswith("N")][:limit]
         except Exception as e:
@@ -74,17 +79,16 @@ class EastMoneyClient(BaseClient):
             params = {
                 "pn": 1,
                 "pz": limit,
-                "po": 0,
+                "po": 1,
                 "np": 1,
-                "ut": "bd1d3dd5b7e0d041c6c2fa054a3c0a9d",
+                "ut": "bd1d9ddb04089700cf9c27f6f7426281",
                 "fltt": 2,
                 "invt": 2,
                 "fid": "f3",
                 "fs": "b:MK0021",
-                "fields": "f1,f2,f3,f4,f5,f12,f14",
+                "fields": "f2,f3,f4,f5,f12,f14",
             }
-            resp = self.session.get(url, params=params, timeout=10)
-            data = resp.json()
+            data = self._fetch(url, params)
             return self._parse_sector_list(data.get("data", {}).get("diff", []))
         except Exception as e:
             raise DataSourceError(f"获取板块排行失败: {e}")
@@ -96,17 +100,16 @@ class EastMoneyClient(BaseClient):
             params = {
                 "pn": 1,
                 "pz": limit,
-                "po": 0,
+                "po": 1,
                 "np": 1,
-                "ut": "bd1d3dd5b7e0d041c6c2fa054a3c0a9d",
+                "ut": "bd1d9ddb04089700cf9c27f6f7426281",
                 "fltt": 2,
                 "invt": 2,
                 "fid": "f10",
-                "fs": "m:0+t:80,m:0+t:81,m:1+t:80,m:1+t:81",
+                "fs": "m:0+t:6,m:0+t:80,m:1+t:2",
                 "fields": "f2,f3,f10,f12,f14",
             }
-            resp = self.session.get(url, params=params, timeout=10)
-            data = resp.json()
+            data = self._fetch(url, params)
             return self._parse_fund_flow(data.get("data", {}).get("diff", []))
         except Exception as e:
             raise DataSourceError(f"获取资金流向失败: {e}")
