@@ -49,15 +49,15 @@ class TencentClient(BaseClient):
                 continue
                 
             fields = data_str.split("~")
-            if len(fields) < 10:
+            if len(fields) < 40:
                 continue
 
             result[code] = {
                 "code": fields[2] if len(fields) > 2 else "",
                 "name": fields[1] if len(fields) > 1 else "",
                 "price": float(fields[3]) if fields[3] and fields[3] != "-" else 0,
-                "change": float(fields[4]) if fields[4] and fields[4] != "-" else 0,
-                "change_pct": float(fields[5]) if fields[5] and fields[5] != "-" else 0,
+                "change": float(fields[31]) if len(fields) > 31 and fields[31] and fields[31] != "-" else 0,
+                "change_pct": float(fields[32]) if len(fields) > 32 and fields[32] and fields[32] != "-" else 0,
                 "volume": int(fields[6]) if fields[6] and fields[6].isdigit() else 0,
                 "amount": float(fields[7]) if fields[7] and fields[7] else 0,
             }
@@ -72,7 +72,7 @@ class TencentClient(BaseClient):
         stocks = []
         for code, info in data.items():
             if info.get("change_pct", 0) > 0:
-                stocks.append(info)
+                stocks.append(self._normalize_stock(info))
         
         stocks.sort(key=lambda x: x.get("change_pct", 0), reverse=True)
         return stocks[:limit]
@@ -85,7 +85,7 @@ class TencentClient(BaseClient):
         stocks = []
         for code, info in data.items():
             if info.get("change_pct", 0) < 0:
-                stocks.append(info)
+                stocks.append(self._normalize_stock(info))
         
         stocks.sort(key=lambda x: x.get("change_pct", 0))
         return stocks[:limit]
@@ -99,7 +99,7 @@ class TencentClient(BaseClient):
         sectors = []
         for code, info in data.items():
             if info.get("change_pct", 0) != 0:
-                sectors.append(info)
+                sectors.append(self._normalize_sector(info))
         
         sectors.sort(key=lambda x: x.get("change_pct", 0), reverse=True)
         return sectors[:limit]
@@ -111,7 +111,41 @@ class TencentClient(BaseClient):
         
         stocks = list(data.values())
         stocks.sort(key=lambda x: abs(x.get("change_pct", 0)), reverse=True)
-        return stocks[:limit]
+        
+        result = []
+        for info in stocks[:limit]:
+            result.append(self._normalize_fund_flow(info))
+        return result
+
+    def _normalize_stock(self, info: dict) -> dict:
+        """Normalize stock data to match expected format."""
+        return {
+            "code": info.get("code", ""),
+            "name": info.get("name", ""),
+            "price": info.get("price", 0),
+            "change_pct": info.get("change_pct", 0),
+            "volume": info.get("volume", 0),
+            "amount": info.get("amount", 0),
+        }
+
+    def _normalize_sector(self, info: dict) -> dict:
+        """Normalize sector data to match expected format."""
+        return {
+            "name": info.get("name", ""),
+            "change_pct": info.get("change_pct", 0),
+            "volume": info.get("volume", 0),
+            "turnover_rate": info.get("amount", 0) / 100000000 if info.get("amount") else 0,
+        }
+
+    def _normalize_fund_flow(self, info: dict) -> dict:
+        """Normalize fund flow data to match expected format."""
+        change_pct = info.get("change_pct", 0)
+        return {
+            "code": info.get("code", ""),
+            "name": info.get("name", ""),
+            "net_inflow": info.get("amount", 0) / 100000000 if info.get("amount") else 0,
+            "inflow_rate": change_pct,
+        }
 
     def _generate_stock_codes(self, count: int) -> list[str]:
         """Generate a diverse list of stock codes to query."""

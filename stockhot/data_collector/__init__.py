@@ -9,8 +9,8 @@ from stockhot.data_collector.clients.eastmoney import EastMoneyClient
 from stockhot.core.config import TOP_N_STOCKS, TOP_N_SECTORS, TOP_N_FUNDS
 from stockhot.storage.database import save_daily_data
 
-USE_MOCK = True
-USE_TENCENT = False
+USE_MOCK = False
+USE_TENCENT = True
 
 
 def _get_client():
