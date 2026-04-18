@@ -8,7 +8,7 @@ from stockhot.data_collector.clients.eastmoney import EastMoneyClient
 from stockhot.core.config import TOP_N_STOCKS, TOP_N_SECTORS, TOP_N_FUNDS
 from stockhot.storage.database import save_daily_data
 
-USE_MOCK = True
+USE_MOCK = False
 
 
 def run_collection(date: str | None = None) -> dict:

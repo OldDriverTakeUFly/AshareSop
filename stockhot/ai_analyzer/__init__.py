@@ -38,18 +38,28 @@ def analyze_hotspots(data: dict) -> dict:
     sectors = data.get("sectors", [])
     fund_flows = data.get("fund_flows", [])
 
+    def safe_float(val, default=0.0):
+        if isinstance(val, (int, float)):
+            return float(val)
+        if isinstance(val, str):
+            try:
+                return float(val) if val != '-' else default
+            except:
+                return default
+        return default
+
     gainers_text = "\n".join([
-        f"{i+1}. {s['name']} ({s['code']}): +{s['change_pct']:.2f}%"
+        f"{i+1}. {s['name']} ({s['code']}): +{safe_float(s['change_pct']):.2f}%"
         for i, s in enumerate(gainers[:10])
     ])
 
     sectors_text = "\n".join([
-        f"{s['name']}: +{s['change_pct']:.2f}%"
+        f"{s['name']}: +{safe_float(s['change_pct']):.2f}%"
         for s in sectors[:8]
     ])
 
     fund_flows_text = "\n".join([
-        f"{f['name']}: 净流入 {f['net_inflow']:.2f}亿"
+        f"{f['name']}: 净流入 {safe_float(f['net_inflow']):.2f}亿"
         for f in fund_flows[:8]
     ])
 
