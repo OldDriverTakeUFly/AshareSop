@@ -8,6 +8,13 @@ from stockhot.ai_analyzer import run_analysis
 from stockhot.image_generator import run_generation
 from stockhot.publisher import run_publish
 from stockhot.storage.database import init_database, cleanup_old_data
+from stockhot.core.config import (
+    SCHEDULER_WORKFLOW_HOUR,
+    SCHEDULER_WORKFLOW_MINUTE,
+    SCHEDULER_CLEANUP_HOUR,
+    SCHEDULER_CLEANUP_MINUTE,
+    DATA_RETENTION_DAYS,
+)
 
 
 def run_daily_workflow(date: str | None = None) -> dict:
@@ -44,22 +51,22 @@ def run_scheduler() -> None:
 
     scheduler.add_job(
         run_daily_workflow,
-        CronTrigger(hour=16, minute=30),
+        CronTrigger(hour=SCHEDULER_WORKFLOW_HOUR, minute=SCHEDULER_WORKFLOW_MINUTE),
         id="daily_workflow",
         name="每日A股热点分析",
         replace_existing=True,
     )
 
     scheduler.add_job(
-        lambda: cleanup_old_data(90),
-        CronTrigger(hour=3, minute=0),
+        lambda: cleanup_old_data(DATA_RETENTION_DAYS),
+        CronTrigger(hour=SCHEDULER_CLEANUP_HOUR, minute=SCHEDULER_CLEANUP_MINUTE),
         id="cleanup",
         name="清理过期数据",
         replace_existing=True,
     )
 
     print("Scheduler started. Press Ctrl+C to exit.")
-    print("Daily workflow runs at 16:30 (4:30 PM) every weekday.")
+    print(f"Daily workflow runs at {SCHEDULER_WORKFLOW_HOUR}:{SCHEDULER_WORKFLOW_MINUTE:02d} every weekday.")
 
     try:
         scheduler.start()
