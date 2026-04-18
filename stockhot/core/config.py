@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).parent.parent
+PROJECT_ROOT = Path(__file__).parent.parent.parent
 DATA_DIR = PROJECT_ROOT / "data"
 STORAGE_DIR = PROJECT_ROOT / "storage"
 DB_PATH = STORAGE_DIR / "database" / "stockhot.db"
@@ -11,8 +11,10 @@ REPORTS_DIR = STORAGE_DIR / "files" / "reports"
 
 DATA_DIR.mkdir(exist_ok=True)
 STORAGE_DIR.mkdir(exist_ok=True)
-IMAGES_DIR.mkdir(exist_ok=True)
-REPORTS_DIR.mkdir(exist_ok=True)
+(STORAGE_DIR / "files").mkdir(exist_ok=True)
+(STORAGE_DIR / "files" / "images").mkdir(exist_ok=True)
+(STORAGE_DIR / "files" / "reports").mkdir(exist_ok=True)
+(STORAGE_DIR / "database").mkdir(exist_ok=True)
 
 COVER_WIDTH = 1242
 COVER_HEIGHT = 1660
