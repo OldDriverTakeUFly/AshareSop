@@ -21,7 +21,10 @@ from stockhot.core.config import (
     COLOR_TEXT_PRIMARY,
     COLOR_TEXT_SECONDARY,
     COLOR_BORDER,
+    COLOR_UP,
+    COLOR_DOWN,
 )
+from stockhot.data_collector.sector_map import get_stock_sector
 from stockhot.image_generator.renderer import create_background, draw_card, get_change_color, format_number
 from stockhot.storage.database import get_analysis_result, save_image_path
 
@@ -133,8 +136,8 @@ def draw_stats_section(draw: ImageDraw.ImageDraw, date_str: str) -> None:
     draw.line([(100, section_y), (COVER_WIDTH - 100, section_y)], fill=COLOR_BORDER, width=1)
 
     stats = [
-        ("上涨", "2,345", COLOR_SUCCESS),
-        ("下跌", "1,892", COLOR_DANGER),
+        ("上涨", "2,345", COLOR_UP),
+        ("下跌", "1,892", COLOR_DOWN),
         ("涨停", "47", COLOR_PRIMARY),
         ("成交额", "9,823亿", COLOR_WARNING),
     ]
@@ -180,19 +183,22 @@ def generate_data_card(data: dict) -> str:
     draw.text((50, 50), titles.get(card_type, "数据卡片"), font=get_font(36), fill=COLOR_PRIMARY)
 
     sample_data = [
-        {"name": "平安银行", "value": "+10.02%", "color": COLOR_SUCCESS},
-        {"name": "贵州茅台", "value": "+8.32%", "color": COLOR_SUCCESS},
-        {"name": "万科A", "value": "+7.85%", "color": COLOR_SUCCESS},
-        {"name": "招商银行", "value": "+6.54%", "color": COLOR_SUCCESS},
-        {"name": "中国平安", "value": "+5.92%", "color": COLOR_SUCCESS},
+        {"name": "平安银行", "value": "+10.02%", "color": COLOR_UP},
+        {"name": "贵州茅台", "value": "+8.32%", "color": COLOR_UP},
+        {"name": "万科A", "value": "+7.85%", "color": COLOR_UP},
+        {"name": "招商银行", "value": "+6.54%", "color": COLOR_UP},
+        {"name": "中国平安", "value": "+5.92%", "color": COLOR_UP},
     ]
 
     y_offset = 140
-    for item in sample_data:
-        draw.rectangle([(50, y_offset), (100, y_offset + 40)], fill=item["color"])
-        draw.text((120, y_offset + 5), item["name"], font=get_font(28), fill=COLOR_TEXT_PRIMARY)
-        draw.text((CONTENT_WIDTH - 180, y_offset + 5), item["value"], font=get_font(28), fill=item["color"])
-        y_offset += 90
+    for i, item in enumerate(sample_data):
+        sector = get_stock_sector(item["name"])
+        draw.rectangle([(50, y_offset), (70, y_offset + 40)], fill=item["color"])
+        draw.text((90, y_offset + 5), f"#{i+1}", font=get_font(22), fill=COLOR_TEXT_SECONDARY)
+        draw.text((140, y_offset + 5), item["name"], font=get_font(28), fill=COLOR_TEXT_PRIMARY)
+        draw.text((140, y_offset + 35), f"  [{sector}]", font=get_font(18), fill=COLOR_TEXT_SECONDARY)
+        draw.text((CONTENT_WIDTH - 160, y_offset + 5), item["value"], font=get_font(28), fill=item["color"])
+        y_offset += 100
 
     filename = f"{card_type}_{date}.png"
     filepath = IMAGES_DIR / filename
