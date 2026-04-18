@@ -4,7 +4,7 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).parent.parent
 DATA_DIR = PROJECT_ROOT / "data"
-STORAGE_DIR = PROJECT_ROOT / "stockhot" / "storage"
+STORAGE_DIR = PROJECT_ROOT / "storage"
 DB_PATH = STORAGE_DIR / "database" / "stockhot.db"
 IMAGES_DIR = STORAGE_DIR / "files" / "images"
 REPORTS_DIR = STORAGE_DIR / "files" / "reports"
