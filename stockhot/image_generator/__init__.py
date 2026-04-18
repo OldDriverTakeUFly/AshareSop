@@ -87,25 +87,21 @@ def generate_cover(data: dict) -> str:
 
 
 def create_cyberpunk_background(width: int, height: int) -> Image.Image:
-    """Create a cyberpunk styled background with gradient and grid."""
+    """Create a cyberpunk styled background with subtle effects."""
     img = Image.new("RGB", (width, height), (10, 10, 20))
     draw = ImageDraw.Draw(img)
 
-    for y in range(0, height, 4):
-        alpha = int(255 * (1 - y / height) * 0.3)
-        draw.line([(0, y), (width, y)], fill=(0, 212, 255, alpha))
+    for x in range(0, width, 80):
+        draw.line([(x, 0), (x, height)], fill=(30, 40, 60), width=1)
 
-    for x in range(0, width, 60):
-        draw.line([(x, 0), (x, height)], fill=(45, 58, 90, 30), width=1)
+    for y in range(0, height, 80):
+        draw.line([(0, y), (width, y)], fill=(30, 40, 60), width=1)
 
-    for y in range(0, height, 60):
-        draw.line([(0, y), (width, y)], fill=(45, 58, 90, 30), width=1)
-
-    for _ in range(15):
+    for _ in range(20):
         x = random.randint(50, width - 50)
         y = random.randint(50, height - 50)
-        size = random.randint(2, 4)
-        draw.ellipse([x, y, x + size, y + size], fill=(0, 212, 255, 100))
+        size = random.randint(1, 3)
+        draw.ellipse([x, y, x + size, y + size], fill=(0, 212, 255, 80))
 
     return img
 
