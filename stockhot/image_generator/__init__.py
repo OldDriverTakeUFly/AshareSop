@@ -151,11 +151,18 @@ def draw_stats_section(draw: ImageDraw.ImageDraw, date_str: str) -> None:
 
 
 def get_font(size: int) -> ImageFont.FreeTypeFont:
-    """Get font with specified size - fallback to default."""
-    try:
-        return ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", size)
-    except:
-        return ImageFont.load_default()
+    """Get font with specified size - try Chinese fonts first, fallback to default."""
+    chinese_fonts = [
+        "/usr/share/fonts/truetype/arphic/ukai.ttc",
+        "/usr/share/fonts/truetype/arphic/uming.ttc",
+        "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
+    ]
+    for font_path in chinese_fonts:
+        try:
+            return ImageFont.truetype(font_path, size)
+        except:
+            continue
+    return ImageFont.load_default()
 
 
 def generate_data_card(data: dict) -> str:
