@@ -31,6 +31,13 @@ SCHEDULER_WORKFLOW_MINUTE = 30
 SCHEDULER_CLEANUP_HOUR = 3
 SCHEDULER_CLEANUP_MINUTE = 0
 
+
+def get_reports_dir_for_date(date: str) -> Path:
+    path = REPORTS_DIR / date
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+
+
 COLOR_BACKGROUND = (26, 26, 46)
 COLOR_CARD_BACKGROUND = (22, 33, 62)
 COLOR_PRIMARY = (0, 212, 255)

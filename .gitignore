@@ -37,6 +37,13 @@ node_modules/
 *.log
 logs/
 
+# Python tooling cache
+.pytest_cache/
+.ruff_cache/
+
+# Planning infrastructure
+.sisyphus/
+
 # OS
 .DS_Store
 Thumbs.db

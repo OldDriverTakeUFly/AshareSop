@@ -175,3 +175,17 @@ def get_images_by_date(date: str) -> list[dict]:
         return [dict(row) for row in cursor]
     finally:
         conn.close()
+
+
+def get_preferred_analysis_result(date: str, analysis_types: tuple[str, ...]) -> dict | None:
+    """Return the first available analysis result from a list of preferred types.
+
+    Iterates through *analysis_types* in order and returns the first non-None
+    result found for the given *date*.  Returns ``None`` when none of the
+    types have a stored result.
+    """
+    for analysis_type in analysis_types:
+        result = get_analysis_result(date, analysis_type)
+        if result is not None:
+            return result
+    return None
