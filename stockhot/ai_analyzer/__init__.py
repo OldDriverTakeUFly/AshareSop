@@ -9,6 +9,7 @@ from stockhot.ai_analyzer.prompts.templates import (
     HOTSPOT_ANALYSIS_PROMPT,
     REPORT_PROMPT,
 )
+from stockhot.core.utils import safe_float
 from stockhot.storage.database import get_daily_data, save_analysis_result
 
 
@@ -37,16 +38,6 @@ def analyze_hotspots(data: dict) -> dict:
     gainers = data.get("gainers", [])
     sectors = data.get("sectors", [])
     fund_flows = data.get("fund_flows", [])
-
-    def safe_float(val, default=0.0):
-        if isinstance(val, (int, float)):
-            return float(val)
-        if isinstance(val, str):
-            try:
-                return float(val) if val != '-' else default
-            except:
-                return default
-        return default
 
     gainers_text = "\n".join([
         f"{i+1}. {s['name']} ({s['code']}): +{safe_float(s['change_pct']):.2f}%"
