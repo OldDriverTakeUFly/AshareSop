@@ -17,11 +17,12 @@ loguru = "^0.7.2"
 python-dotenv = "^1.0.0"
 
 [project.optional-dependencies]
-dev = 
-    pytest = "^8.0.0"
-    pytest-cov = "^4.1.0"
-    black = "^24.2.0"
-    ruff = "^0.2.0"
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.1.0",
+    "black>=24.2.0",
+    "ruff>=0.2.0",
+]
 
 [build-system]
 requires = ["setuptools>=61.0"]
@@ -34,3 +35,6 @@ target-version = "py311"
 [tool.black]
 line-length = 100
 target-version = ["py311"]
+
+[tool.pytest.ini_options]
+testpaths = ["stockhot/tests"]
