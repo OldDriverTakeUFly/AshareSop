@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>GitHub &#x4e0a;&#x70ed;&#x95e8; Agent Skills &#x8c03;&#x7814;&#x7b14;&#x8bb0;</title>
+            <style>
+/* From extension vscode.github */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+.vscode-dark img[src$=\#gh-light-mode-only],
+.vscode-light img[src$=\#gh-dark-mode-only],
+.vscode-high-contrast:not(.vscode-high-contrast-light) img[src$=\#gh-light-mode-only],
+.vscode-high-contrast-light img[src$=\#gh-dark-mode-only] {
+	display: none;
+}
+
+</style>
+            
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/markdown.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/highlight.css">
+<style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, 'Ubuntu', 'Droid Sans', sans-serif;
+                font-size: 14px;
+                line-height: 1.6;
+            }
+        </style>
+        <style>
+.task-list-item {
+    list-style-type: none;
+}
+
+.task-list-item-checkbox {
+    margin-left: -20px;
+    vertical-align: middle;
+    pointer-events: none;
+}
+</style>
+<style>
+:root {
+  --color-note: #0969da;
+  --color-tip: #1a7f37;
+  --color-warning: #9a6700;
+  --color-severe: #bc4c00;
+  --color-caution: #d1242f;
+  --color-important: #8250df;
+}
+
+</style>
+<style>
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-note: #2f81f7;
+    --color-tip: #3fb950;
+    --color-warning: #d29922;
+    --color-severe: #db6d28;
+    --color-caution: #f85149;
+    --color-important: #a371f7;
+  }
+}
+
+</style>
+<style>
+.markdown-alert {
+  padding: 0.5rem 1rem;
+  margin-bottom: 16px;
+  color: inherit;
+  border-left: .25em solid #888;
+}
+
+.markdown-alert>:first-child {
+  margin-top: 0
+}
+
+.markdown-alert>:last-child {
+  margin-bottom: 0
+}
+
+.markdown-alert .markdown-alert-title {
+  display: flex;
+  font-weight: 500;
+  align-items: center;
+  line-height: 1
+}
+
+.markdown-alert .markdown-alert-title .octicon {
+  margin-right: 0.5rem;
+  display: inline-block;
+  overflow: visible !important;
+  vertical-align: text-bottom;
+  fill: currentColor;
+}
+
+.markdown-alert.markdown-alert-note {
+  border-left-color: var(--color-note);
+}
+
+.markdown-alert.markdown-alert-note .markdown-alert-title {
+  color: var(--color-note);
+}
+
+.markdown-alert.markdown-alert-important {
+  border-left-color: var(--color-important);
+}
+
+.markdown-alert.markdown-alert-important .markdown-alert-title {
+  color: var(--color-important);
+}
+
+.markdown-alert.markdown-alert-warning {
+  border-left-color: var(--color-warning);
+}
+
+.markdown-alert.markdown-alert-warning .markdown-alert-title {
+  color: var(--color-warning);
+}
+
+.markdown-alert.markdown-alert-tip {
+  border-left-color: var(--color-tip);
+}
+
+.markdown-alert.markdown-alert-tip .markdown-alert-title {
+  color: var(--color-tip);
+}
+
+.markdown-alert.markdown-alert-caution {
+  border-left-color: var(--color-caution);
+}
+
+.markdown-alert.markdown-alert-caution .markdown-alert-title {
+  color: var(--color-caution);
+}
+
+</style>
+        
+        </head>
+        <body class="vscode-body vscode-light">
+            <h1 id="github-上热门-agent-skills-调研笔记">GitHub 上热门 Agent Skills 调研笔记</h1>
+<p>本文档整理当前 GitHub 上比较受关注的 agent skills 方向、代表仓库和使用场景，方便后续做选型、补充阅读和技能库建设。</p>
+<p>这里的“skill”不是泛指能力，而是面向 AI coding agent 的可复用工作流、命令包、提示模板、工具集成或技能目录。它通常以 <code>SKILL.md</code>、命令集合、插件仓库、MCP 能力封装或官方技能仓的形式出现。</p>
+<p>这不是一个严格排行榜，也不是完整收录。热度会变化，具体能力也会因生态不同而不同。本文更适合做趋势判断和入门导航。</p>
+<h2 id="1-快速结论">1. 快速结论</h2>
+<p>如果只看当前最值得关注的方向，GitHub 上比较火的 agent skills 大致集中在六类：</p>
+<ol>
+<li>官方 Skills 标准和官方技能仓</li>
+<li>文档检索与 MCP 接入</li>
+<li>浏览器自动化与 Web QA</li>
+<li>GitHub、PR、CI、Review 工作流</li>
+<li>前端设计增强与 UI 质量提升</li>
+<li>Skill 生成、评测与跨工具分发</li>
+</ol>
+<p>一句话总结就是，热门 skill 的核心已经不是“帮模型多写一点代码”，而是让 agent 能稳定、可复用地完成真实工作流。</p>
+<h2 id="2-阅读方式">2. 阅读方式</h2>
+<p>本文按“技能类型”组织，每一类下都列出：</p>
+<ul>
+<li>这个类型主要解决什么问题</li>
+<li>为什么它最近受欢迎</li>
+<li>代表仓库有哪些</li>
+<li>什么时候值得重点关注</li>
+</ul>
+<p>如果你只是想快速挑几个仓库先看，建议先看这些：</p>
+<ul>
+<li><code>anthropics/skills</code></li>
+<li><code>openai/skills</code></li>
+<li><code>upstash/context7</code></li>
+<li><code>browser-use/browser-use</code></li>
+<li><code>vercel-labs/agent-browser</code></li>
+<li><code>pbakaus/impeccable</code></li>
+<li><code>VoltAgent/awesome-agent-skills</code></li>
+</ul>
+<h2 id="3-总览表">3. 总览表</h2>
+<table>
+<thead>
+<tr>
+<th>类型</th>
+<th>主要用途</th>
+<th>代表仓库</th>
+<th>适合谁</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>官方技能仓</td>
+<td>建立标准化 skill 目录和安装方式</td>
+<td><code>anthropics/skills</code>, <code>openai/skills</code></td>
+<td>想系统建设技能库的人</td>
+</tr>
+<tr>
+<td>文档检索 / MCP</td>
+<td>先查最新文档，再动手实现</td>
+<td><code>upstash/context7</code></td>
+<td>想减少 API 幻觉的人</td>
+</tr>
+<tr>
+<td>浏览器自动化</td>
+<td>截图、表单、抓取、网页测试</td>
+<td><code>browser-use/browser-use</code>, <code>vercel-labs/agent-browser</code></td>
+<td>做 Web 自动化和 QA 的人</td>
+</tr>
+<tr>
+<td>GitHub 工作流</td>
+<td>修 CI、回评论、生成 PR、发版</td>
+<td><code>openai/skills</code>, <code>ok-skills</code> 等集合仓</td>
+<td>想把 agent 接入研发流程的人</td>
+</tr>
+<tr>
+<td>前端设计增强</td>
+<td>提升页面质量、交互和审美</td>
+<td><code>pbakaus/impeccable</code></td>
+<td>做 UI/前端的人</td>
+</tr>
+<tr>
+<td>Skill 工具链</td>
+<td>生成、评测、跨生态分发 skill</td>
+<td><code>VoltAgent/awesome-agent-skills</code> 等</td>
+<td>想维护长期技能体系的人</td>
+</tr>
+</tbody>
+</table>
+<h2 id="4-官方-skills-标准与官方技能仓">4. 官方 Skills 标准与官方技能仓</h2>
+<p>这一类仓库定义了“skill 应该怎么组织、怎么发现、怎么安装、怎么跨工具复用”。它们的重要性不只是仓库本身热，而是会影响其他生态怎么跟进。</p>
+<h3 id="41-代表仓库">4.1 代表仓库</h3>
+<ul>
+<li><code>anthropics/skills</code></li>
+<li><code>openai/skills</code></li>
+<li><code>VoltAgent/awesome-agent-skills</code></li>
+</ul>
+<h3 id="42-为什么这类最重要">4.2 为什么这类最重要</h3>
+<p>很多团队一开始把 skill 当作 prompt 片段或命令别名来维护，但随着 agent 使用变多，大家很快会遇到几个问题：</p>
+<ul>
+<li>skill 如何命名和分类</li>
+<li>skill 该放哪些说明、脚本和约束</li>
+<li>不同 agent 生态如何复用同一套 skill</li>
+<li>团队如何共享、版本化和审查 skill</li>
+</ul>
+<p>官方技能仓和大型收录仓正好解决这些问题，所以它们往往是整个生态的风向标。</p>
+<h3 id="43-适合什么时候看">4.3 适合什么时候看</h3>
+<ul>
+<li>你想建立自己的 skill 目录</li>
+<li>你想知道主流生态如何设计 skill 格式</li>
+<li>你想看别人是怎么组织说明、脚本和触发条件的</li>
+</ul>
+<h2 id="5-文档检索与-mcp-技能">5. 文档检索与 MCP 技能</h2>
+<p>这一类 skill 的核心价值是让 agent 在实现前先拿到最新资料，而不是依赖模型旧记忆。</p>
+<h3 id="51-代表仓库">5.1 代表仓库</h3>
+<ul>
+<li><code>upstash/context7</code></li>
+<li>与 Context7、MCP、API 文档抓取相关的 skill 集合仓</li>
+</ul>
+<h3 id="52-为什么最近很火">5.2 为什么最近很火</h3>
+<p>当前最常见的问题不是“模型不会写”，而是“模型写出来的接口和最新文档不一致”。这类 skill 可以显著降低以下问题：</p>
+<ul>
+<li>API 参数过期</li>
+<li>SDK 调用方式过时</li>
+<li>第三方库版本变化导致示例失效</li>
+<li>依赖真实工具时的上下文缺失</li>
+</ul>
+<p>MCP 的价值在这里很明显。它把“查询外部事实”从隐式提示，变成了明确工具能力。</p>
+<h3 id="53-适合什么时候优先建设">5.3 适合什么时候优先建设</h3>
+<ul>
+<li>你的任务高度依赖第三方 SDK</li>
+<li>你经常写集成代码</li>
+<li>你的 agent 经常被用户要求“按官方文档来”</li>
+</ul>
+<h2 id="6-浏览器自动化与-web-qa">6. 浏览器自动化与 Web QA</h2>
+<p>这是现在最容易看见实际效果的一类 skill。它让 agent 能操作网页、填表单、截图、抓取内容、跑 UI 验证，甚至直接复用网页背后的 API。</p>
+<h3 id="61-代表仓库">6.1 代表仓库</h3>
+<ul>
+<li><code>browser-use/browser-use</code></li>
+<li><code>vercel-labs/agent-browser</code></li>
+<li>相关 Playwright、browser-use、浏览器工具 skill 集合</li>
+</ul>
+<h3 id="62-为什么这类传播很快">6.2 为什么这类传播很快</h3>
+<p>浏览器 skill 的价值非常直观：</p>
+<ul>
+<li>自动登录和导航</li>
+<li>自动填写表单</li>
+<li>页面截图和回归检查</li>
+<li>网页抓取和信息提取</li>
+<li>对真实用户路径做最小验证</li>
+</ul>
+<p>这类能力很适合演示，也很适合做成可重复执行的工作流，所以很容易在 GitHub 和社交平台传播。</p>
+<h3 id="63-一个值得注意的趋势">6.3 一个值得注意的趋势</h3>
+<p>很多浏览器 skill 不再只是“模拟点击”，而是开始尝试两条路径：</p>
+<ol>
+<li>用浏览器真实执行一次任务</li>
+<li>从执行过程里学习 API 或可复用动作，后续走更快的路径</li>
+</ol>
+<p>这意味着 skill 正在从“操作脚本”往“任务记忆”演进。</p>
+<h2 id="7-githubprcireview-工作流技能">7. GitHub、PR、CI、Review 工作流技能</h2>
+<p>这类 skill 的星数不一定总是最高，但在真实研发环境里往往最有价值，因为它们直接作用于团队协作和交付流程。</p>
+<h3 id="71-常见-skill-主题">7.1 常见 skill 主题</h3>
+<ul>
+<li>修复 GitHub Actions 失败</li>
+<li>阅读并处理 review comments</li>
+<li>生成 PR 描述</li>
+<li>根据仓库约定准备发布说明</li>
+<li>用 <code>gh</code> 工具做 issue、PR、check 的自动化</li>
+</ul>
+<h3 id="72-为什么这类很值得重视">7.2 为什么这类很值得重视</h3>
+<p>很多团队已经不满足于“让 agent 帮我写个函数”，而是开始要求 agent 参与完整的研发闭环：</p>
+<ul>
+<li>看失败日志</li>
+<li>读评审意见</li>
+<li>处理流水线报错</li>
+<li>补充说明文档</li>
+<li>统一提交格式</li>
+</ul>
+<p>所以这类 skill 的价值在于把 agent 从“写代码助手”推进到“交付流程助手”。</p>
+<h3 id="73-适合什么时候投入">7.3 适合什么时候投入</h3>
+<ul>
+<li>你的团队已经在稳定使用 GitHub</li>
+<li>你们有明显的 PR / CI / review 重复劳动</li>
+<li>你希望 agent 更贴近日常工程流而不是 demo 流</li>
+</ul>
+<h2 id="8-前端设计增强与-ui-质量提升">8. 前端设计增强与 UI 质量提升</h2>
+<p>前端设计 skill 的核心目标不是替代设计师，而是减少“AI 生成页面很平、很像模板、缺少质感”的问题。</p>
+<h3 id="81-代表仓库">8.1 代表仓库</h3>
+<ul>
+<li><code>pbakaus/impeccable</code></li>
+<li>相关 design skills、web design guidelines、frontend-ui-ux 集合</li>
+</ul>
+<h3 id="82-为什么它越来越火">8.2 为什么它越来越火</h3>
+<p>社区已经逐渐形成一个共识：模型可以很快写出可运行 UI，但要写出有层次、有节奏、视觉上成熟的界面，仍然需要额外 skill 来约束和补强。</p>
+<p>这类 skill 往往会提供：</p>
+<ul>
+<li>设计原则</li>
+<li>反模式清单</li>
+<li>常见布局和间距规则</li>
+<li>动效或视觉层次建议</li>
+<li>更像资深前端工程师的实现偏好</li>
+</ul>
+<h3 id="83-什么时候最有帮助">8.3 什么时候最有帮助</h3>
+<ul>
+<li>你在做 Demo、着陆页、营销页、Dashboard</li>
+<li>你已经能生成页面，但想提升审美和完成度</li>
+<li>你不想每次都重复告诉 agent 什么叫“更像产品级 UI”</li>
+</ul>
+<h2 id="9-skill-生成评测与跨工具分发">9. Skill 生成、评测与跨工具分发</h2>
+<p>这类项目本身未必是全网最火，但很值得长期关注，因为它们在回答一个更基础的问题：团队该如何持续生产和维护 skill。</p>
+<h3 id="91-典型方向">9.1 典型方向</h3>
+<ul>
+<li>skill creator</li>
+<li>skill evaluation</li>
+<li>skill marketplace / awesome list</li>
+<li>跨 Claude Code、Codex、Cursor、OpenCode 的分发与兼容</li>
+</ul>
+<h3 id="92-为什么重要">9.2 为什么重要</h3>
+<p>当团队 skill 数量开始上升后，核心问题会从“有没有 skill”变成：</p>
+<ul>
+<li>skill 如何发现</li>
+<li>skill 如何安装</li>
+<li>skill 如何校验质量</li>
+<li>skill 如何避免过期</li>
+<li>skill 如何在不同 agent 工具里共用</li>
+</ul>
+<p>从这个角度看，这类项目更像 skill 生态的基础设施。</p>
+<h2 id="10-如果你要自己建技能库建议优先关注什么">10. 如果你要自己建技能库，建议优先关注什么</h2>
+<p>如果目标是搭一套实用技能库，我建议按下面顺序建设：</p>
+<h3 id="101-第一优先级">10.1 第一优先级</h3>
+<ul>
+<li>文档检索 / MCP</li>
+<li>GitHub / CI / Review</li>
+<li>浏览器自动化</li>
+</ul>
+<p>这三类最容易直接带来效率收益，也最能减少 agent 的错误输出。</p>
+<h3 id="102-第二优先级">10.2 第二优先级</h3>
+<ul>
+<li>前端设计增强</li>
+<li>发布与交付相关 skill</li>
+<li>项目约定和代码风格类 skill</li>
+</ul>
+<h3 id="103-第三优先级">10.3 第三优先级</h3>
+<ul>
+<li>skill creator</li>
+<li>内部 skill 评测</li>
+<li>技能市场和版本管理</li>
+</ul>
+<h2 id="11-推荐的阅读顺序">11. 推荐的阅读顺序</h2>
+<p>如果你准备后续深入阅读，可以按这个顺序看：</p>
+<ol>
+<li>先看 <code>anthropics/skills</code> 和 <code>openai/skills</code>，理解官方格式与组织方式</li>
+<li>再看 <code>upstash/context7</code>，理解“先查文档再编码”的能力边界</li>
+<li>再看 <code>browser-use/browser-use</code> 和 <code>vercel-labs/agent-browser</code>，理解外部环境操作能力</li>
+<li>再看设计类仓库，如 <code>pbakaus/impeccable</code></li>
+<li>最后看大型收录仓，如 <code>VoltAgent/awesome-agent-skills</code>，作为长期导航入口</li>
+</ol>
+<h2 id="12-使用这类-skill-时的注意点">12. 使用这类 skill 时的注意点</h2>
+<p>最后需要提醒几个现实问题：</p>
+<ol>
+<li>热门不代表适合你的工作流。很多 skill 是为特定 agent 生态设计的。</li>
+<li>同名 skill 在不同仓库中的实现方式可能完全不同。</li>
+<li>某些 skill 依赖外部 CLI、浏览器、MCP 服务或 GitHub 登录环境。</li>
+<li>skill 很容易过期，尤其是依赖第三方工具、网页结构或外部 API 的 skill。</li>
+<li>真正稳定的 skill，通常不只是 prompt，还会带明确边界、脚本、输入输出约束和失败处理方式。</li>
+</ol>
+<h2 id="13-一句话收尾">13. 一句话收尾</h2>
+<p>如果把趋势压缩成一句话，那就是：当前 GitHub 上最火的 agent skills，不是“让模型更聪明”，而是“让 agent 更像一个可复用、可集成、可落地的工作流执行者”。</p>
+
+            
+            
+        </body>
+        </html>
