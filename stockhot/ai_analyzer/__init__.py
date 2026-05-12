@@ -9,8 +9,8 @@ from stockhot.ai_analyzer.prompts.templates import (
     HOTSPOT_ANALYSIS_PROMPT,
     REPORT_PROMPT,
 )
-from stockhot.core.utils import safe_float
-from stockhot.storage.database import get_daily_data, save_analysis_result
+from stockhot.core.utils import fund_flow_direction_phrase, fund_flow_scope_label, safe_float
+from stockhot.storage.database import get_daily_data, get_preferred_analysis_result, save_analysis_result
 
 
 def run_analysis(date: str | None = None) -> dict:
@@ -19,14 +19,17 @@ def run_analysis(date: str | None = None) -> dict:
     print(f"[AIAnalyzer] 分析日期: {target_date}")
 
     data = get_daily_data(target_date)
-    if not data or len(data) <= 1:
+    if not data or not _has_market_data(data):
         print("[AIAnalyzer] 无数据可分析")
         return {"date": target_date, "status": "no_data"}
 
     hotspots = analyze_hotspots(data)
     save_analysis_result(target_date, "hotspots", hotspots)
 
-    report = generate_daily_report(data, hotspots)
+    preferred = get_preferred_analysis_result(target_date, ("hotspot_discovery",))
+    report_analysis = preferred if preferred else hotspots
+
+    report = generate_daily_report(data, report_analysis)
     save_analysis_result(target_date, "report", {"text": report})
 
     print("[AIAnalyzer] 分析完成")
@@ -60,14 +63,19 @@ def analyze_hotspots(data: dict) -> dict:
         fund_flows=fund_flows_text,
     )
 
-    result = call_ai(prompt)
+    ai_result = call_ai_optional(prompt)
+
+    if ai_result is None:
+        local = _local_hotspot_analysis(data)
+        local["raw_analysis"] = ""
+        return local
 
     return {
-        "hotspots": _extract_hotspots(result),
-        "reasons": _extract_reasons(result),
-        "fund_flow_analysis": _extract_fund_flow_analysis(result),
-        "risk_warnings": _extract_risks(result),
-        "raw_analysis": result,
+        "hotspots": _extract_hotspots(ai_result, sectors),
+        "reasons": _local_reasons(data, ai_result),
+        "fund_flow_analysis": _extract_fund_flow_analysis(ai_result),
+        "risk_warnings": _extract_risks(ai_result),
+        "raw_analysis": ai_result,
     }
 
 
@@ -92,6 +100,7 @@ def generate_daily_report(data: dict, analysis: dict) -> str:
     market_data = _format_market_data(data)
     hotspots = analysis.get("hotspots", [])
     reasons = analysis.get("reasons", [])
+    fund_flow_analysis = analysis.get("fund_flow_analysis", "")
 
     analysis_text = f"热点主题: {', '.join(hotspots[:3])}\n"
     if reasons:
@@ -102,7 +111,11 @@ def generate_daily_report(data: dict, analysis: dict) -> str:
         analysis=analysis_text,
     )
 
-    return call_ai(prompt)
+    ai_result = call_ai_optional(prompt)
+    if ai_result and "数据不足" not in ai_result:
+        return ai_result
+
+    return _local_daily_report(data, analysis)
 
 
 def call_ai(prompt: str, model: str = "gpt-4o-mini") -> str:
@@ -128,6 +141,43 @@ def call_ai(prompt: str, model: str = "gpt-4o-mini") -> str:
         return _fallback_analysis(prompt)
 
 
+def call_ai_optional(prompt: str) -> str | None:
+    """Try calling AI; return None on any failure."""
+    try:
+        result = call_ai(prompt)
+        return result if result else None
+    except Exception:
+        return None
+
+
+def _local_hotspot_analysis(data: dict) -> dict:
+    gainers = data.get("gainers", [])
+    sectors = data.get("sectors", [])
+    fund_flows = data.get("fund_flows", [])
+
+    reasons = []
+    if gainers:
+        top_gainer = gainers[0]
+        reasons.append(f"个股样本中，{top_gainer['name']}涨幅居前")
+    if sectors:
+        top_sector = sectors[0]
+        reasons.append(f"板块端，{top_sector['name']}领涨")
+
+    fund_flow_analysis = ""
+    if fund_flows:
+        top_flow = fund_flows[0]
+        scope = fund_flow_scope_label(top_flow)
+        direction = fund_flow_direction_phrase(top_flow)
+        fund_flow_analysis = f"当前{scope}资金样本中，{top_flow['name']}{direction}。"
+
+    return {
+        "hotspots": [],
+        "reasons": reasons,
+        "fund_flow_analysis": fund_flow_analysis,
+        "risk_warnings": [],
+    }
+
+
 def _fallback_analysis(prompt: str) -> str:
     """本地降级分析（无API时）"""
     if "涨幅前10" in prompt:
@@ -143,6 +193,56 @@ def _fallback_analysis(prompt: str) -> str:
 ### 风险提示
 部分题材股炒作风险较大，建议谨慎"""
     return "数据不足以生成完整分析"
+
+
+def _has_market_data(data: dict) -> bool:
+    return bool(data.get("gainers") or data.get("losers") or data.get("sectors") or data.get("fund_flows"))
+
+
+def _local_reasons(data: dict, ai_result: str) -> list[str]:
+    reasons = []
+    gainers = data.get("gainers", [])
+    sectors = data.get("sectors", [])
+    if gainers:
+        reasons.append(f"个股样本中，{gainers[0]['name']}涨幅居前")
+    if sectors:
+        reasons.append(f"板块端，{sectors[0]['name']}涨幅居前")
+    return reasons if reasons else _extract_reasons(ai_result)
+
+
+def _local_daily_report(data: dict, analysis: dict) -> str:
+    gainers = data.get("gainers", [])
+    sectors = data.get("sectors", [])
+    fund_flows = data.get("fund_flows", [])
+    reasons = analysis.get("reasons", [])
+    fund_flow_analysis = analysis.get("fund_flow_analysis", "")
+
+    lines = ["## 市场复盘摘要\n"]
+
+    if gainers:
+        top = gainers[0]
+        lines.append(f"个股端，{top['name']}涨幅+{safe_float(top['change_pct']):.2f}%")
+
+    if sectors:
+        top = sectors[0]
+        lines.append(f"板块端，{top['name']}涨幅+{safe_float(top['change_pct']):.2f}%")
+
+    if fund_flow_analysis:
+        lines.append(fund_flow_analysis)
+    elif fund_flows:
+        top_flow = fund_flows[0]
+        scope = fund_flow_scope_label(top_flow)
+        direction = fund_flow_direction_phrase(top_flow)
+        lines.append(f"{scope}资金样本中，{top_flow['name']}{direction}。")
+
+    themes = analysis.get("themes", [])
+    lead_theme = analysis.get("lead_theme")
+    if themes:
+        theme_names = [t["name"] for t in themes if "name" in t]
+        if theme_names:
+            lines.append(f"热点线索可先看：{'、'.join(theme_names)}。")
+
+    return "\n".join(lines)
 
 
 def _format_market_data(data: dict) -> str:
@@ -165,8 +265,12 @@ def _format_market_data(data: dict) -> str:
     return "\n".join(lines)
 
 
-def _extract_hotspots(text: str) -> list[str]:
+def _extract_hotspots(text: str, sectors: list[dict] | None = None) -> list[str]:
     """提取热点主题"""
+    sector_names = [s["name"] for s in (sectors or []) if "name" in s]
+    matched = [name for name in sector_names if name in text]
+    if matched:
+        return matched[:5]
     keywords = ["银行", "白酒", "新能源", "医药", "半导体", "房地产", "军工", "券商", "光伏", "汽车"]
     return [k for k in keywords if k in text][:5]
 
