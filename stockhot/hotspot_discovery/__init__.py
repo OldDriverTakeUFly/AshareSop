@@ -455,4 +455,3 @@ def _first_net_inflow(item: dict[str, Any]) -> float:
 
 def _has_discoverable_data(data: dict[str, Any]) -> bool:
     return any(data.get(key) for key in ("sectors", "fund_flows", "gainers"))
-    return default

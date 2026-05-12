@@ -282,10 +282,3 @@ def generate_sector_card(data: dict) -> str:
     save_image_path(date, "sectors_tracking", str(filepath))
 
     return str(filepath)
-
-
-def generate_report_image(report: str) -> str:
-
-    save_image_path(date, "report", str(filepath))
-
-    return str(filepath)
