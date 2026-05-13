@@ -46,15 +46,16 @@ def fetch_market_fund_flow() -> list[dict]:
         raw_date = safe_text(row.get("日期"))
         if not raw_date:
             continue
+        # AkShare returns 元, convert to 亿
         rows.append(
             {
                 "date": from_akshare_date(raw_date) if len(raw_date) == 8 else raw_date,
-                "main_net": safe_float(row.get("主力净流入-净额")),
+                "main_net": safe_float(row.get("主力净流入-净额")) / 1e8,
                 "main_pct": safe_float(row.get("主力净流入-净流入占比")),
-                "huge_net": safe_float(row.get("超大单净流入-净额")),
-                "large_net": safe_float(row.get("大单净流入-净额")),
-                "medium_net": safe_float(row.get("中单净流入-净额")),
-                "small_net": safe_float(row.get("小单净流入-净额")),
+                "huge_net": safe_float(row.get("超大单净流入-净额")) / 1e8,
+                "large_net": safe_float(row.get("大单净流入-净额")) / 1e8,
+                "medium_net": safe_float(row.get("中单净流入-净额")) / 1e8,
+                "small_net": safe_float(row.get("小单净流入-净额")) / 1e8,
             }
         )
     logger.info(f"fetch_market_fund_flow: {len(rows)} rows")
@@ -63,7 +64,7 @@ def fetch_market_fund_flow() -> list[dict]:
 
 def fetch_sector_fund_flow(
     indicator: str = "今日",
-    sector_type: str = "行业",
+    sector_type: str = "行业资金流",
 ) -> list[dict]:
     """Fetch sector-level fund flow ranking via AkShare.
 
@@ -93,16 +94,17 @@ def fetch_sector_fund_flow(
         name = safe_text(row.get("名称"))
         if not name:
             continue
+        # AkShare returns 元, convert to 亿
         rows.append(
             {
                 "name": name,
                 "change_pct": safe_float(row.get("今日涨跌幅")),
-                "main_net": safe_float(row.get("主力净流入-净额")),
+                "main_net": safe_float(row.get("主力净流入-净额")) / 1e8,
                 "main_pct": safe_float(row.get("主力净流入-净流入占比")),
-                "huge_net": safe_float(row.get("超大单净流入-净额")),
-                "large_net": safe_float(row.get("大单净流入-净额")),
-                "medium_net": safe_float(row.get("中单净流入-净额")),
-                "small_net": safe_float(row.get("小单净流入-净额")),
+                "huge_net": safe_float(row.get("超大单净流入-净额")) / 1e8,
+                "large_net": safe_float(row.get("大单净流入-净额")) / 1e8,
+                "medium_net": safe_float(row.get("中单净流入-净额")) / 1e8,
+                "small_net": safe_float(row.get("小单净流入-净额")) / 1e8,
             }
         )
     logger.info(f"fetch_sector_fund_flow: {len(rows)} rows")
@@ -141,16 +143,17 @@ def fetch_individual_fund_flow(
         raw_date = safe_text(row.get("日期"))
         if not raw_date:
             continue
+        # AkShare returns 元, convert to 亿
         rows.append(
             {
                 "date": from_akshare_date(raw_date) if len(raw_date) == 8 else raw_date,
                 "close_price": safe_float(row.get("收盘价")),
                 "change_pct": safe_float(row.get("涨跌幅")),
-                "main_net": safe_float(row.get("主力净流入-净额")),
-                "huge_net": safe_float(row.get("超大单净流入-净额")),
-                "large_net": safe_float(row.get("大单净流入-净额")),
-                "medium_net": safe_float(row.get("中单净流入-净额")),
-                "small_net": safe_float(row.get("小单净流入-净额")),
+                "main_net": safe_float(row.get("主力净流入-净额")) / 1e8,
+                "huge_net": safe_float(row.get("超大单净流入-净额")) / 1e8,
+                "large_net": safe_float(row.get("大单净流入-净额")) / 1e8,
+                "medium_net": safe_float(row.get("中单净流入-净额")) / 1e8,
+                "small_net": safe_float(row.get("小单净流入-净额")) / 1e8,
             }
         )
     logger.info(f"fetch_individual_fund_flow({stock}): {len(rows)} rows")
