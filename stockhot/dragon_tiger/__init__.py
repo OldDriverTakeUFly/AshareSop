@@ -21,22 +21,22 @@ _LHB_DETAIL_FIELDS = {
     "龙虎榜净买额": "net_buy_amount",
     "龙虎榜买入额": "buy_amount",
     "龙虎榜卖出额": "sell_amount",
-    "上榜日期": "list_date",
+    "上榜日": "list_date",
 }
 
 _INST_FIELDS = {
-    "机构代码": "inst_code",
-    "机构名称": "inst_name",
-    "买入额": "buy_amount",
-    "卖出额": "sell_amount",
-    "净额": "net_amount",
+    "代码": "inst_code",
+    "名称": "inst_name",
+    "机构买入总额": "buy_amount",
+    "机构卖出总额": "sell_amount",
+    "机构买入净额": "net_amount",
 }
 
 _BROKER_FIELDS = {
     "营业部名称": "broker_name",
-    "买入额": "buy_amount",
-    "卖出额": "sell_amount",
-    "净额": "net_amount",
+    "买入总金额": "buy_amount",
+    "卖出总金额": "sell_amount",
+    "总买卖净额": "net_amount",
 }
 
 
