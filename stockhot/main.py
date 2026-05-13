@@ -2,6 +2,7 @@
 
 import sys
 import argparse
+from datetime import datetime
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -43,6 +44,26 @@ def main():
     if args.mode in ("analyze", "all"):
         from stockhot.ai_analyzer import run_analysis
         run_analysis(date=args.date)
+
+    if args.mode in ("analyze", "all"):
+        from stockhot.limit_up import run_limit_up_analysis
+        from stockhot.dragon_tiger import run_dragon_tiger_analysis
+        from stockhot.fund_flow import run_fund_flow_analysis
+        from stockhot.risk_alert import run_risk_alert_analysis
+
+        analysis_date = args.date or datetime.now().strftime("%Y-%m-%d")
+
+        print("\n涨停板分析...")
+        run_limit_up_analysis(analysis_date)
+
+        print("\n龙虎榜分析...")
+        run_dragon_tiger_analysis(analysis_date)
+
+        print("\n资金流向分析...")
+        run_fund_flow_analysis(analysis_date)
+
+        print("\n风险提示分析...")
+        run_risk_alert_analysis(args.date)
 
     if args.mode in ("generate", "all"):
         from stockhot.image_generator import run_generation
