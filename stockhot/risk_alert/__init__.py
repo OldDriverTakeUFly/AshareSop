@@ -91,7 +91,7 @@ def detect_abnormal_volatility(lhb_detail: list[dict]) -> list[dict]:
 
     flagged: list[dict] = []
     for entry in lhb_detail:
-        reason = safe_text(entry.get("上榜原因"))
+        reason = safe_text(entry.get("reason"))
         if not reason:
             continue
         if any(keyword in reason for keyword in VOLATILITY_REASONS):
@@ -106,7 +106,7 @@ def detect_capital_flight(sector_fund_flow: list[dict]) -> list[dict]:
 
     flagged: list[dict] = []
     for entry in sector_fund_flow:
-        net_inflow = safe_float(entry.get("net_inflow"))
+        net_inflow = safe_float(entry.get("main_net"))
         if net_inflow < 0:
             flagged.append(entry)
     return flagged
@@ -171,8 +171,8 @@ def run_risk_alert_analysis(date: str | None = None) -> dict:
     suspended_stocks = fetch_suspended_stocks()
 
     market_data = get_daily_data(target_date)
-    lhb_detail: list[dict] = market_data.get("lhb_detail") or []
-    sector_fund_flow: list[dict] = market_data.get("sector_fund_flow") or []
+    lhb_detail: list[dict] = market_data.get("dragon_tiger_detail") or []
+    sector_fund_flow: list[dict] = market_data.get("fund_flow_sector") or []
     limit_up_pool: list[dict] = market_data.get("limit_up_pool") or []
 
     abnormal = detect_abnormal_volatility(lhb_detail)

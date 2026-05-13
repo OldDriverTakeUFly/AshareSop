@@ -28,9 +28,9 @@ def test_fetch_st_stocks_with_mock(monkeypatch):
 
 def test_detect_abnormal_volatility_filters_reasons():
     lhb = [
-        {"代码": "000001", "名称": "测试A", "上榜原因": "日涨幅偏离值达7%"},
-        {"代码": "000002", "名称": "测试B", "上榜原因": "日换手率达到20%"},
-        {"代码": "000003", "名称": "测试C", "上榜原因": "连续三个交易日跌幅偏离值累计达20%"},
+        {"代码": "000001", "名称": "测试A", "reason": "日涨幅偏离值达7%"},
+        {"代码": "000002", "名称": "测试B", "reason": "日换手率达到20%"},
+        {"代码": "000003", "名称": "测试C", "reason": "连续三个交易日跌幅偏离值累计达20%"},
     ]
 
     result = ra.detect_abnormal_volatility(lhb)
@@ -41,8 +41,8 @@ def test_detect_abnormal_volatility_filters_reasons():
 
 def test_detect_abnormal_volatility_no_match():
     lhb = [
-        {"代码": "000001", "名称": "测试A", "上榜原因": "涨幅偏离值达15%"},
-        {"代码": "000002", "名称": "测试B", "上榜原因": "其他原因"},
+        {"代码": "000001", "名称": "测试A", "reason": "涨幅偏离值达15%"},
+        {"代码": "000002", "名称": "测试B", "reason": "其他原因"},
     ]
 
     result = ra.detect_abnormal_volatility(lhb)
@@ -52,10 +52,10 @@ def test_detect_abnormal_volatility_no_match():
 
 def test_detect_capital_flight_flags_outflows():
     sectors = [
-        {"name": "半导体", "net_inflow": 50.0},
-        {"name": "房地产", "net_inflow": -30.5},
-        {"name": "银行", "net_inflow": 10.0},
-        {"name": "传媒", "net_inflow": -5.2},
+        {"name": "半导体", "main_net": 50.0},
+        {"name": "房地产", "main_net": -30.5},
+        {"name": "银行", "main_net": 10.0},
+        {"name": "传媒", "main_net": -5.2},
     ]
 
     result = ra.detect_capital_flight(sectors)
@@ -103,11 +103,11 @@ def test_run_risk_alert_analysis_full(monkeypatch):
 
     market_data = {
         "date": "2026-04-17",
-        "lhb_detail": [
-            {"代码": "000001", "名称": "测试A", "上榜原因": "日涨幅偏离值达7%"},
+        "dragon_tiger_detail": [
+            {"代码": "000001", "名称": "测试A", "reason": "日涨幅偏离值达7%"},
         ],
-        "sector_fund_flow": [
-            {"name": "房地产", "net_inflow": -30.5},
+        "fund_flow_sector": [
+            {"name": "房地产", "main_net": -30.5},
         ],
         "limit_up_pool": [
             {"代码": "000010", "名称": "连板股", "consecutive_boards": 5},
@@ -141,7 +141,7 @@ def test_empty_data_no_false_positives():
     assert ra.detect_abnormal_volatility([{"代码": "000001"}]) == []
 
     assert ra.detect_capital_flight([]) == []
-    assert ra.detect_capital_flight([{"name": "银行", "net_inflow": 10.0}]) == []
+    assert ra.detect_capital_flight([{"name": "银行", "main_net": 10.0}]) == []
 
     assert ra.detect_high_position_risks([]) == []
     assert ra.detect_high_position_risks([{"代码": "000001", "consecutive_boards": 2}]) == []
