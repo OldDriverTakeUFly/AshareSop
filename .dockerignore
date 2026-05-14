@@ -1,0 +1,54 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Node
+node_modules/
+dashboard/node_modules/
+dashboard/.next/
+
+# Data & Storage (mount as volumes instead)
+storage/
+data/
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.idea/
+.vscode/
+*.swp
+
+# Planning infrastructure
+.sisyphus/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Docker (avoid recursion)
+docker/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Test artifacts
+test-results/
+coverage/
+
+# Documentation
+docs/
+
+# Publisher (not needed in Docker)
+stockhot/publisher/
