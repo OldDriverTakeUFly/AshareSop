@@ -1,5 +1,6 @@
 services:
   backend:
+    image: stockhot-backend:latest
     build:
       context: .
       dockerfile: docker/backend.Dockerfile
@@ -20,6 +21,7 @@ services:
       start_period: 10s
 
   frontend:
+    image: stockhot-frontend:latest
     build:
       context: .
       dockerfile: docker/frontend.Dockerfile
