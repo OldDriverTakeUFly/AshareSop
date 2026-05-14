@@ -1,0 +1,202 @@
+/**
+ * TypeScript interfaces matching Pydantic schemas in stockhot/api/schemas.py.
+ * Field names are identical to the Python models for seamless JSON deserialization.
+ */
+
+// ---------------------------------------------------------------------------
+// Limit Up (涨停)
+// ---------------------------------------------------------------------------
+
+export interface LimitUpStock {
+  code: string;
+  name: string;
+  change_pct: number;
+  seal_amount: number;
+  max_board: number;
+  consecutive_boards: number;
+  sector: string;
+  broken_count: number;
+  first_seal_time: string;
+  last_seal_time: string;
+  turnover_rate: number;
+}
+
+export interface BrokenStock {
+  code: string;
+  name: string;
+  change_pct: number;
+  broken_count: number;
+  sector: string;
+}
+
+export interface LimitDownStock {
+  code: string;
+  name: string;
+  change_pct: number;
+  sector: string;
+}
+
+export interface ConsecutiveBoard {
+  board_count: number;
+  stocks: Array<Record<string, string>>;
+}
+
+export interface SectorCorrelation {
+  name: string;
+  count: number;
+  stocks: string[];
+}
+
+export interface SealStrength {
+  code: string;
+  name: string;
+  seal_amount: number;
+  broken_count: number;
+  score: number;
+}
+
+export interface LimitUpAnalysis {
+  consecutive_boards: ConsecutiveBoard[];
+  sector_correlation: SectorCorrelation[];
+  seal_strength_ranking: SealStrength[];
+  summary: string;
+}
+
+export interface LimitUpResponse {
+  date: string;
+  status: string;
+  limit_up_pool: LimitUpStock[];
+  broken_pool: BrokenStock[];
+  limit_down_pool: LimitDownStock[];
+  analysis: LimitUpAnalysis | null;
+}
+
+// ---------------------------------------------------------------------------
+// Dragon Tiger (龙虎榜)
+// ---------------------------------------------------------------------------
+
+export interface LhbDetail {
+  code: string;
+  name: string;
+  reason: string;
+  close_price: number;
+  change_pct: number;
+  net_buy_amount: number;
+  buy_amount: number;
+  sell_amount: number;
+  list_date: string;
+}
+
+export interface Institutional {
+  inst_code: string;
+  inst_name: string;
+  buy_amount: number;
+  sell_amount: number;
+  net_amount: number;
+}
+
+export interface Broker {
+  broker_name: string;
+  buy_amount: number;
+  sell_amount: number;
+  net_amount: number;
+}
+
+export interface HotMoney {
+  broker: string;
+  buy_targets: string[];
+  sell_targets: string[];
+  net_direction: string;
+}
+
+export interface DragonTigerResponse {
+  date: string;
+  status: string;
+  detail: LhbDetail[];
+  institutional: Institutional[];
+  brokers: Broker[];
+  hot_money: HotMoney[];
+  summary: string;
+}
+
+// ---------------------------------------------------------------------------
+// Fund Flow (资金流向)
+// ---------------------------------------------------------------------------
+
+export interface MarketFundFlow {
+  date: string;
+  main_net: number;
+  main_pct: number;
+  huge_net: number;
+  large_net: number;
+  medium_net: number;
+  small_net: number;
+}
+
+export interface SectorFundFlow {
+  name: string;
+  change_pct: number;
+  main_net: number;
+  main_pct: number;
+  huge_net: number;
+  large_net: number;
+  medium_net: number;
+  small_net: number;
+}
+
+export interface FundFlowTrend {
+  direction: string;
+  momentum: string;
+  large_vs_retail_divergence: boolean;
+  lookback_rows: number;
+  avg_main_net: number;
+}
+
+export interface FundFlowResponse {
+  date: string;
+  status: string;
+  market_flow: MarketFundFlow[];
+  sector_flow: SectorFundFlow[];
+  trend: FundFlowTrend | null;
+  summary: string;
+}
+
+// ---------------------------------------------------------------------------
+// Risk Alert (风险提示)
+// ---------------------------------------------------------------------------
+
+export interface StStock {
+  代码: string;
+  名称: string;
+  最新价: number;
+  涨跌幅: number;
+}
+
+export interface RiskAlertData {
+  st_stocks: StStock[];
+  suspended_stocks: Record<string, unknown>[];
+  abnormal_volatility: Record<string, unknown>[];
+  capital_flight: Record<string, unknown>[];
+  high_position_risks: Record<string, unknown>[];
+  summary: string;
+}
+
+export interface RiskAlertResponse {
+  date: string;
+  status: string;
+  data: RiskAlertData;
+}
+
+// ---------------------------------------------------------------------------
+// Utility
+// ---------------------------------------------------------------------------
+
+export interface AvailableDates {
+  dates: string[];
+}
+
+export interface HealthStatus {
+  status: string;
+  db_path: string;
+  latest_dates: Record<string, string>;
+}
