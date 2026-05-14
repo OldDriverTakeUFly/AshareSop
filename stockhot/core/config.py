@@ -1,8 +1,9 @@
 """Core configuration and constants for StockHot-CN."""
 
+import os
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).parent.parent.parent
+PROJECT_ROOT = Path(os.environ.get("PROJECT_ROOT", str(Path(__file__).parent.parent.parent)))
 DATA_DIR = PROJECT_ROOT / "data"
 STORAGE_DIR = PROJECT_ROOT / "storage"
 DB_PATH = STORAGE_DIR / "database" / "stockhot.db"
