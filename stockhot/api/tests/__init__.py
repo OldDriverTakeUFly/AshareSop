@@ -1,0 +1,1 @@
+"""StockHot-CN API tests."""
