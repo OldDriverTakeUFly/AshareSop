@@ -21,8 +21,8 @@ export default function HomePage() {
   const { data: health, isLoading: healthLoading } = useHealth();
 
   const latestDate =
-    health?.latest_dates?.limit_up ??
-    health?.latest_dates?.dragon_tiger ??
+    health?.latest_dates?.limit_up_pool ??
+    health?.latest_dates?.dragon_tiger_detail ??
     "";
 
   const limitUpQuery = useLimitUp(latestDate);

@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { format, parse } from "date-fns";
+import { CalendarIcon } from "lucide-react";
 
 import { setCredentials } from "@/lib/api";
 import { useLimitUp, useDragonTiger, useFundFlow, useRiskAlert } from "@/lib/hooks";
@@ -20,9 +22,11 @@ import {
   CardContent,
   CardDescription,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ErrorState } from "@/components/ErrorState";
 
 // ---------------------------------------------------------------------------
@@ -84,6 +88,44 @@ function DeltaIndicator({ a, b, invert = false, unit = "" }: { a: number; b: num
     <span className={`inline-flex items-center gap-1 text-sm font-medium ${color}`}>
       {arrow}{sign}{delta.toFixed(delta >= 1 ? 0 : 2)}{unit}
     </span>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Inline DatePicker
+// ---------------------------------------------------------------------------
+
+function DatePicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const selected = useMemo(() => {
+    const d = parse(value, "yyyy-MM-dd", new Date());
+    return isNaN(d.getTime()) ? undefined : d;
+  }, [value]);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          className="w-full justify-start gap-2 font-mono"
+        >
+          <CalendarIcon className="size-4 shrink-0" />
+          {value || "YYYY-MM-DD"}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
+        <Calendar
+          mode="single"
+          selected={selected}
+          onSelect={(d) => {
+            if (d) {
+              onChange(format(d, "yyyy-MM-dd"));
+              setOpen(false);
+            }
+          }}
+        />
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -286,13 +328,7 @@ function CompareContent() {
             <CardTitle className="text-sm font-medium">日期 A（基准）</CardTitle>
           </CardHeader>
           <CardContent>
-            <Input
-              type="text"
-              placeholder="YYYY-MM-DD"
-              value={dateA}
-              onChange={(e) => setDateA(e.target.value)}
-              className="font-mono"
-            />
+            <DatePicker value={dateA} onChange={setDateA} />
           </CardContent>
         </Card>
         <Card>
@@ -300,13 +336,7 @@ function CompareContent() {
             <CardTitle className="text-sm font-medium">日期 B（对比）</CardTitle>
           </CardHeader>
           <CardContent>
-            <Input
-              type="text"
-              placeholder="YYYY-MM-DD"
-              value={dateB}
-              onChange={(e) => setDateB(e.target.value)}
-              className="font-mono"
-            />
+            <DatePicker value={dateB} onChange={setDateB} />
           </CardContent>
         </Card>
       </div>

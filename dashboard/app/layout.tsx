@@ -35,8 +35,8 @@ function Sidebar() {
   const { data: health } = useHealth();
 
   const latestDate =
-    health?.latest_dates?.limit_up ??
-    health?.latest_dates?.dragon_tiger ??
+    health?.latest_dates?.limit_up_pool ??
+    health?.latest_dates?.dragon_tiger_detail ??
     "—";
 
   return (

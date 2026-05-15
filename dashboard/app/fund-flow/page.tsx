@@ -202,9 +202,10 @@ function FundFlowContent() {
           ) : sectorFlow.length > 0 ? (
             <SectorBarChart data={sectorFlow} />
           ) : (
-            <div className="flex h-[200px] items-center justify-center text-muted-foreground">
-              暂无数据
-            </div>
+            <EmptyState
+              message="暂无板块排名数据"
+              description="板块资金流向数据尚未采集，请等待数据更新"
+            />
           )}
         </CardContent>
       </Card>
