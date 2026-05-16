@@ -17,6 +17,7 @@ from stockhot.api.routers import (
     dragon_tiger,
     fund_flow,
     health,
+    invest_sop,
     limit_up,
     risk_alert,
     trigger,
@@ -38,4 +39,7 @@ app.include_router(
 )
 app.include_router(
     trigger.router, dependencies=[Depends(verify_credentials)]
+)
+app.include_router(
+    invest_sop.router, dependencies=[Depends(verify_credentials)]
 )
