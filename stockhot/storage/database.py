@@ -66,6 +66,108 @@ def init_database() -> None:
 
             CREATE INDEX IF NOT EXISTS idx_publish_date ON publish_records(trade_date);
         """)
+
+        # invest_sop tables
+        conn.executescript("""
+            CREATE TABLE IF NOT EXISTS invest_overseas_market (
+                date TEXT PRIMARY KEY,
+                sp500_pct REAL,
+                nasdaq_pct REAL,
+                dow_pct REAL,
+                us_10y REAL,
+                us_10y_change_bp REAL,
+                vix REAL,
+                a50_pct REAL,
+                usd_cny REAL,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_invest_overseas_date ON invest_overseas_market(date);
+
+            CREATE TABLE IF NOT EXISTS invest_domestic_events (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                date TEXT NOT NULL,
+                event_name TEXT NOT NULL,
+                affected_sector TEXT,
+                impact_direction TEXT,
+                severity TEXT,
+                source TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(date, event_name)
+            );
+
+            CREATE TABLE IF NOT EXISTS invest_supply_chain (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                date TEXT NOT NULL,
+                sector TEXT NOT NULL,
+                metric_name TEXT NOT NULL,
+                value REAL,
+                unit TEXT,
+                source TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(date, sector, metric_name)
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_invest_supply_sector_metric
+                ON invest_supply_chain(sector, metric_name);
+
+            CREATE TABLE IF NOT EXISTS invest_futures_sentiment (
+                date TEXT PRIMARY KEY,
+                if_pct REAL,
+                ic_pct REAL,
+                im_pct REAL,
+                if_basis REAL,
+                ic_basis REAL,
+                northbound_net REAL,
+                margin_balance REAL,
+                put_call_ratio REAL,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_invest_futures_date ON invest_futures_sentiment(date);
+
+            CREATE TABLE IF NOT EXISTS invest_morning_data (
+                date TEXT PRIMARY KEY,
+                a50_morning_pct REAL,
+                nikkei_pct REAL,
+                kospi_pct REAL,
+                usd_cny_morning REAL,
+                notes TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_invest_morning_date ON invest_morning_data(date);
+
+            CREATE TABLE IF NOT EXISTS invest_cycle_assessments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                sector TEXT UNIQUE NOT NULL,
+                cycle_position TEXT,
+                crowding_score INTEGER,
+                assessment_date TEXT,
+                notes TEXT,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE TABLE IF NOT EXISTS invest_holdings (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                code TEXT NOT NULL,
+                name TEXT,
+                sector TEXT,
+                entry_price REAL,
+                current_price REAL,
+                stop_loss_logic REAL,
+                stop_loss_technical REAL,
+                stop_loss_hard REAL,
+                target_price REAL,
+                position_pct REAL,
+                entry_date TEXT,
+                status TEXT DEFAULT 'active',
+                notes TEXT,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_invest_holdings_code ON invest_holdings(code);
+        """)
         conn.commit()
     finally:
         conn.close()
