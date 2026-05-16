@@ -174,6 +174,58 @@ def _collect_steel(target_date: str) -> list[dict]:
     return records
 
 
+def _collect_lc_ps_futures(target_date: str) -> list[dict]:
+    """碳酸锂/多晶硅 futures from GFEX via Sina."""
+    records = []
+    date_clean = target_date.replace("-", "")
+    for symbol, name in [("LC0", "碳酸锂期货收盘价"), ("PS0", "多晶硅期货收盘价")]:
+        try:
+            df = _call_akshare("futures_main_sina", symbol=symbol, start_date=date_clean, end_date=date_clean)
+            val = _last_close(df)
+            if val is not None:
+                records.append({
+                    "date": target_date,
+                    "sector": "新能源",
+                    "metric_name": name,
+                    "value": val,
+                    "unit": "CNY/t",
+                    "source": "sina_futures_main",
+                })
+                print(f"  [OK] {name}: {val}")
+            else:
+                print(f"  [INFO] {name}: no data for {target_date}")
+        except Exception as e:
+            print(f"  [WARN] {name} failed: {e}")
+    return records
+
+
+def _collect_lc_ps_spot(target_date: str) -> list[dict]:
+    """碳酸锂/多晶硅 spot prices via futures_spot_sys (may fail for newer commodities)."""
+    records = []
+    for name in ["碳酸锂", "多晶硅"]:
+        try:
+            df = _call_akshare("futures_spot_sys", symbol=name, indicator="市场价格")
+            if df is not None and len(df) > 0:
+                val = _last_close(df)
+                if val is not None:
+                    records.append({
+                        "date": target_date,
+                        "sector": "新能源",
+                        "metric_name": f"{name}现货价",
+                        "value": val,
+                        "unit": "CNY/t",
+                        "source": "100ppi",
+                    })
+                    print(f"  [OK] {name}现货: {val}")
+                else:
+                    print(f"  [INFO] {name}现货: could not extract price")
+        except KeyError as e:
+            print(f"  [SKIP] {name}现货 not available: {e}")
+        except Exception as e:
+            print(f"  [WARN] {name}现货 failed: {e}")
+    return records
+
+
 def _collect_energy(target_date: str) -> list[dict]:
     records = []
     try:
@@ -231,6 +283,12 @@ def main():
 
     print("  Collecting energy prices...")
     all_records.extend(_collect_energy(args.date))
+
+    print("  Collecting LC/PS futures...")
+    all_records.extend(_collect_lc_ps_futures(args.date))
+
+    print("  Collecting LC/PS spot...")
+    all_records.extend(_collect_lc_ps_spot(args.date))
 
     print(f"[TOTAL] {len(all_records)} supply chain records")
     for rec in all_records:

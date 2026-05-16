@@ -78,6 +78,23 @@ def _get_last_value(df: pd.DataFrame, col_name: str) -> float | None:
     return float(val)
 
 
+def _collect_cboe_vix(date_str: str) -> float | None:
+    try:
+        url = "https://cdn.cboe.com/api/global/us_indices/daily_prices/VIX_History.csv"
+        df = pd.read_csv(url)
+        # CBOE DATE format: MM/DD/YYYY
+        target = datetime.strptime(date_str, "%Y-%m-%d").strftime("%m/%d/%Y")
+        row = df[df["DATE"] == target]
+        if row.empty:
+            print(f"  [WARN] CBOE VIX: no data for {date_str}")
+            return None
+        return round(float(row["CLOSE"].iloc[0]), 4)
+    except Exception as e:
+        print(f"  [WARN] CBOE VIX: {e}")
+        traceback.print_exc()
+        return None
+
+
 def collect_overseas_data(target_date: str) -> dict:
     """Collect all overseas market data points."""
     results: dict = {}
@@ -159,6 +176,18 @@ def collect_overseas_data(target_date: str) -> dict:
             errors.append("vix: no data returned")
     except Exception as e:
         errors.append(f"vix: {e}")
+        traceback.print_exc()
+
+    # US VIX (CBOE)
+    try:
+        vix_val = _collect_cboe_vix(target_date)
+        if vix_val is not None:
+            results["us_vix"] = vix_val
+            print(f"  [OK] US VIX (CBOE): {results.get('us_vix')}")
+        else:
+            errors.append("us_vix: no data found for date")
+    except Exception as e:
+        errors.append(f"us_vix: {e}")
         traceback.print_exc()
 
     if errors:
