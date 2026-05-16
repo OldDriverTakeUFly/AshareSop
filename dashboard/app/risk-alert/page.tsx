@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useRiskAlert } from "@/lib/hooks";
+import { useRiskAlert, useHealth } from "@/lib/hooks";
 import { setCredentials } from "@/lib/api";
 import {
   RiskTable,
@@ -28,10 +28,6 @@ const queryClient = new QueryClient();
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function getToday(): string {
-  return new Date().toISOString().split("T")[0];
-}
 
 type Row = Record<string, unknown>;
 
@@ -147,7 +143,8 @@ function RiskSection({
 // ---------------------------------------------------------------------------
 
 function RiskAlertContent() {
-  const [date] = useState(getToday);
+  const { data: health } = useHealth();
+  const date = health?.latest_dates?.risk_alert_raw ?? "";
   const { data, isLoading, isError, error, refetch } = useRiskAlert(date);
 
   if (isLoading) {

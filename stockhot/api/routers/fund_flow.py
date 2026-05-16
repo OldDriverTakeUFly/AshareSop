@@ -9,12 +9,37 @@ from stockhot.api.db import get_analysis_result, get_daily_data
 router = APIRouter(prefix="/api/fund-flow", tags=["fund-flow"])
 
 
+def _sector_fallback(daily: dict) -> list[dict]:
+    sectors = daily.get("sectors", [])
+    if not sectors:
+        return []
+    return sorted(
+        [
+            {
+                "name": s.get("name", ""),
+                "change_pct": s.get("change_pct", 0),
+                "main_net": (s.get("amount", 0) or s.get("volume", 0)) / 1e8,
+                "main_pct": 0,
+                "huge_net": 0,
+                "large_net": 0,
+                "medium_net": 0,
+                "small_net": 0,
+            }
+            for s in sectors
+        ],
+        key=lambda x: x["main_net"],
+        reverse=True,
+    )
+
+
 @router.get("/{date}")
 async def fund_flow_analysis(date: str) -> dict:
     """Return full fund flow analysis for a given date."""
     daily = await get_daily_data(date)
     market_flow = daily.get("fund_flow_market", [])
     sector_flow = daily.get("fund_flow_sector", [])
+    if not sector_flow:
+        sector_flow = _sector_fallback(daily)
 
     if not market_flow and not sector_flow:
         return {
@@ -58,5 +83,7 @@ async def fund_flow_sectors(date: str) -> dict:
     """Return sector fund flow ranking sorted by main_net descending."""
     daily = await get_daily_data(date)
     sector_flow = daily.get("fund_flow_sector", [])
+    if not sector_flow:
+        sector_flow = _sector_fallback(daily)
     sorted_sectors = sorted(sector_flow, key=lambda x: x.get("main_net", 0), reverse=True)
     return {"date": date, "data": sorted_sectors}

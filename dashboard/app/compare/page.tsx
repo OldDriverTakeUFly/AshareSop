@@ -6,7 +6,7 @@ import { format, parse } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 
 import { setCredentials } from "@/lib/api";
-import { useLimitUp, useDragonTiger, useFundFlow, useRiskAlert } from "@/lib/hooks";
+import { useLimitUp, useDragonTiger, useFundFlow, useRiskAlert, useAvailableDates } from "@/lib/hooks";
 import type {
   LimitUpResponse,
   DragonTigerResponse,
@@ -28,6 +28,8 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ErrorState } from "@/components/ErrorState";
+
+setCredentials({ username: "stockhot", password: "stockhot" });
 
 // ---------------------------------------------------------------------------
 // QueryClient singleton
@@ -198,12 +200,17 @@ function extractRiskMetrics(data: RiskAlertResponse | undefined): RiskMetrics {
 // ---------------------------------------------------------------------------
 
 function CompareContent() {
+  const { data: datesData } = useAvailableDates();
   const [dateA, setDateA] = useState(yesterdayStr);
   const [dateB, setDateB] = useState(todayStr);
 
   useEffect(() => {
-    setCredentials({ username: "stockhot", password: "stockhot" });
-  }, []);
+    if (datesData?.dates?.length) {
+      const d = datesData.dates;
+      setDateB(d[0]);
+      setDateA(d.length > 1 ? d[1] : d[0]);
+    }
+  }, [datesData?.dates]);
 
   const limitUpA = useLimitUp(dateA);
   const limitUpB = useLimitUp(dateB);
