@@ -211,3 +211,112 @@ class HealthStatus(BaseModel):
     status: str
     db_path: str
     latest_dates: dict[str, str]
+
+
+# ---------------------------------------------------------------------------
+# Invest SOP (投资SOP)
+# ---------------------------------------------------------------------------
+
+
+class Holding(BaseModel):
+    id: int
+    code: str
+    name: Optional[str] = None
+    sector: Optional[str] = None
+    entry_price: Optional[float] = None
+    current_price: Optional[float] = None
+    stop_loss_logic: Optional[float] = None
+    stop_loss_technical: Optional[float] = None
+    stop_loss_hard: Optional[float] = None
+    target_price: Optional[float] = None
+    position_pct: Optional[float] = None
+    entry_date: Optional[str] = None
+    status: Optional[str] = None
+    notes: Optional[str] = None
+    updated_at: Optional[str] = None
+
+
+class HoldingCreateRequest(BaseModel):
+    code: str
+    name: str
+    sector: str
+    entry_price: float
+    stop_loss_logic: Optional[float] = None
+    stop_loss_technical: Optional[float] = None
+    stop_loss_hard: Optional[float] = None
+    target_price: Optional[float] = None
+    position_pct: Optional[float] = None
+
+
+class HoldingUpdatePriceRequest(BaseModel):
+    current_price: float
+
+
+class HoldingUpdateStoplossRequest(BaseModel):
+    stop_loss_logic: Optional[float] = None
+    stop_loss_technical: Optional[float] = None
+    stop_loss_hard: Optional[float] = None
+
+
+class OverseasMarketData(BaseModel):
+    date: str
+    sp500_pct: Optional[float] = None
+    nasdaq_pct: Optional[float] = None
+    dow_pct: Optional[float] = None
+    us_10y: Optional[float] = None
+    us_10y_change_bp: Optional[float] = None
+    vix: Optional[float] = None
+    us_vix: Optional[float] = None
+    a50_pct: Optional[float] = None
+    usd_cny: Optional[float] = None
+
+
+class SupplyChainRecord(BaseModel):
+    id: int
+    date: str
+    sector: str
+    metric_name: str
+    value: Optional[float] = None
+    unit: Optional[str] = None
+    source: Optional[str] = None
+
+
+class FuturesData(BaseModel):
+    date: str
+    if_pct: Optional[float] = None
+    ic_pct: Optional[float] = None
+    im_pct: Optional[float] = None
+    if_basis: Optional[float] = None
+    ic_basis: Optional[float] = None
+    northbound_net: Optional[float] = None
+    margin_balance: Optional[float] = None
+    put_call_ratio: Optional[float] = None
+
+
+class EventRecord(BaseModel):
+    id: int
+    date: str
+    event_name: str
+    affected_sector: Optional[str] = None
+    impact_direction: Optional[str] = None
+    severity: Optional[str] = None
+
+
+class CycleAssessment(BaseModel):
+    id: int
+    sector: str
+    cycle_position: Optional[str] = None
+    crowding_score: Optional[int] = None
+    assessment_date: Optional[str] = None
+    notes: Optional[str] = None
+
+
+class HistoryPoint(BaseModel):
+    date: str
+    value: float
+
+
+class ReportInfo(BaseModel):
+    date: str
+    type: str
+    filename: str
