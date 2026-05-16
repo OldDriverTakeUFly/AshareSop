@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useState, useEffect, useMemo } from "react";
+import { type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useRiskAlert, useHealth } from "@/lib/hooks";
 import { setCredentials } from "@/lib/api";
@@ -20,15 +20,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/ErrorState";
 import { EmptyState } from "@/components/EmptyState";
 import { cn } from "@/lib/utils";
-import { CalendarIcon } from "lucide-react";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { format, parse } from "date-fns";
-import { Button } from "@/components/ui/button";
 
 setCredentials({ username: "stockhot", password: "stockhot" });
 
@@ -39,41 +30,6 @@ const queryClient = new QueryClient();
 // ---------------------------------------------------------------------------
 
 type Row = Record<string, unknown>;
-
-// ---------------------------------------------------------------------------
-// Inline DatePicker
-// ---------------------------------------------------------------------------
-
-function DatePicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const [open, setOpen] = useState(false);
-  const selected = useMemo(() => {
-    const d = parse(value, "yyyy-MM-dd", new Date());
-    return isNaN(d.getTime()) ? undefined : d;
-  }, [value]);
-
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button variant="outline" className="gap-2 font-mono">
-          <CalendarIcon className="size-4 shrink-0" />
-          {value || "YYYY-MM-DD"}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
-        <Calendar
-          mode="single"
-          selected={selected}
-          onSelect={(d) => {
-            if (d) {
-              onChange(format(d, "yyyy-MM-dd"));
-              setOpen(false);
-            }
-          }}
-        />
-      </PopoverContent>
-    </Popover>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // ST-Stock columns
@@ -108,146 +64,23 @@ const stColumns: RiskColumnDef<Row>[] = [
 ];
 
 // ---------------------------------------------------------------------------
-// Abnormal-volatility columns
+// Generic column builder
 // ---------------------------------------------------------------------------
 
-const abnormalColumns: RiskColumnDef<Row>[] = [
-  { key: "code", label: "代码", mono: true },
-  { key: "name", label: "名称" },
-  {
-    key: "change_pct",
-    label: "涨跌幅",
-    numeric: true,
-    sortable: true,
-    render: (val: unknown) => {
-      const n = typeof val === "number" ? val : 0;
-      return (
-        <span
-          className={cn(
-            n < 0
-              ? "text-green-600 dark:text-green-400"
-              : n > 0
-                ? "text-red-600 dark:text-red-400"
-                : ""
-          )}
-        >
-          {n.toFixed(2)}%
-        </span>
-      );
+function buildGenericColumns(items: Row[]): RiskColumnDef<Row>[] {
+  if (items.length === 0) return [];
+  return Object.keys(items[0]).map((key) => ({
+    key,
+    label: key,
+    render: (val: unknown): ReactNode => {
+      if (typeof val === "number")
+        return (
+          <span className="font-mono tabular-nums">{val.toFixed(2)}</span>
+        );
+      return val != null ? String(val) : "\u2014";
     },
-  },
-  { key: "reason", label: "原因" },
-];
-
-// ---------------------------------------------------------------------------
-// High-position-risk columns
-// ---------------------------------------------------------------------------
-
-const highPositionColumns: RiskColumnDef<Row>[] = [
-  { key: "code", label: "代码", mono: true },
-  { key: "name", label: "名称" },
-  {
-    key: "consecutive_boards",
-    label: "连板数",
-    numeric: true,
-    sortable: true,
-    render: (val: unknown) => {
-      const n = typeof val === "number" ? val : 0;
-      return (
-        <span className="font-mono tabular-nums font-bold text-red-600 dark:text-red-400">
-          {n.toFixed(0)}板
-        </span>
-      );
-    },
-  },
-  { key: "sector", label: "板块" },
-  {
-    key: "broken_count",
-    label: "炸板次数",
-    numeric: true,
-    render: (val: unknown) => {
-      const n = typeof val === "number" ? val : 0;
-      return (
-        <span
-          className={cn(
-            "font-mono tabular-nums",
-            n > 0 ? "text-orange-600 dark:text-orange-400" : ""
-          )}
-        >
-          {n.toFixed(0)}
-        </span>
-      );
-    },
-  },
-  {
-    key: "turnover_rate",
-    label: "换手率",
-    numeric: true,
-    sortable: true,
-    render: (val: unknown) => {
-      const n = typeof val === "number" ? val : 0;
-      return <span className="font-mono tabular-nums">{n.toFixed(2)}%</span>;
-    },
-  },
-];
-
-// ---------------------------------------------------------------------------
-// Capital-flight columns
-// ---------------------------------------------------------------------------
-
-const capitalFlightColumns: RiskColumnDef<Row>[] = [
-  { key: "name", label: "板块" },
-  {
-    key: "change_pct",
-    label: "涨跌幅",
-    numeric: true,
-    sortable: true,
-    render: (val: unknown) => {
-      const n = typeof val === "number" ? val : 0;
-      return (
-        <span
-          className={cn(
-            n < 0
-              ? "text-green-600 dark:text-green-400"
-              : n > 0
-                ? "text-red-600 dark:text-red-400"
-                : ""
-          )}
-        >
-          {n.toFixed(2)}%
-        </span>
-      );
-    },
-  },
-  {
-    key: "main_net",
-    label: "主力净流入(亿)",
-    numeric: true,
-    sortable: true,
-    render: (val: unknown) => {
-      const n = typeof val === "number" ? val : 0;
-      return (
-        <span
-          className={cn(
-            "font-mono tabular-nums",
-            n < 0 ? "text-green-600 dark:text-green-400" : n > 0 ? "text-red-600 dark:text-red-400" : ""
-          )}
-        >
-          {n.toFixed(2)}
-        </span>
-      );
-    },
-  },
-  {
-    key: "main_pct",
-    label: "主力净流入占比",
-    numeric: true,
-    render: (val: unknown) => {
-      const n = typeof val === "number" ? val : 0;
-      return <span className="font-mono tabular-nums">{n.toFixed(2)}%</span>;
-    },
-  },
-];
+  }));
+}
 
 // ---------------------------------------------------------------------------
 // Severity badge
@@ -311,12 +144,7 @@ function RiskSection({
 
 function RiskAlertContent() {
   const { data: health } = useHealth();
-  const defaultDate = health?.latest_dates?.risk_alert_raw ?? "";
-  const [selectedDate, setSelectedDate] = useState("");
-  useEffect(() => {
-    if (!selectedDate && defaultDate) setSelectedDate(defaultDate);
-  }, [selectedDate, defaultDate]);
-  const date = selectedDate;
+  const date = health?.latest_dates?.risk_alert_raw ?? "";
   const { data, isLoading, isError, error, refetch } = useRiskAlert(date);
 
   if (isLoading) {
@@ -339,9 +167,7 @@ function RiskAlertContent() {
       <div className="space-y-6 p-6">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">风险提示</h1>
-          <div className="mt-1 flex items-center gap-3">
-            <DatePicker value={date} onChange={setSelectedDate} />
-          </div>
+          <p className="text-sm text-muted-foreground mt-1">{date}</p>
         </div>
         <ErrorState onRetry={() => refetch()} error={error ?? undefined} />
       </div>
@@ -353,12 +179,7 @@ function RiskAlertContent() {
       <div className="space-y-6 p-6">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">风险提示</h1>
-          <div className="mt-1 flex items-center gap-3">
-            <DatePicker value={date} onChange={setSelectedDate} />
-            <span className="text-xs text-muted-foreground/60">
-              数据更新于 {new Date().toLocaleString("zh-CN")}
-            </span>
-          </div>
+          <p className="text-sm text-muted-foreground mt-1">{date}</p>
         </div>
         <EmptyState
           message="暂无风险数据"
@@ -380,7 +201,7 @@ function RiskAlertContent() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">风险提示</h1>
         <div className="mt-1 flex items-center gap-3">
-          <DatePicker value={date} onChange={setSelectedDate} />
+          <p className="text-sm text-muted-foreground">{date}</p>
           <span className="text-xs text-muted-foreground/60">
             数据更新于 {new Date().toLocaleString("zh-CN")}
           </span>
@@ -421,7 +242,7 @@ function RiskAlertContent() {
         >
           <RiskTable
             data={rd.abnormal_volatility}
-            columns={abnormalColumns}
+            columns={buildGenericColumns(rd.abnormal_volatility)}
             getRiskLevel={() => "high"}
           />
         </RiskSection>
@@ -435,7 +256,7 @@ function RiskAlertContent() {
         >
           <RiskTable
             data={rd.capital_flight}
-            columns={capitalFlightColumns}
+            columns={buildGenericColumns(rd.capital_flight)}
             getRiskLevel={() => "medium"}
           />
         </RiskSection>
@@ -449,7 +270,7 @@ function RiskAlertContent() {
         >
           <RiskTable
             data={rd.high_position_risks}
-            columns={highPositionColumns}
+            columns={buildGenericColumns(rd.high_position_risks)}
             getRiskLevel={() => "high"}
           />
         </RiskSection>
