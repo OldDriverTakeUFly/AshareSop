@@ -28,6 +28,10 @@ const NAV_ITEMS = [
   { label: "资金流向", href: "/fund-flow" },
   { label: "风险提示", href: "/risk-alert" },
   { label: "历史对比", href: "/compare" },
+  { label: "投资SOP", href: "/invest-sop" },
+  { label: "持仓管理", href: "/invest-sop/holdings" },
+  { label: "历史图表", href: "/invest-sop/charts" },
+  { label: "报告查看", href: "/invest-sop/reports" },
 ] as const;
 
 function Sidebar() {
