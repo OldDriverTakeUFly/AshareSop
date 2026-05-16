@@ -79,6 +79,7 @@ def init_database() -> None:
                 vix REAL,
                 a50_pct REAL,
                 usd_cny REAL,
+                us_vix REAL,
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP
             );
 
