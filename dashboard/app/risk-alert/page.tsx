@@ -108,23 +108,146 @@ const stColumns: RiskColumnDef<Row>[] = [
 ];
 
 // ---------------------------------------------------------------------------
-// Generic column builder
+// Abnormal-volatility columns
 // ---------------------------------------------------------------------------
 
-function buildGenericColumns(items: Row[]): RiskColumnDef<Row>[] {
-  if (items.length === 0) return [];
-  return Object.keys(items[0]).map((key) => ({
-    key,
-    label: key,
-    render: (val: unknown): ReactNode => {
-      if (typeof val === "number")
-        return (
-          <span className="font-mono tabular-nums">{val.toFixed(2)}</span>
-        );
-      return val != null ? String(val) : "\u2014";
+const abnormalColumns: RiskColumnDef<Row>[] = [
+  { key: "code", label: "代码", mono: true },
+  { key: "name", label: "名称" },
+  {
+    key: "change_pct",
+    label: "涨跌幅",
+    numeric: true,
+    sortable: true,
+    render: (val: unknown) => {
+      const n = typeof val === "number" ? val : 0;
+      return (
+        <span
+          className={cn(
+            n < 0
+              ? "text-green-600 dark:text-green-400"
+              : n > 0
+                ? "text-red-600 dark:text-red-400"
+                : ""
+          )}
+        >
+          {n.toFixed(2)}%
+        </span>
+      );
     },
-  }));
-}
+  },
+  { key: "reason", label: "原因" },
+];
+
+// ---------------------------------------------------------------------------
+// High-position-risk columns
+// ---------------------------------------------------------------------------
+
+const highPositionColumns: RiskColumnDef<Row>[] = [
+  { key: "code", label: "代码", mono: true },
+  { key: "name", label: "名称" },
+  {
+    key: "consecutive_boards",
+    label: "连板数",
+    numeric: true,
+    sortable: true,
+    render: (val: unknown) => {
+      const n = typeof val === "number" ? val : 0;
+      return (
+        <span className="font-mono tabular-nums font-bold text-red-600 dark:text-red-400">
+          {n.toFixed(0)}板
+        </span>
+      );
+    },
+  },
+  { key: "sector", label: "板块" },
+  {
+    key: "broken_count",
+    label: "炸板次数",
+    numeric: true,
+    render: (val: unknown) => {
+      const n = typeof val === "number" ? val : 0;
+      return (
+        <span
+          className={cn(
+            "font-mono tabular-nums",
+            n > 0 ? "text-orange-600 dark:text-orange-400" : ""
+          )}
+        >
+          {n.toFixed(0)}
+        </span>
+      );
+    },
+  },
+  {
+    key: "turnover_rate",
+    label: "换手率",
+    numeric: true,
+    sortable: true,
+    render: (val: unknown) => {
+      const n = typeof val === "number" ? val : 0;
+      return <span className="font-mono tabular-nums">{n.toFixed(2)}%</span>;
+    },
+  },
+];
+
+// ---------------------------------------------------------------------------
+// Capital-flight columns
+// ---------------------------------------------------------------------------
+
+const capitalFlightColumns: RiskColumnDef<Row>[] = [
+  { key: "name", label: "板块" },
+  {
+    key: "change_pct",
+    label: "涨跌幅",
+    numeric: true,
+    sortable: true,
+    render: (val: unknown) => {
+      const n = typeof val === "number" ? val : 0;
+      return (
+        <span
+          className={cn(
+            n < 0
+              ? "text-green-600 dark:text-green-400"
+              : n > 0
+                ? "text-red-600 dark:text-red-400"
+                : ""
+          )}
+        >
+          {n.toFixed(2)}%
+        </span>
+      );
+    },
+  },
+  {
+    key: "main_net",
+    label: "主力净流入(亿)",
+    numeric: true,
+    sortable: true,
+    render: (val: unknown) => {
+      const n = typeof val === "number" ? val : 0;
+      return (
+        <span
+          className={cn(
+            "font-mono tabular-nums",
+            n < 0 ? "text-green-600 dark:text-green-400" : n > 0 ? "text-red-600 dark:text-red-400" : ""
+          )}
+        >
+          {n.toFixed(2)}
+        </span>
+      );
+    },
+  },
+  {
+    key: "main_pct",
+    label: "主力净流入占比",
+    numeric: true,
+    render: (val: unknown) => {
+      const n = typeof val === "number" ? val : 0;
+      return <span className="font-mono tabular-nums">{n.toFixed(2)}%</span>;
+    },
+  },
+];
 
 // ---------------------------------------------------------------------------
 // Severity badge
@@ -298,7 +421,7 @@ function RiskAlertContent() {
         >
           <RiskTable
             data={rd.abnormal_volatility}
-            columns={buildGenericColumns(rd.abnormal_volatility)}
+            columns={abnormalColumns}
             getRiskLevel={() => "high"}
           />
         </RiskSection>
@@ -312,7 +435,7 @@ function RiskAlertContent() {
         >
           <RiskTable
             data={rd.capital_flight}
-            columns={buildGenericColumns(rd.capital_flight)}
+            columns={capitalFlightColumns}
             getRiskLevel={() => "medium"}
           />
         </RiskSection>
@@ -326,7 +449,7 @@ function RiskAlertContent() {
         >
           <RiskTable
             data={rd.high_position_risks}
-            columns={buildGenericColumns(rd.high_position_risks)}
+            columns={highPositionColumns}
             getRiskLevel={() => "high"}
           />
         </RiskSection>
