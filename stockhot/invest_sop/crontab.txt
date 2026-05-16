@@ -1,0 +1,25 @@
+# ── Invest SOP Cron Jobs ──────────────────────────────────────────────
+# Project: CodeAgentDashboard / stockhot/invest_sop
+# Venv:    .venv/bin/python (akshare requires venv)
+# Logs:    stockhot/invest_sop/logs/
+# ──────────────────────────────────────────────────────────────────────
+
+# Weekday data collection (Mon–Fri)
+# 20:00 – Overseas market data (US/EU indices, futures, VIX)
+0 20 * * * cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python stockhot/invest_sop/scripts/overseas_market_data.py >> stockhot/invest_sop/logs/overseas.log 2>&1
+
+# 20:30 – Domestic events (policy, sector news, A-share calendar)
+30 20 * * * cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python stockhot/invest_sop/scripts/domestic_events.py >> stockhot/invest_sop/logs/domestic.log 2>&1
+
+# 21:00 – Supply chain tracking (commodity prices, shipping indices)
+0 21 * * * cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python stockhot/invest_sop/scripts/supply_chain.py >> stockhot/invest_sop/logs/supply_chain.log 2>&1
+
+# 21:30 – Futures & sentiment (futures data, market sentiment indicators)
+30 21 * * * cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python stockhot/invest_sop/scripts/futures_sentiment.py >> stockhot/invest_sop/logs/futures.log 2>&1
+
+# 08:30 – Morning confirmation (pre-open data check, position review)
+30 8 * * * cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python stockhot/invest_sop/scripts/morning_confirm.py >> stockhot/invest_sop/logs/morning.log 2>&1
+
+# Weekly cycle (Sunday only)
+# 10:00 – Weekly report generation & portfolio review
+0 10 * * 0 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python stockhot/invest_sop/scripts/weekly_cycle.py >> stockhot/invest_sop/logs/weekly.log 2>&1
