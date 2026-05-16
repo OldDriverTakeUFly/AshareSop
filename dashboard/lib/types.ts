@@ -200,3 +200,134 @@ export interface HealthStatus {
   db_path: string;
   latest_dates: Record<string, string>;
 }
+
+// ---------------------------------------------------------------------------
+// Invest SOP (投资SOP)
+// ---------------------------------------------------------------------------
+
+export interface InvestHolding {
+  id: number;
+  code: string;
+  name: string | null;
+  sector: string | null;
+  entry_price: number | null;
+  current_price: number | null;
+  stop_loss_logic: number | null;
+  stop_loss_technical: number | null;
+  stop_loss_hard: number | null;
+  target_price: number | null;
+  position_pct: number | null;
+  entry_date: string | null;
+  status: string | null;
+  notes: string | null;
+  updated_at: string | null;
+}
+
+export interface InvestHoldingCreate {
+  code: string;
+  name: string;
+  sector: string;
+  entry_price: number;
+  stop_loss_logic?: number;
+  stop_loss_technical?: number;
+  stop_loss_hard?: number;
+  target_price?: number;
+  position_pct?: number;
+}
+
+export interface InvestHoldingUpdatePrice {
+  current_price: number;
+}
+
+export interface InvestHoldingUpdateStoploss {
+  stop_loss_logic?: number;
+  stop_loss_technical?: number;
+  stop_loss_hard?: number;
+}
+
+export interface InvestOverseasData {
+  date: string;
+  sp500_pct: number | null;
+  nasdaq_pct: number | null;
+  dow_pct: number | null;
+  us_10y: number | null;
+  us_10y_change_bp: number | null;
+  vix: number | null;
+  us_vix: number | null;
+  a50_pct: number | null;
+  usd_cny: number | null;
+}
+
+export interface InvestSupplyChainRecord {
+  id: number;
+  date: string;
+  sector: string;
+  metric_name: string;
+  value: number | null;
+  unit: string | null;
+  source: string | null;
+}
+
+export interface InvestFuturesData {
+  date: string;
+  if_pct: number | null;
+  ic_pct: number | null;
+  im_pct: number | null;
+  if_basis: number | null;
+  ic_basis: number | null;
+  northbound_net: number | null;
+  margin_balance: number | null;
+  put_call_ratio: number | null;
+}
+
+export interface InvestCycleAssessment {
+  id: number;
+  sector: string;
+  cycle_position: string | null;
+  crowding_score: number | null;
+  assessment_date: string | null;
+  notes: string | null;
+}
+
+export interface InvestEventRecord {
+  id: number;
+  date: string;
+  event_name: string;
+  affected_sector: string | null;
+  impact_direction: string | null;
+  severity: string | null;
+}
+
+export interface InvestHistoryPoint {
+  date: string;
+  value: number;
+}
+
+export interface InvestVixHistoryPoint {
+  date: string;
+  vix: number | null;
+  us_vix: number | null;
+}
+
+export interface InvestOverviewResponse {
+  date: string;
+  overseas: InvestOverseasData | null;
+  futures: InvestFuturesData | null;
+  events: InvestEventRecord[];
+}
+
+export interface InvestReportInfo {
+  date: string;
+  type: string;
+  filename: string;
+}
+
+export interface InvestReportContent {
+  type: string;
+  content: string;
+}
+
+export interface InvestReportResponse {
+  date: string;
+  reports: InvestReportContent[];
+}

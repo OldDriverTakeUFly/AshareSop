@@ -13,8 +13,19 @@ import {
   fetchHealth,
   fetchDates,
   triggerDataRefresh,
+  fetchInvestHoldings,
+  createInvestHolding,
+  updateInvestHoldingPrice,
+  updateInvestHoldingStoploss,
+  removeInvestHolding,
+  fetchInvestOverview,
+  fetchInvestVixHistory,
+  fetchInvestCommodityHistory,
+  fetchInvestReports,
+  fetchInvestReport,
 } from "./api";
 import type { ApiError } from "./api";
+import type { InvestHoldingCreate, InvestHoldingUpdatePrice, InvestHoldingUpdateStoploss } from "./types";
 
 // ---------------------------------------------------------------------------
 // Query key factory — centralised keys for cache invalidation
@@ -27,6 +38,14 @@ export const queryKeys = {
   riskAlert: (date: string) => ["risk-alert", date] as const,
   health: () => ["health"] as const,
   dates: () => ["dates"] as const,
+  invest: {
+    holdings: ["invest", "holdings"] as const,
+    overview: (date: string) => ["invest", "overview", date] as const,
+    vixHistory: (startDate: string, endDate: string) => ["invest", "vix", startDate, endDate] as const,
+    commodityHistory: (metricName: string, startDate: string, endDate: string) => ["invest", "commodity", metricName, startDate, endDate] as const,
+    reports: ["invest", "reports"] as const,
+    report: (date: string) => ["invest", "report", date] as const,
+  },
 } as const;
 
 // ---------------------------------------------------------------------------
@@ -130,3 +149,111 @@ export function useTriggerRefresh() {
 
 // Re-export ApiError for consumer convenience
 export type { ApiError };
+
+// ---------------------------------------------------------------------------
+// Invest SOP hooks
+// ---------------------------------------------------------------------------
+
+/** Active invest holdings. */
+export function useInvestHoldings() {
+  return useQuery({
+    queryKey: queryKeys.invest.holdings,
+    queryFn: fetchInvestHoldings,
+    ...defaults,
+  });
+}
+
+/** Overview data for a date. */
+export function useInvestOverview(date: string) {
+  return useQuery({
+    queryKey: queryKeys.invest.overview(date),
+    queryFn: () => fetchInvestOverview(date),
+    enabled: !!date,
+    ...defaults,
+  });
+}
+
+/** Historical VIX data. */
+export function useInvestVixHistory(startDate: string, endDate: string) {
+  return useQuery({
+    queryKey: queryKeys.invest.vixHistory(startDate, endDate),
+    queryFn: () => fetchInvestVixHistory(startDate, endDate),
+    enabled: !!startDate && !!endDate,
+    ...defaults,
+  });
+}
+
+/** Historical commodity data. */
+export function useInvestCommodityHistory(metricName: string, startDate: string, endDate: string) {
+  return useQuery({
+    queryKey: queryKeys.invest.commodityHistory(metricName, startDate, endDate),
+    queryFn: () => fetchInvestCommodityHistory(metricName, startDate, endDate),
+    enabled: !!metricName && !!startDate && !!endDate,
+    ...defaults,
+  });
+}
+
+/** Available report dates. */
+export function useInvestReports() {
+  return useQuery({
+    queryKey: queryKeys.invest.reports,
+    queryFn: fetchInvestReports,
+    ...defaults,
+  });
+}
+
+/** Report content for a date. */
+export function useInvestReport(date: string) {
+  return useQuery({
+    queryKey: queryKeys.invest.report(date),
+    queryFn: () => fetchInvestReport(date),
+    enabled: !!date,
+    ...defaults,
+  });
+}
+
+/** Create a new holding (mutation). */
+export function useCreateHolding() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: InvestHoldingCreate) => createInvestHolding(data),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.invest.holdings });
+    },
+  });
+}
+
+/** Update holding price (mutation). */
+export function useUpdateHoldingPrice() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: InvestHoldingUpdatePrice }) =>
+      updateInvestHoldingPrice(id, data),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.invest.holdings });
+    },
+  });
+}
+
+/** Update holding stop-loss (mutation). */
+export function useUpdateHoldingStoploss() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: InvestHoldingUpdateStoploss }) =>
+      updateInvestHoldingStoploss(id, data),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.invest.holdings });
+    },
+  });
+}
+
+/** Remove holding (mutation). */
+export function useRemoveHolding() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number) => removeInvestHolding(id),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.invest.holdings });
+    },
+  });
+}

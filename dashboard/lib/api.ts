@@ -11,6 +11,16 @@ import type {
   RiskAlertResponse,
   HealthStatus,
   AvailableDates,
+  InvestHolding,
+  InvestHoldingCreate,
+  InvestHoldingUpdatePrice,
+  InvestHoldingUpdateStoploss,
+  InvestOverviewResponse,
+  InvestSupplyChainRecord,
+  InvestHistoryPoint,
+  InvestVixHistoryPoint,
+  InvestReportInfo,
+  InvestReportResponse,
 } from "./types";
 
 /** Credentials for HTTP Basic Auth. */
@@ -113,4 +123,74 @@ export function triggerDataRefresh(date: string): Promise<{ status: string }> {
   return apiFetch<{ status: string }>(`/api/trigger/${date}`, {
     method: "POST",
   });
+}
+
+// ---------------------------------------------------------------------------
+// Invest SOP API
+// ---------------------------------------------------------------------------
+
+/** Fetch active invest holdings. */
+export function fetchInvestHoldings(): Promise<InvestHolding[]> {
+  return apiFetch<InvestHolding[]>("/api/invest-sop/holdings");
+}
+
+/** Create a new invest holding. */
+export function createInvestHolding(data: InvestHoldingCreate): Promise<InvestHolding> {
+  return apiFetch<InvestHolding>("/api/invest-sop/holdings", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+/** Update holding current price. */
+export function updateInvestHoldingPrice(id: number, data: InvestHoldingUpdatePrice): Promise<InvestHolding> {
+  return apiFetch<InvestHolding>(`/api/invest-sop/holdings/${id}/price`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+/** Update holding stop-loss levels. */
+export function updateInvestHoldingStoploss(id: number, data: InvestHoldingUpdateStoploss): Promise<InvestHolding> {
+  return apiFetch<InvestHolding>(`/api/invest-sop/holdings/${id}/stoploss`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+}
+
+/** Soft-delete a holding. */
+export function removeInvestHolding(id: number): Promise<{ status: string; id: number }> {
+  return apiFetch<{ status: string; id: number }>(`/api/invest-sop/holdings/${id}`, {
+    method: "DELETE",
+  });
+}
+
+/** Fetch overview data for a date. */
+export function fetchInvestOverview(date: string): Promise<InvestOverviewResponse> {
+  return apiFetch<InvestOverviewResponse>(`/api/invest-sop/overview/${date}`);
+}
+
+/** Fetch supply chain data for a date. */
+export function fetchInvestSupplyChain(date: string): Promise<InvestSupplyChainRecord[]> {
+  return apiFetch<InvestSupplyChainRecord[]>(`/api/invest-sop/supply-chain/${date}`);
+}
+
+/** Fetch historical commodity data. */
+export function fetchInvestCommodityHistory(metricName: string, startDate: string, endDate: string): Promise<InvestHistoryPoint[]> {
+  return apiFetch<InvestHistoryPoint[]>(`/api/invest-sop/history/commodity?metric_name=${encodeURIComponent(metricName)}&start_date=${startDate}&end_date=${endDate}`);
+}
+
+/** Fetch historical VIX data. */
+export function fetchInvestVixHistory(startDate: string, endDate: string): Promise<InvestVixHistoryPoint[]> {
+  return apiFetch<InvestVixHistoryPoint[]>(`/api/invest-sop/history/vix?start_date=${startDate}&end_date=${endDate}`);
+}
+
+/** List available report dates. */
+export function fetchInvestReports(): Promise<InvestReportInfo[]> {
+  return apiFetch<InvestReportInfo[]>("/api/invest-sop/reports");
+}
+
+/** Fetch report content for a date. */
+export function fetchInvestReport(date: string): Promise<InvestReportResponse> {
+  return apiFetch<InvestReportResponse>(`/api/invest-sop/reports/${date}`);
 }
