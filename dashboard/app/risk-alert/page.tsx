@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode } from "react";
+import { type ReactNode, useState, useEffect, useMemo } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useRiskAlert, useHealth } from "@/lib/hooks";
 import { setCredentials } from "@/lib/api";
@@ -20,6 +20,15 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/ErrorState";
 import { EmptyState } from "@/components/EmptyState";
 import { cn } from "@/lib/utils";
+import { CalendarIcon } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { format, parse } from "date-fns";
+import { Button } from "@/components/ui/button";
 
 setCredentials({ username: "stockhot", password: "stockhot" });
 
@@ -30,6 +39,41 @@ const queryClient = new QueryClient();
 // ---------------------------------------------------------------------------
 
 type Row = Record<string, unknown>;
+
+// ---------------------------------------------------------------------------
+// Inline DatePicker
+// ---------------------------------------------------------------------------
+
+function DatePicker({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const selected = useMemo(() => {
+    const d = parse(value, "yyyy-MM-dd", new Date());
+    return isNaN(d.getTime()) ? undefined : d;
+  }, [value]);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="outline" className="gap-2 font-mono">
+          <CalendarIcon className="size-4 shrink-0" />
+          {value || "YYYY-MM-DD"}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-auto p-0" align="start">
+        <Calendar
+          mode="single"
+          selected={selected}
+          onSelect={(d) => {
+            if (d) {
+              onChange(format(d, "yyyy-MM-dd"));
+              setOpen(false);
+            }
+          }}
+        />
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 // ---------------------------------------------------------------------------
 // ST-Stock columns
@@ -144,7 +188,12 @@ function RiskSection({
 
 function RiskAlertContent() {
   const { data: health } = useHealth();
-  const date = health?.latest_dates?.risk_alert_raw ?? "";
+  const defaultDate = health?.latest_dates?.risk_alert_raw ?? "";
+  const [selectedDate, setSelectedDate] = useState("");
+  useEffect(() => {
+    if (!selectedDate && defaultDate) setSelectedDate(defaultDate);
+  }, [selectedDate, defaultDate]);
+  const date = selectedDate;
   const { data, isLoading, isError, error, refetch } = useRiskAlert(date);
 
   if (isLoading) {
@@ -167,7 +216,9 @@ function RiskAlertContent() {
       <div className="space-y-6 p-6">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">风险提示</h1>
-          <p className="text-sm text-muted-foreground mt-1">{date}</p>
+          <div className="mt-1 flex items-center gap-3">
+            <DatePicker value={date} onChange={setSelectedDate} />
+          </div>
         </div>
         <ErrorState onRetry={() => refetch()} error={error ?? undefined} />
       </div>
@@ -179,7 +230,12 @@ function RiskAlertContent() {
       <div className="space-y-6 p-6">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">风险提示</h1>
-          <p className="text-sm text-muted-foreground mt-1">{date}</p>
+          <div className="mt-1 flex items-center gap-3">
+            <DatePicker value={date} onChange={setSelectedDate} />
+            <span className="text-xs text-muted-foreground/60">
+              数据更新于 {new Date().toLocaleString("zh-CN")}
+            </span>
+          </div>
         </div>
         <EmptyState
           message="暂无风险数据"
@@ -201,7 +257,7 @@ function RiskAlertContent() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">风险提示</h1>
         <div className="mt-1 flex items-center gap-3">
-          <p className="text-sm text-muted-foreground">{date}</p>
+          <DatePicker value={date} onChange={setSelectedDate} />
           <span className="text-xs text-muted-foreground/60">
             数据更新于 {new Date().toLocaleString("zh-CN")}
           </span>
