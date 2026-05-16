@@ -25,7 +25,7 @@ def _load_trade_dates() -> set[str]:
     try:
         import akshare as ak
         df = ak.tool_trade_date_hist_sina()
-        _trade_dates = set(df["trade_date"].dt.strftime("%Y-%m-%d"))
+        _trade_dates = set(str(d) for d in df["trade_date"])
     finally:
         os.environ.update(removed)
 
