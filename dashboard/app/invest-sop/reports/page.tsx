@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { setCredentials } from "@/lib/api";
 import { useInvestReports, useInvestReport } from "@/lib/hooks";
 import {
   Select,
@@ -16,12 +14,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ErrorState } from "@/components/ErrorState";
 import { EmptyState } from "@/components/EmptyState";
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: { staleTime: 5 * 60 * 1000, refetchOnWindowFocus: false },
-  },
-});
-
 const REPORT_TYPES = ["盘前预研", "操作指令", "周期评估"] as const;
 
 // ---------------------------------------------------------------------------
@@ -29,10 +21,6 @@ const REPORT_TYPES = ["盘前预研", "操作指令", "周期评估"] as const;
 // ---------------------------------------------------------------------------
 
 function ReportsContent() {
-  useEffect(() => {
-    setCredentials({ username: "stockhot", password: "stockhot" });
-  }, []);
-
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [selectedType, setSelectedType] = useState<string>("盘前预研");
 
@@ -166,9 +154,5 @@ function ReportsContent() {
 // ---------------------------------------------------------------------------
 
 export default function ReportsPage() {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <ReportsContent />
-    </QueryClientProvider>
-  );
+  return <ReportsContent />;
 }

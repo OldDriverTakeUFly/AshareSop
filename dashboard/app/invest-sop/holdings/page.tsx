@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import {
   useInvestHoldings,
@@ -47,16 +46,6 @@ import { ErrorState } from "@/components/ErrorState";
 import { EmptyState } from "@/components/EmptyState";
 
 // ---------------------------------------------------------------------------
-// QueryClient singleton for this page
-// ---------------------------------------------------------------------------
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: { staleTime: 5 * 60 * 1000, refetchOnWindowFocus: false },
-  },
-});
-
-// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
@@ -91,6 +80,9 @@ function HoldingsContent() {
   const updatePrice = useUpdateHoldingPrice();
   const updateStoploss = useUpdateHoldingStoploss();
   const removeHolding = useRemoveHolding();
+
+  const [mutationError, setMutationError] = useState<string | null>(null);
+  const clearError = () => setMutationError(null);
 
   // Dialog state
   const [addOpen, setAddOpen] = useState(false);
@@ -145,7 +137,8 @@ function HoldingsContent() {
           onOpenChange={setAddOpen}
           onSubmit={(data) => {
             createHolding.mutate(data, {
-              onSuccess: () => setAddOpen(false),
+              onSuccess: () => { setAddOpen(false); clearError(); },
+              onError: (err: Error) => { setMutationError(err.message || "操作失败"); },
             });
           }}
           pending={createHolding.isPending}
@@ -164,6 +157,13 @@ function HoldingsContent() {
         <h1 className="text-2xl font-bold tracking-tight">持仓管理</h1>
         <Button onClick={() => setAddOpen(true)}>新增持仓</Button>
       </div>
+
+      {mutationError && (
+        <div className="flex items-center justify-between rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
+          <span>{mutationError}</span>
+          <button onClick={clearError} className="ml-4 text-red-500 hover:text-red-700">✕</button>
+        </div>
+      )}
 
       <Card>
         <CardContent className="overflow-x-auto p-0">
@@ -268,7 +268,8 @@ function HoldingsContent() {
         onOpenChange={setAddOpen}
         onSubmit={(data) => {
           createHolding.mutate(data, {
-            onSuccess: () => setAddOpen(false),
+            onSuccess: () => { setAddOpen(false); clearError(); },
+            onError: (err: Error) => { setMutationError(err.message || "操作失败"); },
           });
         }}
         pending={createHolding.isPending}
@@ -281,8 +282,11 @@ function HoldingsContent() {
           updatePrice.mutate(
             { id: priceDialog.id, data },
             {
-              onSuccess: () =>
-                setPriceDialog({ open: false, id: priceDialog.id }),
+              onSuccess: () => {
+                setPriceDialog({ open: false, id: priceDialog.id });
+                clearError();
+              },
+              onError: (err: Error) => { setMutationError(err.message || "操作失败"); },
             }
           );
         }}
@@ -298,8 +302,11 @@ function HoldingsContent() {
           updateStoploss.mutate(
             { id: stoplossDialog.id, data },
             {
-              onSuccess: () =>
-                setStoplossDialog({ open: false, id: stoplossDialog.id }),
+              onSuccess: () => {
+                setStoplossDialog({ open: false, id: stoplossDialog.id });
+                clearError();
+              },
+              onError: (err: Error) => { setMutationError(err.message || "操作失败"); },
             }
           );
         }}
@@ -326,8 +333,11 @@ function HoldingsContent() {
               disabled={removeHolding.isPending}
               onClick={() => {
                 removeHolding.mutate(deleteConfirm.id, {
-                  onSuccess: () =>
-                    setDeleteConfirm({ open: false, id: deleteConfirm.id }),
+                  onSuccess: () => {
+                    setDeleteConfirm({ open: false, id: deleteConfirm.id });
+                    clearError();
+                  },
+                  onError: (err: Error) => { setMutationError(err.message || "操作失败"); },
                 });
               }}
             >
@@ -616,14 +626,6 @@ function UpdateStoplossDialog({
   );
 }
 
-// ---------------------------------------------------------------------------
-// Page export with QueryClientProvider wrapper
-// ---------------------------------------------------------------------------
-
 export default function HoldingsPage() {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <HoldingsContent />
-    </QueryClientProvider>
-  );
+  return <HoldingsContent />;
 }

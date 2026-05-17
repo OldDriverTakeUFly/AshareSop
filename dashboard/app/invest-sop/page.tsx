@@ -1,15 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { setCredentials } from "@/lib/api";
 import { useInvestOverview, useInvestHoldings } from "@/lib/hooks";
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: { staleTime: 5 * 60 * 1000, refetchOnWindowFocus: false },
-  },
-});
 
 interface CardItem {
   title: string;
@@ -68,10 +59,6 @@ function buildCards(
 }
 
 function InvestSopContent() {
-  useEffect(() => {
-    setCredentials({ username: "stockhot", password: "stockhot" });
-  }, []);
-
   const today = new Date().toISOString().slice(0, 10);
 
   const { data: overview, isLoading: overviewLoading } = useInvestOverview(today);
@@ -135,9 +122,5 @@ function InvestSopContent() {
 }
 
 export default function InvestSopPage() {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <InvestSopContent />
-    </QueryClientProvider>
-  );
+  return <InvestSopContent />;
 }

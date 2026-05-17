@@ -1,7 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   LineChart,
   Line,
@@ -12,17 +10,10 @@ import {
   ResponsiveContainer,
   CartesianGrid,
 } from "recharts";
-import { setCredentials } from "@/lib/api";
 import {
   useInvestVixHistory,
   useInvestCommodityHistory,
 } from "@/lib/hooks";
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: { staleTime: 5 * 60 * 1000, refetchOnWindowFocus: false },
-  },
-});
 
 function dateRange() {
   const today = new Date().toISOString().slice(0, 10);
@@ -33,10 +24,6 @@ function dateRange() {
 }
 
 function ChartsContent() {
-  useEffect(() => {
-    setCredentials({ username: "stockhot", password: "stockhot" });
-  }, []);
-
   const { start, end } = dateRange();
 
   const { data: vixData, isLoading: vixLoading } = useInvestVixHistory(start, end);
@@ -167,9 +154,5 @@ function ChartsContent() {
 }
 
 export default function InvestSopChartsPage() {
-  return (
-    <QueryClientProvider client={queryClient}>
-      <ChartsContent />
-    </QueryClientProvider>
-  );
+  return <ChartsContent />;
 }
