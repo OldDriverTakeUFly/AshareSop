@@ -53,6 +53,30 @@ Agents must not:
 - introduce new environment tools without explaining why they are needed
 - claim an environment is reproducible without checking versions, lockfiles, or startup paths
 
+## Post-Report Push Rule (MANDATORY)
+
+After **every** research report is completed and verified in `docs/`, the agent MUST:
+
+1. **Verify** the report file: check chapter completeness, no PART markers, proper start/end
+2. **Commit** with semantic style: `feat(docs): add {report-name}`
+3. **Push** to `origin/master` immediately
+4. **Confirm** push succeeded before reporting completion to user
+
+This is a non-negotiable step. A report is not "done" until it is on GitHub.
+
+Commit message format (match existing repo style):
+```
+feat(docs): add {short-description}
+```
+
+Always include agent attribution footer:
+```
+Ultraworked with [Sisyphus](https://github.com/code-yeongyu/oh-my-openagent)
+Co-authored-by: Sisyphus <clio-agent@sisyphuslabs.ai>
+```
+
+Remote: `origin` → `git@github.com:OldDriverTakeUFly/AshareSop.git`
+
 ## Source of Truth
 
 If this file and the skill differ in detail, treat `skills/local-development-environment/SKILL.md` as the source of truth for environment-management behavior.
