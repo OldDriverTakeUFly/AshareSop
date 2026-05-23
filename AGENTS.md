@@ -75,6 +75,8 @@ Ultraworked with [Sisyphus](https://github.com/code-yeongyu/oh-my-openagent)
 Co-authored-by: Sisyphus <clio-agent@sisyphuslabs.ai>
 ```
 
+Report naming: use **Chinese filenames** (e.g. `docs/ai算力全景研报.md`, `docs/固态电池产业链报告.md`). Do NOT use English filenames for research reports.
+
 Remote: `origin` → `git@github.com:OldDriverTakeUFly/AshareSop.git`
 
 ## Source of Truth
