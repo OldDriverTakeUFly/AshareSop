@@ -232,6 +232,8 @@ class Holding(BaseModel):
     position_pct: Optional[float] = None
     entry_date: Optional[str] = None
     status: Optional[str] = None
+    quantity: int = 0
+    avg_cost: Optional[float] = None
     notes: Optional[str] = None
     updated_at: Optional[str] = None
 
@@ -256,6 +258,42 @@ class HoldingUpdateStoplossRequest(BaseModel):
     stop_loss_logic: Optional[float] = None
     stop_loss_technical: Optional[float] = None
     stop_loss_hard: Optional[float] = None
+
+
+class HoldingCreateSimple(BaseModel):
+    code: str
+    quantity: int
+    entry_price: Optional[float] = None  # If not provided, batch job fills it
+
+
+class HoldingAdjustRequest(BaseModel):
+    type: str  # "buy" or "sell"
+    quantity: int
+    price: float
+    notes: Optional[str] = None
+
+
+class HoldingTransaction(BaseModel):
+    id: int
+    holding_id: int
+    type: str
+    quantity: int
+    price: float
+    date: str
+    notes: Optional[str] = None
+    created_at: Optional[str] = None
+
+
+class SectorRule(BaseModel):
+    sector: str
+    stop_loss_pct: float
+    target_pct: float
+    updated_at: Optional[str] = None
+
+
+class SectorRuleUpdate(BaseModel):
+    stop_loss_pct: Optional[float] = None
+    target_pct: Optional[float] = None
 
 
 class OverseasMarketData(BaseModel):

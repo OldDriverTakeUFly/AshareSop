@@ -161,6 +161,8 @@ def init_database() -> None:
                 stop_loss_hard REAL,
                 target_price REAL,
                 position_pct REAL,
+                quantity INTEGER DEFAULT 0,
+                avg_cost REAL,
                 entry_date TEXT,
                 status TEXT DEFAULT 'active',
                 notes TEXT,
@@ -168,7 +170,59 @@ def init_database() -> None:
             );
 
             CREATE INDEX IF NOT EXISTS idx_invest_holdings_code ON invest_holdings(code);
+
+            CREATE TABLE IF NOT EXISTS invest_holdings_transactions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                holding_id INTEGER NOT NULL,
+                type TEXT NOT NULL CHECK(type IN ('buy', 'sell')),
+                quantity INTEGER NOT NULL,
+                price REAL NOT NULL,
+                date TEXT NOT NULL,
+                notes TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (holding_id) REFERENCES invest_holdings(id)
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_invest_transactions_holding
+                ON invest_holdings_transactions(holding_id);
+
+            CREATE TABLE IF NOT EXISTS invest_sector_rules (
+                sector TEXT PRIMARY KEY,
+                stop_loss_pct REAL NOT NULL DEFAULT -0.12,
+                target_pct REAL NOT NULL DEFAULT 0.20,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+            );
         """)
+
+        # Migrate: add quantity and avg_cost columns if missing
+        holdings_cols = [r[1] for r in conn.execute("PRAGMA table_info(invest_holdings)").fetchall()]
+        if "quantity" not in holdings_cols:
+            conn.execute("ALTER TABLE invest_holdings ADD COLUMN quantity INTEGER DEFAULT 0")
+        if "avg_cost" not in holdings_cols:
+            conn.execute("ALTER TABLE invest_holdings ADD COLUMN avg_cost REAL")
+
+        # Insert default sector rules
+        default_rules = [
+            ('AI', -0.15, 0.25),
+            ('半导体', -0.15, 0.25),
+            ('软件', -0.12, 0.20),
+            ('锂电', -0.15, 0.25),
+            ('光伏', -0.15, 0.25),
+            ('新能源车', -0.15, 0.25),
+            ('有色', -0.12, 0.20),
+            ('化工', -0.12, 0.20),
+            ('煤炭', -0.10, 0.15),
+            ('消费', -0.10, 0.15),
+            ('金融', -0.08, 0.12),
+            ('医药', -0.12, 0.20),
+            ('default', -0.12, 0.20),
+        ]
+        for sector, sl, tp in default_rules:
+            conn.execute(
+                "INSERT OR IGNORE INTO invest_sector_rules (sector, stop_loss_pct, target_pct) VALUES (?, ?, ?)",
+                (sector, sl, tp),
+            )
+
         conn.commit()
     finally:
         conn.close()

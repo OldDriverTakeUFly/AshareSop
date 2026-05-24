@@ -217,22 +217,36 @@ export interface InvestHolding {
   stop_loss_hard: number | null;
   target_price: number | null;
   position_pct: number | null;
+  quantity: number;
+  avg_cost: number | null;
   entry_date: string | null;
   status: string | null;
   notes: string | null;
   updated_at: string | null;
 }
 
-export interface InvestHoldingCreate {
+export interface InvestHoldingCreateSimple {
   code: string;
-  name: string;
-  sector: string;
-  entry_price: number;
-  stop_loss_logic?: number;
-  stop_loss_technical?: number;
-  stop_loss_hard?: number;
-  target_price?: number;
-  position_pct?: number;
+  quantity: number;
+  entry_price?: number;
+}
+
+export interface InvestHoldingAdjust {
+  type: "buy" | "sell";
+  quantity: number;
+  price: number;
+  notes?: string;
+}
+
+export interface InvestHoldingTransaction {
+  id: number;
+  holding_id: number;
+  type: string;
+  quantity: number;
+  price: number;
+  date: string;
+  notes: string | null;
+  created_at: string | null;
 }
 
 export interface InvestHoldingUpdatePrice {
@@ -243,6 +257,18 @@ export interface InvestHoldingUpdateStoploss {
   stop_loss_logic?: number;
   stop_loss_technical?: number;
   stop_loss_hard?: number;
+}
+
+export interface InvestSectorRule {
+  sector: string;
+  stop_loss_pct: number;
+  target_pct: number;
+  updated_at: string | null;
+}
+
+export interface InvestSectorRuleUpdate {
+  stop_loss_pct?: number;
+  target_pct?: number;
 }
 
 export interface InvestOverseasData {

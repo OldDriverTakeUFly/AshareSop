@@ -213,6 +213,27 @@ async def get_available_dates(
         await db.close()
 
 
+async def get_holding_transactions(holding_id: int) -> list[dict]:
+    db = await get_connection()
+    try:
+        cursor = await db.execute(
+            "SELECT * FROM invest_holdings_transactions WHERE holding_id=? ORDER BY date DESC, id DESC",
+            (holding_id,),
+        )
+        return [dict(row) async for row in cursor]
+    finally:
+        await db.close()
+
+
+async def get_sector_rules() -> list[dict]:
+    db = await get_connection()
+    try:
+        cursor = await db.execute("SELECT * FROM invest_sector_rules ORDER BY sector")
+        return [dict(row) async for row in cursor]
+    finally:
+        await db.close()
+
+
 async def get_report_dates() -> list[dict]:
     """Scan INVEST_REPORTS_DIR for .md files and extract date + type info."""
     results: list[dict] = []

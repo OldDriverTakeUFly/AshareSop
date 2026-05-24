@@ -4,23 +4,19 @@ import { useState, type FormEvent } from "react";
 
 import {
   useInvestHoldings,
-  useCreateHolding,
-  useUpdateHoldingPrice,
-  useUpdateHoldingStoploss,
+  useCreateHoldingSimple,
+  useAdjustHolding,
   useRemoveHolding,
 } from "@/lib/hooks";
 import type {
   InvestHolding,
-  InvestHoldingCreate,
-  InvestHoldingUpdatePrice,
-  InvestHoldingUpdateStoploss,
+  InvestHoldingCreateSimple,
+  InvestHoldingAdjust,
 } from "@/lib/types";
 
 import {
   Card,
-  CardHeader,
   CardContent,
-  CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -49,14 +45,13 @@ import { EmptyState } from "@/components/EmptyState";
 // Helpers
 // ---------------------------------------------------------------------------
 
-function pnlPct(entry: number | null, current: number | null): number | null {
-  if (entry == null || current == null || entry === 0) return null;
-  return ((current - entry) / entry) * 100;
-}
-
 function fmtPrice(v: number | null): string {
   if (v == null) return "-";
   return v.toFixed(2);
+}
+
+function fmtMoney(v: number): string {
+  return v.toLocaleString("zh-CN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function pnlColor(val: number): string {
@@ -65,35 +60,36 @@ function pnlColor(val: number): string {
   return "text-muted-foreground";
 }
 
-function fmtPnl(val: number): string {
+function fmtPct(val: number): string {
   const sign = val > 0 ? "+" : "";
   return `${sign}${val.toFixed(2)}%`;
 }
 
+function fmtSignedMoney(val: number): string {
+  const sign = val > 0 ? "+" : "";
+  return `${sign}${fmtMoney(val)}`;
+}
+
 // ---------------------------------------------------------------------------
-// Inner page (needs QueryClient context)
+// Inner page
 // ---------------------------------------------------------------------------
 
 function HoldingsContent() {
   const { data: holdings, isLoading, error, refetch } = useInvestHoldings();
-  const createHolding = useCreateHolding();
-  const updatePrice = useUpdateHoldingPrice();
-  const updateStoploss = useUpdateHoldingStoploss();
+  const createHolding = useCreateHoldingSimple();
+  const adjustHolding = useAdjustHolding();
   const removeHolding = useRemoveHolding();
 
   const [mutationError, setMutationError] = useState<string | null>(null);
   const clearError = () => setMutationError(null);
 
-  // Dialog state
   const [addOpen, setAddOpen] = useState(false);
-  const [priceDialog, setPriceDialog] = useState<{ open: boolean; id: number }>({
-    open: false,
-    id: 0,
-  });
-  const [stoplossDialog, setStoplossDialog] = useState<{
+  const [adjustDialog, setAdjustDialog] = useState<{
     open: boolean;
     id: number;
-  }>({ open: false, id: 0 });
+    code: string;
+    type: "buy" | "sell";
+  }>({ open: false, id: 0, code: "", type: "buy" });
   const [deleteConfirm, setDeleteConfirm] = useState<{
     open: boolean;
     id: number;
@@ -173,12 +169,13 @@ function HoldingsContent() {
                 <TableHead>代码</TableHead>
                 <TableHead>名称</TableHead>
                 <TableHead>板块</TableHead>
-                <TableHead className="text-right">买入价</TableHead>
+                <TableHead className="text-right">持仓数量</TableHead>
+                <TableHead className="text-right">成本价</TableHead>
                 <TableHead className="text-right">现价</TableHead>
+                <TableHead className="text-right">持仓市值</TableHead>
+                <TableHead className="text-right">盈亏</TableHead>
                 <TableHead className="text-right">盈亏%</TableHead>
-                <TableHead className="text-right">止损(逻辑)</TableHead>
-                <TableHead className="text-right">止损(技术)</TableHead>
-                <TableHead className="text-right">止损(硬)</TableHead>
+                <TableHead className="text-right">止损价</TableHead>
                 <TableHead className="text-right">目标价</TableHead>
                 <TableHead className="text-right">仓位%</TableHead>
                 <TableHead>操作</TableHead>
@@ -186,7 +183,17 @@ function HoldingsContent() {
             </TableHeader>
             <TableBody>
               {holdings.map((h) => {
-                const pnl = pnlPct(h.entry_price, h.current_price);
+                const qty = h.quantity ?? 0;
+                const avgCost = h.avg_cost ?? h.entry_price;
+                const currentPrice = h.current_price;
+                const marketValue = qty * (currentPrice ?? 0);
+                const pnl = avgCost != null && currentPrice != null
+                  ? (currentPrice - avgCost) * qty
+                  : null;
+                const pnlPct = avgCost != null && currentPrice != null && avgCost > 0
+                  ? ((currentPrice - avgCost) / avgCost) * 100
+                  : null;
+
                 return (
                   <TableRow key={h.id}>
                     <TableCell className="font-mono text-xs">
@@ -194,24 +201,27 @@ function HoldingsContent() {
                     </TableCell>
                     <TableCell>{h.name ?? "-"}</TableCell>
                     <TableCell>{h.sector ?? "-"}</TableCell>
-                    <TableCell className="text-right">
-                      {fmtPrice(h.entry_price)}
+                    <TableCell className="text-right tabular-nums">
+                      {qty.toLocaleString("zh-CN")}
                     </TableCell>
                     <TableCell className="text-right">
-                      {fmtPrice(h.current_price)}
+                      {fmtPrice(avgCost)}
                     </TableCell>
                     <TableCell className="text-right">
+                      {fmtPrice(currentPrice)}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {currentPrice != null ? fmtMoney(marketValue) : "-"}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
                       {pnl != null ? (
-                        <span className={pnlColor(pnl)}>{fmtPnl(pnl)}</span>
-                      ) : (
-                        "-"
-                      )}
+                        <span className={pnlColor(pnl)}>{fmtSignedMoney(pnl)}</span>
+                      ) : "-"}
                     </TableCell>
-                    <TableCell className="text-right">
-                      {fmtPrice(h.stop_loss_logic)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {fmtPrice(h.stop_loss_technical)}
+                    <TableCell className="text-right tabular-nums">
+                      {pnlPct != null ? (
+                        <span className={pnlColor(pnlPct)}>{fmtPct(pnlPct)}</span>
+                      ) : "-"}
                     </TableCell>
                     <TableCell className="text-right">
                       {fmtPrice(h.stop_loss_hard)}
@@ -230,19 +240,19 @@ function HoldingsContent() {
                           variant="outline"
                           size="xs"
                           onClick={() =>
-                            setPriceDialog({ open: true, id: h.id })
+                            setAdjustDialog({ open: true, id: h.id, code: h.code, type: "buy" })
                           }
                         >
-                          更新价格
+                          加仓
                         </Button>
                         <Button
                           variant="outline"
                           size="xs"
                           onClick={() =>
-                            setStoplossDialog({ open: true, id: h.id })
+                            setAdjustDialog({ open: true, id: h.id, code: h.code, type: "sell" })
                           }
                         >
-                          更新止损
+                          减仓
                         </Button>
                         <Button
                           variant="destructive"
@@ -251,7 +261,7 @@ function HoldingsContent() {
                             setDeleteConfirm({ open: true, id: h.id })
                           }
                         >
-                          删除
+                          清仓
                         </Button>
                       </div>
                     </TableCell>
@@ -275,42 +285,26 @@ function HoldingsContent() {
         pending={createHolding.isPending}
       />
 
-      <UpdatePriceDialog
-        open={priceDialog.open}
-        onOpenChange={(open) => setPriceDialog({ open, id: priceDialog.id })}
-        onSubmit={(data) => {
-          updatePrice.mutate(
-            { id: priceDialog.id, data },
-            {
-              onSuccess: () => {
-                setPriceDialog({ open: false, id: priceDialog.id });
-                clearError();
-              },
-              onError: (err: Error) => { setMutationError(err.message || "操作失败"); },
-            }
-          );
-        }}
-        pending={updatePrice.isPending}
-      />
-
-      <UpdateStoplossDialog
-        open={stoplossDialog.open}
+      <AdjustDialog
+        open={adjustDialog.open}
         onOpenChange={(open) =>
-          setStoplossDialog({ open, id: stoplossDialog.id })
+          setAdjustDialog({ ...adjustDialog, open })
         }
+        code={adjustDialog.code}
+        adjustType={adjustDialog.type}
         onSubmit={(data) => {
-          updateStoploss.mutate(
-            { id: stoplossDialog.id, data },
+          adjustHolding.mutate(
+            { id: adjustDialog.id, data },
             {
               onSuccess: () => {
-                setStoplossDialog({ open: false, id: stoplossDialog.id });
+                setAdjustDialog({ ...adjustDialog, open: false });
                 clearError();
               },
               onError: (err: Error) => { setMutationError(err.message || "操作失败"); },
             }
           );
         }}
-        pending={updateStoploss.isPending}
+        pending={adjustHolding.isPending}
       />
 
       <Dialog
@@ -319,9 +313,9 @@ function HoldingsContent() {
       >
         <DialogContent showCloseButton={false}>
           <DialogHeader>
-            <DialogTitle>确认删除</DialogTitle>
+            <DialogTitle>确认清仓</DialogTitle>
             <DialogDescription>
-              确定要删除此持仓记录吗？此操作不可撤销。
+              确定要清仓此持仓吗？此操作不可撤销。
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -341,7 +335,7 @@ function HoldingsContent() {
                 });
               }}
             >
-              {removeHolding.isPending ? "删除中…" : "删除"}
+              {removeHolding.isPending ? "清仓中…" : "确认清仓"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -351,7 +345,7 @@ function HoldingsContent() {
 }
 
 // ---------------------------------------------------------------------------
-// Add Holding Dialog
+// Add Holding Dialog (simplified — 3 fields)
 // ---------------------------------------------------------------------------
 
 function AddHoldingDialog({
@@ -362,39 +356,27 @@ function AddHoldingDialog({
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (data: InvestHoldingCreate) => void;
+  onSubmit: (data: InvestHoldingCreateSimple) => void;
   pending: boolean;
 }) {
   const [code, setCode] = useState("");
-  const [name, setName] = useState("");
-  const [sector, setSector] = useState("");
+  const [quantity, setQuantity] = useState("");
   const [entryPrice, setEntryPrice] = useState("");
-  const [stopLossHard, setStopLossHard] = useState("");
-  const [targetPrice, setTargetPrice] = useState("");
-  const [positionPct, setPositionPct] = useState("");
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     onSubmit({
       code,
-      name,
-      sector,
-      entry_price: parseFloat(entryPrice),
-      ...(stopLossHard ? { stop_loss_hard: parseFloat(stopLossHard) } : {}),
-      ...(targetPrice ? { target_price: parseFloat(targetPrice) } : {}),
-      ...(positionPct ? { position_pct: parseFloat(positionPct) } : {}),
+      quantity: parseInt(quantity, 10),
+      ...(entryPrice ? { entry_price: parseFloat(entryPrice) } : {}),
     });
   }
 
   function handleOpenChange(nextOpen: boolean) {
     if (!nextOpen) {
       setCode("");
-      setName("");
-      setSector("");
+      setQuantity("");
       setEntryPrice("");
-      setStopLossHard("");
-      setTargetPrice("");
-      setPositionPct("");
     }
     onOpenChange(nextOpen);
   }
@@ -407,7 +389,7 @@ function AddHoldingDialog({
         </DialogHeader>
         <form onSubmit={handleSubmit} className="grid gap-3">
           <div className="grid gap-1">
-            <label className="text-sm font-medium">代码 *</label>
+            <label className="text-sm font-medium">股票代码 *</label>
             <Input
               value={code}
               onChange={(e) => setCode(e.target.value)}
@@ -416,62 +398,24 @@ function AddHoldingDialog({
             />
           </div>
           <div className="grid gap-1">
-            <label className="text-sm font-medium">名称 *</label>
+            <label className="text-sm font-medium">持仓数量 *</label>
             <Input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="如 贵州茅台"
+              type="number"
+              step="1"
+              value={quantity}
+              onChange={(e) => setQuantity(e.target.value)}
+              placeholder="如 1000"
               required
             />
           </div>
           <div className="grid gap-1">
-            <label className="text-sm font-medium">板块 *</label>
-            <Input
-              value={sector}
-              onChange={(e) => setSector(e.target.value)}
-              placeholder="如 白酒"
-              required
-            />
-          </div>
-          <div className="grid gap-1">
-            <label className="text-sm font-medium">买入价 *</label>
+            <label className="text-sm font-medium">入场价</label>
             <Input
               type="number"
               step="0.01"
               value={entryPrice}
               onChange={(e) => setEntryPrice(e.target.value)}
-              placeholder="0.00"
-              required
-            />
-          </div>
-          <div className="grid gap-1">
-            <label className="text-sm font-medium">硬止损</label>
-            <Input
-              type="number"
-              step="0.01"
-              value={stopLossHard}
-              onChange={(e) => setStopLossHard(e.target.value)}
-              placeholder="可选"
-            />
-          </div>
-          <div className="grid gap-1">
-            <label className="text-sm font-medium">目标价</label>
-            <Input
-              type="number"
-              step="0.01"
-              value={targetPrice}
-              onChange={(e) => setTargetPrice(e.target.value)}
-              placeholder="可选"
-            />
-          </div>
-          <div className="grid gap-1">
-            <label className="text-sm font-medium">仓位%</label>
-            <Input
-              type="number"
-              step="0.1"
-              value={positionPct}
-              onChange={(e) => setPositionPct(e.target.value)}
-              placeholder="可选"
+              placeholder="可选，不填则用当天收盘价"
             />
           </div>
           <DialogFooter showCloseButton>
@@ -486,41 +430,71 @@ function AddHoldingDialog({
 }
 
 // ---------------------------------------------------------------------------
-// Update Price Dialog
+// Adjust Dialog (buy / sell)
 // ---------------------------------------------------------------------------
 
-function UpdatePriceDialog({
+function AdjustDialog({
   open,
   onOpenChange,
+  code,
+  adjustType,
   onSubmit,
   pending,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (data: InvestHoldingUpdatePrice) => void;
+  code: string;
+  adjustType: "buy" | "sell";
+  onSubmit: (data: InvestHoldingAdjust) => void;
   pending: boolean;
 }) {
+  const [quantity, setQuantity] = useState("");
   const [price, setPrice] = useState("");
+  const [notes, setNotes] = useState("");
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    onSubmit({ current_price: parseFloat(price) });
+    onSubmit({
+      type: adjustType,
+      quantity: parseInt(quantity, 10),
+      price: parseFloat(price),
+      ...(notes ? { notes } : {}),
+    });
   }
 
   function handleOpenChange(nextOpen: boolean) {
-    if (!nextOpen) setPrice("");
+    if (!nextOpen) {
+      setQuantity("");
+      setPrice("");
+      setNotes("");
+    }
     onOpenChange(nextOpen);
   }
+
+  const isBuy = adjustType === "buy";
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>更新价格</DialogTitle>
+          <DialogTitle>
+            {isBuy ? "加仓" : "减仓"} — {code}
+          </DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="grid gap-3">
           <div className="grid gap-1">
-            <label className="text-sm font-medium">当前价格 *</label>
+            <label className="text-sm font-medium">数量 *</label>
+            <Input
+              type="number"
+              step="1"
+              value={quantity}
+              onChange={(e) => setQuantity(e.target.value)}
+              placeholder="如 1000"
+              required
+            />
+          </div>
+          <div className="grid gap-1">
+            <label className="text-sm font-medium">价格 *</label>
             <Input
               type="number"
               step="0.01"
@@ -530,94 +504,17 @@ function UpdatePriceDialog({
               required
             />
           </div>
-          <DialogFooter showCloseButton>
-            <Button type="submit" disabled={pending}>
-              {pending ? "更新中…" : "确认更新"}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Update Stoploss Dialog
-// ---------------------------------------------------------------------------
-
-function UpdateStoplossDialog({
-  open,
-  onOpenChange,
-  onSubmit,
-  pending,
-}: {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  onSubmit: (data: InvestHoldingUpdateStoploss) => void;
-  pending: boolean;
-}) {
-  const [logic, setLogic] = useState("");
-  const [technical, setTechnical] = useState("");
-  const [hard, setHard] = useState("");
-
-  function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    const data: InvestHoldingUpdateStoploss = {};
-    if (logic) data.stop_loss_logic = parseFloat(logic);
-    if (technical) data.stop_loss_technical = parseFloat(technical);
-    if (hard) data.stop_loss_hard = parseFloat(hard);
-    onSubmit(data);
-  }
-
-  function handleOpenChange(nextOpen: boolean) {
-    if (!nextOpen) {
-      setLogic("");
-      setTechnical("");
-      setHard("");
-    }
-    onOpenChange(nextOpen);
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>更新止损</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={handleSubmit} className="grid gap-3">
           <div className="grid gap-1">
-            <label className="text-sm font-medium">逻辑止损</label>
+            <label className="text-sm font-medium">备注</label>
             <Input
-              type="number"
-              step="0.01"
-              value={logic}
-              onChange={(e) => setLogic(e.target.value)}
-              placeholder="可选"
-            />
-          </div>
-          <div className="grid gap-1">
-            <label className="text-sm font-medium">技术止损</label>
-            <Input
-              type="number"
-              step="0.01"
-              value={technical}
-              onChange={(e) => setTechnical(e.target.value)}
-              placeholder="可选"
-            />
-          </div>
-          <div className="grid gap-1">
-            <label className="text-sm font-medium">硬止损</label>
-            <Input
-              type="number"
-              step="0.01"
-              value={hard}
-              onChange={(e) => setHard(e.target.value)}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
               placeholder="可选"
             />
           </div>
           <DialogFooter showCloseButton>
             <Button type="submit" disabled={pending}>
-              {pending ? "更新中…" : "确认更新"}
+              {pending ? "提交中…" : "确认"}
             </Button>
           </DialogFooter>
         </form>

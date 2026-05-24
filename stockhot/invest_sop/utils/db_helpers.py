@@ -13,6 +13,8 @@ _ALLOWED_TABLES = frozenset({
     "invest_morning_data",
     "invest_cycle_assessments",
     "invest_holdings",
+    "invest_holdings_transactions",
+    "invest_sector_rules",
 })
 
 

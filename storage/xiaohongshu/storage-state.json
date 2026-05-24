@@ -1,0 +1,139 @@
+{
+  "cookies": [
+    {
+      "name": "ets",
+      "value": "1776503494560",
+      "domain": ".xiaohongshu.com",
+      "path": "/",
+      "expires": 1779095494.560688,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "xsecappid",
+      "value": "ugc",
+      "domain": ".xiaohongshu.com",
+      "path": "/",
+      "expires": 1809333007,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "a1",
+      "value": "19d9fdc18edrbx5xq6p0xg4uyeca0iecz4kg2iwqc40000302733",
+      "domain": ".xiaohongshu.com",
+      "path": "/",
+      "expires": 1808039494,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "webId",
+      "value": "2a12c45995edfe9b4d440ecdd9a403f3",
+      "domain": ".xiaohongshu.com",
+      "path": "/",
+      "expires": 1808039494,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "gid",
+      "value": "yjfSqSqYj0uYyjfjifSyY43EdfFDC2CAKU8CTASk47vdSk48083dSJ888q8JWqq8Y4Dfj2Wf",
+      "domain": ".xiaohongshu.com",
+      "path": "/",
+      "expires": 1812270660.237706,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "websectiga",
+      "value": "3fff3a9f9f07284b62c0f2ebf91a3b10193175c06g4f71492b60e056edcdebb2",
+      "domain": ".xiaohongshu.com",
+      "path": "/",
+      "expires": 1778056216,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "acw_tc",
+      "value": "0a0d096b17777970030936282e7749ae630fd530bf7e4a26aa72ec816dfb25",
+      "domain": "creator.xiaohongshu.com",
+      "path": "/",
+      "expires": 1777798803.027149,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "loadts",
+      "value": "1777797007051",
+      "domain": ".xiaohongshu.com",
+      "path": "/",
+      "expires": 1809333007,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "acw_tc",
+      "value": "0a0b142917777970080132870e24534cee172861773b5884dba1ea23650194",
+      "domain": "edith.xiaohongshu.com",
+      "path": "/",
+      "expires": 1777798807.921461,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "sec_poison_id",
+      "value": "816c9be1-35ef-41f6-9480-0875f4bd1b1a",
+      "domain": ".xiaohongshu.com",
+      "path": "/",
+      "expires": 1777797620,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": [
+    {
+      "origin": "https://creator.xiaohongshu.com",
+      "localStorage": [
+        {
+          "name": "b1b1",
+          "value": "1"
+        },
+        {
+          "name": "dsllt",
+          "value": "1777797030762"
+        },
+        {
+          "name": "p1",
+          "value": "5"
+        },
+        {
+          "name": "sdt_source_storage_key",
+          "value": "{\"reportUrl\":\"/api/sec/v1/shield/webprofile\",\"validate\":false,\"commonPatch\":[\"/fe_api/burdock/v2/note/post\",\"/api/sns/web/v1/comment/post\",\"/api/sns/web/v1/note/like\",\"/api/sns/web/v1/note/collect\",\"/api/sns/web/v1/user/follow\",\"/api/sns/web/v1/feed\",\"/api/sns/web/v1/login/activate\",\"/api/sns/web/v1/note/metrics_report\",\"/api/redcaptcha\",\"/api/store/jpd/main\",\"/phoenix/api/strategy/getAppStrategy\",\"/web_api/sns/v2/note\"],\"signVersion\":\"1\",\"xhsTokenUrl\":\"https://fe-static.xhscdn.com/as/v1/3e44/public/bf7d4e32677698655a5cadc581fd09b3.js\",\"url\":\"https://fe-static.xhscdn.com/as/v2/fp/643f48183a62c46e6c924b3f0456767a.js\",\"desVersion\":\"2\",\"signUrl\":\"https://fe-static.xhscdn.com/as/v1/f218/a15/public/04b29480233f4def5c875875b6bdc3b1.js\",\"extraInfo\":{\"kbconf\":null,\"fpMatchUrls\":null}}"
+        },
+        {
+          "name": "b1",
+          "value": "I3GJ"
+        },
+        {
+          "name": "unloads_record",
+          "value": "[[1777624208831.4,21748],[1777710602719.9,2894],[1777710605615.1,8513],[1777710607221,20354],[1777797002924.2,13207]]"
+        },
+        {
+          "name": "last_tiga_update_time",
+          "value": "1777797016128"
+        }
+      ]
+    }
+  ]
+}

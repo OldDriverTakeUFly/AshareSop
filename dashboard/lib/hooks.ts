@@ -14,7 +14,10 @@ import {
   fetchDates,
   triggerDataRefresh,
   fetchInvestHoldings,
-  createInvestHolding,
+  createInvestHoldingSimple,
+  adjustInvestHolding,
+  fetchInvestHoldingTransactions,
+  fetchInvestSectorRules,
   updateInvestHoldingPrice,
   updateInvestHoldingStoploss,
   removeInvestHolding,
@@ -25,7 +28,7 @@ import {
   fetchInvestReport,
 } from "./api";
 import type { ApiError } from "./api";
-import type { InvestHoldingCreate, InvestHoldingUpdatePrice, InvestHoldingUpdateStoploss } from "./types";
+import type { InvestHoldingCreateSimple, InvestHoldingAdjust, InvestHoldingUpdatePrice, InvestHoldingUpdateStoploss } from "./types";
 
 // ---------------------------------------------------------------------------
 // Query key factory — centralised keys for cache invalidation
@@ -40,6 +43,8 @@ export const queryKeys = {
   dates: () => ["dates"] as const,
   invest: {
     holdings: ["invest", "holdings"] as const,
+    holdingTransactions: (id: number) => ["invest", "holdings", id, "transactions"] as const,
+    sectorRules: ["invest", "sector-rules"] as const,
     overview: (date: string) => ["invest", "overview", date] as const,
     vixHistory: (startDate: string, endDate: string) => ["invest", "vix", startDate, endDate] as const,
     commodityHistory: (metricName: string, startDate: string, endDate: string) => ["invest", "commodity", metricName, startDate, endDate] as const,
@@ -212,14 +217,45 @@ export function useInvestReport(date: string) {
   });
 }
 
-/** Create a new holding (mutation). */
-export function useCreateHolding() {
+/** Create a new holding with simplified input (mutation). */
+export function useCreateHoldingSimple() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (data: InvestHoldingCreate) => createInvestHolding(data),
+    mutationFn: (data: InvestHoldingCreateSimple) => createInvestHoldingSimple(data),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: queryKeys.invest.holdings });
     },
+  });
+}
+
+/** Adjust holding position — buy/sell (mutation). */
+export function useAdjustHolding() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: InvestHoldingAdjust }) =>
+      adjustInvestHolding(id, data),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.invest.holdings });
+    },
+  });
+}
+
+/** Transaction history for a single holding. */
+export function useHoldingTransactions(id: number) {
+  return useQuery({
+    queryKey: queryKeys.invest.holdingTransactions(id),
+    queryFn: () => fetchInvestHoldingTransactions(id),
+    enabled: !!id,
+    ...defaults,
+  });
+}
+
+/** Sector rules. */
+export function useSectorRules() {
+  return useQuery({
+    queryKey: queryKeys.invest.sectorRules,
+    queryFn: fetchInvestSectorRules,
+    ...defaults,
   });
 }
 

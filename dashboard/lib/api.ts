@@ -12,9 +12,13 @@ import type {
   HealthStatus,
   AvailableDates,
   InvestHolding,
-  InvestHoldingCreate,
+  InvestHoldingCreateSimple,
+  InvestHoldingAdjust,
+  InvestHoldingTransaction,
   InvestHoldingUpdatePrice,
   InvestHoldingUpdateStoploss,
+  InvestSectorRule,
+  InvestSectorRuleUpdate,
   InvestOverviewResponse,
   InvestSupplyChainRecord,
   InvestHistoryPoint,
@@ -134,10 +138,36 @@ export function fetchInvestHoldings(): Promise<InvestHolding[]> {
   return apiFetch<InvestHolding[]>("/api/invest-sop/holdings");
 }
 
-/** Create a new invest holding. */
-export function createInvestHolding(data: InvestHoldingCreate): Promise<InvestHolding> {
+/** Create a new invest holding (simplified — code + quantity only). */
+export function createInvestHoldingSimple(data: InvestHoldingCreateSimple): Promise<InvestHolding> {
   return apiFetch<InvestHolding>("/api/invest-sop/holdings", {
     method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+/** Adjust (buy/sell) a holding. */
+export function adjustInvestHolding(id: number, data: InvestHoldingAdjust): Promise<InvestHolding> {
+  return apiFetch<InvestHolding>(`/api/invest-sop/holdings/${id}/adjust`, {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+}
+
+/** Fetch transaction history for a holding. */
+export function fetchInvestHoldingTransactions(id: number): Promise<InvestHoldingTransaction[]> {
+  return apiFetch<InvestHoldingTransaction[]>(`/api/invest-sop/holdings/${id}/transactions`);
+}
+
+/** Fetch all sector rules. */
+export function fetchInvestSectorRules(): Promise<InvestSectorRule[]> {
+  return apiFetch<InvestSectorRule[]>("/api/invest-sop/sector-rules");
+}
+
+/** Update a sector rule. */
+export function updateInvestSectorRule(sector: string, data: InvestSectorRuleUpdate): Promise<InvestSectorRule> {
+  return apiFetch<InvestSectorRule>(`/api/invest-sop/sector-rules/${encodeURIComponent(sector)}`, {
+    method: "PUT",
     body: JSON.stringify(data),
   });
 }
