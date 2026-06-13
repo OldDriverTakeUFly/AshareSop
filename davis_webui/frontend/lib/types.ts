@@ -139,3 +139,10 @@ export interface RescoreResult {
 export interface RescoreResponse {
   results: RescoreResult[];
 }
+
+export interface HistoryEntry {
+  task_id: string;
+  created_at: string;
+  top_n: number;
+  total_count: number;
+}

@@ -174,3 +174,13 @@ class RescoreResultItem(BaseModel):
 
 class RescoreResponse(BaseModel):
     results: list[RescoreResultItem]
+
+
+# ── History ──────────────────────────────────────────────────────────
+
+
+class HistoryEntryResponse(BaseModel):
+    task_id: str
+    created_at: str
+    top_n: int
+    total_count: int

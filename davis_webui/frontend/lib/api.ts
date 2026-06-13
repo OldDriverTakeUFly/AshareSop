@@ -3,6 +3,7 @@ import type {
   ChecklistFillRequest,
   ChecklistGenerateRequest,
   DistressHeatmapData,
+  HistoryEntry,
   ReportData,
   RescoreRequest,
   RescoreResult,
@@ -106,4 +107,14 @@ export function rescore(
     method: "POST",
     body: JSON.stringify(req),
   });
+}
+
+export function getHistory(): Promise<{ history: HistoryEntry[] }> {
+  return fetchJson("/history");
+}
+
+export function loadHistoryTask(
+  taskId: string,
+): Promise<{ task_id: string; loaded: boolean }> {
+  return fetchJson(`/history/${taskId}`);
 }

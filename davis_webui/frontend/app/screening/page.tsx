@@ -1,18 +1,27 @@
 "use client";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { startScreening, getScreeningResults } from "@/lib/api";
+import {
+  startScreening,
+  getScreeningResults,
+  loadHistoryTask,
+} from "@/lib/api";
 import { ScoreTable } from "@/components/ScoreTable";
 import { TaskProgress } from "@/components/TaskProgress";
 
-export default function ScreeningPage() {
+function ScreeningContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const loadedTaskId = searchParams.get("task");
+
   const [topN, setTopN] = useState(30);
   const [dryRun, setDryRun] = useState(false);
   const [taskId, setTaskId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showResults, setShowResults] = useState(false);
+  const [dismissHistory, setDismissHistory] = useState(false);
 
   const handleStart = async () => {
     setError(null);
@@ -30,6 +39,68 @@ export default function ScreeningPage() {
     queryFn: () => getScreeningResults(taskId!),
     enabled: showResults && !!taskId,
   });
+
+  const isHistoryMode = !!loadedTaskId && !dismissHistory;
+
+  const { data: loadResult } = useQuery({
+    queryKey: ["history-load", loadedTaskId],
+    queryFn: () => loadHistoryTask(loadedTaskId!),
+    enabled: isHistoryMode,
+  });
+
+  const { data: historyResults } = useQuery({
+    queryKey: ["screening-results-history", loadedTaskId],
+    queryFn: () => getScreeningResults(loadedTaskId!),
+    enabled: isHistoryMode && !!loadResult?.loaded,
+  });
+
+  if (isHistoryMode) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold">戴维斯双击估值筛选</h1>
+          <Link
+            href="/history"
+            className="text-sm text-blue-400 hover:text-blue-300"
+          >
+            ← 返回历史
+          </Link>
+        </div>
+
+        {!historyResults && (
+          <div className="text-zinc-500">加载历史任务中...</div>
+        )}
+
+        {historyResults && (
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <p className="text-zinc-400 text-sm">
+                共 {historyResults.total_count} 只标的
+              </p>
+              <button
+                onClick={() => setDismissHistory(true)}
+                className="text-sm text-blue-400 hover:text-blue-300"
+              >
+                重新筛选
+              </button>
+            </div>
+            {historyResults.scores.length > 0 ? (
+              <ScoreTable
+                scores={historyResults.scores}
+                onRowClick={(tsCode) =>
+                  router.push(`/stocks/${tsCode}?task=${loadedTaskId}`)
+                }
+              />
+            ) : (
+              <div className="text-center py-12 text-zinc-500">
+                <p className="text-lg">暂无筛选结果</p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -109,5 +180,15 @@ export default function ScreeningPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function ScreeningPage() {
+  return (
+    <Suspense
+      fallback={<div className="text-zinc-500">加载中...</div>}
+    >
+      <ScreeningContent />
+    </Suspense>
   );
 }

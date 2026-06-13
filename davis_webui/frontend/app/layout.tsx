@@ -10,6 +10,7 @@ export const metadata: Metadata = {
 
 const navItems = [
   { href: "/screening", label: "筛选结果", icon: "📊" },
+  { href: "/history", label: "历史记录", icon: "📜" },
   { href: "/distress", label: "困境热力图", icon: "🔥" },
   { href: "/research", label: "深度调研", icon: "🔬" },
 ];
