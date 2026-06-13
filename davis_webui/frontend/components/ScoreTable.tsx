@@ -21,12 +21,15 @@ function scoreColor(score: number): string {
 export function ScoreTable({
   scores,
   onRowClick,
+  onDelete,
 }: {
   scores: DavisScore[];
   onRowClick?: (tsCode: string) => void;
+  onDelete?: (tsCode: string) => void;
 }) {
   const [sortKey, setSortKey] = useState<SortKey>("rank");
   const [sortAsc, setSortAsc] = useState(true);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   const sorted = [...scores].sort((a, b) => {
     const diff = a[sortKey] - b[sortKey];
@@ -50,6 +53,13 @@ export function ScoreTable({
     { key: "distress_score", label: "困境" },
   ];
 
+  const handleDelete = (e: React.MouseEvent, tsCode: string) => {
+    e.stopPropagation();
+    setDeleting(tsCode);
+    onDelete?.(tsCode);
+    setTimeout(() => setDeleting(null), 1000);
+  };
+
   return (
     <table className="w-full text-sm">
       <thead>
@@ -65,6 +75,7 @@ export function ScoreTable({
               {h.label} {sortKey === h.key ? (sortAsc ? "↑" : "↓") : ""}
             </th>
           ))}
+          {onDelete && <th className="p-2" />}
         </tr>
       </thead>
       <tbody>
@@ -86,6 +97,18 @@ export function ScoreTable({
                   : s[h.key]}
               </td>
             ))}
+            {onDelete && (
+              <td className="p-2 text-right">
+                <button
+                  onClick={(e) => handleDelete(e, s.ts_code)}
+                  disabled={deleting === s.ts_code}
+                  className="text-zinc-600 hover:text-red-400 disabled:opacity-30 text-xs px-1"
+                  title="删除"
+                >
+                  {deleting === s.ts_code ? "..." : "✕"}
+                </button>
+              </td>
+            )}
           </tr>
         ))}
       </tbody>

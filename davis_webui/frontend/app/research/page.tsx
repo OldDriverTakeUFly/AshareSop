@@ -12,10 +12,12 @@ import type {
   ChecklistFillRequest,
   RescoreResult,
 } from "@/lib/types";
+import { TaskSelector } from "@/components/TaskSelector";
 
 function ResearchPageInner() {
   const params = useSearchParams();
-  const taskId = params.get("task");
+  const [selectedTask, setSelectedTask] = useState("");
+  const taskId = params.get("task") || selectedTask;
 
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [topN, setTopN] = useState(3);
@@ -32,12 +34,14 @@ function ResearchPageInner() {
     return (
       <div className="space-y-4">
         <h1 className="text-2xl font-bold">深度调研</h1>
-        <p className="text-zinc-400">
-          请先运行筛选，{" "}
-          <Link href="/screening" className="text-blue-400 hover:text-blue-300">
-            前往筛选页面 →
-          </Link>
-        </p>
+        <TaskSelector value={selectedTask} onChange={setSelectedTask} />
+        {selectedTask === "" && (
+          <p className="text-zinc-400 text-sm">
+            <Link href="/screening" className="text-blue-400 hover:text-blue-300">
+              前往筛选页面 →
+            </Link>
+          </p>
+        )}
       </div>
     );
   }

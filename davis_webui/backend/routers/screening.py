@@ -60,3 +60,11 @@ async def get_results(task_id: str):
         for s in result.scores
     ]
     return ScreeningResultsResponse(scores=scores, total_count=len(scores))
+
+
+@router.delete("/{task_id}/stocks/{ts_code}")
+async def remove_stock(task_id: str, ts_code: str):
+    removed = task_manager.remove_stock(task_id, ts_code)
+    if not removed:
+        raise HTTPException(status_code=404, detail="Task or stock not found")
+    return {"deleted": True, "ts_code": ts_code}

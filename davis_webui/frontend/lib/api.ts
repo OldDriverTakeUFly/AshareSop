@@ -118,3 +118,18 @@ export function loadHistoryTask(
 ): Promise<{ task_id: string; loaded: boolean }> {
   return fetchJson(`/history/${taskId}`);
 }
+
+export function deleteHistoryTask(
+  taskId: string,
+): Promise<{ deleted: boolean }> {
+  return fetchJson(`/history/${taskId}`, { method: "DELETE" });
+}
+
+export function removeStockFromResults(
+  taskId: string,
+  tsCode: string,
+): Promise<{ deleted: boolean; ts_code: string }> {
+  return fetchJson(`/screening/${taskId}/stocks/${tsCode}`, {
+    method: "DELETE",
+  });
+}

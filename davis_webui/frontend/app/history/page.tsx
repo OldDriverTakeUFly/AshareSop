@@ -2,12 +2,14 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useQuery } from "@tanstack/react-query";
-import { getHistory, loadHistoryTask } from "@/lib/api";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { getHistory, loadHistoryTask, deleteHistoryTask } from "@/lib/api";
 
 export default function HistoryPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [loadingTask, setLoadingTask] = useState<string | null>(null);
+  const [deletingTask, setDeletingTask] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
@@ -24,6 +26,19 @@ export default function HistoryPage() {
     } catch (e) {
       setError((e as Error).message);
       setLoadingTask(null);
+    }
+  };
+
+  const handleDelete = async (taskId: string) => {
+    setError(null);
+    setDeletingTask(taskId);
+    try {
+      await deleteHistoryTask(taskId);
+      queryClient.invalidateQueries({ queryKey: ["history"] });
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setDeletingTask(null);
     }
   };
 
@@ -81,13 +96,20 @@ export default function HistoryPage() {
                   <td className="p-3 text-right text-zinc-400">
                     {entry.total_count}
                   </td>
-                  <td className="p-3 text-right">
+                  <td className="p-3 text-right whitespace-nowrap">
                     <button
                       onClick={() => handleView(entry.task_id)}
                       disabled={loadingTask === entry.task_id}
-                      className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 px-3 py-1 rounded text-xs font-medium"
+                      className="bg-blue-600 hover:bg-blue-500 disabled:opacity-50 px-3 py-1 rounded text-xs font-medium mr-2"
                     >
                       {loadingTask === entry.task_id ? "加载中..." : "查看"}
+                    </button>
+                    <button
+                      onClick={() => handleDelete(entry.task_id)}
+                      disabled={deletingTask === entry.task_id}
+                      className="bg-zinc-700 hover:bg-red-600 disabled:opacity-50 px-3 py-1 rounded text-xs font-medium"
+                    >
+                      {deletingTask === entry.task_id ? "删除中..." : "删除"}
                     </button>
                   </td>
                 </tr>

@@ -242,6 +242,24 @@ class TaskManager:
             for e in entries
         ]
 
+    def remove_stock(self, task_id: str, ts_code: str) -> bool:
+        with self._lock:
+            info = self.tasks.get(task_id)
+            if info is None or info.result is None:
+                return False
+            result = info.result
+            result.scores = [s for s in result.scores if s.ts_code != ts_code]
+            result.stock_infos.pop(ts_code, None)
+            result.valuation_data.pop(ts_code, None)
+            result.prosperity_scores.pop(ts_code, None)
+            result.distress_signals.pop(ts_code, None)
+            result.financial_data.pop(ts_code, None)
+            result.trend_scores.pop(ts_code, None)
+            info.message = f"Removed {ts_code}"
+
+        self._save_task(task_id)
+        return True
+
     def delete_task(self, task_id: str) -> bool:
         task_file = _DATA_DIR / f"{task_id}.json"
         deleted = task_file.unlink(missing_ok=True)

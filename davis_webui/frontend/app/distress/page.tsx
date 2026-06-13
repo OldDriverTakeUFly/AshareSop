@@ -1,15 +1,17 @@
 "use client";
-import { Suspense } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { getDistressHeatmap } from "@/lib/api";
 import { DistressHeatmap } from "@/components/DistressHeatmap";
+import { TaskSelector } from "@/components/TaskSelector";
 
 function DistressContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const taskId = searchParams.get("task") || "";
+  const [selectedTask, setSelectedTask] = useState("");
+  const taskId = searchParams.get("task") || selectedTask;
 
   const { data, error, isLoading } = useQuery({
     queryKey: ["distress-heatmap", taskId],
@@ -21,15 +23,17 @@ function DistressContent() {
     return (
       <div className="space-y-6">
         <h1 className="text-2xl font-bold">困境反转热力图</h1>
-        <div className="text-center py-12 text-zinc-500">
-          <p className="text-lg">请先运行筛选</p>
-          <Link
-            href="/screening"
-            className="text-blue-400 hover:text-blue-300 text-sm mt-2 inline-block"
-          >
-            前往筛选页面 →
-          </Link>
-        </div>
+        <TaskSelector value={selectedTask} onChange={setSelectedTask} />
+        {selectedTask === "" && (
+          <div className="text-center py-12 text-zinc-500">
+            <Link
+              href="/screening"
+              className="text-blue-400 hover:text-blue-300 text-sm"
+            >
+              前往筛选页面 →
+            </Link>
+          </div>
+        )}
       </div>
     );
   }
