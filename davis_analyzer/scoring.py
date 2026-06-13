@@ -1,4 +1,8 @@
-"""Davis Double final scoring model — weighted combination of valuation, prosperity, and distress."""
+"""Davis Double final scoring model — 4-dimension weighted combination.
+
+Dimensions: valuation (0.30), trend (0.15), prosperity (0.30), distress (0.25).
+Weights are sourced from DAVIS_DOUBLE_WEIGHTS in constants.py.
+"""
 
 from __future__ import annotations
 
@@ -10,16 +14,19 @@ def calculate_davis_double_score(
     valuation_score: float,
     prosperity_score: float,
     distress_score: float,
+    trend_score: float = 0.0,
     ts_code: str = "",
     name: str = "",
 ) -> DavisDoubleScore:
-    """Combine three sub-scores using DAVIS_DOUBLE_WEIGHTS.
+    """Combine four sub-scores using DAVIS_DOUBLE_WEIGHTS.
 
-    Final = valuation * 0.35 + prosperity * 0.35 + distress * 0.30.
+    Final = valuation*w_val + trend*w_trend + prosperity*w_pros + distress*w_dist.
+    Weights sum to 1.0: 0.30 + 0.15 + 0.30 + 0.25 = 1.00.
     """
     w = DAVIS_DOUBLE_WEIGHTS
     final_score = round(
         valuation_score * w["valuation"]
+        + trend_score * w["trend"]
         + prosperity_score * w["prosperity"]
         + distress_score * w["distress"],
         2,
@@ -31,6 +38,7 @@ def calculate_davis_double_score(
         valuation_score=round(valuation_score, 2),
         prosperity_score=round(prosperity_score, 2),
         distress_score=round(distress_score, 2),
+        trend_score=round(trend_score, 2),
         final_score=final_score,
         rank=0,
     )

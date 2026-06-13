@@ -10,12 +10,15 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from davis_analyzer.config import STUDIES_DIR
+from davis_analyzer.prosperity import dupont_decomposition
 from davis_analyzer.templates import STOCK_REPORT_TEMPLATE, SUMMARY_INDEX_TEMPLATE
 
 if TYPE_CHECKING:
     from davis_analyzer.types import (
         DavisDoubleScore,
         DistressSignal,
+        FinancialData,
+        PipelineResult,
         ProsperityScore,
         StockInfo,
         ValuationData,
@@ -50,13 +53,55 @@ def _get_valuation_judgment(pe_percentile: float) -> str:
 # ── public API ───────────────────────────────────────────────────────
 
 
+def _compute_dupont_conclusion(
+    financial_data: FinancialData | None,
+) -> str:
+    """Compute DuPont decomposition conclusion from latest FinancialData.
+
+    Returns a driver-classification string, or a data-insufficiency message
+    when the required fields are missing or would cause division-by-zero.
+    """
+    if financial_data is None:
+        return "数据不足"
+
+    revenue = financial_data.revenue
+    net_profit = financial_data.net_profit
+    total_assets = financial_data.total_assets
+    total_debt = financial_data.total_debt
+
+    # Need non-zero revenue for net_margin and asset_turnover
+    if abs(revenue) < 1e-9:
+        return "数据周期不足，需至少2期财报"
+
+    net_margin = net_profit / revenue
+
+    if abs(total_assets) < 1e-9:
+        return "数据周期不足，需至少2期财报"
+
+    asset_turnover = revenue / total_assets
+
+    equity = total_assets - total_debt
+    if abs(equity) < 1e-9:
+        return "数据周期不足，需至少2期财报"
+
+    leverage_ratio = total_assets / equity
+
+    return dupont_decomposition(
+        roe=financial_data.roe,
+        net_margin=net_margin,
+        asset_turnover=asset_turnover,
+        leverage_ratio=leverage_ratio,
+    )
+
+
 def generate_stock_report(
     stock_info: StockInfo,
     valuation_data: tuple[float, float, float],
-    valuation_history_latest: ValuationData,
     prosperity: ProsperityScore,
     distress: DistressSignal,
     davis_score: DavisDoubleScore,
+    financial_data: FinancialData | None = None,
+    valuation_history_latest: ValuationData | None = None,
 ) -> str:
     """Generate a single-stock deep-analysis markdown report.
 
@@ -66,14 +111,18 @@ def generate_stock_report(
         Basic stock metadata (code, name, industry, …).
     valuation_data : tuple
         ``(score, pe_percentile, pb_percentile)`` from valuation scoring.
-    valuation_history_latest : ValuationData
-        Latest row from valuation history (pe_ttm, pb, total_mv).
     prosperity : ProsperityScore
         Prosperity dimension scores.
     distress : DistressSignal
         Distress-reversal signals and scores.
     davis_score : DavisDoubleScore
         Final composite score and rank.
+    financial_data : FinancialData | None
+        Latest period FinancialData — used for DuPont decomposition.
+        When None, DuPont conclusion shows a data-insufficiency message.
+    valuation_history_latest : ValuationData | None
+        Latest row from valuation history (pe_ttm, pb, total_mv).
+        When None, those display fields default to 0.0.
 
     Returns
     -------
@@ -81,9 +130,11 @@ def generate_stock_report(
     """
     _val_score, pe_percentile, pb_percentile = valuation_data
 
-    dupont_conclusion: str = "数据不足"
-    if hasattr(prosperity, "_dupont_conclusion") and prosperity._dupont_conclusion:  # type: ignore[attr-defined]
-        dupont_conclusion = prosperity._dupont_conclusion  # type: ignore[attr-defined]
+    dupont_conclusion = _compute_dupont_conclusion(financial_data)
+
+    total_mv = valuation_history_latest.total_mv if valuation_history_latest else 0.0
+    pe_ttm = valuation_history_latest.pe_ttm if valuation_history_latest else 0.0
+    pb = valuation_history_latest.pb if valuation_history_latest else 0.0
 
     signals_summary = _build_signals_summary(distress)
     risk_notes = _build_risk_notes(stock_info, distress)
@@ -92,9 +143,9 @@ def generate_stock_report(
         name=stock_info.name,
         ts_code=stock_info.ts_code,
         industry=stock_info.industry,
-        total_mv=valuation_history_latest.total_mv,
-        pe_ttm=valuation_history_latest.pe_ttm,
-        pb=valuation_history_latest.pb,
+        total_mv=total_mv,
+        pe_ttm=pe_ttm,
+        pb=pb,
         pe_percentile=pe_percentile * 100,
         pb_percentile=pb_percentile * 100,
         valuation_judgment=_get_valuation_judgment(pe_percentile),
@@ -112,6 +163,7 @@ def generate_stock_report(
         signals_summary=signals_summary,
         final_score=davis_score.final_score,
         valuation_score=davis_score.valuation_score,
+        trend_score=davis_score.trend_score,
         prosperity_score=davis_score.prosperity_score,
         distress_score=davis_score.distress_score,
         rank=davis_score.rank,
@@ -160,7 +212,7 @@ def generate_summary_index(
         rows.append(
             f"| {ds.rank} | {ds.ts_code} | {name} | {industry} "
             f"| {pe_pct:.1f}% | {pb_pct:.1f}% "
-            f"| {prop_score:.1f} | {ds.distress_score:.1f} "
+            f"| {ds.trend_score:.1f} | {prop_score:.1f} | {ds.distress_score:.1f} "
             f"| {ds.final_score:.1f} |"
         )
 
@@ -173,17 +225,15 @@ def generate_summary_index(
 
 
 def save_all_reports(
-    top_stocks_data: list[dict],
+    result: PipelineResult,
     output_dir: str | None = None,
 ) -> list[str]:
     """Generate and persist individual reports + summary index.
 
     Parameters
     ----------
-    top_stocks_data : list[dict]
-        Each dict must contain keys:
-        ``stock_info``, ``valuation``, ``valuation_history_latest``,
-        ``prosperity``, ``distress``, ``davis_score``.
+    result : PipelineResult
+        Pipeline result containing scores and all intermediate data dicts.
     output_dir : str | None
         Directory to write reports into.  Defaults to
         ``davis_analyzer/studies/`` from config.
@@ -202,26 +252,37 @@ def save_all_reports(
     valuation_map: dict[str, tuple[float, float, float]] = {}
     prosperity_map: dict[str, ProsperityScore] = {}
 
-    for entry in top_stocks_data:
-        ds: DavisDoubleScore = entry["davis_score"]
-        si: StockInfo = entry["stock_info"]
-        val: tuple = entry["valuation"]
-        vhl: ValuationData = entry["valuation_history_latest"]
-        prop: ProsperityScore = entry["prosperity"]
-        dist: DistressSignal = entry["distress"]
+    for ds in result.scores:
+        ts_code = ds.ts_code
+        si = result.stock_infos.get(ts_code)
+        val = result.valuation_data.get(ts_code)
+        prop = result.prosperity_scores.get(ts_code)
+        dist = result.distress_signals.get(ts_code)
+        fin_list = result.financial_data.get(ts_code)
 
+        if si is None or val is None or prop is None or dist is None:
+            continue
 
-        md = generate_stock_report(si, val, vhl, prop, dist, ds)
+        fin_latest = fin_list[0] if fin_list else None
 
-        filename = f"{ds.rank}_{ds.ts_code}_{si.name}_深度研报.md"
+        md = generate_stock_report(
+            stock_info=si,
+            valuation_data=val,
+            prosperity=prop,
+            distress=dist,
+            davis_score=ds,
+            financial_data=fin_latest,
+        )
+
+        filename = f"{ds.rank}_{ds.ts_code}_{ds.name}_深度研报.md"
         filepath = out / filename
         filepath.write_text(md, encoding="utf-8")
         saved.append(str(filepath))
 
         top_scores.append(ds)
-        stock_infos[ds.ts_code] = si
-        valuation_map[ds.ts_code] = val
-        prosperity_map[ds.ts_code] = prop
+        stock_infos[ts_code] = si
+        valuation_map[ts_code] = val
+        prosperity_map[ts_code] = prop
 
     if top_scores:
         summary_md = generate_summary_index(

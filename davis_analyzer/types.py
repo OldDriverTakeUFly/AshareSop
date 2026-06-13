@@ -1,6 +1,6 @@
 """Data definitions for davis_analyzer — pure dataclasses, no logic."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass
@@ -67,6 +67,7 @@ class DavisDoubleScore:
     distress_score: float
     final_score: float
     rank: int
+    trend_score: float = 0.0
 
 
 @dataclass
@@ -74,3 +75,28 @@ class StockReport:
     ts_code: str
     name: str
     report_content: str
+
+
+@dataclass
+class PipelineResult:
+    """Container for all pipeline intermediate data."""
+
+    scores: list["DavisDoubleScore"]
+    stock_infos: dict[str, "StockInfo"]
+    valuation_data: dict[str, tuple]
+    prosperity_scores: dict[str, "ProsperityScore"]
+    distress_signals: dict[str, "DistressSignal"]
+    financial_data: dict[str, list["FinancialData"]]
+    trend_scores: dict[str, float] = field(default_factory=dict)
+
+
+@dataclass
+class RescoredResult:
+    ts_code: str
+    name: str
+    original_prosperity: float
+    adjusted_prosperity: float
+    original_distress: float
+    adjusted_distress: float
+    prosperity_adjustment: float
+    distress_adjustment: float

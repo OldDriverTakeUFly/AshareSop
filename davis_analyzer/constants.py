@@ -10,13 +10,18 @@ PROSPERITY_WEIGHTS: dict[str, float] = {
 
 # ── Davis Double final scoring weights ──
 DAVIS_DOUBLE_WEIGHTS: dict[str, float] = {
-    "valuation": 0.35,
-    "prosperity": 0.35,
-    "distress": 0.30,
+    "valuation": 0.30,
+    "trend": 0.15,
+    "prosperity": 0.30,
+    "distress": 0.25,
 }
 
 # ── Valuation percentile look-back ──
-PERCENTILE_DAYS: int = 730  # 3 years of trading days
+PERCENTILE_DAYS: int = 1095  # 3 years of calendar days
+
+# ── PE/PB trend calculation ──
+PE_PB_TREND_MONTHS: int = 36  # monthly data points for trend (3 years)
+MIN_TREND_MONTHS: int = 12  # minimum monthly points for valid trend
 
 # ── Valuation thresholds (percentile ranks) ──
 UNDERVALUED_PE_THRESHOLD: float = 0.20  # 20th percentile
@@ -37,7 +42,7 @@ CYCLICAL_INDUSTRIES: list[str] = [
 EPS_NEAR_ZERO_THRESHOLD: float = 0.01
 
 # ── API limits ──
-TUSHARE_RATE_LIMIT: int = 190  # requests per minute
+TUSHARE_RATE_LIMIT: int = 500  # upgraded Tushare API tier
 
 # ── Report generation ──
 REPORT_MAX_WORDS: int = 1500

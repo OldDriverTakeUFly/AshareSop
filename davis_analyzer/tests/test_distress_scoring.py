@@ -22,209 +22,259 @@ from davis_analyzer.types import DavisDoubleScore
 
 class TestCheckEpsDecline:
     def test_decline_exceeds_30_percent(self):
-        assert check_eps_decline([0.5, 1.0]) is True
+        assert check_eps_decline([0.5, 1.0]) == pytest.approx(1.0, abs=0.01)
 
     def test_decline_just_under_30_percent(self):
-        assert check_eps_decline([0.71, 1.0]) is False
+        result = check_eps_decline([0.71, 1.0])
+        assert 0.0 < result < 1.0
+        assert result == pytest.approx(0.29 / 0.30, abs=0.02)
 
-    def test_no_decline(self):
-        assert check_eps_decline([1.5, 1.0]) is False
+    def test_no_decline_returns_zero(self):
+        assert check_eps_decline([1.5, 1.0]) == 0.0
 
     def test_insufficient_history(self):
-        assert check_eps_decline([0.5]) is False
-        assert check_eps_decline([]) is False
+        assert check_eps_decline([0.5]) == 0.0
+        assert check_eps_decline([]) == 0.0
 
     def test_previous_near_zero(self):
-        assert check_eps_decline([0.5, 0.0]) is False
+        assert check_eps_decline([0.5, 0.0]) == 0.0
+
+    def test_same_quarter_comparison_5_periods(self):
+        # eps_history[0] vs eps_history[4] when 5+ elements
+        # [2.0, 99, 99, 99, 1.0] → decline = (1.0-2.0)/1.0 = -1.0 → 0.0
+        assert check_eps_decline([2.0, 99.0, 99.0, 99.0, 1.0]) == 0.0
+        # [0.5, 99, 99, 99, 1.0] → decline = 0.5 → 1.0
+        assert check_eps_decline([0.5, 99.0, 99.0, 99.0, 1.0]) == pytest.approx(
+            1.0, abs=0.01
+        )
 
 
 class TestCheckPePbPercentile:
-    def test_pe_below_10_percent(self):
-        assert check_pe_pb_percentile(0.05, 0.50) is True
+    def test_both_very_low(self):
+        result = check_pe_pb_percentile(0.02, 0.02)
+        assert result == pytest.approx(0.98, abs=0.01)
 
-    def test_pb_below_10_percent(self):
-        assert check_pe_pb_percentile(0.50, 0.05) is True
+    def test_both_at_10_percent(self):
+        result = check_pe_pb_percentile(0.10, 0.10)
+        assert result == pytest.approx(0.90, abs=0.01)
 
-    def test_both_above_10_percent(self):
-        assert check_pe_pb_percentile(0.50, 0.50) is False
+    def test_both_mid(self):
+        result = check_pe_pb_percentile(0.50, 0.50)
+        assert result == pytest.approx(0.50, abs=0.01)
 
-    def test_both_below_10_percent(self):
-        assert check_pe_pb_percentile(0.05, 0.05) is True
+    def test_both_high(self):
+        result = check_pe_pb_percentile(0.90, 0.90)
+        assert result == pytest.approx(0.10, abs=0.01)
+
+    def test_both_max(self):
+        result = check_pe_pb_percentile(1.0, 1.0)
+        assert result == pytest.approx(0.0, abs=0.01)
 
 
 class TestCheckFinancialHealth:
     def test_healthy(self):
-        assert check_financial_health(0.3, 100.0) is True
+        assert check_financial_health(0.3, 100.0) == 1.0
 
-    def test_high_debt(self):
-        assert check_financial_health(0.6, 100.0) is False
+    def test_high_debt_only(self):
+        assert check_financial_health(0.6, 100.0) == 0.5
 
-    def test_negative_cf(self):
-        assert check_financial_health(0.3, -50.0) is False
+    def test_negative_cf_only(self):
+        assert check_financial_health(0.3, -50.0) == 0.5
 
     def test_both_bad(self):
-        assert check_financial_health(0.6, -50.0) is False
+        assert check_financial_health(0.6, -50.0) == 0.0
 
 
 # ── Layer 2 signal tests ────────────────────────────────────────────────────
 
 
 class TestCheckBalanceSheet:
-    def test_low_debt_ratio(self):
-        assert check_balance_sheet(300.0, 1000.0) is True
+    def test_very_low_debt_ratio(self):
+        result = check_balance_sheet(100.0, 1000.0)
+        assert result == pytest.approx(0.8, abs=0.01)
+
+    def test_no_debt(self):
+        result = check_balance_sheet(0.0, 1000.0)
+        assert result == pytest.approx(1.0, abs=0.01)
 
     def test_high_debt_ratio(self):
-        assert check_balance_sheet(600.0, 1000.0) is False
+        result = check_balance_sheet(600.0, 1000.0)
+        assert result == 0.0
 
     def test_exactly_half(self):
-        assert check_balance_sheet(500.0, 1000.0) is False
+        result = check_balance_sheet(500.0, 1000.0)
+        assert result == 0.0
 
     def test_zero_assets(self):
-        assert check_balance_sheet(100.0, 0.0) is False
+        assert check_balance_sheet(100.0, 0.0) == 0.0
 
 
 class TestCheckOperatingCf:
-    def test_positive(self):
-        assert check_operating_cf(100.0) is True
+    def test_positive_with_assets(self):
+        result = check_operating_cf(200.0, 1000.0)
+        assert result == pytest.approx(0.2, abs=0.01)
 
-    def test_zero(self):
-        assert check_operating_cf(0.0) is False
+    def test_very_large_cf_ratio_capped(self):
+        result = check_operating_cf(2000.0, 1000.0)
+        assert result == 1.0
 
-    def test_negative(self):
-        assert check_operating_cf(-50.0) is False
+    def test_negative_cf(self):
+        result = check_operating_cf(-50.0, 1000.0)
+        assert result == 0.0
+
+    def test_zero_cf(self):
+        result = check_operating_cf(0.0, 1000.0)
+        assert result == 0.0
+
+    def test_no_assets_fallback_positive(self):
+        assert check_operating_cf(100.0) == 1.0
+
+    def test_no_assets_fallback_negative(self):
+        assert check_operating_cf(-50.0) == 0.0
 
 
 class TestCheckRoeTrend:
-    def test_improving(self):
-        assert check_roe_trend([12.0, 10.0]) is True
+    def test_significant_improvement(self):
+        result = check_roe_trend([16.0, 10.0])
+        assert result == pytest.approx(1.0, abs=0.01)
+
+    def test_moderate_improvement(self):
+        result = check_roe_trend([12.0, 10.0])
+        assert result == pytest.approx(0.4, abs=0.01)
 
     def test_stable(self):
-        assert check_roe_trend([10.0, 10.0]) is True
+        result = check_roe_trend([10.0, 10.0])
+        assert result == 0.0
 
     def test_declining(self):
-        assert check_roe_trend([8.0, 10.0]) is False
+        result = check_roe_trend([8.0, 10.0])
+        assert result == 0.0
 
     def test_insufficient_data(self):
-        assert check_roe_trend([5.0]) is False
-        assert check_roe_trend([]) is False
+        assert check_roe_trend([5.0]) == 0.0
+        assert check_roe_trend([]) == 0.0
+
+    def test_same_quarter_comparison_5_periods(self):
+        # [16, 99, 99, 99, 10] → diff = 6 → min(1.0, 6/5) = 1.0
+        result = check_roe_trend([16.0, 99.0, 99.0, 99.0, 10.0])
+        assert result == pytest.approx(1.0, abs=0.01)
+        # [8, 99, 99, 99, 10] → diff = -2 → 0.0
+        result = check_roe_trend([8.0, 99.0, 99.0, 99.0, 10.0])
+        assert result == 0.0
 
 
 # ── Layer 3 signal tests ────────────────────────────────────────────────────
 
 
 class TestCheckRevenueInflection:
-    def test_inflection_positive(self):
-        assert check_revenue_inflection([5.0, -10.0]) is True
+    def test_strong_inflection(self):
+        # swing = 5 - (-10) = 15 → 15/20 = 0.75
+        result = check_revenue_inflection([5.0, -10.0])
+        assert result == pytest.approx(0.75, abs=0.01)
 
-    def test_inflection_to_zero(self):
-        assert check_revenue_inflection([0.0, -10.0]) is True
+    def test_full_inflection(self):
+        # swing = 15 - (-10) = 25 → 25/20 = 1.25 → capped at 1.0
+        result = check_revenue_inflection([15.0, -10.0])
+        assert result == pytest.approx(1.0, abs=0.01)
 
     def test_still_declining(self):
-        assert check_revenue_inflection([-3.0, -10.0]) is False
+        # swing = -3 - (-10) = 7 → 7/20 = 0.35
+        result = check_revenue_inflection([-3.0, -10.0])
+        assert result == pytest.approx(0.35, abs=0.01)
 
-    def test_already_growing(self):
-        assert check_revenue_inflection([10.0, 5.0]) is False
+    def test_decelerating_growth(self):
+        # swing = 5 - 10 = -5 → 0.0
+        result = check_revenue_inflection([5.0, 10.0])
+        assert result == 0.0
 
     def test_insufficient_data(self):
-        assert check_revenue_inflection([5.0]) is False
+        assert check_revenue_inflection([5.0]) == 0.0
 
 
 class TestCheckProfitInflection:
-    def test_inflection_positive(self):
-        assert check_profit_inflection([8.0, -5.0]) is True
+    def test_strong_inflection(self):
+        # swing = 8 - (-5) = 13 → 13/20 = 0.65
+        result = check_profit_inflection([8.0, -5.0])
+        assert result == pytest.approx(0.65, abs=0.01)
 
     def test_no_inflection(self):
-        assert check_profit_inflection([10.0, 5.0]) is False
+        # swing = 5 - 10 = -5 → 0.0
+        result = check_profit_inflection([5.0, 10.0])
+        assert result == 0.0
 
     def test_insufficient_data(self):
-        assert check_profit_inflection([]) is False
+        assert check_profit_inflection([]) == 0.0
 
 
 class TestCheckDeltaGPositive:
-    def test_positive(self):
-        assert check_delta_g_positive(5.0) is True
+    def test_strong_positive(self):
+        result = check_delta_g_positive(0.20)
+        assert result == pytest.approx(1.0, abs=0.01)
+
+    def test_moderate_positive(self):
+        result = check_delta_g_positive(0.05)
+        assert result == pytest.approx(0.5, abs=0.01)
 
     def test_zero(self):
-        assert check_delta_g_positive(0.0) is False
+        assert check_delta_g_positive(0.0) == 0.0
 
     def test_negative(self):
-        assert check_delta_g_positive(-3.0) is False
+        assert check_delta_g_positive(-3.0) == 0.0
 
 
 # ── Distress score aggregation tests ────────────────────────────────────────
 
 
 class TestCalculateDistressScore:
-    def _make_all_true_kwargs(self):
+    def _make_high_score_kwargs(self):
         return dict(
             eps_history=[0.5, 1.0],
-            pe_pct=0.05,
-            pb_pct=0.50,
-            debt_ratio=0.3,
-            operating_cf=100.0,
-            total_debt=300.0,
+            pe_pct=0.01,
+            pb_pct=0.01,
+            debt_ratio=0.1,
+            operating_cf=500.0,
+            total_debt=100.0,
             total_assets=1000.0,
-            roe_history=[12.0, 10.0],
-            revenue_history=[5.0, -10.0],
-            profit_history=[8.0, -5.0],
-            delta_g=5.0,
+            roe_history=[16.0, 10.0],
+            revenue_history=[15.0, -10.0],
+            profit_history=[15.0, -5.0],
+            delta_g=0.20,
             ts_code="000001.SZ",
         )
 
-    def _make_all_false_kwargs(self):
+    def _make_low_score_kwargs(self):
         return dict(
             eps_history=[1.5, 1.0],
-            pe_pct=0.50,
-            pb_pct=0.50,
-            debt_ratio=0.6,
+            pe_pct=1.0,
+            pb_pct=1.0,
+            debt_ratio=0.9,
             operating_cf=-50.0,
-            total_debt=600.0,
+            total_debt=900.0,
             total_assets=1000.0,
-            roe_history=[8.0, 10.0],
-            revenue_history=[10.0, 5.0],
-            profit_history=[10.0, 5.0],
-            delta_g=-3.0,
+            roe_history=[5.0, 10.0],
+            revenue_history=[-5.0, 5.0],
+            profit_history=[-5.0, 5.0],
+            delta_g=-0.10,
             ts_code="000002.SZ",
         )
 
-    def test_all_true_high_score(self):
-        result = calculate_distress_score(**self._make_all_true_kwargs())
-        assert result.layer1_score == 100.0
-        assert result.layer2_score == 100.0
-        assert result.layer3_score == 100.0
-        assert result.total_score == pytest.approx(100.0, abs=0.01)
+    def test_high_score_profile(self):
+        result = calculate_distress_score(**self._make_high_score_kwargs())
+        assert result.layer1_score > 90.0
+        assert result.layer2_score > 50.0
+        assert result.layer3_score > 90.0
+        assert result.total_score > 70.0
         assert result.ts_code == "000001.SZ"
 
-    def test_all_false_low_score(self):
-        result = calculate_distress_score(**self._make_all_false_kwargs())
+    def test_low_score_profile(self):
+        result = calculate_distress_score(**self._make_low_score_kwargs())
         assert result.layer1_score == 0.0
         assert result.layer2_score == 0.0
         assert result.layer3_score == 0.0
         assert result.total_score == 0.0
 
-    def test_mixed_signals_partial_score(self):
-        result = calculate_distress_score(
-            eps_history=[0.5, 1.0],
-            pe_pct=0.50,
-            pb_pct=0.50,
-            debt_ratio=0.6,
-            operating_cf=100.0,
-            total_debt=300.0,
-            total_assets=1000.0,
-            roe_history=[8.0, 10.0],
-            revenue_history=[5.0, -10.0],
-            profit_history=[8.0, -5.0],
-            delta_g=-3.0,
-            ts_code="000003.SZ",
-        )
-        assert result.layer1_score == pytest.approx(33.33, abs=0.01)
-        assert result.layer2_score == pytest.approx(66.67, abs=0.01)
-        assert result.layer3_score == pytest.approx(66.67, abs=0.01)
-        expected_total = 33.33 * 0.3 + 66.67 * 0.3 + 66.67 * 0.4
-        assert result.total_score == pytest.approx(expected_total, abs=0.5)
-
-    def test_signals_detail_structure(self):
-        result = calculate_distress_score(**self._make_all_true_kwargs())
+    def test_signals_detail_contains_floats(self):
+        result = calculate_distress_score(**self._make_high_score_kwargs())
         detail = result.signals_detail
         assert "layer1" in detail
         assert "layer2" in detail
@@ -232,6 +282,78 @@ class TestCalculateDistressScore:
         assert len(detail["layer1"]) == 3
         assert len(detail["layer2"]) == 3
         assert len(detail["layer3"]) == 3
+        for layer_key in ("layer1", "layer2", "layer3"):
+            for signal_val in detail[layer_key].values():
+                assert isinstance(signal_val, float)
+                assert 0.0 <= signal_val <= 1.0
+
+    def test_total_weighted_formula(self):
+        result = calculate_distress_score(**self._make_high_score_kwargs())
+        expected = (
+            result.layer1_score * 0.3
+            + result.layer2_score * 0.3
+            + result.layer3_score * 0.4
+        )
+        assert result.total_score == pytest.approx(expected, abs=0.02)
+
+
+class TestDistressScoresDifferentiated:
+    """Verify different stock profiles produce meaningfully different scores."""
+
+    def _profile_distressed_reversal(self):
+        """A distressed stock with strong reversal signals."""
+        return dict(
+            eps_history=[0.5, 1.0],
+            pe_pct=0.02,
+            pb_pct=0.03,
+            debt_ratio=0.2,
+            operating_cf=400.0,
+            total_debt=200.0,
+            total_assets=1000.0,
+            roe_history=[14.0, 10.0],
+            revenue_history=[12.0, -8.0],
+            profit_history=[10.0, -6.0],
+            delta_g=0.15,
+            ts_code="DISTRESSED.SZ",
+        )
+
+    def _profile_healthy_growing(self):
+        """A healthy stock already growing — low distress-reversal score."""
+        return dict(
+            eps_history=[1.5, 1.0],
+            pe_pct=0.80,
+            pb_pct=0.75,
+            debt_ratio=0.65,
+            operating_cf=-30.0,
+            total_debt=700.0,
+            total_assets=1000.0,
+            roe_history=[6.0, 10.0],
+            revenue_history=[3.0, 8.0],
+            profit_history=[2.0, 7.0],
+            delta_g=-0.05,
+            ts_code="HEALTHY.SZ",
+        )
+
+    def test_scores_differ_by_more_than_5_points(self):
+        score_a = calculate_distress_score(**self._profile_distressed_reversal())
+        score_b = calculate_distress_score(**self._profile_healthy_growing())
+        assert abs(score_a.total_score - score_b.total_score) > 5.0
+
+    def test_distressed_scores_higher(self):
+        score_a = calculate_distress_score(**self._profile_distressed_reversal())
+        score_b = calculate_distress_score(**self._profile_healthy_growing())
+        assert score_a.total_score > score_b.total_score
+
+    def test_all_layer_scores_differentiated(self):
+        """At least 2 of 3 layer scores should differ between profiles."""
+        score_a = calculate_distress_score(**self._profile_distressed_reversal())
+        score_b = calculate_distress_score(**self._profile_healthy_growing())
+        diffs = [
+            abs(score_a.layer1_score - score_b.layer1_score),
+            abs(score_a.layer2_score - score_b.layer2_score),
+            abs(score_a.layer3_score - score_b.layer3_score),
+        ]
+        assert sum(1 for d in diffs if d > 5.0) >= 2
 
 
 # ── Davis Double scoring tests ──────────────────────────────────────────────
@@ -243,34 +365,55 @@ class TestCalculateDavisDoubleScore:
             valuation_score=80.0,
             prosperity_score=70.0,
             distress_score=60.0,
+            trend_score=70.0,
             ts_code="000001.SZ",
             name="TestStock",
         )
-        expected = 80.0 * 0.35 + 70.0 * 0.35 + 60.0 * 0.30
+        w = DAVIS_DOUBLE_WEIGHTS
+        expected = (
+            80.0 * w["valuation"]
+            + 70.0 * w["trend"]
+            + 70.0 * w["prosperity"]
+            + 60.0 * w["distress"]
+        )
         assert result.final_score == pytest.approx(expected, abs=0.01)
         assert result.final_score == pytest.approx(70.5, abs=0.01)
         assert result.valuation_score == 80.0
         assert result.prosperity_score == 70.0
         assert result.distress_score == 60.0
+        assert result.trend_score == 70.0
         assert result.rank == 0
         assert result.ts_code == "000001.SZ"
         assert result.name == "TestStock"
 
     def test_uses_weights_from_constants(self):
         w = DAVIS_DOUBLE_WEIGHTS
-        result = calculate_davis_double_score(100.0, 100.0, 100.0)
+        result = calculate_davis_double_score(100.0, 100.0, 100.0, trend_score=100.0)
         assert result.final_score == pytest.approx(
-            100.0 * w["valuation"] + 100.0 * w["prosperity"] + 100.0 * w["distress"],
+            100.0 * w["valuation"]
+            + 100.0 * w["trend"]
+            + 100.0 * w["prosperity"]
+            + 100.0 * w["distress"],
             abs=0.01,
         )
 
     def test_zero_scores(self):
-        result = calculate_davis_double_score(0.0, 0.0, 0.0)
+        result = calculate_davis_double_score(0.0, 0.0, 0.0, trend_score=0.0)
         assert result.final_score == 0.0
 
     def test_max_scores(self):
-        result = calculate_davis_double_score(100.0, 100.0, 100.0)
-        assert result.final_score == 100.0
+        result = calculate_davis_double_score(
+            100.0, 100.0, 100.0, trend_score=100.0
+        )
+        assert result.final_score == pytest.approx(100.0, abs=0.01)
+
+    def test_trend_score_default_zero(self):
+        result_without = calculate_davis_double_score(80.0, 70.0, 60.0)
+        result_with = calculate_davis_double_score(
+            80.0, 70.0, 60.0, trend_score=0.0
+        )
+        assert result_without.final_score == result_with.final_score
+        assert result_without.trend_score == 0.0
 
 
 class TestRankStocks:

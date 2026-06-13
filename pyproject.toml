@@ -43,4 +43,4 @@ line-length = 100
 target-version = ["py311"]
 
 [tool.pytest.ini_options]
-testpaths = ["stockhot/tests"]
+testpaths = ["stockhot/tests", "davis_analyzer/tests"]

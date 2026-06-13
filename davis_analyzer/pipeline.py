@@ -13,6 +13,7 @@
 
 from __future__ import annotations
 
+import pandas as pd
 from loguru import logger
 
 from davis_analyzer.distress import calculate_distress_score
@@ -20,9 +21,17 @@ from davis_analyzer.financial_fetcher import fetch_batch_financial
 from davis_analyzer.prosperity import batch_prosperity
 from davis_analyzer.scoring import calculate_davis_double_score, rank_stocks
 from davis_analyzer.stock_universe import build_stock_universe
+from davis_analyzer.trend import batch_trend
 from davis_analyzer.tushare_client import TushareClient
-from davis_analyzer.types import DavisDoubleScore, StockInfo
-from davis_analyzer.valuation import batch_valuation
+from davis_analyzer.types import (
+    DavisDoubleScore,
+    DistressSignal,
+    FinancialData,
+    PipelineResult,
+    ProsperityScore,
+    StockInfo,
+)
+from davis_analyzer.valuation import batch_valuation, fetch_valuation_history
 
 # Pre-filter threshold: only process stocks with valuation_score above this
 _VALUATION_PRE_FILTER = 50.0
@@ -31,7 +40,7 @@ _VALUATION_PRE_FILTER = 50.0
 def run_screening_pipeline(
     dry_run: bool = False,
     top_n: int = 30,
-) -> list[DavisDoubleScore]:
+) -> PipelineResult:
     """Execute the full Davis Double Play screening pipeline.
 
     Args:
@@ -39,7 +48,7 @@ def run_screening_pipeline(
         top_n: Number of top-ranked stocks to return.
 
     Returns:
-        List of DavisDoubleScore sorted by final_score descending, limited to top_n.
+        PipelineResult containing sorted scores and all intermediate data.
     """
     # ── Step 1/8: Create client ──
     logger.info("Step 1/8: Initialising TushareClient (dry_run={})...", dry_run)
@@ -50,29 +59,44 @@ def run_screening_pipeline(
             logger.warning(
                 "dry_run=True but no cached data available — returning empty list"
             )
-            return []
+            return PipelineResult(
+                scores=[],
+                stock_infos={},
+                valuation_data={},
+                prosperity_scores={},
+                distress_signals={},
+                financial_data={},
+            )
         logger.exception("Failed to create TushareClient")
         raise
 
     # ── Step 2/8: Build stock universe ──
     logger.info("Step 2/8: Building stock universe...")
-    stock_infos: list[StockInfo] = build_stock_universe(client)
-    if not stock_infos:
+    stock_list: list[StockInfo] = build_stock_universe(client)
+    if not stock_list:
         logger.warning("Stock universe is empty — aborting pipeline")
-        return []
-    logger.info("Stock universe built: {} stocks", len(stock_infos))
+        return PipelineResult(
+            scores=[],
+            stock_infos={},
+            valuation_data={},
+            prosperity_scores={},
+            distress_signals={},
+            financial_data={},
+        )
+    logger.info("Stock universe built: {} stocks", len(stock_list))
 
-    name_map: dict[str, str] = {s.ts_code: s.name for s in stock_infos}
+    stock_infos: dict[str, StockInfo] = {s.ts_code: s for s in stock_list}
+    name_map: dict[str, str] = {s.ts_code: s.name for s in stock_list}
 
     # ── Step 3/8: Fetch valuation data ──
-    logger.info("Step 3/8: Fetching valuation data for {} stocks...", len(stock_infos))
-    valuation_map = batch_valuation(client, stock_infos)
-    logger.info("Valuation data fetched for {} stocks", len(valuation_map))
+    logger.info("Step 3/8: Fetching valuation data for {} stocks...", len(stock_list))
+    valuation_data: dict[str, tuple] = batch_valuation(client, stock_list)
+    logger.info("Valuation data fetched for {} stocks", len(valuation_data))
 
     # ── Step 4/8: Pre-filter by valuation score ──
     filtered_codes: list[str] = [
         ts_code
-        for ts_code, (score, _, _) in valuation_map.items()
+        for ts_code, (score, _, _) in valuation_data.items()
         if score > _VALUATION_PRE_FILTER
     ]
     logger.info(
@@ -83,35 +107,64 @@ def run_screening_pipeline(
 
     if not filtered_codes:
         logger.warning("No stocks passed valuation pre-filter — returning empty list")
-        return []
+        return PipelineResult(
+            scores=[],
+            stock_infos=stock_infos,
+            valuation_data=valuation_data,
+            prosperity_scores={},
+            distress_signals={},
+            financial_data={},
+        )
 
     # ── Step 5/8: Fetch financial data for filtered stocks ──
     logger.info(
         "Step 5/8: Fetching financial data for {} stocks...", len(filtered_codes)
     )
-    financial_map = fetch_batch_financial(client, filtered_codes)
-    logger.info("Financial data fetched for {} stocks", len(financial_map))
+    financial_data: dict[str, list[FinancialData]] = fetch_batch_financial(
+        client, filtered_codes
+    )
+    logger.info("Financial data fetched for {} stocks", len(financial_data))
 
     # ── Step 6/8: Calculate prosperity scores ──
     logger.info("Step 6/8: Calculating prosperity (景气度) scores...")
-    prosperity_map = batch_prosperity(financial_map)
-    logger.info("Prosperity scores calculated for {} stocks", len(prosperity_map))
+    prosperity_scores: dict[str, ProsperityScore] = batch_prosperity(financial_data)
+    logger.info("Prosperity scores calculated for {} stocks", len(prosperity_scores))
 
     # ── Step 7/8: Calculate distress scores + combine ──
     logger.info(
-        "Step 7/8: Calculating distress scores for {} stocks...", len(prosperity_map)
+        "Step 7/8: Calculating distress scores for {} stocks...", len(prosperity_scores)
     )
-    scored_stocks: list[DavisDoubleScore] = []
 
-    for ts_code in prosperity_map:
+    # ── Step 7.5: Fetch daily PE/PB series and calculate trend scores ──
+    logger.info("Step 7.5: Calculating PE/PB trend scores for {} stocks...", len(prosperity_scores))
+    trend_history_map: dict[str, tuple[pd.Series, pd.Series]] = {}
+    for ts_code in prosperity_scores:
         try:
-            if ts_code not in valuation_map:
+            history = fetch_valuation_history(client, ts_code)
+            if not history:
+                continue
+            dates = pd.to_datetime([v.trade_date for v in history], format="%Y%m%d")
+            pe_series = pd.Series([v.pe_ttm for v in history], index=dates)
+            pb_series = pd.Series([v.pb for v in history], index=dates)
+            trend_history_map[ts_code] = (pe_series, pb_series)
+        except Exception:
+            logger.exception("Trend history fetch failed for {}", ts_code)
+
+    trend_scores: dict[str, float] = batch_trend(trend_history_map, stock_infos)
+    logger.info("Trend scores calculated for {} stocks", len(trend_scores))
+
+    scored_stocks: list[DavisDoubleScore] = []
+    distress_signals: dict[str, DistressSignal] = {}
+
+    for ts_code in prosperity_scores:
+        try:
+            if ts_code not in valuation_data:
                 continue
 
-            val_score, pe_pct, pb_pct = valuation_map[ts_code]
-            prosp = prosperity_map[ts_code]
+            val_score, pe_pct, pb_pct = valuation_data[ts_code]
+            prosp = prosperity_scores[ts_code]
 
-            fin_data = financial_map.get(ts_code)
+            fin_data = financial_data.get(ts_code)
             if not fin_data:
                 continue
 
@@ -142,12 +195,14 @@ def run_screening_pipeline(
                 delta_g=prosp.delta_g,
                 ts_code=ts_code,
             )
+            distress_signals[ts_code] = distress
 
             # ── Step 8/8: Calculate final Davis Double score ──
             davis_score = calculate_davis_double_score(
                 valuation_score=val_score,
                 prosperity_score=prosp.composite_score,
                 distress_score=distress.total_score,
+                trend_score=trend_scores.get(ts_code, 50.0),
                 ts_code=ts_code,
                 name=name_map.get(ts_code, ""),
             )
@@ -167,4 +222,12 @@ def run_screening_pipeline(
         len(scored_stocks),
         len(ranked),
     )
-    return ranked
+    return PipelineResult(
+        scores=ranked,
+        stock_infos=stock_infos,
+        valuation_data=valuation_data,
+        prosperity_scores=prosperity_scores,
+        distress_signals=distress_signals,
+        financial_data=financial_data,
+        trend_scores=trend_scores,
+    )
