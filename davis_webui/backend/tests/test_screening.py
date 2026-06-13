@@ -1,7 +1,5 @@
 from fastapi.testclient import TestClient
 
-from davis_webui.backend.tasks import task_manager
-
 
 def test_start_screening_returns_task_id(
     client: TestClient,
