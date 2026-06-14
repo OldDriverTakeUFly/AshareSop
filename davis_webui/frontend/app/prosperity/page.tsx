@@ -42,10 +42,11 @@ function ProsperityContent() {
     setRestoredFromStorage(true);
   }, [loadedTaskId]);
 
-  const { data: restoredStatus } = useQuery({
+  const { data: restoredStatus, isError: statusError } = useQuery({
     queryKey: ["task", taskId],
     queryFn: () => getTaskStatus(taskId!),
     enabled: !!taskId && restoredFromStorage,
+    retry: false,
     refetchInterval: (query) => {
       if (
         query.state.data?.status === "completed" ||
@@ -58,7 +59,14 @@ function ProsperityContent() {
   });
 
   useEffect(() => {
-    if (!restoredFromStorage || !restoredStatus) return;
+    if (!restoredFromStorage) return;
+    if (statusError) {
+      localStorage.removeItem(STORAGE_KEY);
+      setTaskId(null);
+      setRestoredFromStorage(false);
+      return;
+    }
+    if (!restoredStatus) return;
     if (restoredStatus.status === "completed") {
       setShowResults(true);
       setRestoredFromStorage(false);
@@ -69,7 +77,7 @@ function ProsperityContent() {
     } else if (restoredStatus.status === "running") {
       setShowResults(false);
     }
-  }, [restoredFromStorage, restoredStatus]);
+  }, [restoredFromStorage, restoredStatus, statusError]);
 
   const handleStart = async () => {
     setError(null);

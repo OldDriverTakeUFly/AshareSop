@@ -147,12 +147,8 @@ def calculate_prosperity_score(
 
     sorted_data = sorted(financial_data_list, key=lambda d: d.report_period)
 
-    revenue_growth_history = _yoy_growth_series(
-        [d.revenue for d in sorted_data]
-    )
-    profit_growth_history = _yoy_growth_series(
-        [d.net_profit for d in sorted_data]
-    )
+    revenue_growth_history = _extract_yoy_series(sorted_data, "yoy_revenue_growth")
+    profit_growth_history = _extract_yoy_series(sorted_data, "yoy_profit_growth")
 
     # reverse to most-recent-first for scoring functions
     rev_hist = list(reversed(revenue_growth_history))
@@ -230,3 +226,20 @@ def _yoy_growth_series(values: list[float]) -> list[float]:
             continue
         rates.append((values[i] - base) / abs(base) * 100)
     return rates
+
+
+def _extract_yoy_series(
+    data: list[FinancialData], attr: str
+) -> list[float]:
+    """Extract pre-computed YoY growth from FinancialData (not raw cumulative).
+
+    Tushare returns cumulative financials — sequential differencing of raw
+    revenue mixes seasonal resets with real growth.  ``financial_fetcher``
+    already computes true YoY via ``shift(4)``; this surfaces those values
+    as percentages, skipping periods where YoY is unavailable (0.0 sentinel).
+    """
+    return [
+        getattr(d, attr) * 100
+        for d in data
+        if getattr(d, attr) != 0.0
+    ]

@@ -40,7 +40,8 @@ function IndustryDetailContent({
   params: Promise<{ industry: string }>;
 }) {
   const searchParams = useSearchParams();
-  const { industry } = use(params);
+  const { industry: rawIndustry } = use(params);
+  const industry = decodeURIComponent(rawIndustry);
   const taskId = searchParams.get("task") || "";
   const [selectedStock, setSelectedStock] = useState<ProsperityStock | null>(
     null,
