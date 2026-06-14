@@ -13,6 +13,7 @@ import type {
   ScreeningResults,
   ScreeningStartRequest,
   StockDetail,
+  StockValuation,
   TaskInfo,
   TrendData,
 } from "./types";
@@ -158,5 +159,14 @@ export function getProsperityIndustryDetail(
 ): Promise<ProsperityIndustryDetail> {
   return fetchJson(
     `/prosperity-sector/${taskId}/industries/${encodeURIComponent(industry)}`,
+  );
+}
+
+export function getStockValuation(
+  taskId: string,
+  tsCode: string,
+): Promise<StockValuation> {
+  return fetchJson(
+    `/prosperity-sector/${taskId}/stocks/${tsCode}/valuation`,
   );
 }

@@ -145,6 +145,7 @@ class ProsperityStockDetail:
     risk_warnings: list[str]
     rank_in_industry: int
     ignition_reasons: list[str] = field(default_factory=list)
+    inflection: InflectionAnalysis | None = None
 
 
 @dataclass

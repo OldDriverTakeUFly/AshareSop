@@ -5,9 +5,11 @@ import math
 from typing import TYPE_CHECKING, Any
 
 from davis_analyzer.types import (
+    CatalystSignal,
     DavisDoubleScore,
     DistressSignal,
     FinancialData,
+    InflectionAnalysis,
     IndustryProsperityScore,
     PipelineResult,
     ProsperityScore,
@@ -91,6 +93,8 @@ def serialize_prosperity_result(task_id: str, task_info: TaskInfo, result: Prosp
                     "is_ignition": v.is_ignition,
                     "risk_warnings": v.risk_warnings,
                     "rank_in_industry": v.rank_in_industry,
+                    "ignition_reasons": v.ignition_reasons,
+                    "inflection": dataclasses.asdict(v.inflection) if v.inflection else None,
                 }
                 for k, v in result.stock_details.items()
             },
@@ -108,6 +112,18 @@ def deserialize_prosperity_result(data: dict) -> ProsperitySectorResult:
     stock_details = {}
     for k, v in r["stock_details"].items():
         prosperity_score = ProsperityScore(**v["prosperity_score"])
+        inflection_data = v.get("inflection")
+        inflection = None
+        if inflection_data:
+            catalysts = [CatalystSignal(**c) for c in inflection_data.get("catalysts", [])]
+            inflection = InflectionAnalysis(
+                ts_code=inflection_data["ts_code"],
+                stage=inflection_data["stage"],
+                inflection_quarter=inflection_data.get("inflection_quarter"),
+                primary_driver=inflection_data["primary_driver"],
+                catalysts=catalysts,
+                narrative=inflection_data["narrative"],
+            )
         stock_details[k] = ProsperityStockDetail(
             ts_code=v["ts_code"],
             name=v["name"],
@@ -117,6 +133,8 @@ def deserialize_prosperity_result(data: dict) -> ProsperitySectorResult:
             is_ignition=v["is_ignition"],
             risk_warnings=v["risk_warnings"],
             rank_in_industry=v["rank_in_industry"],
+            ignition_reasons=v.get("ignition_reasons", []),
+            inflection=inflection,
         )
 
     return ProsperitySectorResult(

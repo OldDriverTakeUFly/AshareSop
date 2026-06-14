@@ -162,6 +162,31 @@ export interface IndustryScore {
   top_stock_codes: string[];
 }
 
+export interface CatalystSignal {
+  signal_type: string;
+  description: string;
+  strength: number;
+}
+
+export interface InflectionAnalysis {
+  ts_code: string;
+  stage: string;
+  inflection_quarter: string | null;
+  primary_driver: string;
+  catalysts: CatalystSignal[];
+  narrative: string;
+}
+
+export interface StockValuation {
+  ts_code: string;
+  daily_dates: string[];
+  daily_pe: number[];
+  daily_pb: number[];
+  quarterly_periods: string[];
+  quarterly_revenue_growth: number[];
+  quarterly_profit_growth: number[];
+}
+
 export interface ProsperityStock {
   ts_code: string;
   name: string;
@@ -174,9 +199,10 @@ export interface ProsperityStock {
   delta_g: number;
   stage: string;
   is_ignition: boolean;
-  ignition_reasons?: string[];
+  ignition_reasons: string[];
   risk_warnings: string[];
   rank_in_industry: number;
+  inflection: InflectionAnalysis | null;
 }
 
 export interface ProsperitySectorResults {

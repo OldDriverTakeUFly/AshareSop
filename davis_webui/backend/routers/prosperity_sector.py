@@ -1,11 +1,14 @@
 from fastapi import APIRouter, HTTPException
 
 from davis_webui.backend.schemas import (
+    CatalystSignalResponse,
+    InflectionAnalysisResponse,
     IndustryScoreResponse,
     ProsperityIndustryDetailResponse,
     ProsperitySectorResultsResponse,
     ProsperitySectorStartRequest,
     ProsperityStockResponse,
+    StockValuationResponse,
     TaskStatusEnum,
     TaskStatusResponse,
 )
@@ -112,6 +115,19 @@ async def get_industry_detail(task_id: str, industry_name: str):
         if detail is None:
             continue
         ps = detail.prosperity_score
+        inflection_resp = None
+        if detail.inflection:
+            inflection_resp = InflectionAnalysisResponse(
+                ts_code=detail.inflection.ts_code,
+                stage=detail.inflection.stage,
+                inflection_quarter=detail.inflection.inflection_quarter,
+                primary_driver=detail.inflection.primary_driver,
+                catalysts=[
+                    CatalystSignalResponse(**c.__dict__)
+                    for c in detail.inflection.catalysts
+                ],
+                narrative=detail.inflection.narrative,
+            )
         stocks.append(
             ProsperityStockResponse(
                 ts_code=detail.ts_code,
@@ -127,6 +143,8 @@ async def get_industry_detail(task_id: str, industry_name: str):
                 is_ignition=detail.is_ignition,
                 risk_warnings=detail.risk_warnings,
                 rank_in_industry=detail.rank_in_industry,
+                inflection=inflection_resp,
+                ignition_reasons=detail.ignition_reasons,
             )
         )
 
@@ -134,4 +152,54 @@ async def get_industry_detail(task_id: str, industry_name: str):
         industry=industry_name,
         stocks=stocks,
         industry_score=industry_score,
+    )
+
+
+@router.get("/{task_id}/stocks/{ts_code}/valuation")
+async def get_stock_valuation(task_id: str, ts_code: str):
+    info = task_manager.get_task(task_id)
+    if info is None or info.result is None:
+        raise HTTPException(
+            status_code=404, detail="Task or results not found"
+        )
+    result = info.result
+
+    if ts_code not in result.stock_details:
+        raise HTTPException(status_code=404, detail="Stock not found")
+
+    from davis_analyzer.tushare_client import TushareClient
+    from davis_analyzer.valuation import fetch_valuation_history
+
+    try:
+        client = TushareClient()
+        history = fetch_valuation_history(client, ts_code)
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to fetch valuation history: {e}",
+        )
+
+    if not history:
+        raise HTTPException(
+            status_code=404, detail="No valuation history available"
+        )
+
+    daily_dates = [v.trade_date for v in history]
+    daily_pe = [v.pe_ttm for v in history]
+    daily_pb = [v.pb for v in history]
+
+    fd_list = result.financial_data.get(ts_code, [])
+    fd_chronological = sorted(fd_list, key=lambda d: d.report_period)
+    quarterly_periods = [d.report_period for d in fd_chronological]
+    quarterly_revenue_growth = [d.yoy_revenue_growth * 100 for d in fd_chronological]
+    quarterly_profit_growth = [d.yoy_profit_growth * 100 for d in fd_chronological]
+
+    return StockValuationResponse(
+        ts_code=ts_code,
+        daily_dates=daily_dates,
+        daily_pe=daily_pe,
+        daily_pb=daily_pb,
+        quarterly_periods=quarterly_periods,
+        quarterly_revenue_growth=quarterly_revenue_growth,
+        quarterly_profit_growth=quarterly_profit_growth,
     )

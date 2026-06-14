@@ -9,6 +9,7 @@ from davis_analyzer.constants import (
     GROWTH_DECELERATION_THRESHOLD,
     SECTOR_MIN_STOCKS,
 )
+from davis_analyzer.prosperity_inflection import analyze_inflection
 from davis_analyzer.types import (
     FinancialData,
     IndustryProsperityScore,
@@ -204,6 +205,7 @@ def build_stock_details(
             if ts_code in ignition_set
             else [],
         )
+        details[ts_code].inflection = analyze_inflection(score, details[ts_code].stage, fd)
 
     return details
 

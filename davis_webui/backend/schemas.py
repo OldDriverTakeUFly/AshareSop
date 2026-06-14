@@ -190,6 +190,31 @@ class HistoryEntryResponse(BaseModel):
 # ── Prosperity Sector ─────────────────────────────────────────────────
 
 
+class CatalystSignalResponse(BaseModel):
+    signal_type: str
+    description: str
+    strength: float
+
+
+class InflectionAnalysisResponse(BaseModel):
+    ts_code: str
+    stage: str
+    inflection_quarter: str | None
+    primary_driver: str
+    catalysts: list[CatalystSignalResponse]
+    narrative: str
+
+
+class StockValuationResponse(BaseModel):
+    ts_code: str
+    daily_dates: list[str]
+    daily_pe: list[float]
+    daily_pb: list[float]
+    quarterly_periods: list[str]
+    quarterly_revenue_growth: list[float]
+    quarterly_profit_growth: list[float]
+
+
 class ProsperitySectorStartRequest(BaseModel):
     top_n_per_industry: int = 10
 
@@ -222,6 +247,8 @@ class ProsperityStockResponse(BaseModel):
     is_ignition: bool
     risk_warnings: list[str]
     rank_in_industry: int
+    ignition_reasons: list[str] = []
+    inflection: InflectionAnalysisResponse | None = None
 
 
 class ProsperitySectorResultsResponse(BaseModel):
