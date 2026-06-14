@@ -7,32 +7,8 @@ import { useQuery } from "@tanstack/react-query";
 import { getProsperityIndustryDetail } from "@/lib/api";
 import type { ProsperityStock } from "@/lib/types";
 import { ProsperityRadar } from "@/components/ProsperityRadar";
-
-function stageBadge(stage: string) {
-  if (stage === "加速期")
-    return (
-      <span className="bg-green-900/50 text-green-400 border border-green-700 px-2 py-0.5 rounded text-xs">
-        {stage}
-      </span>
-    );
-  if (stage === "减速期")
-    return (
-      <span className="bg-yellow-900/50 text-yellow-400 border border-yellow-700 px-2 py-0.5 rounded text-xs">
-        {stage}
-      </span>
-    );
-  if (stage === "拐点期")
-    return (
-      <span className="bg-red-900/50 text-red-400 border border-red-700 px-2 py-0.5 rounded text-xs">
-        {stage}
-      </span>
-    );
-  return (
-    <span className="bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded text-xs">
-      {stage}
-    </span>
-  );
-}
+import { RiskBadge } from "@/components/RiskBadge";
+import { StageBadge } from "@/components/StageBadge";
 
 function IndustryDetailContent({
   params,
@@ -74,7 +50,7 @@ function IndustryDetailContent({
           ← 返回景气排名
         </Link>
         <h1 className="text-2xl font-bold">{industry}</h1>
-        {stageBadge(detail.industry_score.stage)}
+        <StageBadge stage={detail.industry_score.stage} />
       </div>
 
       <div className="grid grid-cols-3 gap-4">
@@ -160,22 +136,19 @@ function IndustryDetailContent({
                   </span>
                 </td>
                 <td className="px-3 py-2 text-center">
-                  {stageBadge(stock.stage)}
+                  <StageBadge stage={stock.stage} />
                 </td>
                 <td className="px-3 py-2 text-center">
-                  {stock.is_ignition ? "🔥" : ""}
-                </td>
-                <td className="px-3 py-2 text-center">
-                  {stock.risk_warnings.length > 0 ? (
+                  {stock.is_ignition && (
                     <span
-                      title={stock.risk_warnings.join("、")}
-                      className="text-red-400 cursor-help"
+                      title={stock.ignition_reasons?.join("；") ?? ""}
                     >
-                      {stock.risk_warnings.length}
+                      🔥
                     </span>
-                  ) : (
-                    <span className="text-zinc-600">0</span>
                   )}
+                </td>
+                <td className="px-3 py-2 text-center">
+                  <RiskBadge warnings={stock.risk_warnings} />
                 </td>
               </tr>
             ))}

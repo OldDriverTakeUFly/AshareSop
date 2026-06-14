@@ -76,7 +76,7 @@ def classify_stock_stage(
     prosperity_score: ProsperityScore,
     growth_deceleration_threshold: float = GROWTH_DECELERATION_THRESHOLD,
 ) -> str:
-    """Classify a single stock into 加速期 / 减速期 / 拐点期.
+    """Classify a single stock into 加速期 / 减速期 / 上升拐点 / 下降拐点.
 
     Uses revenue_score as growth proxy (>80 ⇒ growth >30 %).
     """
@@ -85,14 +85,16 @@ def classify_stock_stage(
         return "加速期"
     if is_high_growth and prosperity_score.delta_g <= 0:
         return "减速期"
-    return "拐点期"
+    if prosperity_score.delta_g > 0:
+        return "上升拐点"
+    return "下降拐点"
 
 
 def classify_industry_stage(
     industry_score: IndustryProsperityScore,
     growth_deceleration_threshold: float = GROWTH_DECELERATION_THRESHOLD,
 ) -> str:
-    """Classify an industry aggregate into 加速期 / 减速期 / 拐点期.
+    """Classify an industry aggregate into 加速期 / 减速期 / 上升拐点 / 下降拐点.
 
     Uses avg_revenue_score as growth proxy (>80 ⇒ growth >30 %).
     """
@@ -101,7 +103,9 @@ def classify_industry_stage(
         return "加速期"
     if is_high_growth and industry_score.median_delta_g <= 0:
         return "减速期"
-    return "拐点期"
+    if industry_score.median_delta_g > 0:
+        return "上升拐点"
+    return "下降拐点"
 
 
 def screen_g_delta_g_ignition(
@@ -118,6 +122,20 @@ def screen_g_delta_g_ignition(
         ):
             result.add(ts_code)
     return result
+
+
+def generate_ignition_reasons(score: ProsperityScore) -> list[str]:
+    """Generate human-readable reasons explaining why a stock qualifies as ignition."""
+    reasons: list[str] = []
+    if score.revenue_score > _GROWTH_SCORE_HIGH:
+        reasons.append(f"营收评分{score.revenue_score:.0f}（>80阈值）")
+    if score.delta_g > 0:
+        reasons.append(f"ΔG=+{score.delta_g:.1f}（增速加快）")
+    if score.profit_score > _GROWTH_SCORE_HIGH:
+        reasons.append(f"利润评分{score.profit_score:.0f}（高盈利增速）")
+    if score.slope_score > 60:
+        reasons.append(f"趋势评分{score.slope_score:.0f}（上行趋势确认）")
+    return reasons
 
 
 def generate_risk_warnings(
@@ -182,6 +200,9 @@ def build_stock_details(
             is_ignition=ts_code in ignition_set,
             risk_warnings=generate_risk_warnings(score, fd),
             rank_in_industry=industry_ranks.get(ts_code, 0),
+            ignition_reasons=generate_ignition_reasons(score)
+            if ts_code in ignition_set
+            else [],
         )
 
     return details

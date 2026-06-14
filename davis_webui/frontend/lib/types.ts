@@ -174,6 +174,7 @@ export interface ProsperityStock {
   delta_g: number;
   stage: string;
   is_ignition: boolean;
+  ignition_reasons?: string[];
   risk_warnings: string[];
   rank_in_industry: number;
 }

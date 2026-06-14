@@ -15,6 +15,20 @@ export function StageBadge({ stage }: { stage: string }) {
       </span>
     );
   }
+  if (stage === "上升拐点") {
+    return (
+      <span className="bg-blue-900/50 text-blue-400 border border-blue-700 px-2 py-0.5 rounded text-xs">
+        上升拐点
+      </span>
+    );
+  }
+  if (stage === "下降拐点") {
+    return (
+      <span className="bg-red-900/50 text-red-400 border border-red-700 px-2 py-0.5 rounded text-xs">
+        下降拐点
+      </span>
+    );
+  }
   if (stage === "拐点期") {
     return (
       <span className="bg-red-900/50 text-red-400 border border-red-700 px-2 py-0.5 rounded text-xs">

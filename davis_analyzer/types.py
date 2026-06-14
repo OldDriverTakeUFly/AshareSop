@@ -118,6 +118,23 @@ class IndustryProsperityScore:
 
 
 @dataclass
+class CatalystSignal:
+    signal_type: str  # "roe_improving", "cashflow_positive", "debt_declining", "revenue_stabilizing"
+    description: str
+    strength: float  # 0-100
+
+
+@dataclass
+class InflectionAnalysis:
+    ts_code: str
+    stage: str  # "加速期" | "减速期" | "上升拐点" | "下降拐点"
+    inflection_quarter: str | None  # e.g. "2024Q3" or None
+    primary_driver: str  # e.g. "营收加速增长" or "营收企稳回升"
+    catalysts: list[CatalystSignal]
+    narrative: str
+
+
+@dataclass
 class ProsperityStockDetail:
     ts_code: str
     name: str
@@ -127,6 +144,7 @@ class ProsperityStockDetail:
     is_ignition: bool
     risk_warnings: list[str]
     rank_in_industry: int
+    ignition_reasons: list[str] = field(default_factory=list)
 
 
 @dataclass
