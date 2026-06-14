@@ -84,6 +84,7 @@ export interface TrendData {
 export interface DistressHeatmapStock {
   ts_code: string;
   name: string;
+  rank: number;
   layer1_signals: Record<string, number>;
   layer2_signals: Record<string, number>;
   layer3_signals: Record<string, number>;

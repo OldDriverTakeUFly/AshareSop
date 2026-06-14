@@ -114,6 +114,7 @@ class TrendDataResponse(BaseModel):
 class DistressHeatmapStock(BaseModel):
     ts_code: str
     name: str
+    rank: int
     layer1_signals: dict
     layer2_signals: dict
     layer3_signals: dict

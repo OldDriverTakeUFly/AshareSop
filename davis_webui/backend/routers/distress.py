@@ -18,6 +18,8 @@ async def get_distress_heatmap(task_id: str):
         )
     result = info.result
 
+    rank_lookup = {s.ts_code: s.rank for s in result.scores}
+
     stocks = []
     for ts_code, distress in result.distress_signals.items():
         stock_info = result.stock_infos.get(ts_code)
@@ -28,6 +30,7 @@ async def get_distress_heatmap(task_id: str):
             DistressHeatmapStock(
                 ts_code=ts_code,
                 name=name,
+                rank=rank_lookup.get(ts_code, 9999),
                 layer1_signals=detail.get("layer1", {}),
                 layer2_signals=detail.get("layer2", {}),
                 layer3_signals=detail.get("layer3", {}),
@@ -39,5 +42,7 @@ async def get_distress_heatmap(task_id: str):
                 total_score=distress.total_score,
             )
         )
+
+    stocks.sort(key=lambda s: s.rank)
 
     return DistressHeatmapResponse(stocks=stocks)
