@@ -185,3 +185,52 @@ class HistoryEntryResponse(BaseModel):
     created_at: str
     top_n: int
     total_count: int
+
+
+# ── Prosperity Sector ─────────────────────────────────────────────────
+
+
+class ProsperitySectorStartRequest(BaseModel):
+    top_n_per_industry: int = 10
+
+
+class IndustryScoreResponse(BaseModel):
+    industry: str
+    stock_count: int
+    avg_composite_score: float
+    median_delta_g: float
+    avg_revenue_score: float
+    avg_profit_score: float
+    avg_slope_score: float
+    avg_duration_score: float
+    stage: str
+    ignition_count: int
+    top_stock_codes: list[str]
+
+
+class ProsperityStockResponse(BaseModel):
+    ts_code: str
+    name: str
+    industry: str
+    revenue_score: float
+    profit_score: float
+    slope_score: float
+    duration_score: float
+    composite_score: float
+    delta_g: float
+    stage: str
+    is_ignition: bool
+    risk_warnings: list[str]
+    rank_in_industry: int
+
+
+class ProsperitySectorResultsResponse(BaseModel):
+    industries: list[IndustryScoreResponse]
+    total_industries: int
+    analysis_date: str
+
+
+class ProsperityIndustryDetailResponse(BaseModel):
+    industry: str
+    stocks: list[ProsperityStockResponse]
+    industry_score: IndustryScoreResponse

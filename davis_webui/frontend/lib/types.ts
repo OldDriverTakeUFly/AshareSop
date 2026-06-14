@@ -147,3 +147,45 @@ export interface HistoryEntry {
   top_n: number;
   total_count: number;
 }
+
+export interface IndustryScore {
+  industry: string;
+  stock_count: number;
+  avg_composite_score: number;
+  median_delta_g: number;
+  avg_revenue_score: number;
+  avg_profit_score: number;
+  avg_slope_score: number;
+  avg_duration_score: number;
+  stage: string;
+  ignition_count: number;
+  top_stock_codes: string[];
+}
+
+export interface ProsperityStock {
+  ts_code: string;
+  name: string;
+  industry: string;
+  revenue_score: number;
+  profit_score: number;
+  slope_score: number;
+  duration_score: number;
+  composite_score: number;
+  delta_g: number;
+  stage: string;
+  is_ignition: boolean;
+  risk_warnings: string[];
+  rank_in_industry: number;
+}
+
+export interface ProsperitySectorResults {
+  industries: IndustryScore[];
+  total_industries: number;
+  analysis_date: string;
+}
+
+export interface ProsperityIndustryDetail {
+  industry: string;
+  stocks: ProsperityStock[];
+  industry_score: IndustryScore;
+}

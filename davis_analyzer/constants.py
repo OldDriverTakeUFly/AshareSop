@@ -49,3 +49,12 @@ REPORT_MAX_WORDS: int = 1500
 
 # ── Stock name patterns to exclude ──
 EXCLUSION_PATTERNS: list[str] = ["ST", "*ST"]
+
+# ── Prosperity sector thresholds ──
+GROWTH_IGNITION_THRESHOLD: float = 30.0
+DELTA_G_IGNITION_THRESHOLD: float = 0.0
+SECTOR_MIN_STOCKS: int = 5
+GROWTH_DECELERATION_THRESHOLD: float = 30.0
+GROWTH_INSUFFICIENT_THRESHOLD: float = 10.0
+PE_PERCENTILE_HIGH: float = 0.80
+PB_PERCENTILE_HIGH: float = 0.80

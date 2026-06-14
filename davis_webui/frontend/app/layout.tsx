@@ -10,6 +10,7 @@ export const metadata: Metadata = {
 
 const navItems = [
   { href: "/screening", label: "筛选结果", icon: "📊" },
+  { href: "/prosperity", label: "景气赛道", icon: "🚀" },
   { href: "/history", label: "历史记录", icon: "📜" },
   { href: "/distress", label: "困境热力图", icon: "🔥" },
   { href: "/research", label: "深度调研", icon: "🔬" },
@@ -22,7 +23,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Providers>
           <div className="flex min-h-screen">
             <nav className="w-56 border-r border-zinc-800 p-4 space-y-2 fixed h-full">
-              <h1 className="text-lg font-bold mb-6 text-blue-400">戴维斯双击</h1>
+              <h1 className="text-lg font-bold mb-6 text-blue-400">投资分析</h1>
               {navItems.map((item) => (
                 <Link
                   key={item.href}

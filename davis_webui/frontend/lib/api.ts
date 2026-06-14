@@ -4,6 +4,9 @@ import type {
   ChecklistGenerateRequest,
   DistressHeatmapData,
   HistoryEntry,
+  IndustryScore,
+  ProsperityIndustryDetail,
+  ProsperitySectorResults,
   ReportData,
   RescoreRequest,
   RescoreResult,
@@ -132,4 +135,28 @@ export function removeStockFromResults(
   return fetchJson(`/screening/${taskId}/stocks/${tsCode}`, {
     method: "DELETE",
   });
+}
+
+export function startProsperitySector(
+  req: { top_n_per_industry?: number },
+): Promise<{ task_id: string }> {
+  return fetchJson("/prosperity-sector/start", {
+    method: "POST",
+    body: JSON.stringify(req),
+  });
+}
+
+export function getProsperitySectorResults(
+  taskId: string,
+): Promise<ProsperitySectorResults> {
+  return fetchJson(`/prosperity-sector/${taskId}/results`);
+}
+
+export function getProsperityIndustryDetail(
+  taskId: string,
+  industry: string,
+): Promise<ProsperityIndustryDetail> {
+  return fetchJson(
+    `/prosperity-sector/${taskId}/industries/${encodeURIComponent(industry)}`,
+  );
 }

@@ -100,3 +100,40 @@ class RescoredResult:
     adjusted_distress: float
     prosperity_adjustment: float
     distress_adjustment: float
+
+
+@dataclass
+class IndustryProsperityScore:
+    industry: str
+    stock_count: int
+    avg_composite_score: float
+    median_delta_g: float
+    avg_revenue_score: float
+    avg_profit_score: float
+    avg_slope_score: float
+    avg_duration_score: float
+    stage: str
+    ignition_count: int
+    top_stock_codes: list[str]
+
+
+@dataclass
+class ProsperityStockDetail:
+    ts_code: str
+    name: str
+    industry: str
+    prosperity_score: ProsperityScore
+    stage: str
+    is_ignition: bool
+    risk_warnings: list[str]
+    rank_in_industry: int
+
+
+@dataclass
+class ProsperitySectorResult:
+    industry_scores: list[IndustryProsperityScore]
+    stock_details: dict[str, ProsperityStockDetail]
+    stock_infos: dict[str, StockInfo]
+    prosperity_scores: dict[str, ProsperityScore]
+    financial_data: dict[str, list[FinancialData]]
+    analysis_date: str
