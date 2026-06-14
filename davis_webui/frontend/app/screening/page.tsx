@@ -171,6 +171,20 @@ function ScreeningContent() {
                 重新筛选
               </button>
             </div>
+            <div className="flex gap-4 text-sm">
+              <Link
+                href={`/distress?task=${loadedTaskId}`}
+                className="text-blue-400 hover:text-blue-300"
+              >
+                🔥 困境热力图 →
+              </Link>
+              <Link
+                href={`/research?task=${loadedTaskId}`}
+                className="text-blue-400 hover:text-blue-300"
+              >
+                🔬 深度调研 →
+              </Link>
+            </div>
             {historyResults.scores.length > 0 ? (
               <ScoreTable
                 scores={historyResults.scores}
@@ -264,6 +278,20 @@ function ScreeningContent() {
             >
               重新筛选
             </button>
+          </div>
+          <div className="flex gap-4 text-sm">
+            <Link
+              href={`/distress?task=${taskId}`}
+              className="text-blue-400 hover:text-blue-300"
+            >
+              🔥 困境热力图 →
+            </Link>
+            <Link
+              href={`/research?task=${taskId}`}
+              className="text-blue-400 hover:text-blue-300"
+            >
+              🔬 深度调研 →
+            </Link>
           </div>
           {results.scores.length > 0 ? (
             <ScoreTable
