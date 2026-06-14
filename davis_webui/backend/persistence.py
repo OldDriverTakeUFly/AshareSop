@@ -8,8 +8,11 @@ from davis_analyzer.types import (
     DavisDoubleScore,
     DistressSignal,
     FinancialData,
+    IndustryProsperityScore,
     PipelineResult,
     ProsperityScore,
+    ProsperitySectorResult,
+    ProsperityStockDetail,
     StockInfo,
 )
 
@@ -31,6 +34,7 @@ def _sanitize(obj: Any) -> Any:
 
 def serialize_result(task_id: str, task_info: TaskInfo, result: PipelineResult) -> dict:
     raw = {
+        "pipeline_type": "davis",
         "task_id": task_id,
         "created_at": task_info.created_at,
         "top_n": getattr(task_info, "top_n", 0),
@@ -50,7 +54,10 @@ def serialize_result(task_id: str, task_info: TaskInfo, result: PipelineResult) 
     return _sanitize(raw)
 
 
-def deserialize_result(data: dict) -> PipelineResult:
+def deserialize_result(data: dict) -> PipelineResult | ProsperitySectorResult:
+    pipeline_type = data.get("pipeline_type", "davis")
+    if pipeline_type == "prosperity_sector":
+        return deserialize_prosperity_result(data)
     r = data["result"]
     return PipelineResult(
         scores=[DavisDoubleScore(**s) for s in r["scores"]],
@@ -60,4 +67,63 @@ def deserialize_result(data: dict) -> PipelineResult:
         distress_signals={k: DistressSignal(**v) for k, v in r["distress_signals"].items()},
         financial_data={k: [FinancialData(**f) for f in v] for k, v in r["financial_data"].items()},
         trend_scores=r["trend_scores"],
+    )
+
+
+def serialize_prosperity_result(task_id: str, task_info: TaskInfo, result: ProsperitySectorResult) -> dict:
+    raw = {
+        "pipeline_type": "prosperity_sector",
+        "task_id": task_id,
+        "created_at": task_info.created_at,
+        "top_n": getattr(task_info, "top_n", 0),
+        "dry_run": getattr(task_info, "dry_run", False),
+        "total_count": len(result.industry_scores),
+        "status": task_info.status.value,
+        "result": {
+            "industry_scores": [dataclasses.asdict(s) for s in result.industry_scores],
+            "stock_details": {
+                k: {
+                    "ts_code": v.ts_code,
+                    "name": v.name,
+                    "industry": v.industry,
+                    "prosperity_score": dataclasses.asdict(v.prosperity_score),
+                    "stage": v.stage,
+                    "is_ignition": v.is_ignition,
+                    "risk_warnings": v.risk_warnings,
+                    "rank_in_industry": v.rank_in_industry,
+                }
+                for k, v in result.stock_details.items()
+            },
+            "stock_infos": {k: dataclasses.asdict(v) for k, v in result.stock_infos.items()},
+            "prosperity_scores": {k: dataclasses.asdict(v) for k, v in result.prosperity_scores.items()},
+            "financial_data": {k: [dataclasses.asdict(f) for f in v] for k, v in result.financial_data.items()},
+            "analysis_date": result.analysis_date,
+        },
+    }
+    return _sanitize(raw)
+
+
+def deserialize_prosperity_result(data: dict) -> ProsperitySectorResult:
+    r = data["result"]
+    stock_details = {}
+    for k, v in r["stock_details"].items():
+        prosperity_score = ProsperityScore(**v["prosperity_score"])
+        stock_details[k] = ProsperityStockDetail(
+            ts_code=v["ts_code"],
+            name=v["name"],
+            industry=v["industry"],
+            prosperity_score=prosperity_score,
+            stage=v["stage"],
+            is_ignition=v["is_ignition"],
+            risk_warnings=v["risk_warnings"],
+            rank_in_industry=v["rank_in_industry"],
+        )
+
+    return ProsperitySectorResult(
+        industry_scores=[IndustryProsperityScore(**s) for s in r["industry_scores"]],
+        stock_details=stock_details,
+        stock_infos={k: StockInfo(**v) for k, v in r["stock_infos"].items()},
+        prosperity_scores={k: ProsperityScore(**v) for k, v in r["prosperity_scores"].items()},
+        financial_data={k: [FinancialData(**f) for f in v] for k, v in r["financial_data"].items()},
+        analysis_date=r["analysis_date"],
     )

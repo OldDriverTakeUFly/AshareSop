@@ -10,7 +10,11 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
-from davis_webui.backend.persistence import deserialize_result, serialize_result
+from davis_webui.backend.persistence import (
+    deserialize_result,
+    serialize_result,
+    serialize_prosperity_result,
+)
 
 
 class TaskStatus(str, Enum):
@@ -76,6 +80,39 @@ class TaskManager:
 
         return task_id
 
+    def start_prosperity_sector(self, top_n_per_industry: int = 10) -> str:
+        with self._lock:
+            for info in self.tasks.values():
+                if info.status in (TaskStatus.RUNNING, TaskStatus.PENDING):
+                    raise RuntimeError("A screening task is already running")
+
+            task_id = uuid.uuid4().hex[:12]
+            self.tasks[task_id] = TaskInfo(
+                task_id=task_id,
+                status=TaskStatus.PENDING,
+                progress=0.0,
+                message="Queued for prosperity sector analysis",
+                top_n=top_n_per_industry,
+            )
+
+        stop_event = threading.Event()
+
+        thread = threading.Thread(
+            target=self._run_prosperity_pipeline,
+            args=(task_id, top_n_per_industry, stop_event),
+            daemon=True,
+        )
+        thread.start()
+
+        hb_thread = threading.Thread(
+            target=self._heartbeat,
+            args=(task_id, stop_event),
+            daemon=True,
+        )
+        hb_thread.start()
+
+        return task_id
+
     def _run_pipeline(
         self,
         task_id: str,
@@ -117,6 +154,46 @@ class TaskManager:
                     info.message = "Screening failed"
                     info.error = str(exc)
 
+    def _run_prosperity_pipeline(
+        self,
+        task_id: str,
+        top_n_per_industry: int,
+        stop_event: threading.Event,
+    ) -> None:
+        with self._lock:
+            info = self.tasks.get(task_id)
+            if info is None:
+                return
+            info.status = TaskStatus.RUNNING
+            info.message = "Prosperity sector pipeline running"
+
+        try:
+            from davis_analyzer.sector_pipeline import run_prosperity_sector_pipeline
+
+            result = run_prosperity_sector_pipeline(top_n_per_industry=top_n_per_industry)
+
+            stop_event.set()
+
+            with self._lock:
+                info = self.tasks.get(task_id)
+                if info is not None:
+                    info.status = TaskStatus.COMPLETED
+                    info.progress = 100.0
+                    info.message = "Prosperity sector completed"
+                    info.result = result
+
+            self._save_task(task_id)
+
+        except Exception as exc:
+            stop_event.set()
+
+            with self._lock:
+                info = self.tasks.get(task_id)
+                if info is not None:
+                    info.status = TaskStatus.FAILED
+                    info.message = "Prosperity sector failed"
+                    info.error = str(exc)
+
     def _heartbeat(self, task_id: str, stop_event: threading.Event) -> None:
         while not stop_event.is_set():
             threading.Event().wait(timeout=3.0)
@@ -146,7 +223,10 @@ class TaskManager:
             info = self.tasks.get(task_id)
             if info is None or info.result is None:
                 return
-            data = serialize_result(task_id, info, info.result)
+            if hasattr(info.result, "industry_scores"):
+                data = serialize_prosperity_result(task_id, info, info.result)
+            else:
+                data = serialize_result(task_id, info, info.result)
 
         _DATA_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -172,7 +252,12 @@ class TaskManager:
 
         total_count = 0
         if info.result is not None:
-            total_count = len(info.result.scores)
+            if hasattr(info.result, "industry_scores"):
+                total_count = len(info.result.industry_scores)
+            elif hasattr(info.result, "scores"):
+                total_count = len(info.result.scores)
+            else:
+                total_count = 0
 
         entries.append(
             {

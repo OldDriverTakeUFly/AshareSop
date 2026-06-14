@@ -7,6 +7,7 @@ from davis_webui.backend.routers import (
     distress,
     health,
     history,
+    prosperity_sector,
     reports,
     screening,
     stocks,
@@ -30,3 +31,4 @@ app.include_router(checklists.router, prefix="/api/checklists", tags=["checklist
 app.include_router(trends.router, prefix="/api/trends", tags=["trends"])
 app.include_router(distress.router, prefix="/api/distress", tags=["distress"])
 app.include_router(history.router, prefix="/api/history", tags=["history"])
+app.include_router(prosperity_sector.router, prefix="/api/prosperity-sector", tags=["prosperity-sector"])
