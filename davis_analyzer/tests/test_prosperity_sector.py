@@ -210,14 +210,14 @@ class TestClassifyStockStage:
         score = _ps(revenue_score=85.0, delta_g=-5.0)
         assert classify_stock_stage(score) == "减速期"
 
-    def test_inflection_low_growth(self):
+    def test_rising_inflection_low_growth_positive_delta(self):
         score = _ps(revenue_score=50.0, delta_g=5.0)
-        assert classify_stock_stage(score) == "拐点期"
+        assert classify_stock_stage(score) == "上升拐点"
 
     def test_boundary_revenue_score_exactly_80(self):
-        """revenue_score == 80 means growth <= 30%, so 拐点期."""
+        """revenue_score == 80 means growth <= 30%, so 上升拐点 when delta_g > 0."""
         score = _ps(revenue_score=80.0, delta_g=5.0)
-        assert classify_stock_stage(score) == "拐点期"
+        assert classify_stock_stage(score) == "上升拐点"
 
     def test_boundary_delta_g_exactly_zero_high_growth(self):
         """delta_g == 0 with revenue_score > 80 → 减速期."""
@@ -226,11 +226,11 @@ class TestClassifyStockStage:
 
     def test_boundary_delta_g_exactly_zero_low_growth(self):
         score = _ps(revenue_score=50.0, delta_g=0.0)
-        assert classify_stock_stage(score) == "拐点期"
+        assert classify_stock_stage(score) == "下降拐点"
 
     def test_negative_delta_g_low_growth(self):
         score = _ps(revenue_score=50.0, delta_g=-10.0)
-        assert classify_stock_stage(score) == "拐点期"
+        assert classify_stock_stage(score) == "下降拐点"
 
     def test_custom_deceleration_threshold(self):
         score = _ps(revenue_score=85.0, delta_g=-5.0)
@@ -289,7 +289,7 @@ class TestClassifyIndustryStage:
             ignition_count=0,
             top_stock_codes=[],
         )
-        assert classify_industry_stage(ind) == "拐点期"
+        assert classify_industry_stage(ind) == "上升拐点"
 
     def test_boundary_avg_revenue_score_exactly_80(self):
         ind = IndustryProsperityScore(
@@ -305,7 +305,7 @@ class TestClassifyIndustryStage:
             ignition_count=0,
             top_stock_codes=[],
         )
-        assert classify_industry_stage(ind) == "拐点期"
+        assert classify_industry_stage(ind) == "上升拐点"
 
     def test_boundary_median_delta_g_exactly_zero(self):
         ind = IndustryProsperityScore(
@@ -515,7 +515,7 @@ class TestBuildStockDetails:
         result = build_stock_details(scores, infos, fd, set())
         assert result["accel.SZ"].stage == "加速期"
         assert result["decel.SZ"].stage == "减速期"
-        assert result["inflect.SZ"].stage == "拐点期"
+        assert result["inflect.SZ"].stage == "上升拐点"
 
     def test_risk_warnings_populated(self):
         scores = {
