@@ -22,6 +22,9 @@ async def get_distress_heatmap(task_id: str):
 
     stocks = []
     for ts_code, distress in result.distress_signals.items():
+        if ts_code not in rank_lookup:
+            continue
+
         stock_info = result.stock_infos.get(ts_code)
         name = stock_info.name if stock_info else ts_code
 
@@ -30,7 +33,7 @@ async def get_distress_heatmap(task_id: str):
             DistressHeatmapStock(
                 ts_code=ts_code,
                 name=name,
-                rank=rank_lookup.get(ts_code, 9999),
+                rank=rank_lookup[ts_code],
                 layer1_signals=detail.get("layer1", {}),
                 layer2_signals=detail.get("layer2", {}),
                 layer3_signals=detail.get("layer3", {}),

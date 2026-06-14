@@ -1,5 +1,7 @@
 from fastapi.testclient import TestClient
 
+from davis_webui.backend.tasks import task_manager
+
 
 def test_start_screening_returns_task_id(
     client: TestClient,
@@ -14,6 +16,7 @@ def test_start_screening_returns_task_id(
         "run_screening_pipeline",
         lambda **kw: mock_pipeline_result,
     )
+    monkeypatch.setattr(task_manager, "_save_task", lambda task_id: None)
 
     response = client.post(
         "/api/screening/start",
