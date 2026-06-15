@@ -46,6 +46,7 @@ class ProsperityScore:
     duration_score: float
     composite_score: float
     delta_g: float
+    relative_delta_g: float = 0.0
 
 
 @dataclass

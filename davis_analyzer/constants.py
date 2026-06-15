@@ -58,3 +58,23 @@ GROWTH_DECELERATION_THRESHOLD: float = 30.0
 GROWTH_INSUFFICIENT_THRESHOLD: float = 10.0
 PE_PERCENTILE_HIGH: float = 0.80
 PB_PERCENTILE_HIGH: float = 0.80
+
+# ── A1: Profit growth scoring thresholds (利润波动更大，门槛高于营收) ──
+PROFIT_GROWTH_HIGH_THRESHOLD: float = 50.0   # >50% YoY → 80-100分
+PROFIT_GROWTH_MID_THRESHOLD: float = 20.0    # 20-50% → 50-80分
+PROFIT_GROWTH_LOW_THRESHOLD: float = 0.0     # 0-20% → 25-50分
+
+# ── A2: Duration score magnitude bonus ──
+DURATION_BONUS_MAX: float = 25.0              # bonus 上限
+DURATION_BONUS_GROWTH_FACTOR: float = 0.5     # avg_growth × 此因子
+
+# ── B2: Stage classification transition zone ──
+HIGH_GROWTH_CONFIRMED_THRESHOLD: float = 85.0  # >85 确定高增长
+HIGH_GROWTH_LOWER_BOUND: float = 75.0          # <75 确定非高增长
+TRANSITION_DELTA_G_POSITIVE: float = 5.0       # 过渡区内 delta_g>5 偏向加速
+TRANSITION_DELTA_G_NEGATIVE: float = -5.0      # 过渡区内 delta_g<-5 偏向减速
+
+# ── D2: Risk warning thresholds (从 prosperity_sector.py 移入) ──
+RISK_REVENUE_SCORE_LOW: float = 35.0   # 营收评分低于此值 → "增速不足"
+RISK_SLOPE_SCORE_LOW: float = 40.0     # 趋势评分低于此值 → "趋势下行"
+RISK_DURATION_SCORE_LOW: float = 25.0  # 持续评分低于此值 → "景气持续性存疑"
