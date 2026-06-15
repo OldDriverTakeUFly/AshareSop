@@ -7,7 +7,14 @@ from collections.abc import Iterable
 
 from davis_analyzer.constants import (
     GROWTH_DECELERATION_THRESHOLD,
+    HIGH_GROWTH_CONFIRMED_THRESHOLD,
+    HIGH_GROWTH_LOWER_BOUND,
+    RISK_DURATION_SCORE_LOW,
+    RISK_REVENUE_SCORE_LOW,
+    RISK_SLOPE_SCORE_LOW,
     SECTOR_MIN_STOCKS,
+    TRANSITION_DELTA_G_NEGATIVE,
+    TRANSITION_DELTA_G_POSITIVE,
 )
 from davis_analyzer.prosperity_inflection import analyze_inflection
 from davis_analyzer.types import (
@@ -25,12 +32,28 @@ def aggregate_industry_prosperity(
     prosperity_scores: dict[str, ProsperityScore],
     stock_infos: dict[str, StockInfo],
     min_stocks: int = SECTOR_MIN_STOCKS,
+    market_cap_map: dict[str, float] | None = None,
 ) -> list[IndustryProsperityScore]:
     """Group stocks by industry and compute aggregate prosperity metrics.
 
     Industries with fewer than *min_stocks* stocks are skipped.
     Results are sorted by avg_composite_score descending.
+    When *market_cap_map* is provided, uses market-cap weighted averages;
+    otherwise falls back to simple averages.
     """
+
+    def _weighted_avg(codes: list[str], attr: str) -> float:
+        """Compute market-cap weighted average of a ProsperityScore attribute."""
+        if market_cap_map:
+            weights = {c: market_cap_map.get(c, 0) for c in codes}
+            total_w = sum(w for w in weights.values() if w > 0)
+            if total_w > 0:
+                return sum(
+                    getattr(prosperity_scores[c], attr) * weights[c]
+                    for c in codes if weights[c] > 0
+                ) / total_w
+        return _mean(getattr(prosperity_scores[c], attr) for c in codes)
+
     industry_buckets: dict[str, list[str]] = {}
     for ts_code, score in prosperity_scores.items():
         info = stock_infos.get(ts_code)
@@ -44,7 +67,6 @@ def aggregate_industry_prosperity(
             continue
 
         scores = [prosperity_scores[c] for c in codes]
-        avg_composite = _mean(s.composite_score for s in scores)
         delta_values = [s.delta_g for s in scores]
         median_delta = statistics.median(delta_values)
 
@@ -57,12 +79,12 @@ def aggregate_industry_prosperity(
             IndustryProsperityScore(
                 industry=industry,
                 stock_count=len(codes),
-                avg_composite_score=round(avg_composite, 2),
+                avg_composite_score=round(_weighted_avg(codes, "composite_score"), 2),
                 median_delta_g=round(median_delta, 2),
-                avg_revenue_score=round(_mean(s.revenue_score for s in scores), 2),
-                avg_profit_score=round(_mean(s.profit_score for s in scores), 2),
-                avg_slope_score=round(_mean(s.slope_score for s in scores), 2),
-                avg_duration_score=round(_mean(s.duration_score for s in scores), 2),
+                avg_revenue_score=round(_weighted_avg(codes, "revenue_score"), 2),
+                avg_profit_score=round(_weighted_avg(codes, "profit_score"), 2),
+                avg_slope_score=round(_weighted_avg(codes, "slope_score"), 2),
+                avg_duration_score=round(_weighted_avg(codes, "duration_score"), 2),
                 stage="",
                 ignition_count=0,
                 top_stock_codes=top_codes,
@@ -79,9 +101,27 @@ def classify_stock_stage(
 ) -> str:
     """Classify a single stock into 加速期 / 减速期 / 上升拐点 / 下降拐点.
 
-    Uses revenue_score as growth proxy (>80 ⇒ growth >30 %).
+    Uses max(revenue_score, profit_score) for growth assessment with
+    a transition zone (75-85) resolved by relative_delta_g direction.
     """
-    is_high_growth = prosperity_score.revenue_score > _GROWTH_SCORE_HIGH
+    max_score = max(
+        prosperity_score.revenue_score, prosperity_score.profit_score
+    )
+
+    if max_score > HIGH_GROWTH_CONFIRMED_THRESHOLD:
+        is_high_growth = True
+    elif max_score < HIGH_GROWTH_LOWER_BOUND:
+        is_high_growth = False
+    else:
+        # B2: transition zone (75-85) — use relative_delta_g direction
+        rdg = prosperity_score.relative_delta_g
+        if rdg > TRANSITION_DELTA_G_POSITIVE:
+            is_high_growth = True
+        elif rdg < TRANSITION_DELTA_G_NEGATIVE:
+            is_high_growth = False
+        else:
+            is_high_growth = False
+
     if is_high_growth and prosperity_score.delta_g > 0:
         return "加速期"
     if is_high_growth and prosperity_score.delta_g <= 0:
@@ -97,9 +137,25 @@ def classify_industry_stage(
 ) -> str:
     """Classify an industry aggregate into 加速期 / 减速期 / 上升拐点 / 下降拐点.
 
-    Uses avg_revenue_score as growth proxy (>80 ⇒ growth >30 %).
+    Uses max(avg_revenue_score, avg_profit_score) with the same transition
+    zone logic as classify_stock_stage, using median_delta_g direction.
     """
-    is_high_growth = industry_score.avg_revenue_score > _GROWTH_SCORE_HIGH
+    max_score = max(
+        industry_score.avg_revenue_score, industry_score.avg_profit_score
+    )
+
+    if max_score > HIGH_GROWTH_CONFIRMED_THRESHOLD:
+        is_high_growth = True
+    elif max_score < HIGH_GROWTH_LOWER_BOUND:
+        is_high_growth = False
+    else:
+        if industry_score.median_delta_g > TRANSITION_DELTA_G_POSITIVE:
+            is_high_growth = True
+        elif industry_score.median_delta_g < TRANSITION_DELTA_G_NEGATIVE:
+            is_high_growth = False
+        else:
+            is_high_growth = False
+
     if is_high_growth and industry_score.median_delta_g > 0:
         return "加速期"
     if is_high_growth and industry_score.median_delta_g <= 0:
@@ -111,17 +167,44 @@ def classify_industry_stage(
 
 def screen_g_delta_g_ignition(
     prosperity_scores: dict[str, ProsperityScore],
+    stock_infos: dict[str, StockInfo] | None = None,
+    financial_data: dict[str, list[FinancialData]] | None = None,
+    industry_median_delta_g: dict[str, float] | None = None,
     growth_threshold: float = GROWTH_DECELERATION_THRESHOLD,
     delta_g_threshold: float = 0.0,
 ) -> set[str]:
-    """Return ts_codes where revenue_score > 80 AND delta_g > threshold."""
+    """Return ts_codes where growth is high AND relative delta_g > 0 AND operating_cf > 0."""
     result: set[str] = set()
     for ts_code, score in prosperity_scores.items():
-        if (
+        is_high_growth = (
             score.revenue_score > _GROWTH_SCORE_HIGH
-            and score.delta_g > delta_g_threshold
-        ):
-            result.add(ts_code)
+            or score.profit_score > _GROWTH_SCORE_HIGH
+        )
+        if not is_high_growth:
+            continue
+
+        if industry_median_delta_g and stock_infos:
+            info = stock_infos.get(ts_code)
+            if info:
+                median = industry_median_delta_g.get(info.industry, 0.0)
+                rel_dg = score.delta_g - median
+            else:
+                rel_dg = score.delta_g
+        else:
+            rel_dg = score.delta_g
+        if rel_dg <= delta_g_threshold:
+            continue
+
+        if financial_data:
+            fd_list = financial_data.get(ts_code, [])
+            if fd_list:
+                latest_fd = sorted(
+                    fd_list, key=lambda d: d.report_period
+                )[-1]
+                if latest_fd.operating_cf <= 0:
+                    continue
+
+        result.add(ts_code)
     return result
 
 
@@ -130,10 +213,10 @@ def generate_ignition_reasons(score: ProsperityScore) -> list[str]:
     reasons: list[str] = []
     if score.revenue_score > _GROWTH_SCORE_HIGH:
         reasons.append(f"营收评分{score.revenue_score:.0f}（>80阈值）")
-    if score.delta_g > 0:
-        reasons.append(f"ΔG=+{score.delta_g:.1f}（增速加快）")
     if score.profit_score > _GROWTH_SCORE_HIGH:
-        reasons.append(f"利润评分{score.profit_score:.0f}（高盈利增速）")
+        reasons.append(f"利润评分{score.profit_score:.0f}（>80阈值）")
+    if score.relative_delta_g > 0:
+        reasons.append(f"相对ΔG=+{score.relative_delta_g:.1f}（行业内加速）")
     if score.slope_score > 60:
         reasons.append(f"趋势评分{score.slope_score:.0f}（上行趋势确认）")
     return reasons
@@ -145,13 +228,13 @@ def generate_risk_warnings(
 ) -> list[str]:
     """Generate risk-warning labels for a single ProsperityScore."""
     warnings: list[str] = []
-    if prosperity_score.delta_g < 0:
+    if prosperity_score.relative_delta_g < 0:
         warnings.append("增速放缓")
-    if prosperity_score.revenue_score < 35:
+    if prosperity_score.revenue_score < RISK_REVENUE_SCORE_LOW:
         warnings.append("增速不足")
-    if prosperity_score.slope_score < 40:
+    if prosperity_score.slope_score < RISK_SLOPE_SCORE_LOW:
         warnings.append("趋势下行")
-    if prosperity_score.duration_score < 25:
+    if prosperity_score.duration_score < RISK_DURATION_SCORE_LOW:
         warnings.append("景气持续性存疑")
     return warnings
 
@@ -174,6 +257,30 @@ def build_stock_details(
         if info is None:
             continue
         industry_codes.setdefault(info.industry, []).append(ts_code)
+
+    # B3: Compute industry median delta_g for relative_delta_g
+    industry_delta_g_map: dict[str, list[float]] = {}
+    for ts_code in prosperity_scores:
+        info = stock_infos.get(ts_code)
+        if info is None:
+            continue
+        industry_delta_g_map.setdefault(info.industry, []).append(
+            prosperity_scores[ts_code].delta_g
+        )
+
+    industry_median_delta_g: dict[str, float] = {}
+    for industry, deltas in industry_delta_g_map.items():
+        if len(deltas) >= SECTOR_MIN_STOCKS:
+            industry_median_delta_g[industry] = statistics.median(deltas)
+        else:
+            industry_median_delta_g[industry] = 0.0
+
+    for ts_code, score in prosperity_scores.items():
+        info = stock_infos.get(ts_code)
+        if info is None:
+            continue
+        median = industry_median_delta_g.get(info.industry, 0.0)
+        score.relative_delta_g = round(score.delta_g - median, 2)
 
     industry_ranks: dict[str, int] = {}
     for industry, codes in industry_codes.items():

@@ -30,6 +30,7 @@ def _ps(
     duration_score: float = 60.0,
     composite_score: float = 60.0,
     delta_g: float = 5.0,
+    relative_delta_g: float | None = None,
 ) -> ProsperityScore:
     return ProsperityScore(
         ts_code=ts_code,
@@ -39,6 +40,7 @@ def _ps(
         duration_score=duration_score,
         composite_score=composite_score,
         delta_g=delta_g,
+        relative_delta_g=delta_g if relative_delta_g is None else relative_delta_g,
     )
 
 
@@ -197,17 +199,59 @@ class TestAggregateIndustryProsperity:
         result = aggregate_industry_prosperity(scores, infos)
         assert result[0].ignition_count == 0
 
+    def test_c1_market_cap_weighted_average(self):
+        """C1: with market_cap_map, uses weighted average instead of simple."""
+        scores = {
+            "S1.SZ": _ps(ts_code="S1.SZ", revenue_score=80.0, composite_score=80.0),
+            "S2.SZ": _ps(ts_code="S2.SZ", revenue_score=60.0, composite_score=60.0),
+        }
+        infos = {
+            "S1.SZ": _si(ts_code="S1.SZ", industry="化工"),
+            "S2.SZ": _si(ts_code="S2.SZ", industry="化工"),
+        }
+        caps = {"S1.SZ": 1000.0, "S2.SZ": 100.0}
+        result = aggregate_industry_prosperity(scores, infos, min_stocks=2, market_cap_map=caps)
+        # Weighted: (80*1000 + 60*100) / 1100 = 78.18
+        assert result[0].avg_revenue_score == pytest.approx(78.18, abs=0.1)
+
+    def test_c1_fallback_simple_avg_when_no_market_cap(self):
+        """C1: market_cap_map=None → simple average."""
+        scores = {
+            "S1.SZ": _ps(ts_code="S1.SZ", revenue_score=80.0),
+            "S2.SZ": _ps(ts_code="S2.SZ", revenue_score=60.0),
+        }
+        infos = {
+            "S1.SZ": _si(ts_code="S1.SZ", industry="化工"),
+            "S2.SZ": _si(ts_code="S2.SZ", industry="化工"),
+        }
+        result = aggregate_industry_prosperity(scores, infos, min_stocks=2)
+        assert result[0].avg_revenue_score == pytest.approx(70.0, abs=0.01)
+
+    def test_c1_fallback_simple_avg_when_all_zero_caps(self):
+        """C1: all market caps zero → simple average."""
+        scores = {
+            "S1.SZ": _ps(ts_code="S1.SZ", revenue_score=80.0),
+            "S2.SZ": _ps(ts_code="S2.SZ", revenue_score=60.0),
+        }
+        infos = {
+            "S1.SZ": _si(ts_code="S1.SZ", industry="化工"),
+            "S2.SZ": _si(ts_code="S2.SZ", industry="化工"),
+        }
+        caps = {"S1.SZ": 0.0, "S2.SZ": 0.0}
+        result = aggregate_industry_prosperity(scores, infos, min_stocks=2, market_cap_map=caps)
+        assert result[0].avg_revenue_score == pytest.approx(70.0, abs=0.01)
+
 
 # ── B. classify_stock_stage ──────────────────────────────────────────
 
 
 class TestClassifyStockStage:
     def test_acceleration_high_growth_positive_delta(self):
-        score = _ps(revenue_score=85.0, delta_g=5.0)
+        score = _ps(revenue_score=90.0, delta_g=5.0)
         assert classify_stock_stage(score) == "加速期"
 
     def test_deceleration_high_growth_negative_delta(self):
-        score = _ps(revenue_score=85.0, delta_g=-5.0)
+        score = _ps(revenue_score=90.0, delta_g=-5.0)
         assert classify_stock_stage(score) == "减速期"
 
     def test_rising_inflection_low_growth_positive_delta(self):
@@ -215,13 +259,13 @@ class TestClassifyStockStage:
         assert classify_stock_stage(score) == "上升拐点"
 
     def test_boundary_revenue_score_exactly_80(self):
-        """revenue_score == 80 means growth <= 30%, so 上升拐点 when delta_g > 0."""
+        """revenue_score == 80 is transition zone; with rdg not > 5 → not high growth → 上升拐点."""
         score = _ps(revenue_score=80.0, delta_g=5.0)
         assert classify_stock_stage(score) == "上升拐点"
 
     def test_boundary_delta_g_exactly_zero_high_growth(self):
-        """delta_g == 0 with revenue_score > 80 → 减速期."""
-        score = _ps(revenue_score=85.0, delta_g=0.0)
+        """delta_g == 0 with confirmed high growth → 减速期."""
+        score = _ps(revenue_score=90.0, delta_g=0.0)
         assert classify_stock_stage(score) == "减速期"
 
     def test_boundary_delta_g_exactly_zero_low_growth(self):
@@ -233,10 +277,29 @@ class TestClassifyStockStage:
         assert classify_stock_stage(score) == "下降拐点"
 
     def test_custom_deceleration_threshold(self):
-        score = _ps(revenue_score=85.0, delta_g=-5.0)
-        # With custom threshold, doesn't change logic since it uses revenue_score > 80
+        score = _ps(revenue_score=90.0, delta_g=-5.0)
         result = classify_stock_stage(score, growth_deceleration_threshold=50.0)
         assert result == "减速期"
+
+    def test_b1_or_logic_profit_driven_acceleration(self):
+        """B1: revenue_score < 80 but profit_score > 85 → high growth."""
+        score = _ps(revenue_score=70.0, profit_score=90.0, delta_g=5.0)
+        assert classify_stock_stage(score) == "加速期"
+
+    def test_b2_transition_zone_positive_rdg(self):
+        """B2: max_score=80 (transition zone), relative_delta_g=6 (>5) → high growth."""
+        score = _ps(revenue_score=80.0, delta_g=5.0, relative_delta_g=6.0)
+        assert classify_stock_stage(score) == "加速期"
+
+    def test_b2_transition_zone_negative_rdg(self):
+        """B2: max_score=80 (transition zone), relative_delta_g=-6 (<-5) → not high growth."""
+        score = _ps(revenue_score=80.0, delta_g=5.0, relative_delta_g=-6.0)
+        assert classify_stock_stage(score) == "上升拐点"
+
+    def test_b2_transition_zone_neutral_rdg(self):
+        """B2: max_score=80 (transition zone), relative_delta_g=0 → conservative not high growth."""
+        score = _ps(revenue_score=80.0, delta_g=5.0, relative_delta_g=0.0)
+        assert classify_stock_stage(score) == "上升拐点"
 
 
 # ── C. classify_industry_stage ───────────────────────────────────────
@@ -249,7 +312,7 @@ class TestClassifyIndustryStage:
             stock_count=5,
             avg_composite_score=70.0,
             median_delta_g=5.0,
-            avg_revenue_score=85.0,
+            avg_revenue_score=90.0,
             avg_profit_score=60.0,
             avg_slope_score=60.0,
             avg_duration_score=60.0,
@@ -265,7 +328,7 @@ class TestClassifyIndustryStage:
             stock_count=5,
             avg_composite_score=70.0,
             median_delta_g=-3.0,
-            avg_revenue_score=85.0,
+            avg_revenue_score=90.0,
             avg_profit_score=60.0,
             avg_slope_score=60.0,
             avg_duration_score=60.0,
@@ -313,7 +376,7 @@ class TestClassifyIndustryStage:
             stock_count=5,
             avg_composite_score=70.0,
             median_delta_g=0.0,
-            avg_revenue_score=85.0,
+            avg_revenue_score=90.0,
             avg_profit_score=60.0,
             avg_slope_score=60.0,
             avg_duration_score=60.0,
@@ -322,6 +385,57 @@ class TestClassifyIndustryStage:
             top_stock_codes=[],
         )
         assert classify_industry_stage(ind) == "减速期"
+
+    def test_c2_or_logic_profit_driven(self):
+        """C2: avg_revenue < 80 but avg_profit > 85 → high growth."""
+        ind = IndustryProsperityScore(
+            industry="电子",
+            stock_count=5,
+            avg_composite_score=70.0,
+            median_delta_g=5.0,
+            avg_revenue_score=70.0,
+            avg_profit_score=90.0,
+            avg_slope_score=60.0,
+            avg_duration_score=60.0,
+            stage="",
+            ignition_count=0,
+            top_stock_codes=[],
+        )
+        assert classify_industry_stage(ind) == "加速期"
+
+    def test_c2_transition_zone_positive_delta(self):
+        """C2: max_score=80 (transition), median_delta_g=6 (>5) → high growth."""
+        ind = IndustryProsperityScore(
+            industry="电子",
+            stock_count=5,
+            avg_composite_score=70.0,
+            median_delta_g=6.0,
+            avg_revenue_score=80.0,
+            avg_profit_score=60.0,
+            avg_slope_score=60.0,
+            avg_duration_score=60.0,
+            stage="",
+            ignition_count=0,
+            top_stock_codes=[],
+        )
+        assert classify_industry_stage(ind) == "加速期"
+
+    def test_c2_transition_zone_negative_delta(self):
+        """C2: max_score=80 (transition), median_delta_g=-6 (<-5) → not high growth."""
+        ind = IndustryProsperityScore(
+            industry="电子",
+            stock_count=5,
+            avg_composite_score=70.0,
+            median_delta_g=-6.0,
+            avg_revenue_score=80.0,
+            avg_profit_score=60.0,
+            avg_slope_score=60.0,
+            avg_duration_score=60.0,
+            stage="",
+            ignition_count=0,
+            top_stock_codes=[],
+        )
+        assert classify_industry_stage(ind) == "下降拐点"
 
 
 # ── D. screen_g_delta_g_ignition ─────────────────────────────────────
@@ -379,6 +493,57 @@ class TestScreenGDeltaGIgnition:
         scores = {"a.SZ": _ps(ts_code="a.SZ", revenue_score=90, delta_g=5)}
         result = screen_g_delta_g_ignition(scores)
         assert isinstance(result, set)
+
+    def test_d1_or_logic_profit_driven(self):
+        """D1: revenue_score < 80 but profit_score > 80 → high growth condition met."""
+        scores = {"p.SZ": _ps(ts_code="p.SZ", revenue_score=70, profit_score=90, delta_g=5)}
+        result = screen_g_delta_g_ignition(scores)
+        assert "p.SZ" in result
+
+    def test_d1_negative_cf_excludes(self):
+        """D1: all growth conditions met but operating_cf < 0 → excluded."""
+        scores = {"S1.SZ": _ps(ts_code="S1.SZ", revenue_score=90, delta_g=5)}
+        fin_data = {
+            "S1.SZ": [_fd(ts_code="S1.SZ", period="2024Q4", operating_cf=-5.0)],
+        }
+        result = screen_g_delta_g_ignition(scores, financial_data=fin_data)
+        assert "S1.SZ" not in result
+
+    def test_d1_positive_cf_includes(self):
+        """D1: all conditions met including operating_cf > 0 → included."""
+        scores = {"S1.SZ": _ps(ts_code="S1.SZ", revenue_score=90, delta_g=5)}
+        fin_data = {
+            "S1.SZ": [_fd(ts_code="S1.SZ", period="2024Q4", operating_cf=100.0)],
+        }
+        result = screen_g_delta_g_ignition(scores, financial_data=fin_data)
+        assert "S1.SZ" in result
+
+    def test_d1_industry_median_adjustment(self):
+        """D1: with industry_median_delta_g, relative delta must be > 0."""
+        scores = {"S1.SZ": _ps(ts_code="S1.SZ", revenue_score=90, delta_g=3)}
+        infos = {"S1.SZ": _si(ts_code="S1.SZ", industry="化工")}
+        medians = {"化工": 5.0}
+        # rel_dg = 3 - 5 = -2 < 0 → excluded
+        result = screen_g_delta_g_ignition(
+            scores, stock_infos=infos, industry_median_delta_g=medians
+        )
+        assert "S1.SZ" not in result
+
+    def test_d1_all_conditions_met(self):
+        """D1: high growth + relative delta > 0 + CF > 0 → ignition."""
+        scores = {"S1.SZ": _ps(ts_code="S1.SZ", revenue_score=90, delta_g=8)}
+        infos = {"S1.SZ": _si(ts_code="S1.SZ", industry="化工")}
+        fin_data = {
+            "S1.SZ": [_fd(ts_code="S1.SZ", period="2024Q4", operating_cf=100.0)],
+        }
+        medians = {"化工": 2.0}
+        result = screen_g_delta_g_ignition(
+            scores,
+            stock_infos=infos,
+            financial_data=fin_data,
+            industry_median_delta_g=medians,
+        )
+        assert "S1.SZ" in result
 
 
 # ── E. generate_risk_warnings ────────────────────────────────────────
@@ -578,3 +743,21 @@ class TestBuildStockDetails:
         assert len(result) == 50
         ranks = [d.rank_in_industry for d in result.values()]
         assert sorted(ranks) == list(range(1, 51))
+
+    def test_b3_relative_delta_g_computed(self):
+        """B3: with >=5 stocks in industry, relative_delta_g = delta_g - industry_median."""
+        scores, infos = _make_industry_stocks("电子", 6, base_delta_g=3.0)
+        fd = {code: [_fd(ts_code=code)] for code in scores}
+        # delta_g values: 3,4,5,6,7,8 → median = 5.5
+        result = build_stock_details(scores, infos, fd, set())
+        for code in scores:
+            expected_rdg = round(scores[code].delta_g - 5.5, 2)
+            assert result[code].prosperity_score.relative_delta_g == expected_rdg
+
+    def test_b3_relative_delta_g_fallback_below_min_stocks(self):
+        """B3: with <5 stocks, industry median = 0 → relative_delta_g = delta_g."""
+        scores, infos = _make_industry_stocks("电子", 3, base_delta_g=3.0)
+        fd = {code: [_fd(ts_code=code)] for code in scores}
+        result = build_stock_details(scores, infos, fd, set())
+        for code in scores:
+            assert result[code].prosperity_score.relative_delta_g == scores[code].delta_g

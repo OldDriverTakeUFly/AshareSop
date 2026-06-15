@@ -33,6 +33,7 @@ def _ps(
     duration_score: float = 60.0,
     composite_score: float = 60.0,
     delta_g: float = 5.0,
+    relative_delta_g: float | None = None,
 ) -> ProsperityScore:
     return ProsperityScore(
         ts_code=ts_code,
@@ -42,6 +43,7 @@ def _ps(
         duration_score=duration_score,
         composite_score=composite_score,
         delta_g=delta_g,
+        relative_delta_g=delta_g if relative_delta_g is None else relative_delta_g,
     )
 
 
@@ -116,11 +118,11 @@ def _make_quarters(
 
 class TestClassifyStockStageFourValues:
     def test_acceleration(self):
-        score = _ps(revenue_score=85.0, delta_g=5.0)
+        score = _ps(revenue_score=90.0, delta_g=5.0)
         assert classify_stock_stage(score) == "加速期"
 
     def test_deceleration(self):
-        score = _ps(revenue_score=85.0, delta_g=-5.0)
+        score = _ps(revenue_score=90.0, delta_g=-5.0)
         assert classify_stock_stage(score) == "减速期"
 
     def test_rising_inflection(self):
@@ -172,10 +174,10 @@ def _make_industry(
 
 class TestClassifyIndustryStageFourValues:
     def test_acceleration(self):
-        assert classify_industry_stage(_make_industry(85.0, 5.0)) == "加速期"
+        assert classify_industry_stage(_make_industry(90.0, 5.0)) == "加速期"
 
     def test_deceleration(self):
-        assert classify_industry_stage(_make_industry(85.0, -3.0)) == "减速期"
+        assert classify_industry_stage(_make_industry(90.0, -3.0)) == "减速期"
 
     def test_rising_inflection(self):
         assert classify_industry_stage(_make_industry(50.0, 3.0)) == "上升拐点"
