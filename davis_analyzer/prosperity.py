@@ -4,7 +4,11 @@ from __future__ import annotations
 
 import math
 
-from davis_analyzer.constants import PROSPERITY_WEIGHTS
+from davis_analyzer.constants import (
+    DURATION_BONUS_GROWTH_FACTOR,
+    DURATION_BONUS_MAX,
+    PROSPERITY_WEIGHTS,
+)
 from davis_analyzer.types import FinancialData, ProsperityScore
 
 
@@ -40,8 +44,30 @@ def calculate_revenue_score(revenue_history: list[float]) -> float:
 
 
 def calculate_profit_score(profit_history: list[float]) -> float:
-    """Score 0–100 based on YoY net-profit growth (same logic as revenue)."""
-    return calculate_revenue_score(profit_history)
+    """Score 0–100 based on YoY net-profit growth using independent profit thresholds.
+
+    利润波动更大，所以门槛高于营收:
+        growth > 50 %  → 80–100
+        20–50 %        → 50–80
+        0–20 %         → 25–50
+        < 0 %          → 0–20
+    Recent quarters are weighted more heavily via exponential decay.
+    """
+    if not profit_history:
+        return 0.0
+
+    decay = 0.8
+    total_weight = 0.0
+    weighted_sum = 0.0
+
+    for i, g in enumerate(profit_history):
+        w = decay ** i
+        total_weight += w
+        raw = _growth_to_raw_score_profit(g)
+        weighted_sum += raw * w
+
+    avg = weighted_sum / total_weight
+    return _clamp(avg)
 
 
 def calculate_slope_score(metrics_history: list[float]) -> float:
@@ -82,20 +108,33 @@ def calculate_slope_score(metrics_history: list[float]) -> float:
 
 
 def calculate_duration_score(growth_history: list[float]) -> float:
-    """Score based on consecutive quarters of positive growth (recent first).
+    """Score based on consecutive quarters of positive growth + magnitude bonus.
 
-    0 quarters → 0, 1 → 25, 2 → 50, 3 → 75, 4+ → 100.
+    Base: 0 quarters → 0, 1 → 25, 2 → 50, 3 → 75, 4+ → 100.
+    Bonus: min(25, avg_positive_growth * 0.5) added to base, capped at 100.
     """
     count = 0
+    positive_growths: list[float] = []
     for g in growth_history:
         if g > 0:
             count += 1
+            positive_growths.append(g)
         else:
             break
 
-    if count >= 4:
-        return 100.0
-    return count * 25.0
+    if count == 0:
+        return 0.0
+
+    base_score = count * 25.0
+    if base_score >= 100.0:
+        base_score = 100.0
+
+    avg_growth = (
+        sum(positive_growths) / len(positive_growths) if positive_growths else 0.0
+    )
+    bonus = min(DURATION_BONUS_MAX, avg_growth * DURATION_BONUS_GROWTH_FACTOR)
+
+    return min(100.0, base_score + bonus)
 
 
 def calculate_delta_g(current_growth: float, previous_growth: float) -> float:
@@ -159,7 +198,16 @@ def calculate_prosperity_score(
     slope_score = calculate_slope_score(rev_hist)
     duration_score = calculate_duration_score(rev_hist)
 
-    if len(rev_hist) >= 2:
+    # A1: Cash flow quality adjustment
+    latest = sorted_data[-1]
+    if latest.net_profit > 0:
+        cf_quality = min(1.0, latest.operating_cf / latest.net_profit)
+        profit_score *= cf_quality
+
+    # A3: 3-quarter moving average when available
+    if len(rev_hist) >= 3:
+        delta_g = ((rev_hist[0] - rev_hist[1]) + (rev_hist[1] - rev_hist[2])) / 2
+    elif len(rev_hist) == 2:
         delta_g = calculate_delta_g(rev_hist[0], rev_hist[1])
     elif len(rev_hist) == 1:
         delta_g = rev_hist[0]
@@ -205,6 +253,21 @@ def _growth_to_raw_score(g: float) -> float:
         return 50 + (g - 10) / 20 * 30
     if g >= 0:
         return 25 + g / 10 * 25
+    return max(0, 20 + g)
+
+
+def _growth_to_raw_score_profit(g: float) -> float:
+    """Map a single YoY profit growth percentage to a 0–100 raw score.
+
+    Higher thresholds than revenue (利润波动更大):
+        >50% → 80-100, 20-50% → 50-80, 0-20% → 25-50, <0% → 0-20
+    """
+    if g > 50:
+        return 80 + min((g - 50) / 50 * 20, 20)
+    if g > 20:
+        return 50 + (g - 20) / 30 * 30
+    if g >= 0:
+        return 25 + g / 20 * 25
     return max(0, 20 + g)
 
 

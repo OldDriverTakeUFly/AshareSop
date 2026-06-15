@@ -13,6 +13,7 @@ from davis_analyzer.prosperity import (
     calculate_slope_score,
     dupont_decomposition,
     _growth_to_raw_score,
+    _growth_to_raw_score_profit,
 )
 from davis_analyzer.types import FinancialData, ProsperityScore
 
@@ -55,6 +56,29 @@ class TestGrowthToRawScore:
         assert _growth_to_raw_score(0) == pytest.approx(25.0, abs=0.01)
 
 
+class TestGrowthToRawScoreProfit:
+    def test_high_growth_over_50(self):
+        assert _growth_to_raw_score_profit(60) == pytest.approx(84.0, abs=0.01)
+
+    def test_at_50_boundary(self):
+        assert _growth_to_raw_score_profit(50) == pytest.approx(80.0, abs=0.01)
+
+    def test_mid_growth_30(self):
+        assert _growth_to_raw_score_profit(30) == pytest.approx(60.0, abs=0.01)
+
+    def test_at_20_boundary(self):
+        assert _growth_to_raw_score_profit(20) == pytest.approx(50.0, abs=0.01)
+
+    def test_low_growth_10(self):
+        assert _growth_to_raw_score_profit(10) == pytest.approx(37.5, abs=0.01)
+
+    def test_negative_growth(self):
+        assert _growth_to_raw_score_profit(-10) == pytest.approx(10.0, abs=0.01)
+
+    def test_zero_growth(self):
+        assert _growth_to_raw_score_profit(0) == pytest.approx(25.0, abs=0.01)
+
+
 class TestRevenueScore:
     def test_empty_history(self):
         assert calculate_revenue_score([]) == 0.0
@@ -74,9 +98,17 @@ class TestRevenueScore:
         score_growing = calculate_revenue_score(growing)
         assert score_growing > score_declining
 
-    def test_profit_score_same_logic(self):
+    def test_profit_score_independent_from_revenue(self):
         data = [25, 15, 35]
-        assert calculate_profit_score(data) == calculate_revenue_score(data)
+        assert calculate_profit_score(data) != calculate_revenue_score(data)
+
+    def test_profit_score_independent_mapping(self):
+        score = calculate_profit_score([50])
+        assert score == pytest.approx(80.0, abs=0.01)
+
+    def test_profit_score_at_20pct(self):
+        score = calculate_profit_score([20])
+        assert score == pytest.approx(50.0, abs=0.01)
 
 
 class TestSlopeScore:
@@ -107,13 +139,16 @@ class TestDurationScore:
         assert calculate_duration_score([-5, 10, 20]) == 0
 
     def test_one_positive_quarter(self):
-        assert calculate_duration_score([5, -10]) == 25.0
+        score = calculate_duration_score([5, -10])
+        assert score == pytest.approx(27.5, abs=0.01)
 
     def test_two_positive_quarters(self):
-        assert calculate_duration_score([5, 10, -3]) == 50.0
+        score = calculate_duration_score([5, 10, -3])
+        assert score == pytest.approx(53.75, abs=0.01)
 
     def test_three_positive_quarters(self):
-        assert calculate_duration_score([5, 10, 15, -1]) == 75.0
+        score = calculate_duration_score([5, 10, 15, -1])
+        assert score == pytest.approx(80.0, abs=0.01)
 
     def test_four_plus_positive_quarters(self):
         assert calculate_duration_score([5, 10, 15, 20, 25]) == 100.0
@@ -123,6 +158,14 @@ class TestDurationScore:
 
     def test_empty(self):
         assert calculate_duration_score([]) == 0
+
+    def test_duration_bonus_high_growth(self):
+        score = calculate_duration_score([50, 50, 50])
+        assert score == pytest.approx(100.0, abs=0.01)
+
+    def test_duration_bonus_low_growth(self):
+        score = calculate_duration_score([0.1, 0.1, 0.1, 0.1])
+        assert score == pytest.approx(100.0, abs=0.01)
 
 
 class TestDeltaG:
@@ -229,6 +272,95 @@ class TestProsperityScore:
         result = calculate_prosperity_score(data)
         assert isinstance(result, ProsperityScore)
         assert result.ts_code == "000001.SZ"
+
+    def test_cashflow_quality_reduces_profit_score(self):
+        data = [
+            _fd(
+                ts_code="000001.SZ",
+                period="2023Q1",
+                net_profit=10.0,
+                operating_cf=15.0,
+                yoy_revenue_growth=0.2,
+                yoy_profit_growth=0.3,
+            ),
+            _fd(
+                ts_code="000001.SZ",
+                period="2023Q2",
+                net_profit=10.0,
+                operating_cf=5.0,
+                yoy_revenue_growth=0.2,
+                yoy_profit_growth=0.3,
+            ),
+        ]
+        result = calculate_prosperity_score(data)
+        unadjusted = calculate_profit_score([30.0, 30.0])
+        assert result.profit_score < unadjusted
+        assert result.profit_score == pytest.approx(30.0, abs=0.01)
+
+    def test_cashflow_quality_skip_when_net_profit_negative(self):
+        data = [
+            _fd(
+                ts_code="000001.SZ",
+                period="2023Q1",
+                net_profit=-5.0,
+                operating_cf=5.0,
+                yoy_revenue_growth=0.2,
+                yoy_profit_growth=0.3,
+            ),
+            _fd(
+                ts_code="000001.SZ",
+                period="2023Q2",
+                net_profit=-5.0,
+                operating_cf=5.0,
+                yoy_revenue_growth=0.2,
+                yoy_profit_growth=0.3,
+            ),
+        ]
+        result = calculate_prosperity_score(data)
+        unadjusted = calculate_profit_score([30.0, 30.0])
+        assert result.profit_score == pytest.approx(unadjusted, abs=0.01)
+
+    def test_delta_g_three_quarter_ma(self):
+        data = [
+            _fd(
+                ts_code="000001.SZ",
+                period="2023Q1",
+                yoy_revenue_growth=0.1,
+                yoy_profit_growth=0.1,
+            ),
+            _fd(
+                ts_code="000001.SZ",
+                period="2023Q2",
+                yoy_revenue_growth=0.2,
+                yoy_profit_growth=0.2,
+            ),
+            _fd(
+                ts_code="000001.SZ",
+                period="2023Q3",
+                yoy_revenue_growth=0.3,
+                yoy_profit_growth=0.3,
+            ),
+        ]
+        result = calculate_prosperity_score(data)
+        assert result.delta_g == pytest.approx(10.0, abs=0.01)
+
+    def test_delta_g_fallback_two_quarters(self):
+        data = [
+            _fd(
+                ts_code="000001.SZ",
+                period="2023Q1",
+                yoy_revenue_growth=0.1,
+                yoy_profit_growth=0.1,
+            ),
+            _fd(
+                ts_code="000001.SZ",
+                period="2023Q2",
+                yoy_revenue_growth=0.4,
+                yoy_profit_growth=0.4,
+            ),
+        ]
+        result = calculate_prosperity_score(data)
+        assert result.delta_g == pytest.approx(30.0, abs=0.01)
 
 
 class TestBatchProsperity:
