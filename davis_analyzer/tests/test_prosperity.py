@@ -47,7 +47,7 @@ class TestGrowthToRawScore:
         assert _growth_to_raw_score(5) == pytest.approx(37.5, abs=0.01)
 
     def test_negative_growth(self):
-        assert _growth_to_raw_score(-10) == pytest.approx(10.0, abs=0.01)
+        assert _growth_to_raw_score(-10) == pytest.approx(12.5, abs=0.01)
 
     def test_deep_negative_clamps_to_zero(self):
         assert _growth_to_raw_score(-30) == 0.0
@@ -73,7 +73,7 @@ class TestGrowthToRawScoreProfit:
         assert _growth_to_raw_score_profit(10) == pytest.approx(37.5, abs=0.01)
 
     def test_negative_growth(self):
-        assert _growth_to_raw_score_profit(-10) == pytest.approx(10.0, abs=0.01)
+        assert _growth_to_raw_score_profit(-10) == pytest.approx(12.5, abs=0.01)
 
     def test_zero_growth(self):
         assert _growth_to_raw_score_profit(0) == pytest.approx(25.0, abs=0.01)

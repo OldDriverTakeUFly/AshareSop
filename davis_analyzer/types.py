@@ -120,7 +120,8 @@ class IndustryProsperityScore:
 
 @dataclass
 class CatalystSignal:
-    signal_type: str  # "roe_improving", "cashflow_positive", "debt_declining", "revenue_stabilizing"
+    signal_type: str  # catalysts: "roe_improving", "cashflow_positive", "debt_declining", "revenue_stabilizing"
+    # risks: "roe_declining", "cashflow_negative", "debt_rising", "growth_weakening"
     description: str
     strength: float  # 0-100
 
@@ -133,6 +134,7 @@ class InflectionAnalysis:
     primary_driver: str  # e.g. "营收加速增长" or "营收企稳回升"
     catalysts: list[CatalystSignal]
     narrative: str
+    inflection_axis: str | None = None  # "revenue" | "profit" | "both" | None
 
 
 @dataclass

@@ -1,6 +1,8 @@
 """Tests for davis_analyzer.prosperity_inflection — rule-based inflection engine."""
 
 from davis_analyzer.prosperity_inflection import (
+    _find_crossing_quarter,
+    _assess_risk_factors,
     analyze_inflection,
     assess_catalysts,
     generate_inflection_narrative,
@@ -78,6 +80,7 @@ def _fd(
 def _make_quarters(
     ts_code: str = "000001.SZ",
     yoy_revenues: list[float] | None = None,
+    yoy_profits: list[float] | None = None,
     roe_series: list[float] | None = None,
     revenue_series: list[float] | None = None,
     cf_series: list[float] | None = None,
@@ -86,11 +89,12 @@ def _make_quarters(
 ) -> list[FinancialData]:
     """Build chronological FinancialData records (oldest first).
 
-    yoy_revenues are fractions (e.g. -0.05 = -5%).
+    yoy_revenues / yoy_profits are fractions (e.g. -0.05 = -5%).
     """
     periods = ["2023Q1", "2023Q2", "2023Q3", "2023Q4", "2024Q1", "2024Q2"]
     n = len(periods)
     yoy = yoy_revenues or [None] * n
+    profs = yoy_profits or [None] * n
     roes = roe_series or [10.0] * n
     revs = revenue_series or [100.0 * (1 + i * 0.05) for i in range(n)]
     cfs = cf_series or [10.0] * n
@@ -106,6 +110,7 @@ def _make_quarters(
             total_debt=debts[i],
             total_assets=assets[i],
             yoy_revenue_growth=yoy[i],
+            yoy_profit_growth=profs[i],
         )
         for i in range(n)
     ]
@@ -233,52 +238,113 @@ class TestGenerateIgnitionReasons:
         assert any("90" in r for r in reasons)
 
 
-# ── D. identify_inflection_quarter ───────────────────────────────────
+# ── D1. _find_crossing_quarter — zero-crossing algorithm ─────────────
 
 
-class TestIdentifyInflectionQuarter:
+class TestFindCrossingQuarter:
     def test_negative_to_positive_crossing(self):
         series = [-5.0, -3.0, 2.0, 8.0, 15.0]
         periods = ["2023Q1", "2023Q2", "2023Q3", "2023Q4", "2024Q1"]
-        assert identify_inflection_quarter(series, periods) == "2023Q3"
+        assert _find_crossing_quarter(series, periods) == "2023Q3"
 
     def test_positive_to_negative_crossing(self):
         series = [10.0, 5.0, -2.0, -8.0]
         periods = ["2023Q1", "2023Q2", "2023Q3", "2023Q4"]
-        assert identify_inflection_quarter(series, periods) == "2023Q3"
+        assert _find_crossing_quarter(series, periods) == "2023Q3"
 
     def test_no_crossing_all_positive(self):
         series = [5.0, 8.0, 10.0]
         periods = ["2023Q1", "2023Q2", "2023Q3"]
-        assert identify_inflection_quarter(series, periods) is None
+        assert _find_crossing_quarter(series, periods) is None
 
     def test_no_crossing_all_negative(self):
         series = [-5.0, -3.0, -1.0]
         periods = ["2023Q1", "2023Q2", "2023Q3"]
-        assert identify_inflection_quarter(series, periods) is None
+        assert _find_crossing_quarter(series, periods) is None
 
     def test_multiple_crossings_returns_last(self):
         series = [-5.0, 3.0, -2.0, 8.0]
         periods = ["2023Q1", "2023Q2", "2023Q3", "2023Q4"]
-        assert identify_inflection_quarter(series, periods) == "2023Q4"
+        assert _find_crossing_quarter(series, periods) == "2023Q4"
 
     def test_insufficient_data(self):
-        assert identify_inflection_quarter([5.0], ["2023Q1"]) is None
+        assert _find_crossing_quarter([5.0], ["2023Q1"]) is None
 
     def test_empty_series(self):
-        assert identify_inflection_quarter([], []) is None
+        assert _find_crossing_quarter([], []) is None
 
     def test_boundary_zero_treated_as_positive(self):
         series = [-5.0, 0.0, 5.0]
         periods = ["2023Q1", "2023Q2", "2023Q3"]
-        result = identify_inflection_quarter(series, periods)
+        result = _find_crossing_quarter(series, periods)
         assert result == "2023Q2"
 
     def test_mismatched_lengths(self):
         series = [-5.0, 3.0, 8.0]
         periods = ["2023Q1", "2023Q2"]
-        result = identify_inflection_quarter(series, periods)
+        result = _find_crossing_quarter(series, periods)
         assert result == "2023Q2"
+
+
+# ── D2. identify_inflection_quarter — dual-axis (revenue + profit) ────
+
+
+class TestIdentifyInflectionQuarter:
+    def test_revenue_axis_inflection(self):
+        data = _make_quarters(yoy_revenues=[-0.10, -0.05, 0.02, 0.08, 0.12, 0.15])
+        quarter, axis = identify_inflection_quarter(data)
+        assert quarter == "2023Q3"
+        assert axis == "revenue"
+
+    def test_profit_axis_inflection(self):
+        data = _make_quarters(yoy_profits=[-0.10, -0.05, 0.02, 0.08, 0.12, 0.15])
+        quarter, axis = identify_inflection_quarter(data)
+        assert quarter == "2023Q3"
+        assert axis == "profit"
+
+    def test_both_axes_same_quarter(self):
+        data = _make_quarters(
+            yoy_revenues=[-0.10, -0.05, 0.02, 0.08, 0.12, 0.15],
+            yoy_profits=[-0.08, -0.03, 0.05, 0.10, 0.15, 0.20],
+        )
+        quarter, axis = identify_inflection_quarter(data)
+        assert quarter == "2023Q3"
+        assert axis == "both"
+
+    def test_both_axes_different_quarters_returns_most_recent(self):
+        data = _make_quarters(
+            yoy_revenues=[-0.10, 0.05, 0.08, 0.12, 0.15, 0.20],
+            yoy_profits=[0.10, 0.08, 0.05, -0.02, -0.08, -0.15],
+        )
+        quarter, axis = identify_inflection_quarter(data)
+        assert quarter == "2023Q4"
+        assert axis == "profit"
+
+    def test_no_inflection_returns_none_none(self):
+        data = _make_quarters(
+            yoy_revenues=[0.05, 0.08, 0.12, 0.15, 0.20, 0.25],
+            yoy_profits=[0.03, 0.05, 0.08, 0.10, 0.12, 0.15],
+        )
+        quarter, axis = identify_inflection_quarter(data)
+        assert quarter is None
+        assert axis is None
+
+    def test_insufficient_data(self):
+        data = [_fd(period="2024Q1")]
+        quarter, axis = identify_inflection_quarter(data)
+        assert quarter is None
+        assert axis is None
+
+    def test_empty_data(self):
+        quarter, axis = identify_inflection_quarter([])
+        assert quarter is None
+        assert axis is None
+
+    def test_profit_only_revenue_flat(self):
+        data = _make_quarters(yoy_profits=[-0.10, -0.05, 0.02, 0.08, 0.12, 0.15])
+        quarter, axis = identify_inflection_quarter(data)
+        assert quarter == "2023Q3"
+        assert axis == "profit"
 
 
 # ── E. assess_catalysts ──────────────────────────────────────────────
@@ -341,6 +407,68 @@ class TestAssessCatalysts:
         catalysts = assess_catalysts(data)
         for c in catalysts:
             assert 0.0 <= c.strength <= 100.0
+
+
+# ── E2. _assess_risk_factors — risk signal_types (B3 fix) ────────────
+
+
+class TestAssessRiskFactors:
+    def test_roe_declining(self):
+        score = _ps(relative_delta_g=-5.0)
+        data = _make_quarters(roe_series=[15.0, 14.0, 13.0, 12.0, 10.0, 8.0])
+        risks = _assess_risk_factors(data, score)
+        types = [r.signal_type for r in risks]
+        assert "roe_declining" in types
+
+    def test_cashflow_negative(self):
+        score = _ps(relative_delta_g=-5.0)
+        data = _make_quarters(cf_series=[10.0, 10.0, 10.0, 10.0, -5.0, -10.0])
+        risks = _assess_risk_factors(data, score)
+        types = [r.signal_type for r in risks]
+        assert "cashflow_negative" in types
+
+    def test_debt_rising(self):
+        score = _ps(relative_delta_g=-5.0)
+        data = _make_quarters(
+            debt_series=[30.0, 30.0, 30.0, 30.0, 80.0, 100.0],
+            asset_series=[200.0] * 6,
+        )
+        risks = _assess_risk_factors(data, score)
+        types = [r.signal_type for r in risks]
+        assert "debt_rising" in types
+
+    def test_growth_weakening(self):
+        score = _ps(relative_delta_g=-8.0)
+        data = _make_quarters()
+        risks = _assess_risk_factors(data, score)
+        types = [r.signal_type for r in risks]
+        assert "growth_weakening" in types
+
+    def test_growth_weakening_not_triggered_when_positive(self):
+        score = _ps(relative_delta_g=5.0)
+        data = _make_quarters()
+        risks = _assess_risk_factors(data, score)
+        types = [r.signal_type for r in risks]
+        assert "growth_weakening" not in types
+
+    def test_no_old_signal_types_present(self):
+        score = _ps(relative_delta_g=-8.0)
+        data = _make_quarters(
+            roe_series=[15.0, 14.0, 13.0, 12.0, 10.0, 8.0],
+            cf_series=[10.0, 10.0, 10.0, 10.0, -5.0, -10.0],
+        )
+        risks = _assess_risk_factors(data, score)
+        types = [r.signal_type for r in risks]
+        for old_type in ("roe_improving", "cashflow_positive", "debt_declining", "revenue_stabilizing"):
+            assert old_type not in types
+
+    def test_insufficient_data_returns_empty(self):
+        score = _ps(relative_delta_g=-5.0)
+        assert _assess_risk_factors([_fd()], score) == []
+
+    def test_empty_data_returns_empty(self):
+        score = _ps(relative_delta_g=-5.0)
+        assert _assess_risk_factors([], score) == []
 
 
 # ── F. analyze_inflection ────────────────────────────────────────────
@@ -502,3 +630,94 @@ class TestGenerateInflectionNarrative:
         )
         result = generate_inflection_narrative(analysis)
         assert "拐点出现在" not in result
+
+    def test_narrative_profit_axis(self):
+        analysis = InflectionAnalysis(
+            ts_code="000001.SZ",
+            stage="上升拐点",
+            inflection_quarter="2024Q3",
+            inflection_axis="profit",
+            primary_driver="营收企稳回升",
+            catalysts=[],
+            narrative="",
+        )
+        result = generate_inflection_narrative(analysis)
+        assert "利润增速拐点" in result
+        assert "2024Q3" in result
+
+    def test_narrative_revenue_axis(self):
+        analysis = InflectionAnalysis(
+            ts_code="000001.SZ",
+            stage="上升拐点",
+            inflection_quarter="2024Q3",
+            inflection_axis="revenue",
+            primary_driver="营收企稳回升",
+            catalysts=[],
+            narrative="",
+        )
+        result = generate_inflection_narrative(analysis)
+        assert "营收增速拐点" in result
+
+    def test_narrative_both_axes(self):
+        analysis = InflectionAnalysis(
+            ts_code="000001.SZ",
+            stage="上升拐点",
+            inflection_quarter="2024Q3",
+            inflection_axis="both",
+            primary_driver="营收企稳回升",
+            catalysts=[],
+            narrative="",
+        )
+        result = generate_inflection_narrative(analysis)
+        assert "营收与利润增速拐点" in result
+
+
+# ── H. analyze_inflection — inflection_axis (B6) ─────────────────────
+
+
+class TestAnalyzeInflectionAxis:
+    def test_revenue_axis_populated(self):
+        score = _ps(revenue_score=50.0, delta_g=8.0)
+        data = _make_quarters(yoy_revenues=[-0.10, -0.05, 0.02, 0.08, 0.12, 0.15])
+        result = analyze_inflection(score, "上升拐点", data)
+        assert result.inflection_axis == "revenue"
+
+    def test_profit_axis_populated(self):
+        score = _ps(revenue_score=50.0, delta_g=8.0)
+        data = _make_quarters(yoy_profits=[-0.10, -0.05, 0.02, 0.08, 0.12, 0.15])
+        result = analyze_inflection(score, "上升拐点", data)
+        assert result.inflection_axis == "profit"
+
+    def test_both_axes_populated(self):
+        score = _ps(revenue_score=50.0, delta_g=8.0)
+        data = _make_quarters(
+            yoy_revenues=[-0.10, -0.05, 0.02, 0.08, 0.12, 0.15],
+            yoy_profits=[-0.08, -0.03, 0.05, 0.10, 0.15, 0.20],
+        )
+        result = analyze_inflection(score, "上升拐点", data)
+        assert result.inflection_axis == "both"
+
+    def test_no_axis_when_no_inflection(self):
+        score = _ps(revenue_score=90.0, delta_g=10.0)
+        data = _make_quarters(
+            yoy_revenues=[0.05, 0.08, 0.12, 0.15, 0.20, 0.25],
+            yoy_profits=[0.03, 0.05, 0.08, 0.10, 0.12, 0.15],
+        )
+        result = analyze_inflection(score, "加速期", data)
+        assert result.inflection_axis is None
+        assert result.inflection_quarter is None
+
+    def test_empty_data_axis_none(self):
+        score = _ps(revenue_score=50.0, delta_g=5.0)
+        result = analyze_inflection(score, "上升拐点", [])
+        assert result.inflection_axis is None
+
+    def test_profit_only_inflection_in_analyze(self):
+        score = _ps(revenue_score=50.0, delta_g=8.0)
+        data = _make_quarters(
+            yoy_revenues=[0.05, 0.08, 0.12, 0.15, 0.20, 0.25],
+            yoy_profits=[-0.10, -0.05, 0.02, 0.08, 0.12, 0.15],
+        )
+        result = analyze_inflection(score, "上升拐点", data)
+        assert result.inflection_axis == "profit"
+        assert result.inflection_quarter == "2023Q3"

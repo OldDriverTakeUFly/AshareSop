@@ -26,6 +26,7 @@ def calculate_revenue_score(revenue_history: list[float]) -> float:
         < 0 %          → 0–20
     Recent quarters are weighted more heavily via exponential decay.
     """
+    revenue_history = [g for g in revenue_history if math.isfinite(g)]
     if not revenue_history:
         return 0.0
 
@@ -53,6 +54,7 @@ def calculate_profit_score(profit_history: list[float]) -> float:
         < 0 %          → 0–20
     Recent quarters are weighted more heavily via exponential decay.
     """
+    profit_history = [g for g in profit_history if math.isfinite(g)]
     if not profit_history:
         return 0.0
 
@@ -76,6 +78,7 @@ def calculate_slope_score(metrics_history: list[float]) -> float:
     Strongly positive slope → 100, flat → 50, strongly negative → 0.
     Returns 50.0 when fewer than 3 data points are available.
     """
+    metrics_history = [g for g in metrics_history if math.isfinite(g)]
     n = len(metrics_history)
     if n < 3:
         return 50.0
@@ -91,9 +94,6 @@ def calculate_slope_score(metrics_history: list[float]) -> float:
         dy = y - y_mean
         cov += dx * dy
         var += dx * dx
-
-    if var == 0:
-        return 50.0
 
     slope = cov / var
 
@@ -206,7 +206,7 @@ def calculate_prosperity_score(
 
     # A3: 3-quarter moving average when available
     if len(rev_hist) >= 3:
-        delta_g = ((rev_hist[0] - rev_hist[1]) + (rev_hist[1] - rev_hist[2])) / 2
+        delta_g = (rev_hist[0] - rev_hist[2]) / 2
     elif len(rev_hist) == 2:
         delta_g = calculate_delta_g(rev_hist[0], rev_hist[1])
     elif len(rev_hist) == 1:
@@ -215,6 +215,16 @@ def calculate_prosperity_score(
         delta_g = 0.0
 
     w = PROSPERITY_WEIGHTS
+
+    if math.isnan(revenue_score):
+        revenue_score = 0.0
+    if math.isnan(profit_score):
+        profit_score = 0.0
+    if math.isnan(slope_score):
+        slope_score = 0.0
+    if math.isnan(duration_score):
+        duration_score = 0.0
+
     composite = (
         revenue_score * w["revenue"]
         + profit_score * w["profit"]
@@ -247,13 +257,15 @@ def batch_prosperity(
 
 def _growth_to_raw_score(g: float) -> float:
     """Map a single YoY growth percentage to a 0–100 raw score."""
+    if not math.isfinite(g):
+        return 0.0
     if g > 30:
         return 80 + min((g - 30) / 70 * 20, 20)
     if g > 10:
         return 50 + (g - 10) / 20 * 30
     if g >= 0:
         return 25 + g / 10 * 25
-    return max(0, 20 + g)
+    return max(0, 25 + g * 1.25)
 
 
 def _growth_to_raw_score_profit(g: float) -> float:
@@ -262,33 +274,19 @@ def _growth_to_raw_score_profit(g: float) -> float:
     Higher thresholds than revenue (利润波动更大):
         >50% → 80-100, 20-50% → 50-80, 0-20% → 25-50, <0% → 0-20
     """
+    if not math.isfinite(g):
+        return 0.0
     if g > 50:
         return 80 + min((g - 50) / 50 * 20, 20)
     if g > 20:
         return 50 + (g - 20) / 30 * 30
     if g >= 0:
         return 25 + g / 20 * 25
-    return max(0, 20 + g)
+    return max(0, 25 + g * 1.25)
 
 
 def _clamp(v: float, lo: float = 0.0, hi: float = 100.0) -> float:
     return max(lo, min(hi, v))
-
-
-def _yoy_growth_series(values: list[float]) -> list[float]:
-    """Compute period-over-period growth rates for a chronologically ordered series.
-
-    Returns len(values) - 1 growth rates.  Skips when the base period is
-    zero or near-zero to avoid division-by-zero blow-ups.
-    """
-    rates: list[float] = []
-    for i in range(1, len(values)):
-        base = values[i - 1]
-        if abs(base) < 1e-9:
-            rates.append(0.0)
-            continue
-        rates.append((values[i] - base) / abs(base) * 100)
-    return rates
 
 
 def _extract_yoy_series(
