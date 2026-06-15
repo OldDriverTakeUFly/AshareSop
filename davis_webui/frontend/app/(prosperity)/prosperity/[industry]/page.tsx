@@ -9,6 +9,8 @@ import type { ProsperityStock } from "@/lib/types";
 import { ProsperityRadar } from "@/components/ProsperityRadar";
 import { RiskBadge } from "@/components/RiskBadge";
 import { StageBadge } from "@/components/StageBadge";
+import { StockTrendChart } from "@/components/StockTrendChart";
+import { InflectionAnalysisDisplay } from "@/components/InflectionAnalysisDisplay";
 
 function IndustryDetailContent({
   params,
@@ -157,18 +159,28 @@ function IndustryDetailContent({
       </div>
 
       {selectedStock && (
-        <div className="bg-zinc-900 p-4 rounded-lg">
-          <h3 className="text-lg font-semibold mb-2">
-            {selectedStock.name} 景气雷达
-          </h3>
-          <ProsperityRadar
-            scores={{
-              revenue_score: selectedStock.revenue_score,
-              profit_score: selectedStock.profit_score,
-              slope_score: selectedStock.slope_score,
-              duration_score: selectedStock.duration_score,
-            }}
+        <div className="space-y-4">
+          <div className="bg-zinc-900 p-4 rounded-lg">
+            <h3 className="text-lg font-semibold mb-2">
+              {selectedStock.name} 景气雷达
+            </h3>
+            <ProsperityRadar
+              scores={{
+                revenue_score: selectedStock.revenue_score,
+                profit_score: selectedStock.profit_score,
+                slope_score: selectedStock.slope_score,
+                duration_score: selectedStock.duration_score,
+              }}
+            />
+          </div>
+          <StockTrendChart
+            taskId={taskId}
+            tsCode={selectedStock.ts_code}
+            stockName={selectedStock.name}
           />
+          {selectedStock.inflection && (
+            <InflectionAnalysisDisplay inflection={selectedStock.inflection} />
+          )}
         </div>
       )}
     </div>
