@@ -1,7 +1,5 @@
 """Tests for davis_analyzer.prosperity_inflection — rule-based inflection engine."""
 
-import pytest
-
 from davis_analyzer.prosperity_inflection import (
     analyze_inflection,
     assess_catalysts,
@@ -56,8 +54,8 @@ def _fd(
     operating_cf: float = 15.0,
     total_debt: float = 50.0,
     total_assets: float = 200.0,
-    yoy_revenue_growth: float = 0.0,
-    yoy_profit_growth: float = 0.0,
+    yoy_revenue_growth: float | None = None,
+    yoy_profit_growth: float | None = None,
     **kw,
 ) -> FinancialData:
     defaults = dict(
@@ -92,7 +90,7 @@ def _make_quarters(
     """
     periods = ["2023Q1", "2023Q2", "2023Q3", "2023Q4", "2024Q1", "2024Q2"]
     n = len(periods)
-    yoy = yoy_revenues or [0.0] * n
+    yoy = yoy_revenues or [None] * n
     roes = roe_series or [10.0] * n
     revs = revenue_series or [100.0 * (1 + i * 0.05) for i in range(n)]
     cfs = cf_series or [10.0] * n

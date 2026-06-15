@@ -299,10 +299,10 @@ def _extract_yoy_series(
     Tushare returns cumulative financials — sequential differencing of raw
     revenue mixes seasonal resets with real growth.  ``financial_fetcher``
     already computes true YoY via ``shift(4)``; this surfaces those values
-    as percentages, skipping periods where YoY is unavailable (0.0 sentinel).
+    as percentages, skipping periods where YoY is unavailable (None sentinel).
     """
     return [
         getattr(d, attr) * 100
         for d in data
-        if getattr(d, attr) != 0.0
+        if getattr(d, attr) is not None
     ]

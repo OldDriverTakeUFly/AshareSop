@@ -6,9 +6,10 @@ import statistics
 from collections.abc import Iterable
 
 from davis_analyzer.constants import (
-    GROWTH_DECELERATION_THRESHOLD,
     HIGH_GROWTH_CONFIRMED_THRESHOLD,
     HIGH_GROWTH_LOWER_BOUND,
+    IGNITION_SLOPE_THRESHOLD,
+    INDUSTRY_TOP_STOCK_COUNT,
     RISK_DURATION_SCORE_LOW,
     RISK_REVENUE_SCORE_LOW,
     RISK_SLOPE_SCORE_LOW,
@@ -73,7 +74,7 @@ def aggregate_industry_prosperity(
         sorted_by_composite = sorted(
             scores, key=lambda s: s.composite_score, reverse=True
         )
-        top_codes = [s.ts_code for s in sorted_by_composite[:10]]
+        top_codes = [s.ts_code for s in sorted_by_composite[:INDUSTRY_TOP_STOCK_COUNT]]
 
         results.append(
             IndustryProsperityScore(
@@ -97,7 +98,7 @@ def aggregate_industry_prosperity(
 
 def classify_stock_stage(
     prosperity_score: ProsperityScore,
-    growth_deceleration_threshold: float = GROWTH_DECELERATION_THRESHOLD,
+    growth_deceleration_threshold: float = 30.0,
 ) -> str:
     """Classify a single stock into 加速期 / 减速期 / 上升拐点 / 下降拐点.
 
@@ -133,7 +134,7 @@ def classify_stock_stage(
 
 def classify_industry_stage(
     industry_score: IndustryProsperityScore,
-    growth_deceleration_threshold: float = GROWTH_DECELERATION_THRESHOLD,
+    growth_deceleration_threshold: float = 30.0,
 ) -> str:
     """Classify an industry aggregate into 加速期 / 减速期 / 上升拐点 / 下降拐点.
 
@@ -170,7 +171,7 @@ def screen_g_delta_g_ignition(
     stock_infos: dict[str, StockInfo] | None = None,
     financial_data: dict[str, list[FinancialData]] | None = None,
     industry_median_delta_g: dict[str, float] | None = None,
-    growth_threshold: float = GROWTH_DECELERATION_THRESHOLD,
+    growth_threshold: float = 30.0,
     delta_g_threshold: float = 0.0,
 ) -> set[str]:
     """Return ts_codes where growth is high AND relative delta_g > 0 AND operating_cf > 0."""
@@ -217,7 +218,7 @@ def generate_ignition_reasons(score: ProsperityScore) -> list[str]:
         reasons.append(f"利润评分{score.profit_score:.0f}（>80阈值）")
     if score.relative_delta_g > 0:
         reasons.append(f"相对ΔG=+{score.relative_delta_g:.1f}（行业内加速）")
-    if score.slope_score > 60:
+    if score.slope_score > IGNITION_SLOPE_THRESHOLD:
         reasons.append(f"趋势评分{score.slope_score:.0f}（上行趋势确认）")
     return reasons
 

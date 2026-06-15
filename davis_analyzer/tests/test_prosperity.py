@@ -29,8 +29,8 @@ def _fd(ts_code: str = "000001.SZ", period: str = "2024Q1", **kw) -> FinancialDa
         operating_cf=15.0,
         total_debt=50.0,
         total_assets=200.0,
-        yoy_revenue_growth=0.0,
-        yoy_profit_growth=0.0,
+        yoy_revenue_growth=None,
+        yoy_profit_growth=None,
     )
     defaults.update(kw)
     return FinancialData(**defaults)
@@ -218,13 +218,13 @@ class TestProsperityScore:
         quarters = ["2023Q1", "2023Q2", "2023Q3", "2023Q4", "2024Q1"]
         result = []
         for i, (rev, prof) in enumerate(zip(revenues, profits)):
-            yoy_rev = 0.0
-            yoy_prof = 0.0
+            yoy_rev = None
+            yoy_prof = None
             if i >= 4:
                 base_rev = revenues[i - 4]
                 base_prof = profits[i - 4]
-                yoy_rev = (rev - base_rev) / abs(base_rev) if abs(base_rev) > 1e-9 else 0.0
-                yoy_prof = (prof - base_prof) / abs(base_prof) if abs(base_prof) > 1e-9 else 0.0
+                yoy_rev = (rev - base_rev) / abs(base_rev) if abs(base_rev) > 1e-9 else None
+                yoy_prof = (prof - base_prof) / abs(base_prof) if abs(base_prof) > 1e-9 else None
             result.append(
                 _fd(
                     ts_code=ts_code,

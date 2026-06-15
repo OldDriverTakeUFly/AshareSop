@@ -51,11 +51,7 @@ REPORT_MAX_WORDS: int = 1500
 EXCLUSION_PATTERNS: list[str] = ["ST", "*ST"]
 
 # ── Prosperity sector thresholds ──
-GROWTH_IGNITION_THRESHOLD: float = 30.0
-DELTA_G_IGNITION_THRESHOLD: float = 0.0
 SECTOR_MIN_STOCKS: int = 5
-GROWTH_DECELERATION_THRESHOLD: float = 30.0
-GROWTH_INSUFFICIENT_THRESHOLD: float = 10.0
 PE_PERCENTILE_HIGH: float = 0.80
 PB_PERCENTILE_HIGH: float = 0.80
 
@@ -78,3 +74,23 @@ TRANSITION_DELTA_G_NEGATIVE: float = -5.0      # 过渡区内 delta_g<-5 偏向�
 RISK_REVENUE_SCORE_LOW: float = 35.0   # 营收评分低于此值 → "增速不足"
 RISK_SLOPE_SCORE_LOW: float = 40.0     # 趋势评分低于此值 → "趋势下行"
 RISK_DURATION_SCORE_LOW: float = 25.0  # 持续评分低于此值 → "景气持续性存疑"
+
+# ── D1/D3: Scoring magic-number constants ──
+SCORING_DECAY_FACTOR: float = 0.8          # exponential decay weight for recent quarters
+SLOPE_SIGMOID_K: float = 2.0              # sigmoid steepness in calculate_slope_score
+DURATION_BASE_PER_QUARTER: float = 25.0    # base duration score per consecutive positive quarter
+
+# ── Sector aggregation / ignition ──
+INDUSTRY_TOP_STOCK_COUNT: int = 10         # top-N stocks per industry in aggregate
+IGNITION_SLOPE_THRESHOLD: float = 60.0     # slope_score above this → "上行趋势确认"
+
+# ── Inflection catalyst strength values ──
+INFLECTION_CF_STRENGTH: float = 80.0       # operating cash-flow positive catalyst
+INFLECTION_DEBT_STRENGTH: float = 70.0     # debt ratio declining catalyst
+INFLECTION_REVENUE_STRENGTH: float = 60.0  # revenue stabilising catalyst
+
+# ── Inflection risk-factor strength values ──
+INFLECTION_RISK_ROE_STRENGTH: float = 60.0     # ROE declining risk
+INFLECTION_RISK_CF_STRENGTH: float = 50.0      # cash-flow negative risk
+INFLECTION_RISK_DEBT_STRENGTH: float = 55.0    # debt ratio rising risk
+INFLECTION_RISK_GROWTH_STRENGTH: float = 65.0  # delta_g negative risk

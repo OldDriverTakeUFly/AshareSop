@@ -21,19 +21,18 @@ def _compute_date_range(periods: int) -> tuple[str, str]:
 
 def _safe_float(value) -> float:
     if value is None:
-        return 0.0
+        return None  # type: ignore
     try:
         f = float(value)
         if np.isnan(f) or np.isinf(f):
             return 0.0
         return f
     except (ValueError, TypeError):
-        return 0.0
+        return None  # type: ignore
 
 
 def _calculate_yoy_growth(df: pd.DataFrame, col: str) -> pd.Series:
-    """Year-over-year growth via shift(4) on quarterly-sorted data."""
-    result = pd.Series(0.0, index=df.index)
+    result = pd.Series([None] * len(df), index=df.index, dtype=object)
 
     if col not in df.columns or "report_period" not in df.columns:
         return result
@@ -43,14 +42,15 @@ def _calculate_yoy_growth(df: pd.DataFrame, col: str) -> pd.Series:
 
     prev_vals = sorted_vals.shift(4)
 
-    growth = np.where(
-        (prev_vals.notna()) & (prev_vals != 0),
-        (sorted_vals - prev_vals) / prev_vals,
-        0.0,
-    )
-    growth = np.where(np.isinf(growth) | np.isnan(growth), 0.0, growth)
+    has_base = (prev_vals.notna()) & (prev_vals != 0)
+    growth = (sorted_vals - prev_vals) / prev_vals
 
-    result.loc[sorted_idx] = growth
+    for idx in sorted_idx:
+        if has_base.loc[idx]:
+            g = float(growth.loc[idx])
+            if np.isfinite(g):
+                result.loc[idx] = g
+
     return result
 
 

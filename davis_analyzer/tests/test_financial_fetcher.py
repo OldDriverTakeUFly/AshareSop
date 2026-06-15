@@ -20,8 +20,8 @@ class TestSafeFloat:
     def test_integer(self):
         assert _safe_float(42) == 42.0
 
-    def test_none_returns_zero(self):
-        assert _safe_float(None) == 0.0
+    def test_none_returns_none(self):
+        assert _safe_float(None) is None
 
     def test_nan_returns_zero(self):
         assert _safe_float(float("nan")) == 0.0
@@ -33,7 +33,7 @@ class TestSafeFloat:
         assert _safe_float("3.14") == 3.14
 
     def test_invalid_string(self):
-        assert _safe_float("abc") == 0.0
+        assert _safe_float("abc") is None
 
 
 class TestCalculateYoyGrowth:
@@ -78,7 +78,7 @@ class TestCalculateYoyGrowth:
             "total_revenue": [80, 90, 100],
         })
         result = _calculate_yoy_growth(df, "total_revenue")
-        assert result.iloc[2] == 0.0
+        assert result.iloc[2] is None
 
     def test_yoy_missing_column(self):
         df = pd.DataFrame({
@@ -86,7 +86,7 @@ class TestCalculateYoyGrowth:
             "other_col": [100],
         })
         result = _calculate_yoy_growth(df, "total_revenue")
-        assert result.iloc[0] == 0.0
+        assert result.iloc[0] is None
 
 
 class TestFetchFinancialData:

@@ -53,11 +53,11 @@ def analyze_inflection(
 
     sorted_data = sorted(financial_data, key=lambda d: d.report_period)
 
-    valid = [
-        (d.yoy_revenue_growth * 100, d.report_period)
-        for d in sorted_data
-        if d.yoy_revenue_growth != 0.0
-    ]
+    valid = []
+    for d in sorted_data:
+        growth = d.yoy_revenue_growth
+        if growth is not None:
+            valid.append((growth * 100, d.report_period))
     yoy_series = [v[0] for v in valid]
     report_periods = [v[1] for v in valid]
 

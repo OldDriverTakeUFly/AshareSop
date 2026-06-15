@@ -33,8 +33,8 @@ class FinancialData:
     operating_cf: float
     total_debt: float
     total_assets: float
-    yoy_revenue_growth: float = 0.0
-    yoy_profit_growth: float = 0.0
+    yoy_revenue_growth: float | None = None
+    yoy_profit_growth: float | None = None
 
 
 @dataclass
