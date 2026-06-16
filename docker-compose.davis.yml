@@ -1,0 +1,44 @@
+services:
+  davis-backend:
+    build:
+      context: .
+      dockerfile: docker/davis-backend.Dockerfile
+    container_name: davis-backend
+    restart: unless-stopped
+    network_mode: host
+    env_file:
+      - .env.davis
+    volumes:
+      - ./davis_webui/data:/app/davis_webui/data
+      - ./davis_analyzer/cache:/app/davis_analyzer/cache
+      - ./davis_analyzer/studies:/app/davis_analyzer/studies
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8322/api/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  davis-frontend:
+    build:
+      context: .
+      dockerfile: docker/davis-frontend.Dockerfile
+    container_name: davis-frontend
+    restart: unless-stopped
+    network_mode: host
+    env_file:
+      - .env.davis
+    depends_on:
+      davis-backend:
+        condition: service_healthy
+
+  davis-tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: davis-tunnel
+    restart: unless-stopped
+    network_mode: host
+    command: tunnel --no-autoupdate run --token ${TUNNEL_TOKEN}
+    env_file:
+      - .env.davis
+    depends_on:
+      - davis-frontend
