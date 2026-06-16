@@ -157,10 +157,14 @@ def dupont_decomposition(
     ROE = net_margin × asset_turnover × leverage_ratio
 
     Returns one of:
+        "ROE为负（需警惕）"
         "净利率驱动（定价权强）"
         "周转率驱动（需求/效率提升）"
         "杠杆驱动（需警惕可持续性）"
     """
+    if roe <= 0:
+        return "ROE为负（需警惕）"
+
     abs_nm = abs(net_margin)
     abs_at = abs(asset_turnover)
     abs_lv = abs(leverage_ratio)

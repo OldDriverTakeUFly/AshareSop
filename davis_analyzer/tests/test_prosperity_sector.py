@@ -7,6 +7,7 @@ from davis_analyzer.prosperity_sector import (
     build_stock_details,
     classify_industry_stage,
     classify_stock_stage,
+    compute_relative_delta_g,
     generate_risk_warnings,
     screen_g_delta_g_ignition,
 )
@@ -278,7 +279,7 @@ class TestClassifyStockStage:
 
     def test_custom_deceleration_threshold(self):
         score = _ps(revenue_score=90.0, delta_g=-5.0)
-        result = classify_stock_stage(score, growth_deceleration_threshold=50.0)
+        result = classify_stock_stage(score)
         assert result == "减速期"
 
     def test_b1_or_logic_profit_driven_acceleration(self):
@@ -519,11 +520,11 @@ class TestScreenGDeltaGIgnition:
         assert "S1.SZ" in result
 
     def test_d1_industry_median_adjustment(self):
-        """D1: with industry_median_delta_g, relative delta must be > 0."""
-        scores = {"S1.SZ": _ps(ts_code="S1.SZ", revenue_score=90, delta_g=3)}
+        """D1: pre-computed relative_delta_g < 0 → excluded."""
+        scores = {"S1.SZ": _ps(ts_code="S1.SZ", revenue_score=90, delta_g=3, relative_delta_g=-2.0)}
         infos = {"S1.SZ": _si(ts_code="S1.SZ", industry="化工")}
         medians = {"化工": 5.0}
-        # rel_dg = 3 - 5 = -2 < 0 → excluded
+        # rel_dg already pre-computed as -2 < 0 → excluded
         result = screen_g_delta_g_ignition(
             scores, stock_infos=infos, industry_median_delta_g=medians
         )
@@ -761,3 +762,72 @@ class TestBuildStockDetails:
         result = build_stock_details(scores, infos, fd, set())
         for code in scores:
             assert result[code].prosperity_score.relative_delta_g == scores[code].delta_g
+
+    def test_b4_dupont_driver_computed(self):
+        """B5: dupont_driver is set on ProsperityStockDetail when fd present."""
+        scores, infos = _make_industry_stocks("电子", 6)
+        fd = {code: [_fd(ts_code=code)] for code in scores}
+        result = build_stock_details(scores, infos, fd, set())
+        for code in scores:
+            assert result[code].dupont_driver is not None
+            assert isinstance(result[code].dupont_driver, str)
+
+    def test_b4_dupont_driver_none_without_fd(self):
+        """B5: dupont_driver stays None when no financial_data."""
+        scores, infos = _make_industry_stocks("电子", 6)
+        result = build_stock_details(scores, infos, {}, set())
+        for code in scores:
+            assert result[code].dupont_driver is None
+
+    def test_b4_dupont_negative_roe(self):
+        """B5: negative roe → 'ROE为负（需警惕）'."""
+        scores = {"x.SZ": _ps(ts_code="x.SZ", revenue_score=60, delta_g=5)}
+        infos = {"x.SZ": _si(ts_code="x.SZ", industry="电子")}
+        fd = {"x.SZ": [_fd(ts_code="x.SZ", roe=-5.0)]}
+        result = build_stock_details(scores, infos, fd, set())
+        assert result["x.SZ"].dupont_driver == "ROE为负（需警惕）"
+
+
+# ── G. compute_relative_delta_g ──────────────────────────────────────
+
+
+class TestComputeRelativeDeltaG:
+    def test_basic_median_subtraction(self):
+        scores, infos = _make_industry_stocks("电子", 6, base_delta_g=3.0)
+        result = compute_relative_delta_g(scores, infos)
+        # delta_g values: 3,4,5,6,7,8 → median = 5.5
+        for code in scores:
+            expected = round(scores[code].delta_g - 5.5, 2)
+            assert result[code] == expected
+            assert scores[code].relative_delta_g == expected
+
+    def test_fallback_below_min_stocks(self):
+        scores, infos = _make_industry_stocks("电子", 3, base_delta_g=3.0)
+        result = compute_relative_delta_g(scores, infos)
+        for code in scores:
+            assert result[code] == scores[code].delta_g
+
+    def test_empty_inputs(self):
+        assert compute_relative_delta_g({}, {}) == {}
+
+    def test_stock_missing_from_infos_skipped(self):
+        scores = {"a.SZ": _ps(ts_code="a.SZ", delta_g=5.0)}
+        result = compute_relative_delta_g(scores, {})
+        assert "a.SZ" not in result
+
+
+# ── H. generate_risk_warnings CF check ──────────────────────────────
+
+
+class TestGenerateRiskWarningsCF:
+    def test_negative_operating_cf_warning(self):
+        score = _ps(delta_g=5.0, revenue_score=60.0, slope_score=60.0, duration_score=60.0)
+        fd = [_fd(operating_cf=-10.0)]
+        result = generate_risk_warnings(score, fd)
+        assert "经营性现金流为负" in result
+
+    def test_positive_operating_cf_no_warning(self):
+        score = _ps(delta_g=5.0, revenue_score=60.0, slope_score=60.0, duration_score=60.0)
+        fd = [_fd(operating_cf=100.0)]
+        result = generate_risk_warnings(score, fd)
+        assert "经营性现金流为负" not in result

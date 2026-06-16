@@ -149,6 +149,7 @@ class ProsperityStockDetail:
     rank_in_industry: int
     ignition_reasons: list[str] = field(default_factory=list)
     inflection: InflectionAnalysis | None = None
+    dupont_driver: str | None = None
 
 
 @dataclass

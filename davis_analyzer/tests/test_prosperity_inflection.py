@@ -212,7 +212,7 @@ class TestGenerateIgnitionReasons:
         score = _ps(
             revenue_score=90.0,
             delta_g=8.0,
-            profit_score=85.0,
+            profit_score=90.0,
             slope_score=70.0,
         )
         reasons = generate_ignition_reasons(score)
