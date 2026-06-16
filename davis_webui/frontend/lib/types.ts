@@ -33,6 +33,7 @@ export interface ProsperityDetail {
   duration_score: number;
   composite_score: number;
   delta_g: number;
+  relative_delta_g: number;
 }
 
 export type TaskStatus = "pending" | "running" | "completed" | "failed";
@@ -175,6 +176,7 @@ export interface InflectionAnalysis {
   primary_driver: string;
   catalysts: CatalystSignal[];
   narrative: string;
+  inflection_axis?: string | null;
 }
 
 export interface StockValuation {
@@ -197,6 +199,8 @@ export interface ProsperityStock {
   duration_score: number;
   composite_score: number;
   delta_g: number;
+  relative_delta_g: number;
+  dupont_driver: string | null;
   stage: string;
   is_ignition: boolean;
   ignition_reasons: string[];

@@ -119,6 +119,10 @@ function StockDetailContent({
                   value: detail.prosperity_detail.duration_score,
                 },
                 { label: "delta G", value: detail.prosperity_detail.delta_g },
+                {
+                  label: "相对 ΔG",
+                  value: detail.prosperity_detail.relative_delta_g,
+                },
               ].map((s) => (
                 <div key={s.label} className="flex justify-between text-sm">
                   <span className="text-zinc-400">{s.label}</span>

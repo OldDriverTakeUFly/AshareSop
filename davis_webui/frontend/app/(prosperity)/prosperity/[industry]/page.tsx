@@ -90,6 +90,7 @@ function IndustryDetailContent({
               <th className="px-3 py-2 text-left">代码/名称</th>
               <th className="px-3 py-2 text-right">景气评分</th>
               <th className="px-3 py-2 text-right">ΔG</th>
+              <th className="px-3 py-2 text-right">行业相对 ΔG</th>
               <th className="px-3 py-2 text-center">阶段</th>
               <th className="px-3 py-2 text-center">点火</th>
               <th className="px-3 py-2 text-center">风险</th>
@@ -137,6 +138,17 @@ function IndustryDetailContent({
                     {stock.delta_g.toFixed(2)}
                   </span>
                 </td>
+                <td className="px-3 py-2 text-right font-mono">
+                  <span
+                    className={
+                      stock.relative_delta_g > 0
+                        ? "text-green-400"
+                        : "text-red-400"
+                    }
+                  >
+                    {stock.relative_delta_g.toFixed(2)}
+                  </span>
+                </td>
                 <td className="px-3 py-2 text-center">
                   <StageBadge stage={stock.stage} />
                 </td>
@@ -173,6 +185,12 @@ function IndustryDetailContent({
               }}
             />
           </div>
+          {selectedStock.dupont_driver && (
+            <div className="bg-zinc-900 p-4 rounded-lg">
+              <p className="text-zinc-400 text-sm mb-1">杜邦分析驱动因素</p>
+              <p className="text-zinc-200">{selectedStock.dupont_driver}</p>
+            </div>
+          )}
           <StockTrendChart
             taskId={taskId}
             tsCode={selectedStock.ts_code}
