@@ -5,9 +5,12 @@ from __future__ import annotations
 import math
 
 from davis_analyzer.constants import (
+    DURATION_BASE_PER_QUARTER,
     DURATION_BONUS_GROWTH_FACTOR,
     DURATION_BONUS_MAX,
     PROSPERITY_WEIGHTS,
+    SCORING_DECAY_FACTOR,
+    SLOPE_SIGMOID_K,
 )
 from davis_analyzer.types import FinancialData, ProsperityScore
 
@@ -30,7 +33,7 @@ def calculate_revenue_score(revenue_history: list[float]) -> float:
     if not revenue_history:
         return 0.0
 
-    decay = 0.8
+    decay = SCORING_DECAY_FACTOR
     total_weight = 0.0
     weighted_sum = 0.0
 
@@ -58,7 +61,7 @@ def calculate_profit_score(profit_history: list[float]) -> float:
     if not profit_history:
         return 0.0
 
-    decay = 0.8
+    decay = SCORING_DECAY_FACTOR
     total_weight = 0.0
     weighted_sum = 0.0
 
@@ -102,7 +105,7 @@ def calculate_slope_score(metrics_history: list[float]) -> float:
     normalised = slope / scale
 
     # map to 0–100 via sigmoid: score = 50 * (1 + tanh(normalised * k))
-    k = 2.0
+    k = SLOPE_SIGMOID_K
     score = 50.0 * (1.0 + math.tanh(normalised * k))
     return _clamp(score)
 
@@ -125,7 +128,7 @@ def calculate_duration_score(growth_history: list[float]) -> float:
     if count == 0:
         return 0.0
 
-    base_score = count * 25.0
+    base_score = count * DURATION_BASE_PER_QUARTER
     if base_score >= 100.0:
         base_score = 100.0
 

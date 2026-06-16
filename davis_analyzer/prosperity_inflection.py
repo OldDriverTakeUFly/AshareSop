@@ -8,6 +8,15 @@ and generates human-readable narratives for the four-stage classification:
 
 from __future__ import annotations
 
+from davis_analyzer.constants import (
+    INFLECTION_CF_STRENGTH,
+    INFLECTION_DEBT_STRENGTH,
+    INFLECTION_REVENUE_STRENGTH,
+    INFLECTION_RISK_CF_STRENGTH,
+    INFLECTION_RISK_DEBT_STRENGTH,
+    INFLECTION_RISK_GROWTH_STRENGTH,
+    INFLECTION_RISK_ROE_STRENGTH,
+)
 from davis_analyzer.types import (
     CatalystSignal,
     FinancialData,
@@ -16,9 +25,9 @@ from davis_analyzer.types import (
 )
 
 _SLOPE_LOOKBACK = 3
-_CASHFLOW_STRENGTH = 80.0
-_DEBT_STRENGTH = 70.0
-_REVENUE_STABILIZING_STRENGTH = 60.0
+_CASHFLOW_STRENGTH = INFLECTION_CF_STRENGTH
+_DEBT_STRENGTH = INFLECTION_DEBT_STRENGTH
+_REVENUE_STABILIZING_STRENGTH = INFLECTION_REVENUE_STRENGTH
 _AXIS_LABELS: dict[str | None, str] = {
     "revenue": "营收增速",
     "profit": "利润增速",
@@ -270,7 +279,7 @@ def _assess_risk_factors(
             CatalystSignal(
                 signal_type="roe_declining",
                 description=f"ROE从{previous.roe:.1f}%下滑至{latest.roe:.1f}%",
-                strength=60.0,
+                strength=INFLECTION_RISK_ROE_STRENGTH,
             )
         )
 
@@ -279,7 +288,7 @@ def _assess_risk_factors(
             CatalystSignal(
                 signal_type="cashflow_negative",
                 description=f"经营现金流为负（{latest.operating_cf:.0f}）",
-                strength=50.0,
+                strength=INFLECTION_RISK_CF_STRENGTH,
             )
         )
 
@@ -292,7 +301,7 @@ def _assess_risk_factors(
             CatalystSignal(
                 signal_type="debt_rising",
                 description=f"资产负债率从{prev_ratio:.1%}升至{curr_ratio:.1%}",
-                strength=55.0,
+                strength=INFLECTION_RISK_DEBT_STRENGTH,
             )
         )
 
@@ -301,7 +310,7 @@ def _assess_risk_factors(
             CatalystSignal(
                 signal_type="growth_weakening",
                 description=f"相对ΔG={score.relative_delta_g:.1f}（增速持续走弱）",
-                strength=65.0,
+                strength=INFLECTION_RISK_GROWTH_STRENGTH,
             )
         )
 
