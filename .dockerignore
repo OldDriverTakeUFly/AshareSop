@@ -11,6 +11,8 @@ __pycache__/
 node_modules/
 dashboard/node_modules/
 dashboard/.next/
+davis_webui/frontend/node_modules/
+davis_webui/frontend/.next/
 
 # Data & Storage (mount as volumes instead)
 storage/

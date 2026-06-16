@@ -1,12 +1,14 @@
+import path from "path";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  outputFileTracingRoot: __dirname,
+  output: "standalone",
+  outputFileTracingRoot: path.join(__dirname, "..", ".."),
   async rewrites() {
     return [
       {
         source: "/api/:path*",
-        destination: "http://localhost:8322/api/:path*",
+        destination: `${process.env.FASTAPI_URL || "http://localhost:8322"}/api/:path*`,
       },
     ];
   },
