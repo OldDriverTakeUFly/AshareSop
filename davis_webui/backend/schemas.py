@@ -50,6 +50,7 @@ class ProsperityDetailResponse(BaseModel):
     duration_score: float
     composite_score: float
     delta_g: float
+    relative_delta_g: float = 0.0
 
 
 # ── Screening & Task ─────────────────────────────────────────────────
@@ -203,6 +204,7 @@ class InflectionAnalysisResponse(BaseModel):
     primary_driver: str
     catalysts: list[CatalystSignalResponse]
     narrative: str
+    inflection_axis: str | None = None
 
 
 class StockValuationResponse(BaseModel):
@@ -249,6 +251,8 @@ class ProsperityStockResponse(BaseModel):
     rank_in_industry: int
     ignition_reasons: list[str] = []
     inflection: InflectionAnalysisResponse | None = None
+    relative_delta_g: float = 0.0
+    dupont_driver: str | None = None
 
 
 class ProsperitySectorResultsResponse(BaseModel):

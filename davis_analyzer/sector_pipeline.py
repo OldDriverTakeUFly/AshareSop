@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from loguru import logger
 
@@ -13,6 +13,7 @@ from davis_analyzer.prosperity_sector import (
     aggregate_industry_prosperity,
     build_stock_details,
     classify_industry_stage,
+    compute_relative_delta_g,
     screen_g_delta_g_ignition,
 )
 from davis_analyzer.stock_universe import build_stock_universe
@@ -106,20 +107,43 @@ def run_prosperity_sector_pipeline(
         "Prosperity scores calculated for {} stocks", len(prosperity_scores)
     )
 
+    # ── Step 4.5/8: Build market_cap_map ──
+    logger.info("Step 4.5/8: Fetching market cap data...")
+    market_cap_map: dict[str, float] = {}
+    now = datetime.now()
+    end_date = now.strftime("%Y%m%d")
+    start_date = (now - timedelta(days=30)).strftime("%Y%m%d")
+    for ts_code in prosperity_scores:
+        try:
+            df = client.get_daily_basic(
+                ts_code, start_date=start_date, end_date=end_date
+            )
+            if not df.empty:
+                market_cap_map[ts_code] = float(df.iloc[-1]["total_mv"])
+        except Exception:
+            pass
+    logger.info("Market cap data fetched for {} stocks", len(market_cap_map))
+
     # ── Step 5/8: Aggregate to industry level ──
     logger.info("Step 5/8: Aggregating prosperity to industry level...")
     if progress_callback:
         progress_callback(70.0, "正在汇总行业景气度...")
     industry_scores = aggregate_industry_prosperity(
-        prosperity_scores, stock_infos
+        prosperity_scores, stock_infos, market_cap_map=market_cap_map
     )
     logger.info("Aggregated {} industries", len(industry_scores))
+
+    compute_relative_delta_g(prosperity_scores, stock_infos)
 
     # ── Step 6/8: Screen G+ΔG ignition ──
     logger.info("Step 6/8: Screening G+ΔG ignition stocks...")
     if progress_callback:
         progress_callback(80.0, "正在筛选点火股票...")
-    ignition_set: set[str] = screen_g_delta_g_ignition(prosperity_scores)
+    ignition_set: set[str] = screen_g_delta_g_ignition(
+        prosperity_scores,
+        stock_infos=stock_infos,
+        financial_data=financial_data,
+    )
     logger.info("Ignition stocks identified: {}", len(ignition_set))
 
     # ── Step 7/8: Build stock details ──

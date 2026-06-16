@@ -95,6 +95,7 @@ def serialize_prosperity_result(task_id: str, task_info: TaskInfo, result: Prosp
                     "rank_in_industry": v.rank_in_industry,
                     "ignition_reasons": v.ignition_reasons,
                     "inflection": dataclasses.asdict(v.inflection) if v.inflection else None,
+                    "dupont_driver": v.dupont_driver,
                 }
                 for k, v in result.stock_details.items()
             },
@@ -123,6 +124,7 @@ def deserialize_prosperity_result(data: dict) -> ProsperitySectorResult:
                 primary_driver=inflection_data["primary_driver"],
                 catalysts=catalysts,
                 narrative=inflection_data["narrative"],
+                inflection_axis=inflection_data.get("inflection_axis"),
             )
         stock_details[k] = ProsperityStockDetail(
             ts_code=v["ts_code"],
@@ -135,6 +137,7 @@ def deserialize_prosperity_result(data: dict) -> ProsperitySectorResult:
             rank_in_industry=v["rank_in_industry"],
             ignition_reasons=v.get("ignition_reasons", []),
             inflection=inflection,
+            dupont_driver=v.get("dupont_driver"),
         )
 
     return ProsperitySectorResult(
