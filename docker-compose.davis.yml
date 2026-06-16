@@ -37,7 +37,7 @@ services:
     container_name: davis-tunnel
     restart: unless-stopped
     network_mode: host
-    command: tunnel --no-autoupdate run --token ${TUNNEL_TOKEN}
+    command: tunnel --no-autoupdate run
     env_file:
       - .env.davis
     depends_on:
