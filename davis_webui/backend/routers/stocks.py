@@ -74,6 +74,7 @@ async def get_stock_detail(task_id: str, ts_code: str):
                 duration_score=prosperity.duration_score,
                 composite_score=prosperity.composite_score,
                 delta_g=prosperity.delta_g,
+                relative_delta_g=prosperity.relative_delta_g,
             )
             if prosperity
             else None

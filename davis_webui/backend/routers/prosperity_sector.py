@@ -127,6 +127,7 @@ async def get_industry_detail(task_id: str, industry_name: str):
                     for c in detail.inflection.catalysts
                 ],
                 narrative=detail.inflection.narrative,
+                inflection_axis=detail.inflection.inflection_axis,
             )
         stocks.append(
             ProsperityStockResponse(
@@ -139,12 +140,14 @@ async def get_industry_detail(task_id: str, industry_name: str):
                 duration_score=ps.duration_score,
                 composite_score=ps.composite_score,
                 delta_g=ps.delta_g,
+                relative_delta_g=ps.relative_delta_g,
                 stage=detail.stage,
                 is_ignition=detail.is_ignition,
                 risk_warnings=detail.risk_warnings,
                 rank_in_industry=detail.rank_in_industry,
                 inflection=inflection_resp,
                 ignition_reasons=detail.ignition_reasons,
+                dupont_driver=detail.dupont_driver,
             )
         )
 
