@@ -23,6 +23,7 @@ data/
 # Environment
 .env
 .env.local
+.env.davis
 
 # IDE
 .idea/
