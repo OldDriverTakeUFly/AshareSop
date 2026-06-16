@@ -33,7 +33,7 @@ export interface ProsperityDetail {
   duration_score: number;
   composite_score: number;
   delta_g: number;
-  relative_delta_g: number;
+  relative_delta_g: number | null;
 }
 
 export type TaskStatus = "pending" | "running" | "completed" | "failed";
@@ -199,7 +199,7 @@ export interface ProsperityStock {
   duration_score: number;
   composite_score: number;
   delta_g: number;
-  relative_delta_g: number;
+  relative_delta_g: number | null;
   dupont_driver: string | null;
   stage: string;
   is_ignition: boolean;

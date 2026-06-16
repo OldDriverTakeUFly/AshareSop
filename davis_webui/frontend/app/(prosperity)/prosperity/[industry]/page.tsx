@@ -141,12 +141,12 @@ function IndustryDetailContent({
                 <td className="px-3 py-2 text-right font-mono">
                   <span
                     className={
-                      stock.relative_delta_g > 0
+                      (stock.relative_delta_g ?? 0) > 0
                         ? "text-green-400"
                         : "text-red-400"
                     }
                   >
-                    {stock.relative_delta_g.toFixed(2)}
+                    {stock.relative_delta_g?.toFixed(2) ?? "—"}
                   </span>
                 </td>
                 <td className="px-3 py-2 text-center">
