@@ -2,6 +2,7 @@
 
 import pytest
 
+from davis_analyzer.prosperity import calculate_prosperity_score
 from davis_analyzer.prosperity_sector import (
     aggregate_industry_prosperity,
     build_stock_details,
@@ -829,5 +830,208 @@ class TestGenerateRiskWarningsCF:
     def test_positive_operating_cf_no_warning(self):
         score = _ps(delta_g=5.0, revenue_score=60.0, slope_score=60.0, duration_score=60.0)
         fd = [_fd(operating_cf=100.0)]
+        result = generate_risk_warnings(score, fd)
+        assert "经营性现金流为负" not in result
+
+
+# ── E2. relative_delta_g lifecycle ───────────────────────────────────
+
+
+class TestE2RelativeDeltaGLifecycle:
+    """E2: relative_delta_g full lifecycle — calculate → compute → warn."""
+
+    def test_default_relative_delta_g_is_zero(self):
+        data = [
+            _fd(ts_code="A.SZ", period="2023Q1", yoy_revenue_growth=0.1, yoy_profit_growth=0.1),
+            _fd(ts_code="A.SZ", period="2023Q2", yoy_revenue_growth=0.2, yoy_profit_growth=0.2),
+        ]
+        score = calculate_prosperity_score(data)
+        assert score.relative_delta_g == 0.0
+
+    def test_compute_sets_relative_delta_g(self):
+        scores, infos = _make_industry_stocks("电子", 6, base_delta_g=3.0)
+        compute_relative_delta_g(scores, infos)
+        for code in scores:
+            assert scores[code].relative_delta_g != 0.0
+
+    def test_risk_warning_on_negative_relative_delta_g(self):
+        score = _ps(
+            relative_delta_g=-3.0,
+            delta_g=5.0,
+            revenue_score=60.0,
+            slope_score=60.0,
+            duration_score=60.0,
+        )
+        result = generate_risk_warnings(score, [])
+        assert "增速放缓" in result
+
+    def test_no_risk_warning_on_zero_relative_delta_g(self):
+        score = _ps(
+            relative_delta_g=0.0,
+            delta_g=5.0,
+            revenue_score=60.0,
+            slope_score=60.0,
+            duration_score=60.0,
+        )
+        result = generate_risk_warnings(score, [])
+        assert "增速放缓" not in result
+
+    def test_full_lifecycle_integration(self):
+        scores, infos = _make_industry_stocks("化工", 6, base_delta_g=5.0)
+        scores["00000.SZ"] = _ps(ts_code="00000.SZ", delta_g=-2.0, composite_score=40.0)
+        infos["00000.SZ"] = _si(ts_code="00000.SZ", industry="化工")
+        compute_relative_delta_g(scores, infos)
+        below_median = scores["00000.SZ"]
+        assert below_median.relative_delta_g < 0
+        fd = [_fd(ts_code="00000.SZ")]
+        warnings = generate_risk_warnings(below_median, fd)
+        assert "增速放缓" in warnings
+
+
+# ── E5. Transition zone boundary tests ───────────────────────────────
+
+
+class TestE5StockStageBoundaries:
+    """E5: Exact boundary values for classify_stock_stage."""
+
+    def test_revenue_exactly_85_transition_zone(self):
+        score = _ps(revenue_score=85.0, delta_g=5.0, relative_delta_g=0.0)
+        assert classify_stock_stage(score) == "上升拐点"
+
+    def test_revenue_exactly_75_transition_zone(self):
+        score = _ps(revenue_score=75.0, delta_g=5.0, relative_delta_g=0.0)
+        assert classify_stock_stage(score) == "上升拐点"
+
+    def test_relative_delta_g_exactly_5_not_high_growth(self):
+        score = _ps(revenue_score=80.0, delta_g=5.0, relative_delta_g=5.0)
+        assert classify_stock_stage(score) == "上升拐点"
+
+    def test_relative_delta_g_exactly_neg5_not_high_growth(self):
+        score = _ps(revenue_score=80.0, delta_g=5.0, relative_delta_g=-5.0)
+        assert classify_stock_stage(score) == "上升拐点"
+
+    def test_relative_delta_g_just_above_5_is_high_growth(self):
+        score = _ps(revenue_score=80.0, delta_g=5.0, relative_delta_g=5.01)
+        assert classify_stock_stage(score) == "加速期"
+
+    def test_relative_delta_g_just_below_neg5(self):
+        score = _ps(revenue_score=80.0, delta_g=5.0, relative_delta_g=-5.01)
+        assert classify_stock_stage(score) == "上升拐点"
+
+
+class TestE5IndustryStageBoundaries:
+    """E5: Exact boundary values for classify_industry_stage."""
+
+    def _make_ind(self, avg_revenue: float, median_delta: float) -> IndustryProsperityScore:
+        return IndustryProsperityScore(
+            industry="电子",
+            stock_count=5,
+            avg_composite_score=60.0,
+            median_delta_g=median_delta,
+            avg_revenue_score=avg_revenue,
+            avg_profit_score=60.0,
+            avg_slope_score=60.0,
+            avg_duration_score=60.0,
+            stage="",
+            ignition_count=0,
+            top_stock_codes=[],
+        )
+
+    def test_avg_revenue_exactly_85(self):
+        ind = self._make_ind(85.0, 5.0)
+        assert classify_industry_stage(ind) == "上升拐点"
+
+    def test_avg_revenue_exactly_75(self):
+        ind = self._make_ind(75.0, 5.0)
+        assert classify_industry_stage(ind) == "上升拐点"
+
+    def test_median_delta_g_exactly_5(self):
+        ind = self._make_ind(80.0, 5.0)
+        assert classify_industry_stage(ind) == "上升拐点"
+
+    def test_median_delta_g_exactly_neg5(self):
+        ind = self._make_ind(80.0, -5.0)
+        assert classify_industry_stage(ind) == "下降拐点"
+
+
+class TestE5IgnitionBoundaries:
+    """E5: screen_g_delta_g_ignition at exact 85/75 boundaries."""
+
+    def test_revenue_exactly_85_transition_needs_rdg_above_5(self):
+        scores = {"a.SZ": _ps(ts_code="a.SZ", revenue_score=85.0, delta_g=5, relative_delta_g=5.0)}
+        assert screen_g_delta_g_ignition(scores) == set()
+
+    def test_revenue_exactly_85_qualifies_when_rdg_above_5(self):
+        scores = {"a.SZ": _ps(ts_code="a.SZ", revenue_score=85.0, delta_g=5, relative_delta_g=6.0)}
+        assert screen_g_delta_g_ignition(scores) == {"a.SZ"}
+
+    def test_revenue_exactly_75_transition_needs_rdg_above_5(self):
+        scores = {"a.SZ": _ps(ts_code="a.SZ", revenue_score=75.0, delta_g=5, relative_delta_g=5.0)}
+        assert screen_g_delta_g_ignition(scores) == set()
+
+    def test_relative_delta_g_exactly_5_in_transition(self):
+        scores = {"a.SZ": _ps(ts_code="a.SZ", revenue_score=80.0, delta_g=5, relative_delta_g=5.0)}
+        result = screen_g_delta_g_ignition(scores)
+        assert "a.SZ" not in result
+
+
+# ── E6. build_stock_details inflection + dupont ─────────────────────
+
+
+class TestE6BuildStockDetailsInflection:
+    """E6: build_stock_details populates inflection and dupont_driver."""
+
+    def test_inflection_populated_with_fd(self):
+        scores = {"x.SZ": _ps(ts_code="x.SZ", revenue_score=60, delta_g=5)}
+        infos = {"x.SZ": _si(ts_code="x.SZ", industry="电子")}
+        fd = {"x.SZ": [_fd(ts_code="x.SZ"), _fd(ts_code="x.SZ", period="2024Q2")]}
+        result = build_stock_details(scores, infos, fd, set())
+        assert result["x.SZ"].inflection is not None
+        assert result["x.SZ"].inflection.stage is not None
+
+    def test_dupont_driver_set_with_valid_revenue_assets(self):
+        scores = {"x.SZ": _ps(ts_code="x.SZ", revenue_score=60, delta_g=5)}
+        infos = {"x.SZ": _si(ts_code="x.SZ", industry="电子")}
+        fd = {"x.SZ": [_fd(ts_code="x.SZ", revenue=100.0, total_assets=200.0, total_debt=50.0, roe=15.0)]}
+        result = build_stock_details(scores, infos, fd, set())
+        assert result["x.SZ"].dupont_driver is not None
+        assert isinstance(result["x.SZ"].dupont_driver, str)
+        assert len(result["x.SZ"].dupont_driver) > 0
+
+    def test_dupont_driver_none_without_fd(self):
+        scores = {"x.SZ": _ps(ts_code="x.SZ", revenue_score=60, delta_g=5)}
+        infos = {"x.SZ": _si(ts_code="x.SZ", industry="电子")}
+        result = build_stock_details(scores, infos, {}, set())
+        assert result["x.SZ"].dupont_driver is None
+
+    def test_dupont_negative_roe(self):
+        scores = {"x.SZ": _ps(ts_code="x.SZ", revenue_score=60, delta_g=5)}
+        infos = {"x.SZ": _si(ts_code="x.SZ", industry="电子")}
+        fd = {"x.SZ": [_fd(ts_code="x.SZ", roe=-5.0)]}
+        result = build_stock_details(scores, infos, fd, set())
+        assert result["x.SZ"].dupont_driver == "ROE为负（需警惕）"
+
+
+# ── E7. CF boundary in generate_risk_warnings ────────────────────────
+
+
+class TestE7CFBoundaryRiskWarnings:
+    """E7: operating_cf exact boundary in generate_risk_warnings."""
+
+    def test_cf_slightly_negative_fires_warning(self):
+        score = _ps(delta_g=5.0, revenue_score=60.0, slope_score=60.0, duration_score=60.0)
+        fd = [_fd(operating_cf=-0.001)]
+        result = generate_risk_warnings(score, fd)
+        assert "经营性现金流为负" in result
+
+    def test_cf_exactly_zero_no_warning(self):
+        score = _ps(delta_g=5.0, revenue_score=60.0, slope_score=60.0, duration_score=60.0)
+        fd = [_fd(operating_cf=0.0)]
+        result = generate_risk_warnings(score, fd)
+        assert "经营性现金流为负" not in result
+
+    def test_cf_slightly_positive_no_warning(self):
+        score = _ps(delta_g=5.0, revenue_score=60.0, slope_score=60.0, duration_score=60.0)
+        fd = [_fd(operating_cf=0.001)]
         result = generate_risk_warnings(score, fd)
         assert "经营性现金流为负" not in result

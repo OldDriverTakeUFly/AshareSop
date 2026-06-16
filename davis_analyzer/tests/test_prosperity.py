@@ -12,6 +12,7 @@ from davis_analyzer.prosperity import (
     calculate_revenue_score,
     calculate_slope_score,
     dupont_decomposition,
+    _extract_yoy_series,
     _growth_to_raw_score,
     _growth_to_raw_score_profit,
 )
@@ -401,3 +402,163 @@ class TestWeights:
         assert PROSPERITY_WEIGHTS["profit"] == 0.30
         assert PROSPERITY_WEIGHTS["slope"] == 0.25
         assert PROSPERITY_WEIGHTS["duration"] == 0.15
+
+
+# ── E1. _extract_yoy_series ───────────────────────────────────────────
+
+
+class TestE1ExtractYoySeries:
+    """E1: _extract_yoy_series filters None values and multiplies by 100."""
+
+    def test_empty_list_returns_empty(self):
+        assert _extract_yoy_series([], "yoy_revenue_growth") == []
+
+    def test_all_none_returns_empty(self):
+        data = [
+            _fd(period="2023Q1", yoy_revenue_growth=None),
+            _fd(period="2023Q2", yoy_revenue_growth=None),
+        ]
+        assert _extract_yoy_series(data, "yoy_revenue_growth") == []
+
+    def test_all_real_values_multiplied_by_100(self):
+        data = [
+            _fd(period="2023Q1", yoy_revenue_growth=5.0),
+            _fd(period="2023Q2", yoy_revenue_growth=3.0),
+        ]
+        result = _extract_yoy_series(data, "yoy_revenue_growth")
+        assert result == [500.0, 300.0]
+
+    def test_mixed_none_and_real_keeps_only_real(self):
+        data = [
+            _fd(period="2023Q1", yoy_revenue_growth=None),
+            _fd(period="2023Q2", yoy_revenue_growth=0.05),
+            _fd(period="2023Q3", yoy_revenue_growth=None),
+            _fd(period="2023Q4", yoy_revenue_growth=0.10),
+        ]
+        result = _extract_yoy_series(data, "yoy_revenue_growth")
+        assert result == [5.0, 10.0]
+
+    def test_genuine_zero_preserved_not_filtered(self):
+        """0.0 is not None — must be preserved (T2 fix regression guard)."""
+        data = [
+            _fd(period="2023Q1", yoy_revenue_growth=0.0),
+            _fd(period="2023Q2", yoy_revenue_growth=None),
+        ]
+        result = _extract_yoy_series(data, "yoy_revenue_growth")
+        assert result == [0.0]
+
+    def test_profit_attr_works(self):
+        data = [
+            _fd(period="2023Q1", yoy_profit_growth=0.2),
+            _fd(period="2023Q2", yoy_profit_growth=None),
+        ]
+        result = _extract_yoy_series(data, "yoy_profit_growth")
+        assert result == [20.0]
+
+
+# ── E4. Decay weighting ──────────────────────────────────────────────
+
+
+class TestE4DecayWeighting:
+    """E4: Recent quarters weighted more heavily via exponential decay (0.8^i)."""
+
+    def test_revenue_recent_high_scores_better(self):
+        """[50, 0] (recent high) should score higher than [0, 50] (old high)."""
+        recent_high = calculate_revenue_score([50, 0])
+        old_high = calculate_revenue_score([0, 50])
+        assert recent_high > old_high
+
+    def test_profit_recent_high_scores_better(self):
+        """[50, 0] (recent high) should score higher than [0, 50] (old high)."""
+        recent_high = calculate_profit_score([50, 0])
+        old_high = calculate_profit_score([0, 50])
+        assert recent_high > old_high
+
+    def test_revenue_decay_three_quarters(self):
+        """With 3 quarters, most recent dominates."""
+        recent_first = calculate_revenue_score([40, 10, 0])
+        old_first = calculate_revenue_score([0, 10, 40])
+        assert recent_first > old_first
+
+
+# ── E7. CF quality in scoring (calculate_prosperity_score) ───────────
+
+
+class TestE7CFQualityScoring:
+    """E7: Cash-flow quality adjustment in calculate_prosperity_score."""
+
+    @staticmethod
+    def _make_data(net_profit: float, operating_cf: float) -> list[FinancialData]:
+        return [
+            _fd(
+                ts_code="000001.SZ",
+                period="2023Q1",
+                net_profit=net_profit,
+                operating_cf=operating_cf,
+                yoy_revenue_growth=0.2,
+                yoy_profit_growth=0.3,
+            ),
+            _fd(
+                ts_code="000001.SZ",
+                period="2023Q2",
+                net_profit=net_profit,
+                operating_cf=operating_cf,
+                yoy_revenue_growth=0.2,
+                yoy_profit_growth=0.3,
+            ),
+        ]
+
+    def test_cf_equal_to_net_profit_no_reduction(self):
+        """operating_cf == net_profit → ratio exactly 1.0 → no reduction."""
+        data = self._make_data(net_profit=10.0, operating_cf=10.0)
+        result = calculate_prosperity_score(data)
+        unadjusted = calculate_profit_score([30.0, 30.0])
+        assert result.profit_score == pytest.approx(unadjusted, abs=0.01)
+
+    def test_cf_much_greater_clamped_to_one(self):
+        """operating_cf >> net_profit → ratio clamped to 1.0 → no reduction."""
+        data = self._make_data(net_profit=10.0, operating_cf=1000.0)
+        result = calculate_prosperity_score(data)
+        unadjusted = calculate_profit_score([30.0, 30.0])
+        assert result.profit_score == pytest.approx(unadjusted, abs=0.01)
+
+    def test_cf_zero_reduces_profit_score_to_zero(self):
+        """operating_cf == 0 with positive net_profit → cf_quality = 0."""
+        data = self._make_data(net_profit=10.0, operating_cf=0.0)
+        result = calculate_prosperity_score(data)
+        assert result.profit_score == pytest.approx(0.0, abs=0.01)
+
+    def test_cf_skip_when_net_profit_negative(self):
+        """Negative net_profit → CF quality adjustment skipped entirely."""
+        data = self._make_data(net_profit=-5.0, operating_cf=5.0)
+        result = calculate_prosperity_score(data)
+        unadjusted = calculate_profit_score([30.0, 30.0])
+        assert result.profit_score == pytest.approx(unadjusted, abs=0.01)
+
+
+# ── E8. calculate_profit_score parity ────────────────────────────────
+
+
+class TestE8ProfitScoreParity:
+    """E8: calculate_profit_score parity tests mirroring revenue coverage."""
+
+    def test_empty_list_returns_zero(self):
+        assert calculate_profit_score([]) == 0.0
+
+    def test_single_negative_growth_low_score(self):
+        score = calculate_profit_score([-10.0])
+        assert score <= 20.0
+
+    def test_multi_quarter_decay_weighting(self):
+        """Recent high growth scores better than old high growth."""
+        recent_high = calculate_profit_score([50.0, 0.0])
+        old_high = calculate_profit_score([0.0, 50.0])
+        assert recent_high > old_high
+
+    def test_all_positive_growth_high_score(self):
+        score = calculate_profit_score([30.0, 25.0, 20.0])
+        assert score > 50.0
+
+    def test_single_high_growth(self):
+        score = calculate_profit_score([50.0])
+        assert 70.0 <= score <= 100.0

@@ -471,6 +471,82 @@ class TestAssessRiskFactors:
         assert _assess_risk_factors([], score) == []
 
 
+# ── E3. _assess_risk_factors — isolated signal tests ─────────────────
+
+
+class TestE3RiskFactorsIsolated:
+    """E3: Each risk signal triggered in isolation with exact signal_type."""
+
+    def test_only_roe_declining(self):
+        score = _ps(relative_delta_g=5.0, delta_g=5.0)
+        data = _make_quarters(
+            roe_series=[15.0, 14.0, 13.0, 12.0, 11.0, 10.0],
+            cf_series=[10.0] * 6,
+            debt_series=[50.0] * 6,
+        )
+        risks = _assess_risk_factors(data, score)
+        types = [r.signal_type for r in risks]
+        assert "roe_declining" in types
+        assert "cashflow_negative" not in types
+        assert "debt_rising" not in types
+        assert "growth_weakening" not in types
+
+    def test_only_cashflow_negative(self):
+        score = _ps(relative_delta_g=5.0, delta_g=5.0)
+        data = _make_quarters(
+            roe_series=[12.0] * 6,
+            cf_series=[10.0, 10.0, 10.0, 10.0, -5.0, -10.0],
+            debt_series=[50.0] * 6,
+        )
+        risks = _assess_risk_factors(data, score)
+        types = [r.signal_type for r in risks]
+        assert "cashflow_negative" in types
+        assert "roe_declining" not in types
+        assert "debt_rising" not in types
+        assert "growth_weakening" not in types
+
+    def test_only_debt_rising(self):
+        score = _ps(relative_delta_g=5.0, delta_g=5.0)
+        data = _make_quarters(
+            roe_series=[12.0] * 6,
+            cf_series=[10.0] * 6,
+            debt_series=[30.0, 30.0, 30.0, 30.0, 80.0, 100.0],
+            asset_series=[200.0] * 6,
+        )
+        risks = _assess_risk_factors(data, score)
+        types = [r.signal_type for r in risks]
+        assert "debt_rising" in types
+        assert "roe_declining" not in types
+        assert "cashflow_negative" not in types
+        assert "growth_weakening" not in types
+
+    def test_only_growth_weakening(self):
+        score = _ps(relative_delta_g=-1.0, delta_g=5.0)
+        data = _make_quarters(
+            roe_series=[12.0] * 6,
+            cf_series=[10.0] * 6,
+            debt_series=[50.0] * 6,
+        )
+        risks = _assess_risk_factors(data, score)
+        types = [r.signal_type for r in risks]
+        assert "growth_weakening" in types
+        assert "roe_declining" not in types
+        assert "cashflow_negative" not in types
+        assert "debt_rising" not in types
+
+    def test_all_four_signals_correct_types(self):
+        score = _ps(relative_delta_g=-8.0, delta_g=-5.0)
+        data = _make_quarters(
+            roe_series=[15.0, 14.0, 13.0, 12.0, 10.0, 8.0],
+            cf_series=[10.0, 10.0, 10.0, 10.0, -5.0, -10.0],
+            debt_series=[30.0, 30.0, 30.0, 30.0, 80.0, 100.0],
+            asset_series=[200.0] * 6,
+        )
+        risks = _assess_risk_factors(data, score)
+        types = {r.signal_type for r in risks}
+        assert types == {"roe_declining", "cashflow_negative", "debt_rising", "growth_weakening"}
+
+
 # ── F. analyze_inflection ────────────────────────────────────────────
 
 
