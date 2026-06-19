@@ -82,7 +82,7 @@ cli.py → pipeline.py → [stock_universe.py, tushare_client.py]
 
 | 模块 | 职责 |
 |------|------|
-| `tushare_client.py` | Tushare Pro API 客户端，内置频率限制（190次/分钟）和 SQLite 缓存 |
+| `tushare_client.py` | Tushare Pro API 客户端，内置频率限制（500次/分钟）和 SQLite 缓存 |
 | `stock_universe.py` | A股股票宇宙构建，排除 ST/停牌/退市股 |
 | `financial_fetcher.py` | 财务数据获取，合并利润表/资产负债表/现金流量表/财务指标 |
 | `valuation.py` | 估值引擎，PE/PB 3年历史百分位，周期股 PB 替代 PE |
@@ -108,7 +108,7 @@ revenue: 0.30  +  profit: 0.30  +  slope: 0.25  +  duration: 0.15
 戴维斯双击权重：
 
 ```
-valuation: 0.35  +  prosperity: 0.35  +  distress: 0.30
+valuation: 0.30  +  trend: 0.15  +  prosperity: 0.30  +  distress: 0.25
 ```
 
 ### 周期性行业
@@ -123,7 +123,7 @@ valuation: 0.35  +  prosperity: 0.35  +  distress: 0.30
 
 ## 第四章：三层困境信号系统
 
-困境评分由三层信号构成，每层得分 = (命中信号数 / 总信号数) x 100。最终困境得分 = 第一层 x 0.3 + 第二层 x 0.3 + 第三层 x 0.4。
+困境评分由三层信号构成，每个信号产生 0.0-1.0 的连续得分，而非简单的二元（命中/未命中）。每层得分 = Σ(信号得分) / 信号数 × 100。最终困境得分 = 第一层 × 0.3 + 第二层 × 0.3 + 第三层 × 0.4。
 
 ### 第一层：困境确认
 
@@ -162,12 +162,12 @@ valuation: 0.35  +  prosperity: 0.35  +  distress: 0.30
 管线编排 8 个步骤，从全 A 股逐步收敛至 Top N 标的：
 
 1. **构建股票宇宙**（预筛 ST/停牌） → 约 4500 只
-2. **获取全市场估值数据**（3年日线行情，`PERCENTILE_DAYS = 730`）
+2. **获取全市场估值数据**（3年日线行情，`PERCENTILE_DAYS = 1095`）
 3. **粗筛**：估值分数 > 50 → 约 500-800 只
 4. **获取粗筛股财务数据**（4张报表合并：利润表、资产负债表、现金流量表、财务指标）
 5. **计算景气度评分**（四维复合：营收增长、盈利增长、趋势斜率、持续时间）
 6. **计算困境信号评分**（三层：困境确认、反转可能、反转激活）
-7. **计算戴维斯双击综合评分**（估值 0.35 + 景气度 0.35 + 困境 0.30）
+7. **计算戴维斯双击综合评分**（估值 0.30 + 趋势 0.15 + 景气度 0.30 + 困境 0.25）
 8. **排序输出 Top N**（默认 30 只）
 
 ---
@@ -211,8 +211,6 @@ valuation: 0.35  +  prosperity: 0.35  +  distress: 0.30
 python -m pytest davis_analyzer/tests/ -v
 ```
 
-测试套件包含 145 个测试，覆盖全部核心模块。
-
 ### 代码检查
 
 ```bash
@@ -221,7 +219,7 @@ ruff check davis_analyzer/
 
 ### 测试文件
 
-测试位于 `davis_analyzer/tests/` 目录，包含 `conftest.py` 和 4 个测试模块。
+测试位于 `davis_analyzer/tests/` 目录。
 
 ---
 
@@ -247,10 +245,10 @@ ruff check davis_analyzer/
 | Wave 4 | T8 | 困境信号系统 + 戴维斯双击评分模型 | 完成 |
 | Wave 5 | T9 | 筛选管线（8步编排） | 完成 |
 | Wave 5 | T10 | 研报生成器 | 完成 |
-| Wave 6 | T11 | CLI 入口 + 全量测试套件（145测试） | 完成 |
+| Wave 6 | T11 | CLI 入口 + 全量测试套件 | 完成 |
 | Final | F1 | 计划合规审计 | APPROVE |
 | Final | F2 | 代码质量审查 | APPROVE |
 | Final | F3 | 手动 QA 验证 | APPROVE |
 | Final | F4 | 范围忠实度检查 | APPROVE |
 
-关键数据：25 个文件，3123 行代码，145 个测试全部通过，commit `78a4bf3`。
+关键数据：25 个文件，3123 行代码，全量测试通过，commit `78a4bf3`。
