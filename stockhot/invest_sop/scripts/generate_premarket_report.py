@@ -10,6 +10,7 @@ from pathlib import Path
 
 from stockhot.invest_sop.config import INVEST_REPORTS_DIR
 from stockhot.invest_sop.utils.db_helpers import query_by_date
+from stockhot.sell_monitor import build_section_holdings_monitor
 from stockhot.storage.database import get_connection
 
 SECTORS = ["AI", "半导体", "软件", "锂电", "光伏", "新能源车", "有色", "化工", "煤炭"]
@@ -245,6 +246,7 @@ def generate_template(date: str) -> str:
         build_section_1(None, [], None),
         build_section_2([]),
         build_section_3([]),
+        build_section_holdings_monitor([], date),
         build_section_4(),
         build_section_5(),
         build_section_6(),
@@ -275,6 +277,7 @@ def generate_report(date: str) -> str:
         build_section_1(overseas, events, futures),
         build_section_2(cycles),
         build_section_3(holdings),
+        build_section_holdings_monitor(holdings, date),
         build_section_4(),
         build_section_5(),
         build_section_6(),
