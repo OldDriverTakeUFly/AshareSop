@@ -112,7 +112,29 @@ def check_target_reached(holding: dict, current_price: float) -> dict:
           - ``"details"``: ``{"target": float, "current": float,
             "suggested_trim": "1/3" | "1/2" | "none"}``
     """
-    raise NotImplementedError
+    target = float(holding["target_price"])
+    triggered = current_price >= target
+
+    position_pct = float(holding.get("position_pct", 0))
+    if triggered:
+        if position_pct > 10:
+            suggested_trim = "1/2"
+        elif position_pct > 5:
+            suggested_trim = "1/3"
+        else:
+            suggested_trim = "none"
+    else:
+        suggested_trim = "none"
+
+    return {
+        "triggered": bool(triggered),
+        "signal_type": "target_reached",
+        "details": {
+            "target": target,
+            "current": float(current_price),
+            "suggested_trim": suggested_trim,
+        },
+    }
 
 
 def check_thesis_broken(holding: dict, current_davis_score: dict) -> dict:

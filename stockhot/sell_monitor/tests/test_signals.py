@@ -1,11 +1,10 @@
 """RED-phase contract tests — verify unimplemented signal stubs raise NotImplementedError.
 
-These tests lock the contract for the remaining stubs:
-``check_target_reached`` and ``check_thesis_broken`` must still raise
-``NotImplementedError`` until T15/T16 implement them.
-``check_hard_stop_loss`` and ``check_trailing_stop`` are implemented in
-T14 — their comprehensive tests live in ``test_hard_stop.py`` and
-``test_trailing_stop.py``.
+Only ``check_thesis_broken`` remains as a stub for T16.
+``check_hard_stop_loss``, ``check_trailing_stop`` (T14), and
+``check_target_reached`` (T15) are now implemented — their comprehensive
+tests live in ``test_hard_stop.py``, ``test_trailing_stop.py``, and
+``test_target_reached.py``.
 """
 
 from __future__ import annotations
@@ -14,10 +13,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from stockhot.sell_monitor.signals import (
-    check_target_reached,
-    check_thesis_broken,
-)
+from stockhot.sell_monitor.signals import check_thesis_broken
 
 
 @pytest.fixture
@@ -54,11 +50,7 @@ def sample_davis_score() -> dict:
 
 
 class TestSignals:
-    """Remaining stubs — must raise NotImplementedError."""
-
-    def test_check_target_reached_not_implemented(self, sample_holding):
-        with pytest.raises(NotImplementedError):
-            check_target_reached(sample_holding, current_price=13.5)
+    """Remaining stub — must raise NotImplementedError."""
 
     def test_check_thesis_broken_not_implemented(self, sample_holding, sample_davis_score):
         with pytest.raises(NotImplementedError):
