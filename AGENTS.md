@@ -201,3 +201,118 @@ Agents must not:
 ## Source of Truth
 
 If this section and the skill differ in detail, treat `skills/daily-market-scan/SKILL.md` as the source of truth for daily market scan orchestration methodology.
+
+# 景气度投资 Skill（industry-prosperity）
+
+This repository expects coding agents to follow the industry prosperity skill for any 景气度投资分析 work involving growth cycle classification, ΔG signaling, or six-dimension indicator assessment.
+
+## Default Rule
+
+For tasks involving 景气度分析、G+ΔG 框架、周期定位、二次点火筛选、或六维指标监控, agents must read and follow:
+
+- `skills/industry-prosperity/SKILL.md`
+
+Companion materials are available here:
+
+- `skills/industry-prosperity/README.zh-CN.md`
+- `skills/industry-prosperity/references/six-dimension-indicators.md`
+- `skills/industry-prosperity/references/scoring-template.py`
+- `skills/industry-prosperity/checklists/prosperity-audit.md`
+
+## When This Applies
+
+Use the skill whenever the task includes any of the following:
+
+- 景气度投资分析（prosperity analysis）—— 判断行业或个股处于加速期、减速期还是拐点
+- G+ΔG 框架 —— 增速绝对值（G）与增速边际变化（ΔG）的联合分析
+- 周期定位（cycle classification）—— 用山峰理论或成长股投资时钟分类标的当前位置
+- 二次点火筛选（secondary ignition screening）—— 筛选 G 和 ΔG 同时为正的标的
+- 六维指标监控（six-dimension indicators）—— BB Ratio / 稼动率 / 交期 / 库存 / 排产 / LTA
+- 景气预期追踪（prosperity expectation）—— 分析师一致预期的边际变化
+
+## Required Agent Behavior
+
+The requirements below are a non-exhaustive summary. They do not replace `skills/industry-prosperity/SKILL.md`.
+
+Agents working on 景气度投资 tasks must:
+
+1. inspect the target before classifying —— 先获取至少 4 个季度的财务数据，确认 ΔG 可计算
+2. reuse davis_analyzer engines —— 复用 `prosperity.py`、`prosperity_inflection.py`、`prosperity_sector.py` 的函数，不重写评分逻辑
+3. tag every indicator reading with a named source —— 六维指标的每个读数必须标注数据来源（厂商法说会、分销商报告、行业调研）
+4. classify cycle position honestly —— 如实分类周期位置，不因"行业景气"就强行说个股在加速期
+5. apply the G+ΔG framework —— G 和 ΔG 必须同时给出，ΔG 符号决定山峰位置（左山坡/右山坡/山后）
+6. report what was computed, reused, assumed, or left unresolved —— 区分实算、复用、假设与未决项
+
+## Guardrails
+
+This skill is guidance for 景气度投资 work only.
+
+Agents must not:
+
+- 修改 `davis_analyzer` 景气度引擎（`prosperity.py`、`prosperity_inflection.py`、`prosperity_sector.py`）的源码 —— 复用而非修改
+- 复制 prosperity.py 代码到 skill 文件 —— 只描述映射关系，不复制实现
+- 自动抓取六维指标数据 —— skill 定义框架和计算逻辑，数据需手动收集
+- 在 ΔG 数据不足 2 个季度时强行给出周期定位 —— 必须标注"ΔG 不可靠"
+- 混淆行业景气（β）与个股表现（α）—— 行业景气不等于每只个股都在加速
+- 忽视 30% 阈值 —— 净利润增速降至 30% 以下时超额收益大概率下滑，必须标注
+
+## Source of Truth
+
+If this section and the skill differ in detail, treat `skills/industry-prosperity/SKILL.md` as the source of truth for industry prosperity investment methodology.
+
+# 多因子量化选股 Skill（multi-factor-screening）
+
+This repository expects coding agents to follow the multi-factor screening skill for any 多因子量化选股、因子打分、分域选股 work involving systematic stock universe ranking.
+
+## Default Rule
+
+For tasks involving 多因子选股、量化选股、因子打分、分域选股、三层结构选股管线, agents must read and follow:
+
+- `skills/multi-factor-screening/SKILL.md`
+
+Companion materials are available here:
+
+- `skills/multi-factor-screening/README.zh-CN.md`
+- `skills/multi-factor-screening/checklists/factor-audit.md`
+- `skills/multi-factor-screening/references/three-layer-pipeline.md`
+- `skills/multi-factor-screening/references/screening-template.py`
+
+## When This Applies
+
+Use the skill whenever the task includes any of the following:
+
+- 多因子量化选股（multi-factor screening）—— 从股票池中系统化筛选和排名候选标的
+- 因子打分（factor scoring）—— 成长/质量/估值/技术/资金情绪五大因子族加权
+- 分域选股（domain-specific selection）—— 红利型/成长型/价值型/周期型四域差异化权重
+- 三层结构管线（three-layer pipeline）—— 硬过滤 → 打分 → 加分
+- 季度组合调仓（quarterly rebalancing）—— 重新评估和排序持仓候选
+
+## Required Agent Behavior
+
+The requirements below are a non-exhaustive summary. They do not replace `skills/multi-factor-screening/SKILL.md`.
+
+Agents working on 多因子选股 tasks must:
+
+1. follow the three-layer pipeline strictly —— 硬过滤层先行 → 打分层 → 加分层，三层不可跳过或打乱
+2. score within industry peer groups —— 所有因子打分在行业内部排序，不做全市场一刀切
+3. apply domain-specific weights —— 红利型/成长型/价值型/周期型四域使用不同权重，分别输出排名
+4. use hardcoded constants only —— 所有权重和阈值固定在 SKILL.md 和模板脚本中，不提供运行时配置
+5. report present-day ranking only —— 只输出当日截面排名，不做回测、IC 分析或因子衰减曲线
+6. call davis_analyzer functions as-is —— 复用而非修改，权重体系不同时以本 skill 为准
+
+## Guardrails
+
+This skill is guidance for 多因子选股 work only.
+
+Agents must not:
+
+- 修改 davis_analyzer 源码 —— 复用 `scoring.py`、`pipeline.py` 等模块，不修改其实现
+- 将权重设为可配置参数 —— 30/20/25/25 默认权重和四域覆盖权重均为硬编码常量
+- 做回测或 IC 分析 —— 本 skill 只做当日截面排名，回测属于独立流程
+- 跳过硬过滤层直接打分 —— 硬过滤是底线，不可为"特殊标的"破例
+- 跨域混合排名 —— 四域综合分不可比，必须分域输出排名清单
+- 加分层对信号缺位减分 —— 加分只加不减，无信号不等于差公司
+
+## Source of Truth
+
+If this section and the skill differ in detail, treat `skills/multi-factor-screening/SKILL.md` as the source of truth for multi-factor quantitative screening methodology.
