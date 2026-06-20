@@ -21,6 +21,7 @@ uvicorn = {extras = ["standard"], version = "^0.32.0"}
 aiosqlite = "^0.20.0"
 httpx = "^0.27.0"
 tushare = "^1.4.0"
+pandas-ta = "0.4.71b0"
 
 [project.optional-dependencies]
 dev = [
@@ -42,5 +43,11 @@ target-version = "py311"
 line-length = 100
 target-version = ["py311"]
 
+[tool.coverage.run]
+source = ["stockhot/technical_analyzer", "stockhot/sell_monitor"]
+
+[tool.coverage.report]
+fail_under = 85
+
 [tool.pytest.ini_options]
-testpaths = ["stockhot/tests", "davis_analyzer/tests"]
+testpaths = ["stockhot/tests", "davis_analyzer/tests", "stockhot/technical_analyzer/tests", "stockhot/sell_monitor/tests"]
