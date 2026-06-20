@@ -13,6 +13,8 @@ from __future__ import annotations
 
 import pandas as pd
 
+from stockhot.technical_analyzer.indicators import ma
+
 
 def check_hard_stop_loss(holding: dict, current_price: float) -> dict:
     """Check if hard stop-loss is triggered.
@@ -31,7 +33,18 @@ def check_hard_stop_loss(holding: dict, current_price: float) -> dict:
     Trigger: ``current_price <= holding["stop_loss_hard"]``.
     The equality case (``==``) triggers because the check uses ``<=``.
     """
-    raise NotImplementedError
+    stop_price = float(holding["stop_loss_hard"])
+    triggered = current_price <= stop_price
+    pct_to_stop = ((stop_price - current_price) / current_price) * 100.0
+    return {
+        "triggered": bool(triggered),
+        "signal_type": "hard_stop",
+        "details": {
+            "stop_price": stop_price,
+            "current_price": float(current_price),
+            "pct_to_stop": round(pct_to_stop, 2),
+        },
+    }
 
 
 def check_trailing_stop(holding: dict, ohlcv_df: pd.DataFrame) -> dict:
@@ -56,7 +69,29 @@ def check_trailing_stop(holding: dict, ohlcv_df: pd.DataFrame) -> dict:
     Edge: OHLCV with fewer than 20 rows → ``{"triggered": False,
     "details": {"error": "insufficient_data"}}``.
     """
-    raise NotImplementedError
+    if len(ohlcv_df) < 20:
+        return {
+            "triggered": False,
+            "signal_type": "trailing_stop",
+            "details": {"error": "insufficient_data"},
+        }
+
+    ma20_series = ma(ohlcv_df, 20)
+    ma20 = float(ma20_series.iloc[-1])
+    recent_low = float(ohlcv_df["low"].tail(20).min())
+    trailing_stop = max(ma20, recent_low) * (1 - 0.02)
+    current_price = float(holding["current_price"])
+    triggered = current_price <= trailing_stop
+
+    return {
+        "triggered": bool(triggered),
+        "signal_type": "trailing_stop",
+        "details": {
+            "ma20": round(ma20, 4),
+            "recent_low": round(recent_low, 4),
+            "trailing_stop": round(trailing_stop, 4),
+        },
+    }
 
 
 def check_target_reached(holding: dict, current_price: float) -> dict:

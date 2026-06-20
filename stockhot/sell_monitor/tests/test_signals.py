@@ -1,10 +1,11 @@
-"""RED-phase contract tests — verify all 4 signal stubs raise NotImplementedError.
+"""RED-phase contract tests — verify unimplemented signal stubs raise NotImplementedError.
 
-These tests lock the contract: every function in
-``stockhot.sell_monitor.signals`` must be importable and must raise
-``NotImplementedError`` until the implementation tasks (T14, T15, T16)
-replace the stubs. Once a signal is implemented, its test here should be
-removed or updated.
+These tests lock the contract for the remaining stubs:
+``check_target_reached`` and ``check_thesis_broken`` must still raise
+``NotImplementedError`` until T15/T16 implement them.
+``check_hard_stop_loss`` and ``check_trailing_stop`` are implemented in
+T14 — their comprehensive tests live in ``test_hard_stop.py`` and
+``test_trailing_stop.py``.
 """
 
 from __future__ import annotations
@@ -14,10 +15,8 @@ import pandas as pd
 import pytest
 
 from stockhot.sell_monitor.signals import (
-    check_hard_stop_loss,
     check_target_reached,
     check_thesis_broken,
-    check_trailing_stop,
 )
 
 
@@ -55,15 +54,7 @@ def sample_davis_score() -> dict:
 
 
 class TestSignals:
-    """One test per signal function — all must raise NotImplementedError."""
-
-    def test_check_hard_stop_loss_not_implemented(self, sample_holding):
-        with pytest.raises(NotImplementedError):
-            check_hard_stop_loss(sample_holding, current_price=9.5)
-
-    def test_check_trailing_stop_not_implemented(self, sample_holding, sample_ohlcv):
-        with pytest.raises(NotImplementedError):
-            check_trailing_stop(sample_holding, sample_ohlcv)
+    """Remaining stubs — must raise NotImplementedError."""
 
     def test_check_target_reached_not_implemented(self, sample_holding):
         with pytest.raises(NotImplementedError):
