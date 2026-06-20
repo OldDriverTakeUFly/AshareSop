@@ -1,10 +1,11 @@
-"""RED-phase contract tests — verify unimplemented signal stubs raise NotImplementedError.
+"""Shared fixtures for sell_monitor tests.
 
-Only ``check_thesis_broken`` remains as a stub for T16.
-``check_hard_stop_loss``, ``check_trailing_stop`` (T14), and
-``check_target_reached`` (T15) are now implemented — their comprehensive
-tests live in ``test_hard_stop.py``, ``test_trailing_stop.py``, and
-``test_target_reached.py``.
+All 4 signals are now implemented (T14/T15/T16). Comprehensive tests
+live in:
+  - test_hard_stop.py
+  - test_trailing_stop.py
+  - test_target_reached.py
+  - test_thesis_broken.py
 """
 
 from __future__ import annotations
@@ -12,8 +13,6 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 import pytest
-
-from stockhot.sell_monitor.signals import check_thesis_broken
 
 
 @pytest.fixture
@@ -47,11 +46,3 @@ def sample_ohlcv() -> pd.DataFrame:
 @pytest.fixture
 def sample_davis_score() -> dict:
     return {"final_score": 65.0, "percentile_rank": 45}
-
-
-class TestSignals:
-    """Remaining stub — must raise NotImplementedError."""
-
-    def test_check_thesis_broken_not_implemented(self, sample_holding, sample_davis_score):
-        with pytest.raises(NotImplementedError):
-            check_thesis_broken(sample_holding, sample_davis_score)

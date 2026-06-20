@@ -11,6 +11,8 @@ The holding dict keys mirror the ``invest_holdings`` table schema in
 
 from __future__ import annotations
 
+import json
+
 import pandas as pd
 
 from stockhot.technical_analyzer.indicators import ma
@@ -157,4 +159,45 @@ def check_thesis_broken(holding: dict, current_davis_score: dict) -> dict:
         ``{"triggered": False, "signal_type": "thesis_broken",
         "details": {"status": "SKIP", "reason": "no_snapshot"}}``
     """
-    raise NotImplementedError
+    snapshot_raw = holding.get("thesis_snapshot_json")
+
+    if not snapshot_raw:
+        return {
+            "triggered": False,
+            "signal_type": "thesis_broken",
+            "details": {"status": "SKIP", "reason": "no_snapshot"},
+        }
+
+    try:
+        snapshot = json.loads(snapshot_raw) if isinstance(snapshot_raw, str) else snapshot_raw
+    except (json.JSONDecodeError, TypeError):
+        return {
+            "triggered": False,
+            "signal_type": "thesis_broken",
+            "details": {"status": "SKIP", "reason": "invalid_snapshot"},
+        }
+
+    buy_percentile = snapshot.get("percentile_rank")
+    current_percentile = current_davis_score.get("percentile_rank")
+
+    if buy_percentile is None or current_percentile is None:
+        return {
+            "triggered": False,
+            "signal_type": "thesis_broken",
+            "details": {"status": "SKIP", "reason": "no_percentile_data"},
+        }
+
+    buy_percentile = float(buy_percentile)
+    current_percentile = float(current_percentile)
+    decline = buy_percentile - current_percentile
+    triggered = decline > 20
+
+    return {
+        "triggered": bool(triggered),
+        "signal_type": "thesis_broken",
+        "details": {
+            "buy_percentile": round(buy_percentile, 2),
+            "current_percentile": round(current_percentile, 2),
+            "decline": round(decline, 2),
+        },
+    }

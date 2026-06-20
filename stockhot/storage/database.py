@@ -166,6 +166,8 @@ def init_database() -> None:
                 entry_date TEXT,
                 status TEXT DEFAULT 'active',
                 notes TEXT,
+                davis_score_at_buy REAL,
+                thesis_snapshot_json TEXT,
                 updated_at TEXT DEFAULT CURRENT_TIMESTAMP
             );
 
@@ -200,6 +202,11 @@ def init_database() -> None:
             conn.execute("ALTER TABLE invest_holdings ADD COLUMN quantity INTEGER DEFAULT 0")
         if "avg_cost" not in holdings_cols:
             conn.execute("ALTER TABLE invest_holdings ADD COLUMN avg_cost REAL")
+
+        if "davis_score_at_buy" not in holdings_cols:
+            conn.execute("ALTER TABLE invest_holdings ADD COLUMN davis_score_at_buy REAL")
+        if "thesis_snapshot_json" not in holdings_cols:
+            conn.execute("ALTER TABLE invest_holdings ADD COLUMN thesis_snapshot_json TEXT")
 
         # Insert default sector rules
         default_rules = [

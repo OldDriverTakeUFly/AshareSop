@@ -81,6 +81,10 @@ def cmd_add(args: argparse.Namespace) -> None:
         data["stop_loss_logic"] = args.stop_loss_logic
     if args.stop_loss_technical:
         data["stop_loss_technical"] = args.stop_loss_technical
+    if args.davis_score_at_buy is not None:
+        data["davis_score_at_buy"] = args.davis_score_at_buy
+    if args.thesis_snapshot_json is not None:
+        data["thesis_snapshot_json"] = args.thesis_snapshot_json
 
     conn = get_connection()
     try:
@@ -189,6 +193,10 @@ def build_parser() -> argparse.ArgumentParser:
     p_add.add_argument("--position-pct", required=True, type=float, dest="position_pct")
     p_add.add_argument("--stop-loss-hard", type=float, dest="stop_loss_hard")
     p_add.add_argument("--stop-loss-technical", type=float, dest="stop_loss_technical")
+    p_add.add_argument("--davis-score", type=float, default=None, dest="davis_score_at_buy",
+                        help="Davis Double score at buy time (for thesis tracking)")
+    p_add.add_argument("--thesis-snapshot", type=str, default=None, dest="thesis_snapshot_json",
+                        help='JSON string of thesis snapshot, e.g. \'{"percentile_rank": 80}\'')
 
     p_rm = sub.add_parser("remove", help="Close a holding")
     p_rm.add_argument("--id", required=True, type=int)
