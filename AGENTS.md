@@ -144,3 +144,60 @@ Agents must not:
 ## Source of Truth
 
 If this section and the skill differ in detail, treat `skills/valuation-loss-making-targets/SKILL.md` as the source of truth for loss-making target valuation methodology.
+
+# 日常盘面扫描 Skill（daily-market-scan）
+
+This repository expects coding agents to follow the daily market scan skill for any 盘面扫描、每日复盘、热点数据采集 work involving the four stockhot hot-topic modules.
+
+## Default Rule
+
+For tasks involving 盘面扫描、涨停分析、龙虎榜、资金流向、风险提示、或每日数据采集, agents must read and follow:
+
+- `skills/daily-market-scan/SKILL.md`
+
+Companion materials are available here:
+
+- `skills/daily-market-scan/README.zh-CN.md`
+- `skills/daily-market-scan/checklists/scan-completeness.md`
+- `skills/daily-market-scan/references/module-orchestration.md`
+
+## When This Applies
+
+Use the skill whenever the task includes any of the following:
+
+- 日常盘面扫描（daily market scan）—— 调用涨停、龙虎榜、资金流、风险提示四个模块
+- 涨停分析（limit_up）—— 涨停池、炸板池、连板梯队、板块联动、封单强度
+- 龙虎榜分析（dragon_tiger）—— 机构席位、营业部、游资追踪
+- 资金流向（fund_flow）—— 大盘/板块资金流趋势判断
+- 风险提示（risk_alert）—— ST 股票、异常波动、资金出逃、高位连板
+- 为下游 skill（invest-sop-pre-market）采集当日市场数据
+
+## Required Agent Behavior
+
+The requirements below are a non-exhaustive summary. They do not replace `skills/daily-market-scan/SKILL.md`.
+
+Agents working on 盘面扫描 tasks must:
+
+1. follow the fixed execution order —— limit_up 先行 → dragon_tiger + fund_flow 并行 → risk_alert 最后（读取上游 DB 数据）
+2. wrap each module in its own try/except —— 单个模块失败标记为"数据不可用"，不影响其他模块执行
+3. call module entry points only —— 只调用 `run_*_analysis(date)`，不调用内部 helper 函数
+4. persist results to the database —— 所有成功模块通过 `save_daily_data` + `save_analysis_result` 持久化
+5. report what succeeded and what failed —— 区分 `success`、`no_data`（非交易日）、`数据不可用`（错误）
+6. respect the boundary with invest-sop-pre-market —— 本 skill 只采集数据，不生成报告；报告生成交给 `invest-sop-pre-market`
+
+## Guardrails
+
+This skill is guidance for 盘面扫描 work only.
+
+Agents must not:
+
+- 修改四个 stockhot 模块（limit_up/dragon_tiger/fund_flow/risk_alert）的源码 —— 复用而非修改
+- 暴露或调整扫描参数（阈值/行业筛选/市值筛选）—— 所有阈值固定在模块源码中
+- 生成任何 markdown 报告 —— 本 skill 是数据采集层，报告生成属于 `invest-sop-pre-market`
+- 调用 AI/LLM 做分析 —— 所有模块摘要均为纯统计
+- 跳过 try/except 隔离而让单个模块崩溃终止整个扫描
+- 将模块执行顺序打乱 —— risk_alert 必须最后运行，否则读取的上游 DB 数据为空
+
+## Source of Truth
+
+If this section and the skill differ in detail, treat `skills/daily-market-scan/SKILL.md` as the source of truth for daily market scan orchestration methodology.
