@@ -111,10 +111,12 @@ def cmd_list(args: argparse.Namespace) -> None:
 
 
 def cmd_remove(args: argparse.Namespace) -> None:
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     conn = get_connection()
     try:
         cur = conn.execute(
-            f"DELETE FROM {TABLE} WHERE code = ?", (args.code,)
+            f"UPDATE {TABLE} SET status = 'removed', updated_at = ? WHERE code = ?",
+            (now, args.code),
         )
         conn.commit()
         if cur.rowcount == 0:

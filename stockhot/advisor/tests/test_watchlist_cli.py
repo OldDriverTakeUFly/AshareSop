@@ -143,7 +143,11 @@ class TestRemove:
         watchlist_cli.cmd_remove(rm_args)
         captured = capsys.readouterr()
         assert "[OK]" in captured.out
-        assert _count_rows(temp_db, "600519") == 0
+        # Soft delete: row still exists with status='removed'
+        assert _count_rows(temp_db, "600519") == 1
+        row = _get_row(temp_db, "600519")
+        assert row is not None
+        assert row["status"] == "removed"
 
     def test_remove_nonexistent_exit_zero(self, temp_db, capsys):
         rm_args = watchlist_cli.build_parser().parse_args(["remove", "999999"])

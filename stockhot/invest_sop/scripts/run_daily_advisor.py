@@ -44,7 +44,7 @@ def run_report(trade_date: str) -> bool:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """Run daily advisor + report generation. Returns 0 (logs partial failures)."""
+    """Run daily advisor + report generation. Returns 0 on success, 1 on failure."""
     parser = argparse.ArgumentParser(
         description="Run daily advisor + report generation"
     )
@@ -65,10 +65,10 @@ def main(argv: list[str] | None = None) -> int:
 
     if advisor_ok and report_ok:
         print(f"[{trade_date}] Daily advisor completed successfully")
+        return 0
     else:
         print(f"[{trade_date}] Daily advisor completed with partial failures")
-
-    return 0
+        return 1
 
 
 if __name__ == "__main__":

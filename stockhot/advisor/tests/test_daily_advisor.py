@@ -116,7 +116,7 @@ class TestMain:
 
         exit_code = main(["--date", "2026-06-22"])
 
-        assert exit_code == 0
+        assert exit_code == 1
         mock_advisor.assert_called_once_with("2026-06-22")
         mock_report.assert_called_once_with("2026-06-22")
         captured = capsys.readouterr()
@@ -124,13 +124,13 @@ class TestMain:
 
     @patch("stockhot.invest_sop.scripts.run_daily_advisor.run_report")
     @patch("stockhot.invest_sop.scripts.run_daily_advisor.run_advisor")
-    def test_both_fail_still_returns_zero(self, mock_advisor, mock_report, capsys):
+    def test_both_fail_returns_nonzero(self, mock_advisor, mock_report, capsys):
         mock_advisor.return_value = False
         mock_report.return_value = False
 
         exit_code = main(["--date", "2026-06-22"])
 
-        assert exit_code == 0
+        assert exit_code == 1
         captured = capsys.readouterr()
         assert "partial failures" in captured.out
 
@@ -142,6 +142,6 @@ class TestMain:
 
         exit_code = main(["--date", "2026-06-22"])
 
-        assert exit_code == 0
+        assert exit_code == 1
         captured = capsys.readouterr()
         assert "partial failures" in captured.out
