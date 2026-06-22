@@ -21,11 +21,3 @@ class UnifiedSignal:
     data_age_days: int | None
     source: str
     details: dict = field(default_factory=dict)
-
-    name: str
-    value: float | int | str
-    polarity: str
-    data_timestamp: str | None
-    data_age_days: int | None
-    source: str
-    details: dict = field(default_factory=dict)
