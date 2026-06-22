@@ -17,6 +17,9 @@
 # 21:30 – Futures & sentiment (futures data, market sentiment indicators)
 30 21 * * * cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python stockhot/invest_sop/scripts/futures_sentiment.py >> stockhot/invest_sop/logs/futures.log 2>&1
 
+# 08:15 – AI Trading Advisor (run advisor for all holdings + watchlist, generate report)
+15 8 * * 1-5 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python stockhot/invest_sop/scripts/run_daily_advisor.py >> stockhot/invest_sop/logs/advisor.log 2>&1
+
 # 08:30 – Morning confirmation (pre-open data check, position review)
 30 8 * * * cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python stockhot/invest_sop/scripts/morning_confirm.py >> stockhot/invest_sop/logs/morning.log 2>&1
 
