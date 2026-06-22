@@ -6,17 +6,17 @@ This repository expects coding agents to follow the local development environmen
 
 For tasks involving local setup, dependency installation, runtime selection, environment repair, toolchain isolation, local services, or project switching, agents must read and follow:
 
-- `skills/local-development-environment/SKILL.md`
+- `.agents/skills/local-development-environment/SKILL.md`
 
 Companion materials are available here:
 
-- `skills/local-development-environment/checklists/preflight.md`
-- `skills/local-development-environment/checklists/cleanup.md`
-- `skills/local-development-environment/examples/setup-session.md`
-- `skills/local-development-environment/examples/switch-projects.md`
-- `skills/local-development-environment/examples/troubleshoot-conflicts.md`
-- `skills/local-development-environment/references/tooling-matrix.md`
-- `skills/local-development-environment/README.zh-CN.md`
+- `.agents/skills/local-development-environment/checklists/preflight.md`
+- `.agents/skills/local-development-environment/checklists/cleanup.md`
+- `.agents/skills/local-development-environment/examples/setup-session.md`
+- `.agents/skills/local-development-environment/examples/switch-projects.md`
+- `.agents/skills/local-development-environment/examples/troubleshoot-conflicts.md`
+- `.agents/skills/local-development-environment/references/tooling-matrix.md`
+- `.agents/skills/local-development-environment/README.zh-CN.md`
 
 ## When This Applies
 
@@ -31,7 +31,7 @@ Use the skill whenever the task includes any of the following:
 
 ## Required Agent Behavior
 
-The requirements below are a non-exhaustive summary. They do not replace `skills/local-development-environment/SKILL.md`.
+The requirements below are a non-exhaustive summary. They do not replace `.agents/skills/local-development-environment/SKILL.md`.
 
 Agents working on environment-related tasks must:
 
@@ -81,7 +81,7 @@ Remote: `origin` → `git@github.com:OldDriverTakeUFly/AshareSop.git`
 
 ## Source of Truth
 
-If this file and the skill differ in detail, treat `skills/local-development-environment/SKILL.md` as the source of truth for environment-management behavior.
+If this file and the skill differ in detail, treat `.agents/skills/local-development-environment/SKILL.md` as the source of truth for environment-management behavior.
 
 # 估值分析 Skill（valuation-loss-making-targets）
 
@@ -91,18 +91,18 @@ This repository expects coding agents to follow the loss-making target valuation
 
 For tasks involving 估值分析、亏损标的估值、困境反转定价、或 PS+DCF 三角验证建模, agents must read and follow:
 
-- `skills/valuation-loss-making-targets/SKILL.md`
+- `.agents/skills/valuation-loss-making-targets/SKILL.md`
 
 Companion materials are available here:
 
-- `skills/valuation-loss-making-targets/README.zh-CN.md`
-- `skills/valuation-loss-making-targets/references/distress-probability-rules.md`
-- `skills/valuation-loss-making-targets/references/valuation-model-schema.md`
-- `skills/valuation-loss-making-targets/references/study-script-templates/financial_deep_template.py`
-- `skills/valuation-loss-making-targets/references/study-script-templates/scoring_template.py`
-- `skills/valuation-loss-making-targets/references/study-script-templates/quant_data_template.py`
-- `skills/valuation-loss-making-targets/checklists/differentiation-audit.md`
-- `skills/valuation-loss-making-targets/checklists/source-traceability.md`
+- `.agents/skills/valuation-loss-making-targets/README.zh-CN.md`
+- `.agents/skills/valuation-loss-making-targets/references/distress-probability-rules.md`
+- `.agents/skills/valuation-loss-making-targets/references/valuation-model-schema.md`
+- `.agents/skills/valuation-loss-making-targets/references/study-script-templates/financial_deep_template.py`
+- `.agents/skills/valuation-loss-making-targets/references/study-script-templates/scoring_template.py`
+- `.agents/skills/valuation-loss-making-targets/references/study-script-templates/quant_data_template.py`
+- `.agents/skills/valuation-loss-making-targets/checklists/differentiation-audit.md`
+- `.agents/skills/valuation-loss-making-targets/checklists/source-traceability.md`
 
 ## When This Applies
 
@@ -117,7 +117,7 @@ Use the skill whenever the task includes any of the following:
 
 ## Required Agent Behavior
 
-The requirements below are a non-exhaustive summary. They do not replace `skills/valuation-loss-making-targets/SKILL.md`.
+The requirements below are a non-exhaustive summary. They do not replace `.agents/skills/valuation-loss-making-targets/SKILL.md`.
 
 Agents working on 估值分析 tasks must:
 
@@ -143,7 +143,7 @@ Agents must not:
 
 ## Source of Truth
 
-If this section and the skill differ in detail, treat `skills/valuation-loss-making-targets/SKILL.md` as the source of truth for loss-making target valuation methodology.
+If this section and the skill differ in detail, treat `.agents/skills/valuation-loss-making-targets/SKILL.md` as the source of truth for loss-making target valuation methodology.
 
 # 日常盘面扫描 Skill（daily-market-scan）
 
@@ -153,13 +153,13 @@ This repository expects coding agents to follow the daily market scan skill for 
 
 For tasks involving 盘面扫描、涨停分析、龙虎榜、资金流向、风险提示、或每日数据采集, agents must read and follow:
 
-- `skills/daily-market-scan/SKILL.md`
+- `.agents/skills/daily-market-scan/SKILL.md`
 
 Companion materials are available here:
 
-- `skills/daily-market-scan/README.zh-CN.md`
-- `skills/daily-market-scan/checklists/scan-completeness.md`
-- `skills/daily-market-scan/references/module-orchestration.md`
+- `.agents/skills/daily-market-scan/README.zh-CN.md`
+- `.agents/skills/daily-market-scan/checklists/scan-completeness.md`
+- `.agents/skills/daily-market-scan/references/module-orchestration.md`
 
 ## When This Applies
 
@@ -174,7 +174,7 @@ Use the skill whenever the task includes any of the following:
 
 ## Required Agent Behavior
 
-The requirements below are a non-exhaustive summary. They do not replace `skills/daily-market-scan/SKILL.md`.
+The requirements below are a non-exhaustive summary. They do not replace `.agents/skills/daily-market-scan/SKILL.md`.
 
 Agents working on 盘面扫描 tasks must:
 
@@ -200,7 +200,7 @@ Agents must not:
 
 ## Source of Truth
 
-If this section and the skill differ in detail, treat `skills/daily-market-scan/SKILL.md` as the source of truth for daily market scan orchestration methodology.
+If this section and the skill differ in detail, treat `.agents/skills/daily-market-scan/SKILL.md` as the source of truth for daily market scan orchestration methodology.
 
 # 景气度投资 Skill（industry-prosperity）
 
@@ -210,14 +210,14 @@ This repository expects coding agents to follow the industry prosperity skill fo
 
 For tasks involving 景气度分析、G+ΔG 框架、周期定位、二次点火筛选、或六维指标监控, agents must read and follow:
 
-- `skills/industry-prosperity/SKILL.md`
+- `.agents/skills/industry-prosperity/SKILL.md`
 
 Companion materials are available here:
 
-- `skills/industry-prosperity/README.zh-CN.md`
-- `skills/industry-prosperity/references/six-dimension-indicators.md`
-- `skills/industry-prosperity/references/scoring-template.py`
-- `skills/industry-prosperity/checklists/prosperity-audit.md`
+- `.agents/skills/industry-prosperity/README.zh-CN.md`
+- `.agents/skills/industry-prosperity/references/six-dimension-indicators.md`
+- `.agents/skills/industry-prosperity/references/scoring-template.py`
+- `.agents/skills/industry-prosperity/checklists/prosperity-audit.md`
 
 ## When This Applies
 
@@ -232,7 +232,7 @@ Use the skill whenever the task includes any of the following:
 
 ## Required Agent Behavior
 
-The requirements below are a non-exhaustive summary. They do not replace `skills/industry-prosperity/SKILL.md`.
+The requirements below are a non-exhaustive summary. They do not replace `.agents/skills/industry-prosperity/SKILL.md`.
 
 Agents working on 景气度投资 tasks must:
 
@@ -258,7 +258,7 @@ Agents must not:
 
 ## Source of Truth
 
-If this section and the skill differ in detail, treat `skills/industry-prosperity/SKILL.md` as the source of truth for industry prosperity investment methodology.
+If this section and the skill differ in detail, treat `.agents/skills/industry-prosperity/SKILL.md` as the source of truth for industry prosperity investment methodology.
 
 # 多因子量化选股 Skill（multi-factor-screening）
 
@@ -268,14 +268,14 @@ This repository expects coding agents to follow the multi-factor screening skill
 
 For tasks involving 多因子选股、量化选股、因子打分、分域选股、三层结构选股管线, agents must read and follow:
 
-- `skills/multi-factor-screening/SKILL.md`
+- `.agents/skills/multi-factor-screening/SKILL.md`
 
 Companion materials are available here:
 
-- `skills/multi-factor-screening/README.zh-CN.md`
-- `skills/multi-factor-screening/checklists/factor-audit.md`
-- `skills/multi-factor-screening/references/three-layer-pipeline.md`
-- `skills/multi-factor-screening/references/screening-template.py`
+- `.agents/skills/multi-factor-screening/README.zh-CN.md`
+- `.agents/skills/multi-factor-screening/checklists/factor-audit.md`
+- `.agents/skills/multi-factor-screening/references/three-layer-pipeline.md`
+- `.agents/skills/multi-factor-screening/references/screening-template.py`
 
 ## When This Applies
 
@@ -289,7 +289,7 @@ Use the skill whenever the task includes any of the following:
 
 ## Required Agent Behavior
 
-The requirements below are a non-exhaustive summary. They do not replace `skills/multi-factor-screening/SKILL.md`.
+The requirements below are a non-exhaustive summary. They do not replace `.agents/skills/multi-factor-screening/SKILL.md`.
 
 Agents working on 多因子选股 tasks must:
 
@@ -315,7 +315,7 @@ Agents must not:
 
 ## Source of Truth
 
-If this section and the skill differ in detail, treat `skills/multi-factor-screening/SKILL.md` as the source of truth for multi-factor quantitative screening methodology.
+If this section and the skill differ in detail, treat `.agents/skills/multi-factor-screening/SKILL.md` as the source of truth for multi-factor quantitative screening methodology.
 
 # AI 交易建议引擎（ai-trading-advisor）
 
@@ -435,14 +435,14 @@ This repository expects coding agents to follow the pre-market SOP skill for any
 
 For tasks involving 盘前报告、晨间指令、或 SOP 决策矩阵评估, agents must read and follow:
 
-- `skills/invest-sop-pre-market/SKILL.md`
+- `.agents/skills/invest-sop-pre-market/SKILL.md`
 
 Companion materials are available here:
 
-- `skills/invest-sop-pre-market/README.zh-CN.md`
-- `skills/invest-sop-pre-market/checklists/report-completeness.md`
-- `skills/invest-sop-pre-market/references/data-flow.md`
-- `skills/invest-sop-pre-market/references/decision-matrix.md`
+- `.agents/skills/invest-sop-pre-market/README.zh-CN.md`
+- `.agents/skills/invest-sop-pre-market/checklists/report-completeness.md`
+- `.agents/skills/invest-sop-pre-market/references/data-flow.md`
+- `.agents/skills/invest-sop-pre-market/references/decision-matrix.md`
 
 Key entry points (do NOT modify — invoke only):
 
@@ -462,7 +462,7 @@ Use the skill whenever the task includes any of the following:
 
 ## Required Agent Behavior
 
-The requirements below are a non-exhaustive summary. They do not replace `skills/invest-sop-pre-market/SKILL.md`.
+The requirements below are a non-exhaustive summary. They do not replace `.agents/skills/invest-sop-pre-market/SKILL.md`.
 
 Agents working on 盘前分析 tasks must:
 
@@ -488,4 +488,4 @@ Agents must not:
 
 ## Source of Truth
 
-If this section and the skill differ in detail, treat `skills/invest-sop-pre-market/SKILL.md` as the source of truth for pre-market SOP report-generation behavior. The SOP methodology source of truth is `.sisyphus/drafts/a-share-pre-market-sop.md`.
+If this section and the skill differ in detail, treat `.agents/skills/invest-sop-pre-market/SKILL.md` as the source of truth for pre-market SOP report-generation behavior. The SOP methodology source of truth is `.sisyphus/drafts/a-share-pre-market-sop.md`.

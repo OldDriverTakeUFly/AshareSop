@@ -31,7 +31,7 @@
 ────────────────────────────────────────────────────────────────────────────────
     # 1. 编辑本脚本顶部 CONFIG 区块
     # 2. 运行
-    .venv/bin/python skills/valuation-loss-making-targets/references/study-script-templates/quant_data_template.py
+    .venv/bin/python .agents/skills/valuation-loss-making-targets/references/study-script-templates/quant_data_template.py
 
 输出：
     {OUTPUT_DIR}/t1-tushare-data.json          # 全量数据

@@ -1,6 +1,6 @@
 # 多因子量化选股 Skill 说明
 
-这份文档是 `skills/multi-factor-screening/` 的中文说明版，面向人类读者。它帮助团队快速理解这套 skill 想解决什么问题、适合什么时候使用，以及如何把它部署到一次具体的选股任务里。
+这份文档是 `.agents/skills/multi-factor-screening/` 的中文说明版，面向人类读者。它帮助团队快速理解这套 skill 想解决什么问题、适合什么时候使用，以及如何把它部署到一次具体的选股任务里。
 
 真正的规范性内容以 `SKILL.md` 为准。如果 agent 需要执行多因子选股相关工作，应优先读取 `SKILL.md`。本 README 仅是人类视角的概览，不构成规范性来源。
 
@@ -90,7 +90,7 @@
 python -c "import davis_analyzer; print('OK')"
 
 # 查看本 skill 的方法论主文件
-cat skills/multi-factor-screening/SKILL.md
+cat .agents/skills/multi-factor-screening/SKILL.md
 
 # 查看方法论深度研报（1507 行的原始文档）
 cat docs/A股多因子量化选股方法论深度研报.md

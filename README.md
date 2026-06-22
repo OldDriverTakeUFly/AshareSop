@@ -79,4 +79,4 @@ npm run dev
 - [`SPEC.md`](SPEC.md) — 项目需求规格说明书
 - [`docs/`](docs/) — 行业研究报告
 - [`docker/DEPLOY.md`](docker/DEPLOY.md) — NAS 部署指南
-- [`skills/`](skills/) — Agent 开发技能规范
+- [`.agents/skills/`](.agents/skills/) — Agent 开发技能规范（ZCode 自动发现的 skill 目录）

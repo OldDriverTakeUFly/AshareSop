@@ -1,6 +1,6 @@
 # 亏损标的估值 Skill 说明
 
-这份文档是 `skills/valuation-loss-making-targets/` 的中文说明版，面向人类读者。它的目标不是替代 `SKILL.md`，而是帮助团队快速理解这套 skill 想解决什么问题、适合什么时候使用，以及如何把它部署到一次具体的并购 / 研究任务里。
+这份文档是 `.agents/skills/valuation-loss-making-targets/` 的中文说明版，面向人类读者。它的目标不是替代 `SKILL.md`，而是帮助团队快速理解这套 skill 想解决什么问题、适合什么时候使用，以及如何把它部署到一次具体的并购 / 研究任务里。
 
 真正的规范性内容仍以 `SKILL.md` 为准。如果 agent 需要执行亏损标的估值相关工作，应优先读取 `SKILL.md` 和配套 checklist、references 文件。本 README 仅是人类视角的概览，不构成规范性来源。
 

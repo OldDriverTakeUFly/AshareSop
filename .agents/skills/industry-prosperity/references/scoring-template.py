@@ -33,7 +33,7 @@
     # 编辑 my_prosperity_scoring.py 的 CONFIG 块
 
     # 2. 运行 (需在仓库根目录，确保 davis_analyzer 可被导入)
-    .venv/bin/python skills/industry-prosperity/references/my_prosperity_scoring.py
+    .venv/bin/python .agents/skills/industry-prosperity/references/my_prosperity_scoring.py
 
 【输出】
     JSON 文件写入 OUTPUT_DIR/{TARGET_CODE}_prosperity_score.json，
