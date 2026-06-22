@@ -426,3 +426,66 @@ Agents must not:
 ## Source of Truth
 
 If this section and the module implementation differ in detail, treat `stockhot/notification/telegram_bot.py` source code as the source of truth for notification behavior.
+
+# 盘前分析 SOP Skill（invest-sop-pre-market）
+
+This repository expects coding agents to follow the pre-market SOP skill for any 盘前分析、盘前报告生成、晨间指令、持仓决策矩阵 work involving reading collected data and producing daily markdown reports.
+
+## Default Rule
+
+For tasks involving 盘前报告、晨间指令、或 SOP 决策矩阵评估, agents must read and follow:
+
+- `skills/invest-sop-pre-market/SKILL.md`
+
+Companion materials are available here:
+
+- `skills/invest-sop-pre-market/README.zh-CN.md`
+- `skills/invest-sop-pre-market/checklists/report-completeness.md`
+- `skills/invest-sop-pre-market/references/data-flow.md`
+- `skills/invest-sop-pre-market/references/decision-matrix.md`
+
+Key entry points (do NOT modify — invoke only):
+
+- `stockhot/invest_sop/scripts/generate_premarket_report.py` — Workflow A, produces `{date}_pre_market.md`
+- `stockhot/invest_sop/scripts/generate_directive.py` — Workflow B, produces `{date}_directive.md`
+- `stockhot/invest_sop/scripts/run_daily_advisor.py` — cron orchestrator (advisor daily + report)
+
+## When This Applies
+
+Use the skill whenever the task includes any of the following:
+
+- 盘前分析（pre-market analysis）—— 读取已采集数据，对持仓套用 SOP 决策矩阵
+- 盘前报告生成（pre-market report）—— 产出 `{date}_pre_market.md`
+- 晨间指令（morning directive）—— 产出 `{date}_directive.md`
+- 持仓决策矩阵（holding decision matrix）—— 四维评估（逻辑/事件/技术/周期）+ 矩阵 A/B
+- 风控检查（risk control check）—— 仓位/板块集中度/止损距离合规校验
+
+## Required Agent Behavior
+
+The requirements below are a non-exhaustive summary. They do not replace `skills/invest-sop-pre-market/SKILL.md`.
+
+Agents working on 盘前分析 tasks must:
+
+1. read collected data only —— 只读 SQLite 的 `invest_*` 表和 `advisor_runs`，不调 AKShare、不下单、不改库
+2. invoke the existing scripts —— 复用 `generate_premarket_report.py` / `generate_directive.py`，不重写报告生成逻辑
+3. phrase operations as matrix results —— 写「决策矩阵结果：减仓30%」，不写「建议买入」「应该加仓」
+4. fill §3-7 analysis manually —— 生成器对持仓四维评估、新增备选、今日重点、风控、复盘只输出占位表，分析内容由 agent 根据 `references/decision-matrix.md` 填充
+5. handle missing data per §6 —— 缺表标「数据不可用」，NULL 列标「N/A」，核心表空时停止生成
+6. report what was filled, left as placeholder, or marked unavailable —— 区分实填、占位、不可用
+
+## Guardrails
+
+This skill is guidance for 盘前分析 work only.
+
+Agents must not:
+
+- 直接下单或下达交易指令 —— 报告只呈现分析，决策由人工
+- 调用 AKShare 采集数据 —— 采集属于 `daily-market-scan` skill 和 `stockhot/invest_sop/scripts/` 的采集脚本
+- 修改数据库 —— 所有查询必须是只读 SELECT
+- 捏造缺失数据 —— 不得估算、插值、编造数值
+- 修改 `generate_premarket_report.py` / `generate_directive.py` 源码 —— 复用而非修改
+- 跳过 §6 错误处理 —— 核心表（holdings / overseas market）全空时不得生成"看起来完整"的报告
+
+## Source of Truth
+
+If this section and the skill differ in detail, treat `skills/invest-sop-pre-market/SKILL.md` as the source of truth for pre-market SOP report-generation behavior. The SOP methodology source of truth is `.sisyphus/drafts/a-share-pre-market-sop.md`.
