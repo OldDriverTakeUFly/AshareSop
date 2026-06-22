@@ -194,6 +194,44 @@ def init_database() -> None:
                 target_pct REAL NOT NULL DEFAULT 0.20,
                 updated_at TEXT DEFAULT CURRENT_TIMESTAMP
             );
+
+            CREATE TABLE IF NOT EXISTS invest_watchlist (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                code TEXT UNIQUE NOT NULL,
+                name TEXT,
+                sector TEXT,
+                added_date TEXT NOT NULL,
+                trigger_reason TEXT,
+                target_entry_low REAL,
+                target_entry_high REAL,
+                stop_loss_pct REAL,
+                priority INTEGER DEFAULT 1,
+                status TEXT DEFAULT 'watching',
+                source TEXT DEFAULT 'manual',
+                notes TEXT,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_watchlist_status ON invest_watchlist(status);
+
+            CREATE TABLE IF NOT EXISTS advisor_runs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                trade_date TEXT NOT NULL,
+                stock_code TEXT NOT NULL,
+                recommendation_type TEXT NOT NULL,
+                action TEXT NOT NULL,
+                confidence TEXT NOT NULL,
+                reasoning_json TEXT,
+                prompt_version TEXT,
+                prompt_tokens INTEGER DEFAULT 0,
+                completion_tokens INTEGER DEFAULT 0,
+                model_name TEXT,
+                data_age_json TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(trade_date, stock_code, recommendation_type)
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_advisor_runs_date ON advisor_runs(trade_date);
         """)
 
         # Migrate: add quantity and avg_cost columns if missing
