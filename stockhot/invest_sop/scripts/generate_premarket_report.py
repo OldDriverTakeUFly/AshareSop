@@ -8,6 +8,7 @@ import argparse
 from datetime import datetime
 from pathlib import Path
 
+from stockhot.advisor.report_integration import build_advisor_section
 from stockhot.invest_sop.config import INVEST_REPORTS_DIR
 from stockhot.invest_sop.utils.db_helpers import query_by_date
 from stockhot.sell_monitor import build_section_holdings_monitor
@@ -247,6 +248,7 @@ def generate_template(date: str) -> str:
         build_section_2([]),
         build_section_3([]),
         build_section_holdings_monitor([], date),
+        build_advisor_section(date),
         build_section_4(),
         build_section_5(),
         build_section_6(),
@@ -278,6 +280,7 @@ def generate_report(date: str) -> str:
         build_section_2(cycles),
         build_section_3(holdings),
         build_section_holdings_monitor(holdings, date),
+        build_advisor_section(date),
         build_section_4(),
         build_section_5(),
         build_section_6(),
