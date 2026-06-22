@@ -19,6 +19,7 @@ from stockhot.advisor.data_sources.fundamental import (
     get_current_davis_score,
 )
 from stockhot.advisor.data_sources.technical import (
+    fetch_ohlcv_for_advisor,
     fetch_realtime_price,
     fetch_technical_signal,
 )
@@ -46,6 +47,15 @@ def aggregate_signals(
     holding: dict | None = None,
     ohlcv_df: pd.DataFrame | None = None,
 ) -> AggregatedSignals:
+    # Auto-fetch OHLCV when the caller (e.g. run_for_stock) did not supply it.
+    # This is what unblocks the technical signal in production: previously
+    # ohlcv_df was always None, so fetch_technical_signal short-circuited to a
+    # constant 50.0 and composite_technical_score was never invoked. Callers
+    # that already have OHLCV (tests, explicit callers) can pass it in to
+    # bypass the network call.
+    if ohlcv_df is None:
+        ohlcv_df = fetch_ohlcv_for_advisor(code)
+
     technical = fetch_technical_signal(code, ohlcv_df)
     realtime = fetch_realtime_price(code)
     davis = fetch_davis_signal(code)

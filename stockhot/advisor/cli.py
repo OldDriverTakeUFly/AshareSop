@@ -16,9 +16,17 @@ from dataclasses import asdict
 from datetime import date
 from typing import Any
 
+from dotenv import load_dotenv
+
 from stockhot.advisor import watchlist_cli
 from stockhot.advisor.recommendation_engine import Recommendation, run_for_stock
-from stockhot.storage.database import get_connection
+from stockhot.storage.database import get_connection, init_database
+
+# Load .env so LLM_API_KEY / TUSHARE_TOKEN / TELEGRAM_* reach the process
+# environment. The stockhot CLI path never called load_dotenv before, so .env
+# was effectively ignored outside Docker. Safe to call at import time —
+# load_dotenv only sets vars that are not already in os.environ.
+load_dotenv()
 
 MAX_STOCKS_PER_DAILY_RUN = 20
 MAX_TELEGRAM_MESSAGES = 5
@@ -264,6 +272,11 @@ def main(argv: list[str] | None = None) -> int:
     """Main CLI entry point. Returns exit code."""
     if argv is None:
         argv = sys.argv[1:]
+
+    # Ensure advisor tables exist (idempotent CREATE TABLE IF NOT EXISTS).
+    # Without this, `ask`/`daily` crash on the first invest_holdings query
+    # because init_database() is otherwise only called by the FastAPI app.
+    init_database()
 
     # Intercept watchlist to pass remaining args to watchlist_cli
     if argv and argv[0] == "watchlist":

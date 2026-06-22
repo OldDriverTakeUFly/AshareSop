@@ -35,7 +35,14 @@ def check_hard_stop_loss(holding: dict, current_price: float) -> dict:
     Trigger: ``current_price <= holding["stop_loss_hard"]``.
     The equality case (``==``) triggers because the check uses ``<=``.
     """
-    stop_price = float(holding["stop_loss_hard"])
+    stop_price = holding.get("stop_loss_hard")
+    if stop_price is None:
+        return {
+            "triggered": False,
+            "signal_type": "hard_stop",
+            "details": {"error": "missing_stop_loss_hard"},
+        }
+    stop_price = float(stop_price)
     triggered = current_price <= stop_price
     pct_to_stop = ((stop_price - current_price) / current_price) * 100.0
     return {
@@ -82,7 +89,14 @@ def check_trailing_stop(holding: dict, ohlcv_df: pd.DataFrame) -> dict:
     ma20 = float(ma20_series.iloc[-1])
     recent_low = float(ohlcv_df["low"].tail(20).min())
     trailing_stop = max(ma20, recent_low) * (1 - 0.02)
-    current_price = float(holding["current_price"])
+    current_price_raw = holding.get("current_price")
+    if current_price_raw is None:
+        return {
+            "triggered": False,
+            "signal_type": "trailing_stop",
+            "details": {"error": "missing_current_price"},
+        }
+    current_price = float(current_price_raw)
     triggered = current_price <= trailing_stop
 
     return {
@@ -114,7 +128,14 @@ def check_target_reached(holding: dict, current_price: float) -> dict:
           - ``"details"``: ``{"target": float, "current": float,
             "suggested_trim": "1/3" | "1/2" | "none"}``
     """
-    target = float(holding["target_price"])
+    target_raw = holding.get("target_price")
+    if target_raw is None:
+        return {
+            "triggered": False,
+            "signal_type": "target_reached",
+            "details": {"error": "missing_target_price"},
+        }
+    target = float(target_raw)
     triggered = current_price >= target
 
     position_pct = float(holding.get("position_pct", 0))

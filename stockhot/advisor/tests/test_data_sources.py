@@ -14,6 +14,7 @@ import pytest
 import stockhot.advisor.data_sources.fundamental as fundamental
 import stockhot.advisor.data_sources.technical as technical
 from stockhot.advisor.data_sources.fundamental import (
+    clear_pipeline_cache,
     fetch_davis_signal,
     get_current_davis_score,
 )
@@ -23,6 +24,16 @@ from stockhot.advisor.data_sources.technical import (
     fetch_technical_signal,
 )
 from stockhot.advisor.types import UnifiedSignal
+
+
+# Auto-reset the fundamental pipeline cache before each test so monkeypatching
+# run_screening_pipeline actually takes effect (the cache would otherwise
+# serve a stale result from a previous test in this module).
+@pytest.fixture(autouse=True)
+def _reset_davis_cache():
+    clear_pipeline_cache()
+    yield
+    clear_pipeline_cache()
 
 
 # ── _compute_data_age ──────────────────────────────────────────────
@@ -353,6 +364,10 @@ class TestGetCurrentDavisScore:
 
         result_rank1 = get_current_davis_score("000001")
 
+        # The pipeline cache holds the rank=1 result; clear it before
+        # swapping in the rank=10 mock so the second lookup actually
+        # re-invokes the (patched) pipeline.
+        clear_pipeline_cache()
         mock_result2 = _make_pipeline_result_with_stock(
             ts_code="000001.SZ", rank=10, total=10
         )
