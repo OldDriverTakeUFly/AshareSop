@@ -50,4 +50,4 @@ source = ["stockhot/technical_analyzer", "stockhot/sell_monitor"]
 fail_under = 85
 
 [tool.pytest.ini_options]
-testpaths = ["stockhot/tests", "davis_analyzer/tests", "stockhot/technical_analyzer/tests", "stockhot/sell_monitor/tests", "stockhot/advisor/tests"]
+testpaths = ["stockhot/tests", "davis_analyzer/tests", "stockhot/technical_analyzer/tests", "stockhot/sell_monitor/tests", "stockhot/advisor/tests", "stockhot/notification/tests"]
