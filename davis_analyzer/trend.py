@@ -170,9 +170,7 @@ def batch_trend(
             pe_accel = calculate_trend_acceleration(monthly_pe)
             pb_accel = calculate_trend_acceleration(monthly_pb)
 
-            score = calculate_trend_score(
-                pe_slope, pb_slope, pe_accel, pb_accel, is_cyclical
-            )
+            score = calculate_trend_score(pe_slope, pb_slope, pe_accel, pb_accel, is_cyclical)
             results[ts_code] = score
         except Exception:
             logger.exception("Trend calculation failed for {}", ts_code)

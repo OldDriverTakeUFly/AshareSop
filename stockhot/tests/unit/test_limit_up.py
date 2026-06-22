@@ -3,38 +3,44 @@ import stockhot.limit_up as lu
 
 
 def _zt_df():
-    return pd.DataFrame({
-        "代码": ["000001", "000002", "600123", "300456"],
-        "名称": ["平安银行", "万科A", "兰花科创", "创意信息"],
-        "涨跌幅": [10.0, 10.0, 10.0, 20.0],
-        "封板资金": [5.0e8, 3.0e8, 1.0e8, 2.0e8],
-        "最高板": [3, 2, 1, 4],
-        "连板数": [3, 2, 1, 4],
-        "所属行业": ["银行", "房地产", "煤炭", "计算机"],
-        "炸板次数": [0, 1, 3, 0],
-        "首次封板时间": ["09:30:00", "10:00:00", "14:00:00", "09:31:00"],
-        "最后封板时间": ["09:30:00", "14:50:00", "14:55:00", "09:31:00"],
-        "换手率": [2.5, 5.0, 8.0, 3.0],
-    })
+    return pd.DataFrame(
+        {
+            "代码": ["000001", "000002", "600123", "300456"],
+            "名称": ["平安银行", "万科A", "兰花科创", "创意信息"],
+            "涨跌幅": [10.0, 10.0, 10.0, 20.0],
+            "封板资金": [5.0e8, 3.0e8, 1.0e8, 2.0e8],
+            "最高板": [3, 2, 1, 4],
+            "连板数": [3, 2, 1, 4],
+            "所属行业": ["银行", "房地产", "煤炭", "计算机"],
+            "炸板次数": [0, 1, 3, 0],
+            "首次封板时间": ["09:30:00", "10:00:00", "14:00:00", "09:31:00"],
+            "最后封板时间": ["09:30:00", "14:50:00", "14:55:00", "09:31:00"],
+            "换手率": [2.5, 5.0, 8.0, 3.0],
+        }
+    )
 
 
 def _broken_df():
-    return pd.DataFrame({
-        "代码": ["000003"],
-        "名称": ["某炸板股"],
-        "涨跌幅": [5.2],
-        "炸板次数": [2],
-        "所属行业": ["电子"],
-    })
+    return pd.DataFrame(
+        {
+            "代码": ["000003"],
+            "名称": ["某炸板股"],
+            "涨跌幅": [5.2],
+            "炸板次数": [2],
+            "所属行业": ["电子"],
+        }
+    )
 
 
 def _limit_down_df():
-    return pd.DataFrame({
-        "代码": ["000004"],
-        "名称": ["某跌停股"],
-        "涨跌幅": [-10.0],
-        "所属行业": ["房地产"],
-    })
+    return pd.DataFrame(
+        {
+            "代码": ["000004"],
+            "名称": ["某跌停股"],
+            "涨跌幅": [-10.0],
+            "所属行业": ["房地产"],
+        }
+    )
 
 
 def test_fetch_limit_up_pool_with_mocked_data(monkeypatch):
@@ -131,9 +137,13 @@ def test_run_limit_up_analysis_full_pipeline(monkeypatch):
     monkeypatch.setattr(lu.ak, "stock_zt_pool_zbgc_em", lambda date: _broken_df())
     monkeypatch.setattr(lu.ak, "stock_zt_pool_dtgc_em", lambda date: _limit_down_df())
     monkeypatch.setattr(lu, "save_daily_data", lambda data: saved_daily.update(data))
-    monkeypatch.setattr(lu, "save_analysis_result",
-                        lambda date, atype, result: saved_analysis.update(
-                            {"date": date, "type": atype, "result": result}))
+    monkeypatch.setattr(
+        lu,
+        "save_analysis_result",
+        lambda date, atype, result: saved_analysis.update(
+            {"date": date, "type": atype, "result": result}
+        ),
+    )
 
     result = lu.run_limit_up_analysis("2026-05-12")
 

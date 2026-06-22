@@ -14,6 +14,7 @@ import pandas as pd
 
 try:
     import pandas_ta as ta
+
     _HAS_PANDAS_TA = True
 except ImportError:
     _HAS_PANDAS_TA = False
@@ -181,20 +182,20 @@ def macd(df: pd.DataFrame) -> pd.DataFrame:
             col_dif = f"MACD_{fast}_{slow}_{signal}"
             col_hist = f"MACDh_{fast}_{slow}_{signal}"
             col_sig = f"MACDs_{fast}_{slow}_{signal}"
-            return result.rename(columns={
-                col_dif: "macd_dif",
-                col_hist: "macd_hist",
-                col_sig: "macd_dea",
-            })
+            return result.rename(
+                columns={
+                    col_dif: "macd_dif",
+                    col_hist: "macd_hist",
+                    col_sig: "macd_dea",
+                }
+            )
         except Exception:
             pass
 
     return _macd_manual(df["close"], fast, slow, signal)
 
 
-def _macd_manual(
-    close: pd.Series, fast: int = 12, slow: int = 26, signal: int = 9
-) -> pd.DataFrame:
+def _macd_manual(close: pd.Series, fast: int = 12, slow: int = 26, signal: int = 9) -> pd.DataFrame:
     """Fallback MACD when pandas-ta is unavailable."""
     ema_fast = close.ewm(span=fast, adjust=False).mean()
     ema_slow = close.ewm(span=slow, adjust=False).mean()
@@ -221,23 +222,21 @@ def kdj(df: pd.DataFrame) -> pd.DataFrame:
     """
     if _HAS_PANDAS_TA:
         try:
-            result = ta.kdj(
-                df["high"], df["low"], df["close"], length=9, signal=3
+            result = ta.kdj(df["high"], df["low"], df["close"], length=9, signal=3)
+            return result.rename(
+                columns={
+                    "K_9_3": "k",
+                    "D_9_3": "d",
+                    "J_9_3": "j",
+                }
             )
-            return result.rename(columns={
-                "K_9_3": "k",
-                "D_9_3": "d",
-                "J_9_3": "j",
-            })
         except Exception:
             pass
 
     return _kdj_manual(df["high"], df["low"], df["close"])
 
 
-def _kdj_manual(
-    high: pd.Series, low: pd.Series, close: pd.Series
-) -> pd.DataFrame:
+def _kdj_manual(high: pd.Series, low: pd.Series, close: pd.Series) -> pd.DataFrame:
     """Fallback KDJ when pandas-ta is unavailable."""
     low_list = low.rolling(window=9, min_periods=1).min()
     high_list = high.rolling(window=9, min_periods=1).max()
@@ -302,9 +301,7 @@ def bollinger(df: pd.DataFrame, period: int = 20) -> pd.DataFrame:
     return _bollinger_manual(df["close"], period, std_dev)
 
 
-def _bollinger_manual(
-    close: pd.Series, period: int = 20, std_dev: int = 2
-) -> pd.DataFrame:
+def _bollinger_manual(close: pd.Series, period: int = 20, std_dev: int = 2) -> pd.DataFrame:
     """Fallback Bollinger Bands when pandas-ta is unavailable."""
     mid = close.rolling(window=period).mean()
     std = close.rolling(window=period).std()

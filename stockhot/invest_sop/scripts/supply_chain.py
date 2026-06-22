@@ -65,14 +65,16 @@ def _collect_lme_metals(target_date: str) -> list[dict]:
             df = _call_akshare("futures_foreign_hist", symbol=symbol)
             val = _last_close(df)
             if val is not None:
-                records.append({
-                    "date": target_date,
-                    "sector": "有色",
-                    "metric_name": name,
-                    "value": val,
-                    "unit": "USD/t",
-                    "source": "sina_futures_foreign",
-                })
+                records.append(
+                    {
+                        "date": target_date,
+                        "sector": "有色",
+                        "metric_name": name,
+                        "value": val,
+                        "unit": "USD/t",
+                        "source": "sina_futures_foreign",
+                    }
+                )
                 print(f"  [OK] {name}: {val}")
         except Exception as e:
             print(f"  [WARN] {name} failed: {e}")
@@ -86,15 +88,15 @@ def _collect_domestic_futures_basis(target_date: str) -> list[dict]:
         "CU": ("有色", "沪铜现货价"),
         "AL": ("有色", "沪铝现货价"),
         "ZN": ("有色", "沪锌现货价"),
-        "J":  ("煤炭", "焦炭现货价"),
+        "J": ("煤炭", "焦炭现货价"),
         "JM": ("煤炭", "焦煤现货价"),
-        "I":  ("煤炭", "铁矿现货价"),
+        "I": ("煤炭", "铁矿现货价"),
     }
     date_clean = target_date.replace("-", "")
     try:
         df = _call_akshare("futures_spot_price", date=date_clean, vars_list=list(symbol_map.keys()))
         if df is None or len(df) == 0:
-            print(f"  [INFO] futures_spot_price returned 0 rows (non-trading day?)")
+            print("  [INFO] futures_spot_price returned 0 rows (non-trading day?)")
             return records
         for _, row in df.iterrows():
             sym = str(row.get("symbol", ""))
@@ -103,14 +105,16 @@ def _collect_domestic_futures_basis(target_date: str) -> list[dict]:
             sector, metric_name = symbol_map[sym]
             spot_price = row.get("spot_price")
             if spot_price is not None and not pd.isna(spot_price):
-                records.append({
-                    "date": target_date,
-                    "sector": sector,
-                    "metric_name": metric_name,
-                    "value": round(float(spot_price), 2),
-                    "unit": "CNY/t",
-                    "source": "akshare_futures_spot",
-                })
+                records.append(
+                    {
+                        "date": target_date,
+                        "sector": sector,
+                        "metric_name": metric_name,
+                        "value": round(float(spot_price), 2),
+                        "unit": "CNY/t",
+                        "source": "akshare_futures_spot",
+                    }
+                )
                 print(f"  [OK] {metric_name}: {spot_price}")
     except Exception as e:
         print(f"  [WARN] domestic futures basis failed: {e}")
@@ -132,14 +136,16 @@ def _collect_bdi(target_date: str) -> list[dict]:
                 idx_col = df.columns[1] if len(df.columns) > 1 else df.columns[0]
             val = df[idx_col].iloc[-1]
             if not pd.isna(val):
-                records.append({
-                    "date": target_date,
-                    "sector": "航运",
-                    "metric_name": "BDI",
-                    "value": round(float(val), 2),
-                    "unit": "指数",
-                    "source": "sina_spot_goods",
-                })
+                records.append(
+                    {
+                        "date": target_date,
+                        "sector": "航运",
+                        "metric_name": "BDI",
+                        "value": round(float(val), 2),
+                        "unit": "指数",
+                        "source": "sina_spot_goods",
+                    }
+                )
                 print(f"  [OK] BDI: {val}")
     except Exception as e:
         print(f"  [WARN] BDI failed: {e}")
@@ -160,14 +166,16 @@ def _collect_steel(target_date: str) -> list[dict]:
                 idx_col = df.columns[1] if len(df.columns) > 1 else df.columns[0]
             val = df[idx_col].iloc[-1]
             if not pd.isna(val):
-                records.append({
-                    "date": target_date,
-                    "sector": "钢铁",
-                    "metric_name": "钢坯价格指数",
-                    "value": round(float(val), 2),
-                    "unit": "指数",
-                    "source": "sina_spot_goods",
-                })
+                records.append(
+                    {
+                        "date": target_date,
+                        "sector": "钢铁",
+                        "metric_name": "钢坯价格指数",
+                        "value": round(float(val), 2),
+                        "unit": "指数",
+                        "source": "sina_spot_goods",
+                    }
+                )
                 print(f"  [OK] 钢坯: {val}")
     except Exception as e:
         print(f"  [WARN] Steel failed: {e}")
@@ -180,17 +188,21 @@ def _collect_lc_ps_futures(target_date: str) -> list[dict]:
     date_clean = target_date.replace("-", "")
     for symbol, name in [("LC0", "碳酸锂期货收盘价"), ("PS0", "多晶硅期货收盘价")]:
         try:
-            df = _call_akshare("futures_main_sina", symbol=symbol, start_date=date_clean, end_date=date_clean)
+            df = _call_akshare(
+                "futures_main_sina", symbol=symbol, start_date=date_clean, end_date=date_clean
+            )
             val = _last_close(df)
             if val is not None:
-                records.append({
-                    "date": target_date,
-                    "sector": "新能源",
-                    "metric_name": name,
-                    "value": val,
-                    "unit": "CNY/t",
-                    "source": "sina_futures_main",
-                })
+                records.append(
+                    {
+                        "date": target_date,
+                        "sector": "新能源",
+                        "metric_name": name,
+                        "value": val,
+                        "unit": "CNY/t",
+                        "source": "sina_futures_main",
+                    }
+                )
                 print(f"  [OK] {name}: {val}")
             else:
                 print(f"  [INFO] {name}: no data for {target_date}")
@@ -208,14 +220,16 @@ def _collect_lc_ps_spot(target_date: str) -> list[dict]:
             if df is not None and len(df) > 0:
                 val = _last_close(df)
                 if val is not None:
-                    records.append({
-                        "date": target_date,
-                        "sector": "新能源",
-                        "metric_name": f"{name}现货价",
-                        "value": val,
-                        "unit": "CNY/t",
-                        "source": "100ppi",
-                    })
+                    records.append(
+                        {
+                            "date": target_date,
+                            "sector": "新能源",
+                            "metric_name": f"{name}现货价",
+                            "value": val,
+                            "unit": "CNY/t",
+                            "source": "100ppi",
+                        }
+                    )
                     print(f"  [OK] {name}现货: {val}")
                 else:
                     print(f"  [INFO] {name}现货: could not extract price")
@@ -241,14 +255,16 @@ def _collect_energy(target_date: str) -> list[dict]:
                 if col is not None:
                     val = last_row[col]
                     if not pd.isna(val):
-                        records.append({
-                            "date": target_date,
-                            "sector": "能源",
-                            "metric_name": metric_name,
-                            "value": round(float(val), 2),
-                            "unit": "CNY/t",
-                            "source": "akshare_energy_oil",
-                        })
+                        records.append(
+                            {
+                                "date": target_date,
+                                "sector": "能源",
+                                "metric_name": metric_name,
+                                "value": round(float(val), 2),
+                                "unit": "CNY/t",
+                                "source": "akshare_energy_oil",
+                            }
+                        )
                         print(f"  [OK] {metric_name}: {val}")
     except Exception as e:
         print(f"  [WARN] Energy failed: {e}")

@@ -43,7 +43,5 @@ def build_stock_universe(client: TushareClient) -> list[StockInfo]:
         )
 
     cyclical_count = sum(1 for s in stocks if s.is_cyclical)
-    logger.info(
-        "Built universe: {} stocks ({} cyclical)", len(stocks), cyclical_count
-    )
+    logger.info("Built universe: {} stocks ({} cyclical)", len(stocks), cyclical_count)
     return stocks

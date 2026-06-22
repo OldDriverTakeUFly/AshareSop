@@ -97,9 +97,9 @@ def test_generate_summary():
 
 def test_run_risk_alert_analysis_full(monkeypatch):
     monkeypatch.setattr(ra.ak, "stock_zh_a_st_em", _make_st_df)
-    monkeypatch.setattr(ra.ak, "stock_zh_a_stop_em", lambda: pd.DataFrame(
-        {"代码": ["600000"], "名称": ["ST浦发"]}
-    ))
+    monkeypatch.setattr(
+        ra.ak, "stock_zh_a_stop_em", lambda: pd.DataFrame({"代码": ["600000"], "名称": ["ST浦发"]})
+    )
 
     market_data = {
         "date": "2026-04-17",
@@ -117,11 +117,11 @@ def test_run_risk_alert_analysis_full(monkeypatch):
 
     saved_daily = []
     saved_analysis = []
+    monkeypatch.setattr(ra, "save_daily_data", lambda data: saved_daily.append(data))
     monkeypatch.setattr(
-        ra, "save_daily_data", lambda data: saved_daily.append(data)
-    )
-    monkeypatch.setattr(
-        ra, "save_analysis_result", lambda date, kind, payload: saved_analysis.append((date, kind, payload))
+        ra,
+        "save_analysis_result",
+        lambda date, kind, payload: saved_analysis.append((date, kind, payload)),
     )
 
     result = ra.run_risk_alert_analysis("2026-04-17")

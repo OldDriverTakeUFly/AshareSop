@@ -44,11 +44,7 @@ def _is_triggered(sell_signals: list[dict], signal_type: str) -> bool:
 
 
 def _any_triggered(sell_signals: list[dict]) -> list[str]:
-    return [
-        s["signal_type"]
-        for s in sell_signals
-        if s.get("triggered", False)
-    ]
+    return [s["signal_type"] for s in sell_signals if s.get("triggered", False)]
 
 
 def classify_scenario(aggregated: AggregatedSignals) -> ScenarioClassification:
@@ -87,7 +83,11 @@ def classify_scenario(aggregated: AggregatedSignals) -> ScenarioClassification:
             is_conflict=True,
         )
 
-    if tech_score < _TECH_WEAK and davis_score >= _DAVIS_STRONG and not _any_triggered(aggregated.sell_signals):
+    if (
+        tech_score < _TECH_WEAK
+        and davis_score >= _DAVIS_STRONG
+        and not _any_triggered(aggregated.sell_signals)
+    ):
         return ScenarioClassification(
             scenario="VALUE_ENTRY",
             description="Technical weakness + fundamental strength = value entry opportunity",
@@ -118,7 +118,7 @@ def arbitrate(aggregated: AggregatedSignals) -> ArbitrationResult:
         return ArbitrationResult(
             primary_signal="hard_stop",
             action="EXIT",
-            reasoning=f"Hard stop-loss triggered — immediate risk-management exit",
+            reasoning="Hard stop-loss triggered — immediate risk-management exit",
             conflict_notes=f"Overridden signals: {', '.join(overridden)}" if overridden else "",
             scenario=scenario.scenario,
         )
@@ -130,7 +130,7 @@ def arbitrate(aggregated: AggregatedSignals) -> ArbitrationResult:
         return ArbitrationResult(
             primary_signal="thesis_broken",
             action="EXIT",
-            reasoning=f"Investment thesis broken — exit before further decline",
+            reasoning="Investment thesis broken — exit before further decline",
             conflict_notes=f"Overridden signals: {', '.join(overridden)}" if overridden else "",
             scenario=scenario.scenario,
         )
@@ -142,7 +142,7 @@ def arbitrate(aggregated: AggregatedSignals) -> ArbitrationResult:
         return ArbitrationResult(
             primary_signal="target_reached",
             action="TRIM",
-            reasoning=f"Target price reached — take partial profit",
+            reasoning="Target price reached — take partial profit",
             conflict_notes=f"Overridden signals: {', '.join(overridden)}" if overridden else "",
             scenario=scenario.scenario,
         )

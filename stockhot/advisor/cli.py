@@ -51,9 +51,7 @@ def _get_holding_for_code(code: str) -> dict | None:
 def _get_active_holdings() -> list[dict]:
     conn = get_connection()
     try:
-        cursor = conn.execute(
-            "SELECT * FROM invest_holdings WHERE status = 'active' ORDER BY id"
-        )
+        cursor = conn.execute("SELECT * FROM invest_holdings WHERE status = 'active' ORDER BY id")
         return [dict(row) for row in cursor]
     finally:
         conn.close()
@@ -116,11 +114,7 @@ def _try_telegram_push(recommendations: list[Recommendation]) -> None:
 
     rec_dicts = [_rec_to_telegram_dict(r) for r in actionable]
     notifier = TelegramNotifier(bot_token, chat_id, allowed_user_ids)
-    asyncio.run(
-        notifier.send_recommendations_batch(
-            rec_dicts, max_messages=MAX_TELEGRAM_MESSAGES
-        )
-    )
+    asyncio.run(notifier.send_recommendations_batch(rec_dicts, max_messages=MAX_TELEGRAM_MESSAGES))
 
 
 # ── Command handlers ────
@@ -132,15 +126,9 @@ def cmd_ask(args: argparse.Namespace) -> int:
     holding = _get_holding_for_code(args.code)
 
     try:
-        rec = run_for_stock(
-            args.code, trade_date, holding=holding, force=args.force
-        )
+        rec = run_for_stock(args.code, trade_date, holding=holding, force=args.force)
     except Exception as exc:
-        print(
-            json.dumps(
-                {"error": str(exc), "code": args.code}, ensure_ascii=False
-            )
-        )
+        print(json.dumps({"error": str(exc), "code": args.code}, ensure_ascii=False))
         return 1
 
     output = _rec_to_dict(rec)
@@ -188,9 +176,7 @@ def cmd_daily(args: argparse.Namespace) -> int:
 
     for idx, (code, holding) in enumerate(combined, 1):
         try:
-            rec = run_for_stock(
-                code, trade_date, holding=holding, force=args.force
-            )
+            rec = run_for_stock(code, trade_date, holding=holding, force=args.force)
             recommendations.append(rec)
             if rec.recommendation_type != "none":
                 generated += 1
@@ -233,27 +219,15 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command")
 
     # ask subcommand
-    ask_parser = sub.add_parser(
-        "ask", help="Generate recommendation for a single stock"
-    )
+    ask_parser = sub.add_parser("ask", help="Generate recommendation for a single stock")
     ask_parser.add_argument("code", help="Stock code (e.g. 000001)")
-    ask_parser.add_argument(
-        "--force", action="store_true", help="Override idempotency"
-    )
-    ask_parser.add_argument(
-        "--date", default=None, help="Trade date (default: today)"
-    )
+    ask_parser.add_argument("--force", action="store_true", help="Override idempotency")
+    ask_parser.add_argument("--date", default=None, help="Trade date (default: today)")
 
     # daily subcommand
-    daily_parser = sub.add_parser(
-        "daily", help="Run advisor for all holdings + watchlist"
-    )
-    daily_parser.add_argument(
-        "--date", default=None, help="Trade date (default: today)"
-    )
-    daily_parser.add_argument(
-        "--force", action="store_true", help="Override idempotency"
-    )
+    daily_parser = sub.add_parser("daily", help="Run advisor for all holdings + watchlist")
+    daily_parser.add_argument("--date", default=None, help="Trade date (default: today)")
+    daily_parser.add_argument("--force", action="store_true", help="Override idempotency")
     daily_parser.add_argument(
         "--no-telegram",
         action="store_true",
@@ -261,9 +235,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     # watchlist subcommand (display only; dispatch intercepts before parsing)
-    sub.add_parser(
-        "watchlist", help="Manage watchlist (add/list/remove/update)"
-    )
+    sub.add_parser("watchlist", help="Manage watchlist (add/list/remove/update)")
 
     return parser
 

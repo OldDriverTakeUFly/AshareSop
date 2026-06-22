@@ -40,8 +40,7 @@ def _init_cache_db(db_path: Path) -> None:
     db_path.parent.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(str(db_path)) as conn:
         # Legacy table — retained for migration. Never written by this client now.
-        conn.execute(
-            """
+        conn.execute("""
             CREATE TABLE IF NOT EXISTS api_cache (
                 endpoint  TEXT NOT NULL,
                 params_hash TEXT NOT NULL,
@@ -49,10 +48,8 @@ def _init_cache_db(db_path: Path) -> None:
                 fetched_at REAL NOT NULL,
                 PRIMARY KEY (endpoint, params_hash)
             )
-            """
-        )
-        conn.execute(
-            """
+            """)
+        conn.execute("""
             CREATE TABLE IF NOT EXISTS stock_basic_cache (
                 ts_code     TEXT PRIMARY KEY,
                 name        TEXT,
@@ -60,10 +57,8 @@ def _init_cache_db(db_path: Path) -> None:
                 list_status TEXT,
                 fetched_at  REAL NOT NULL
             )
-            """
-        )
-        conn.execute(
-            """
+            """)
+        conn.execute("""
             CREATE TABLE IF NOT EXISTS daily_basic_cache (
                 ts_code    TEXT NOT NULL,
                 trade_date TEXT NOT NULL,
@@ -74,10 +69,8 @@ def _init_cache_db(db_path: Path) -> None:
                 fetched_at REAL NOT NULL,
                 PRIMARY KEY (ts_code, trade_date)
             )
-            """
-        )
-        conn.execute(
-            """
+            """)
+        conn.execute("""
             CREATE TABLE IF NOT EXISTS financial_cache (
                 ts_code    TEXT NOT NULL,
                 end_date   TEXT NOT NULL,
@@ -86,8 +79,7 @@ def _init_cache_db(db_path: Path) -> None:
                 fetched_at REAL NOT NULL,
                 PRIMARY KEY (ts_code, end_date, endpoint)
             )
-            """
-        )
+            """)
         conn.commit()
 
 
@@ -117,9 +109,7 @@ class TushareClient:
         """Block until the request rate is within bounds."""
         now = time.time()
         window = 60.0
-        self._request_timestamps = [
-            t for t in self._request_timestamps if now - t < window
-        ]
+        self._request_timestamps = [t for t in self._request_timestamps if now - t < window]
         if len(self._request_timestamps) >= self._rate_limit:
             oldest = self._request_timestamps[0]
             sleep_time = oldest + window - now + 0.1
@@ -169,9 +159,7 @@ class TushareClient:
     def get_stock_list(self) -> pd.DataFrame:
         """Return the A-share stock list with 7-day TTL caching."""
         with sqlite3.connect(str(_CACHE_DB)) as conn:
-            row = conn.execute(
-                "SELECT COUNT(*), MAX(fetched_at) FROM stock_basic_cache"
-            ).fetchone()
+            row = conn.execute("SELECT COUNT(*), MAX(fetched_at) FROM stock_basic_cache").fetchone()
 
         count = row[0] if row else 0
         latest = row[1] if row else None
@@ -224,9 +212,7 @@ class TushareClient:
         if fetch_start < start_date:
             fetch_start = start_date
         if fetch_start <= end_date:
-            logger.info(
-                "Incremental daily_basic: {} [{} → {}]", ts_code, fetch_start, end_date
-            )
+            logger.info("Incremental daily_basic: {} [{} → {}]", ts_code, fetch_start, end_date)
             df = self._call(
                 "daily_basic",
                 self._pro.daily_basic,
@@ -390,9 +376,7 @@ class TushareClient:
         if fetch_start < start_date:
             fetch_start = start_date
         if fetch_start <= end_date:
-            logger.info(
-                "Incremental {}: {} [{} → {}]", endpoint, ts_code, fetch_start, end_date
-            )
+            logger.info("Incremental {}: {} [{} → {}]", endpoint, ts_code, fetch_start, end_date)
             df = self._call(
                 endpoint,
                 api_fn,

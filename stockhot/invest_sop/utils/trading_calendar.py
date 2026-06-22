@@ -15,8 +15,12 @@ def _load_trade_dates() -> set[str]:
 
     removed: dict[str, str] = {}
     proxy_keys = [
-        "http_proxy", "https_proxy", "HTTP_PROXY", "HTTPS_PROXY",
-        "ALL_PROXY", "all_proxy",
+        "http_proxy",
+        "https_proxy",
+        "HTTP_PROXY",
+        "HTTPS_PROXY",
+        "ALL_PROXY",
+        "all_proxy",
     ]
     for key in proxy_keys:
         if key in os.environ:
@@ -24,6 +28,7 @@ def _load_trade_dates() -> set[str]:
 
     try:
         import akshare as ak
+
         df = ak.tool_trade_date_hist_sina()
         _trade_dates = set(str(d) for d in df["trade_date"])
     finally:

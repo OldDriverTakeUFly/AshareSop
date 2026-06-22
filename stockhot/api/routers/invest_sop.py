@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime
-from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
 
@@ -10,7 +9,6 @@ from stockhot.api import invest_sop_db as db
 from stockhot.api.schemas import (
     Holding,
     HoldingAdjustRequest,
-    HoldingCreateRequest,
     HoldingCreateSimple,
     HoldingTransaction,
     HoldingUpdatePriceRequest,
@@ -42,6 +40,7 @@ async def get_holding(id: int):
 
 def _strip_proxy():
     import os
+
     removed = {}
     for key in ["http_proxy", "https_proxy", "HTTP_PROXY", "HTTPS_PROXY"]:
         if key in os.environ:
@@ -51,6 +50,7 @@ def _strip_proxy():
 
 def _restore_proxy(removed):
     import os
+
     os.environ.update(removed)
 
 
@@ -370,8 +370,10 @@ async def get_report(date: str):
     for path in sorted(reports_dir.glob(f"{date}_*.md")):
         suffix = path.stem.split("_", 1)[1] if "_" in path.stem else ""
         if suffix in _REPORT_TYPE_MAP:
-            results.append({
-                "type": _REPORT_TYPE_MAP[suffix],
-                "content": path.read_text(encoding="utf-8"),
-            })
+            results.append(
+                {
+                    "type": _REPORT_TYPE_MAP[suffix],
+                    "content": path.read_text(encoding="utf-8"),
+                }
+            )
     return {"date": date, "reports": results}

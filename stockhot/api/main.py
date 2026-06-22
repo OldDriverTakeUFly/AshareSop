@@ -13,7 +13,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from stockhot.api.routers import (
+from stockhot.api.routers import (  # noqa: E402
     dragon_tiger,
     fund_flow,
     health,
@@ -25,21 +25,9 @@ from stockhot.api.routers import (
 
 app.include_router(health.router)
 
-app.include_router(
-    limit_up.router, dependencies=[Depends(verify_credentials)]
-)
-app.include_router(
-    dragon_tiger.router, dependencies=[Depends(verify_credentials)]
-)
-app.include_router(
-    fund_flow.router, dependencies=[Depends(verify_credentials)]
-)
-app.include_router(
-    risk_alert.router, dependencies=[Depends(verify_credentials)]
-)
-app.include_router(
-    trigger.router, dependencies=[Depends(verify_credentials)]
-)
-app.include_router(
-    invest_sop.router, dependencies=[Depends(verify_credentials)]
-)
+app.include_router(limit_up.router, dependencies=[Depends(verify_credentials)])
+app.include_router(dragon_tiger.router, dependencies=[Depends(verify_credentials)])
+app.include_router(fund_flow.router, dependencies=[Depends(verify_credentials)])
+app.include_router(risk_alert.router, dependencies=[Depends(verify_credentials)])
+app.include_router(trigger.router, dependencies=[Depends(verify_credentials)])
+app.include_router(invest_sop.router, dependencies=[Depends(verify_credentials)])

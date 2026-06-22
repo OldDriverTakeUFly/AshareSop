@@ -16,14 +16,16 @@ class TencentClient(BaseClient):
 
     def __init__(self):
         self.session = requests.Session()
-        self.session.headers.update({
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-        })
+        self.session.headers.update(
+            {
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            }
+        )
 
     def _fetch(self, codes: list[str]) -> dict[str, dict[str, Any]]:
         code_str = ",".join(codes)
         url = f"{self.BASE_URL}{code_str}"
-        
+
         try:
             resp = self.session.get(url, timeout=30)
             resp.raise_for_status()
@@ -40,14 +42,14 @@ class TencentClient(BaseClient):
     def _parse_response(self, text: str) -> dict[str, dict[str, Any]]:
         result = {}
         pattern = r'v_(\w+)="([^"]+)"'
-        
+
         for match in re.finditer(pattern, text):
             code = match.group(1)
             data_str = match.group(2)
-            
+
             if data_str == "pv_none_match":
                 continue
-                
+
             fields = data_str.split("~")
             if len(fields) < 40:
                 continue
@@ -56,8 +58,16 @@ class TencentClient(BaseClient):
                 "code": fields[2] if len(fields) > 2 else "",
                 "name": fields[1] if len(fields) > 1 else "",
                 "price": float(fields[3]) if fields[3] and fields[3] != "-" else 0,
-                "change": float(fields[31]) if len(fields) > 31 and fields[31] and fields[31] != "-" else 0,
-                "change_pct": float(fields[32]) if len(fields) > 32 and fields[32] and fields[32] != "-" else 0,
+                "change": (
+                    float(fields[31])
+                    if len(fields) > 31 and fields[31] and fields[31] != "-"
+                    else 0
+                ),
+                "change_pct": (
+                    float(fields[32])
+                    if len(fields) > 32 and fields[32] and fields[32] != "-"
+                    else 0
+                ),
                 "volume": int(fields[6]) if fields[6] and fields[6].isdigit() else 0,
                 "amount": float(fields[7]) if fields[7] and fields[7] else 0,
             }
@@ -68,12 +78,12 @@ class TencentClient(BaseClient):
         """获取涨幅排行 - scan many stocks to find top gainers"""
         codes = self._generate_stock_codes(limit * 5)
         data = self._fetch(codes)
-        
+
         stocks = []
         for code, info in data.items():
             if info.get("change_pct", 0) > 0:
                 stocks.append(self._normalize_stock(info))
-        
+
         stocks.sort(key=lambda x: x.get("change_pct", 0), reverse=True)
         return stocks[:limit]
 
@@ -81,26 +91,38 @@ class TencentClient(BaseClient):
         """获取跌幅排行"""
         codes = self._generate_stock_codes(limit * 5)
         data = self._fetch(codes)
-        
+
         stocks = []
         for code, info in data.items():
             if info.get("change_pct", 0) < 0:
                 stocks.append(self._normalize_stock(info))
-        
+
         stocks.sort(key=lambda x: x.get("change_pct", 0))
         return stocks[:limit]
 
     def get_sectors(self, limit: int = 15) -> list[dict[str, Any]]:
         """获取板块排行 - limited via Tencent API"""
-        codes = ["bk081113", "bk081101", "bk081102", "bk081103", "bk081104", "bk081105",
-                 "bk080001", "bk080002", "bk080003", "bk080004", "bk080005", "bk080006"]
+        codes = [
+            "bk081113",
+            "bk081101",
+            "bk081102",
+            "bk081103",
+            "bk081104",
+            "bk081105",
+            "bk080001",
+            "bk080002",
+            "bk080003",
+            "bk080004",
+            "bk080005",
+            "bk080006",
+        ]
         data = self._fetch(codes)
-        
+
         sectors = []
         for code, info in data.items():
             if info.get("change_pct", 0) != 0:
                 sectors.append(self._normalize_sector(info))
-        
+
         sectors.sort(key=lambda x: x.get("change_pct", 0), reverse=True)
         return sectors[:limit]
 
@@ -108,10 +130,10 @@ class TencentClient(BaseClient):
         """获取资金流向 - limited via Tencent API"""
         codes = self._generate_stock_codes(limit * 3)
         data = self._fetch(codes)
-        
+
         stocks = list(data.values())
         stocks.sort(key=lambda x: abs(x.get("change_pct", 0)), reverse=True)
-        
+
         result = []
         for info in stocks[:limit]:
             result.append(self._normalize_fund_flow(info))
@@ -150,21 +172,21 @@ class TencentClient(BaseClient):
     def _generate_stock_codes(self, count: int) -> list[str]:
         """Generate a diverse list of stock codes to query."""
         codes = []
-        
+
         # Shanghai main board (60x)
         for i in range(600000, 600000 + count * 3):
             codes.append(f"sh{i:06d}")
-        
+
         # Shenzhen main board (00x)
         for i in range(1, count):
             codes.append(f"sz{i:06d}")
-        
+
         # STAR Market (688x)
         for i in range(688000, 688000 + count // 2):
             codes.append(f"sh{i:06d}")
-        
+
         # ChiNext (30x)
         for i in range(300000, 300000 + count // 2):
             codes.append(f"sz{i:06d}")
-        
-        return codes[:count * 4]
+
+        return codes[: count * 4]

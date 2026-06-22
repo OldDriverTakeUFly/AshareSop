@@ -6,7 +6,6 @@ No trading day check — runs every morning.
 
 import argparse
 import os
-import traceback
 from datetime import datetime
 
 import akshare as ak
@@ -133,7 +132,9 @@ def main():
     print("  Collecting USD/CNY...")
     try:
         date_clean = args.date.replace("-", "")
-        df = _call_akshare("currency_boc_sina", symbol="美元", start_date=date_clean, end_date=date_clean)
+        df = _call_akshare(
+            "currency_boc_sina", symbol="美元", start_date=date_clean, end_date=date_clean
+        )
         if df is not None and len(df) >= 1:
             col = None
             for c in df.columns:

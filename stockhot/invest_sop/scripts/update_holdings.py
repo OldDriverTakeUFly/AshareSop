@@ -80,7 +80,11 @@ def update_holding(holding: dict, market_df: pd.DataFrame, total_value: float) -
     row = row.iloc[0]
     current_price = float(row["最新价"]) if pd.notna(row["最新价"]) else None
     name = str(row["名称"]) if pd.notna(row["名称"]) else holding.get("name")
-    sector = str(row.get("所属行业", holding.get("sector"))) if pd.notna(row.get("所属行业")) else holding.get("sector")
+    sector = (
+        str(row.get("所属行业", holding.get("sector")))
+        if pd.notna(row.get("所属行业"))
+        else holding.get("sector")
+    )
 
     if current_price is None:
         print(f"  WARN: {code} has no price, skipping")
@@ -95,23 +99,33 @@ def update_holding(holding: dict, market_df: pd.DataFrame, total_value: float) -
     target_price = round(entry_price * (1 + rule["target_pct"]), 2)
 
     quantity = holding.get("quantity", 0)
-    position_pct = round((quantity * current_price / total_value * 100), 2) if total_value > 0 else 0
+    position_pct = (
+        round((quantity * current_price / total_value * 100), 2) if total_value > 0 else 0
+    )
 
     # Update DB
     conn = get_connection()
     try:
-        conn.execute("""
+        conn.execute(
+            """
             UPDATE invest_holdings SET
                 name = ?, sector = ?, current_price = ?,
                 entry_price = ?, stop_loss_hard = ?, target_price = ?,
                 position_pct = ?, updated_at = ?
             WHERE id = ?
-        """, (
-            name, sector, current_price,
-            entry_price, stop_loss_hard, target_price,
-            position_pct, datetime.now().isoformat(),
-            holding["id"],
-        ))
+        """,
+            (
+                name,
+                sector,
+                current_price,
+                entry_price,
+                stop_loss_hard,
+                target_price,
+                position_pct,
+                datetime.now().isoformat(),
+                holding["id"],
+            ),
+        )
         conn.commit()
     finally:
         conn.close()
@@ -162,6 +176,8 @@ def run(force: bool = False) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Update holdings with latest market data")
-    parser.add_argument("--force", action="store_true", help="Force update even if already updated today")
+    parser.add_argument(
+        "--force", action="store_true", help="Force update even if already updated today"
+    )
     args = parser.parse_args()
     run(force=args.force)

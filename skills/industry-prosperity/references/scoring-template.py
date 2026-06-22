@@ -53,9 +53,7 @@ from loguru import logger
 # ── davis_analyzer 核心模块（只读调用，不修改源码，不复制实现）──
 from davis_analyzer.financial_fetcher import fetch_financial_data
 from davis_analyzer.prosperity import (
-    calculate_delta_g,
     calculate_prosperity_score,
-    dupont_decomposition,
 )
 from davis_analyzer.prosperity_inflection import analyze_inflection
 from davis_analyzer.prosperity_sector import (
@@ -70,10 +68,10 @@ from davis_analyzer.tushare_client import TushareClient
 from davis_analyzer.types import FinancialData, ProsperityScore, StockInfo
 
 # ========== CONFIG: 填入你的标的 ==========
-TARGET_CODE = "000000.SH"      # 目标股票 ts_code (例: "600519.SH", "000001.SZ")
-TARGET_NAME = "目标公司"        # 目标公司名称 (中文，用于日志/JSON 输出)
-OUTPUT_DIR = "output"          # JSON 输出目录 (相对仓库根目录或绝对路径)
-PEER_CODES: list[str] = []     # 同行业可比标的 ts_code 列表 (用于行业聚合和相对 ΔG)
+TARGET_CODE = "000000.SH"  # 目标股票 ts_code (例: "600519.SH", "000001.SZ")
+TARGET_NAME = "目标公司"  # 目标公司名称 (中文，用于日志/JSON 输出)
+OUTPUT_DIR = "output"  # JSON 输出目录 (相对仓库根目录或绝对路径)
+PEER_CODES: list[str] = []  # 同行业可比标的 ts_code 列表 (用于行业聚合和相对 ΔG)
 # ==========================================
 
 # ── 派生常量 (请勿手动修改) ──
@@ -89,9 +87,7 @@ THRESHOLD_30PCT = 30.0  # 30% 阈值：净利润增速降至 30% 以下时超额
 # ════════════════════════════════════════════════════════════════════════════
 
 
-def _classify_mountain_position(
-    growth_rate: float, delta_g: float
-) -> dict[str, str]:
+def _classify_mountain_position(growth_rate: float, delta_g: float) -> dict[str, str]:
     """将 G 和 ΔG 映射到山峰理论的三个区域.
 
     输入: growth_rate (当前增速 %), delta_g (增速的边际变化，百分点).
@@ -218,8 +214,7 @@ def score_prosperity() -> dict:
     logger.info("获取到 {} 期财务数据", len(fin_data))
     for fd in fin_data:
         logger.debug(
-            "  {} rev={:.0f} np={:.0f} "
-            "yoy_rev={} yoy_prof={}",
+            "  {} rev={:.0f} np={:.0f} " "yoy_rev={} yoy_prof={}",
             fd.report_period,
             fd.revenue or 0,
             fd.net_profit or 0,
@@ -258,16 +253,10 @@ def score_prosperity() -> dict:
     # ── Step 5: 山峰理论 + 成长股投资时钟定位 ──
     logger.info("Step 5: 山峰理论 + 成长股投资时钟定位...")
     latest = fin_data[0]
-    latest_growth = (
-        (latest.yoy_profit_growth or 0.0) * 100
-        if latest.yoy_profit_growth
-        else 0.0
-    )
+    latest_growth = (latest.yoy_profit_growth or 0.0) * 100 if latest.yoy_profit_growth else 0.0
     mountain = _classify_mountain_position(latest_growth, prosp_score.delta_g)
     clock = _classify_clock_quadrant(stage)
-    logger.info(
-        "山峰定位: {} | 时钟象限: {}", mountain["zone"], clock["quadrant"]
-    )
+    logger.info("山峰定位: {} | 时钟象限: {}", mountain["zone"], clock["quadrant"])
 
     # ── Step 6: 拐点分析 ──
     # 引擎: prosperity_inflection.analyze_inflection
@@ -286,13 +275,9 @@ def score_prosperity() -> dict:
     infos_map = {ts_code: stock_info}
     fin_data_map = {ts_code: fin_data}
 
-    ignition_set = screen_g_delta_g_ignition(
-        scores_map, infos_map, fin_data_map
-    )
+    ignition_set = screen_g_delta_g_ignition(scores_map, infos_map, fin_data_map)
     is_ignition = ts_code in ignition_set
-    ignition_reasons = (
-        generate_ignition_reasons(prosp_score) if is_ignition else []
-    )
+    ignition_reasons = generate_ignition_reasons(prosp_score) if is_ignition else []
     risk_warnings = generate_risk_warnings(prosp_score, fin_data)
 
     logger.info(
@@ -315,16 +300,12 @@ def score_prosperity() -> dict:
 
         for peer_code in PEER_CODES:
             try:
-                peer_fd = fetch_financial_data(
-                    client, peer_code, periods=PERIODS
-                )
+                peer_fd = fetch_financial_data(client, peer_code, periods=PERIODS)
                 if not peer_fd:
                     logger.warning("Peer {} 无财务数据，跳过", peer_code)
                     continue
                 peer_score = calculate_prosperity_score(peer_fd)
-                peer_info = _build_stock_info(
-                    client, peer_code, peer_code
-                )
+                peer_info = _build_stock_info(client, peer_code, peer_code)
                 peer_scores[peer_code] = peer_score
                 peer_infos[peer_code] = peer_info
                 peer_fin_data[peer_code] = peer_fd
@@ -335,9 +316,7 @@ def score_prosperity() -> dict:
         compute_relative_delta_g(peer_scores, peer_infos)
 
         # 行业聚合
-        industry_scores = aggregate_industry_prosperity(
-            peer_scores, peer_infos
-        )
+        industry_scores = aggregate_industry_prosperity(peer_scores, peer_infos)
         if industry_scores:
             top_industry = industry_scores[0]
             industry_result = {
@@ -345,9 +324,7 @@ def score_prosperity() -> dict:
                 "stock_count": top_industry.stock_count,
                 "avg_composite_score": top_industry.avg_composite_score,
                 "median_delta_g": top_industry.median_delta_g,
-                "stage": classify_stock_stage(
-                    peer_scores[ts_code]
-                ),
+                "stage": classify_stock_stage(peer_scores[ts_code]),
             }
             logger.info(
                 "行业聚合: {} ({} 只股票) 平均分={:.2f} 中位ΔG={:.2f}",

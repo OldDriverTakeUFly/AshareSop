@@ -26,19 +26,45 @@ CREATE TABLE IF NOT EXISTS analysis_results (
 """
 
 MARKET_FLOW = [
-    {"date": "2026-05-14", "main_net": 50.5, "main_pct": 0.012, "huge_net": 30.0,
-     "large_net": 20.5, "medium_net": -15.0, "small_net": -35.5}
+    {
+        "date": "2026-05-14",
+        "main_net": 50.5,
+        "main_pct": 0.012,
+        "huge_net": 30.0,
+        "large_net": 20.5,
+        "medium_net": -15.0,
+        "small_net": -35.5,
+    }
 ]
 SECTOR_FLOW = [
-    {"name": "半导体", "change_pct": 2.5, "main_net": 10.0, "main_pct": 0.05,
-     "huge_net": 5.0, "large_net": 5.0, "medium_net": -2.0, "small_net": -8.0},
-    {"name": "银行", "change_pct": 1.0, "main_net": 20.0, "main_pct": 0.03,
-     "huge_net": 15.0, "large_net": 5.0, "medium_net": -3.0, "small_net": -5.0},
+    {
+        "name": "半导体",
+        "change_pct": 2.5,
+        "main_net": 10.0,
+        "main_pct": 0.05,
+        "huge_net": 5.0,
+        "large_net": 5.0,
+        "medium_net": -2.0,
+        "small_net": -8.0,
+    },
+    {
+        "name": "银行",
+        "change_pct": 1.0,
+        "main_net": 20.0,
+        "main_pct": 0.03,
+        "huge_net": 15.0,
+        "large_net": 5.0,
+        "medium_net": -3.0,
+        "small_net": -5.0,
+    },
 ]
 TREND = {
     "trend": {
-        "direction": "持续流入", "momentum": "加速",
-        "large_vs_retail_divergence": True, "lookback_rows": 5, "avg_main_net": 12.34,
+        "direction": "持续流入",
+        "momentum": "加速",
+        "large_vs_retail_divergence": True,
+        "lookback_rows": 5,
+        "avg_main_net": 12.34,
     },
     "summary": "主力资金持续流入",
 }

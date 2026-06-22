@@ -285,9 +285,7 @@ def save_all_reports(
         prosperity_map[ts_code] = prop
 
     if top_scores:
-        summary_md = generate_summary_index(
-            top_scores, stock_infos, valuation_map, prosperity_map
-        )
+        summary_md = generate_summary_index(top_scores, stock_infos, valuation_map, prosperity_map)
         date_str = datetime.now().strftime("%Y%m%d")
         summary_name = f"戴维斯双击估值筛选汇总_{date_str}.md"
         summary_path = out / summary_name
@@ -328,9 +326,7 @@ def _build_risk_notes(stock_info: StockInfo, distress: DistressSignal) -> str:
     notes: list[str] = []
 
     if stock_info.is_cyclical:
-        notes.append(
-            "- 该股属于周期性行业，业绩波动较大，需关注行业景气周期位置"
-        )
+        notes.append("- 该股属于周期性行业，业绩波动较大，需关注行业景气周期位置")
 
     detail = distress.signals_detail or {}
     high_risk_items = detail.get("risk_items", [])

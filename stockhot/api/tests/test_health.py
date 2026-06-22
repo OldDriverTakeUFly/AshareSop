@@ -12,19 +12,19 @@ from stockhot.storage.database import init_database
 @pytest.fixture()
 def client_with_db(tmp_path):
     db_path = tmp_path / "test.db"
-    with patch("stockhot.storage.database.DB_PATH", db_path), patch(
-        "stockhot.core.config.DB_PATH", db_path
-    ), patch("stockhot.api.config.settings.DB_PATH", str(db_path)):
+    with (
+        patch("stockhot.storage.database.DB_PATH", db_path),
+        patch("stockhot.core.config.DB_PATH", db_path),
+        patch("stockhot.api.config.settings.DB_PATH", str(db_path)),
+    ):
         init_database()
         conn = sqlite3.connect(db_path)
         conn.execute(
-            "INSERT INTO daily_data (trade_date, data_type, data_json) "
-            "VALUES (?, ?, ?)",
+            "INSERT INTO daily_data (trade_date, data_type, data_json) " "VALUES (?, ?, ?)",
             ("2026-05-13", "limit_up_pool", json.dumps([{"code": "000001"}])),
         )
         conn.execute(
-            "INSERT INTO daily_data (trade_date, data_type, data_json) "
-            "VALUES (?, ?, ?)",
+            "INSERT INTO daily_data (trade_date, data_type, data_json) " "VALUES (?, ?, ?)",
             ("2026-05-12", "dragon_tiger_detail", json.dumps([])),
         )
         conn.commit()

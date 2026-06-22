@@ -32,9 +32,7 @@ class PromptRegistry:
             latest = sorted(versions.keys())[-1]
             return versions[latest]
         if version not in versions:
-            raise KeyError(
-                f"Prompt template '{name}' version '{version}' not found"
-            )
+            raise KeyError(f"Prompt template '{name}' version '{version}' not found")
         return versions[version]
 
     def list_names(self) -> list[str]:

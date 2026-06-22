@@ -15,11 +15,24 @@ class EastMoneyClient(BaseClient):
 
     def __init__(self):
         import os
-        for k in ["http_proxy", "https_proxy", "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "all_proxy", "no_proxy", "NO_PROXY"]:
+
+        for k in [
+            "http_proxy",
+            "https_proxy",
+            "HTTP_PROXY",
+            "HTTPS_PROXY",
+            "ALL_PROXY",
+            "all_proxy",
+            "no_proxy",
+            "NO_PROXY",
+        ]:
             os.environ.pop(k, None)
         self.opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
         self.opener.addheaders = [
-            ("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"),
+            (
+                "User-Agent",
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            ),
             ("Referer", "https://quote.eastmoney.com/"),
         ]
 
@@ -117,34 +130,40 @@ class EastMoneyClient(BaseClient):
     def _parse_stock_list(self, items: list) -> list[dict[str, Any]]:
         result = []
         for item in items:
-            result.append({
-                "code": item.get("f12", ""),
-                "name": item.get("f14", ""),
-                "price": item.get("f2", 0),
-                "change_pct": item.get("f3", 0),
-                "volume": item.get("f5", 0),
-                "amount": item.get("f6", 0),
-            })
+            result.append(
+                {
+                    "code": item.get("f12", ""),
+                    "name": item.get("f14", ""),
+                    "price": item.get("f2", 0),
+                    "change_pct": item.get("f3", 0),
+                    "volume": item.get("f5", 0),
+                    "amount": item.get("f6", 0),
+                }
+            )
         return result
 
     def _parse_sector_list(self, items: list) -> list[dict[str, Any]]:
         result = []
         for item in items:
-            result.append({
-                "name": item.get("f14", ""),
-                "change_pct": item.get("f3", 0),
-                "volume": item.get("f5", 0),
-                "turnover_rate": item.get("f2", 0),
-            })
+            result.append(
+                {
+                    "name": item.get("f14", ""),
+                    "change_pct": item.get("f3", 0),
+                    "volume": item.get("f5", 0),
+                    "turnover_rate": item.get("f2", 0),
+                }
+            )
         return result
 
     def _parse_fund_flow(self, items: list) -> list[dict[str, Any]]:
         result = []
         for item in items:
-            result.append({
-                "code": item.get("f12", ""),
-                "name": item.get("f14", ""),
-                "net_inflow": item.get("f10", 0),
-                "inflow_rate": item.get("f3", 0),
-            })
+            result.append(
+                {
+                    "code": item.get("f12", ""),
+                    "name": item.get("f14", ""),
+                    "net_inflow": item.get("f10", 0),
+                    "inflow_rate": item.get("f3", 0),
+                }
+            )
         return result

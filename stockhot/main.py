@@ -31,18 +31,22 @@ def main():
 
     if args.mode == "scheduler":
         from stockhot.scheduler import run_scheduler
+
         run_scheduler()
         return
 
     from stockhot.storage.database import init_database
+
     init_database()
 
     if args.mode in ("collect", "all"):
         from stockhot.data_collector import run_collection
+
         run_collection(date=args.date)
 
     if args.mode in ("analyze", "all"):
         from stockhot.ai_analyzer import run_analysis
+
         run_analysis(date=args.date)
 
     if args.mode in ("analyze", "all"):
@@ -67,10 +71,12 @@ def main():
 
     if args.mode in ("generate", "all"):
         from stockhot.image_generator import run_generation
+
         run_generation(date=args.date)
 
     if args.mode in ("publish", "all"):
         from stockhot.publisher import run_publish
+
         run_publish(date=args.date, dry_run=args.dry_run)
 
     print("完成!")

@@ -1,23 +1,24 @@
 """Database helper utilities for invest_sop module."""
 
-from datetime import datetime
 from typing import Any
 
 from stockhot.storage.database import get_connection
 
-_ALLOWED_TABLES = frozenset({
-    "invest_overseas_market",
-    "invest_domestic_events",
-    "invest_supply_chain",
-    "invest_futures_sentiment",
-    "invest_morning_data",
-    "invest_cycle_assessments",
-    "invest_holdings",
-    "invest_holdings_transactions",
-    "invest_sector_rules",
-    "invest_watchlist",
-    "advisor_runs",
-})
+_ALLOWED_TABLES = frozenset(
+    {
+        "invest_overseas_market",
+        "invest_domestic_events",
+        "invest_supply_chain",
+        "invest_futures_sentiment",
+        "invest_morning_data",
+        "invest_cycle_assessments",
+        "invest_holdings",
+        "invest_holdings_transactions",
+        "invest_sector_rules",
+        "invest_watchlist",
+        "advisor_runs",
+    }
+)
 
 
 def upsert_record(table: str, data_dict: dict[str, Any], unique_keys: list[str]) -> None:

@@ -43,7 +43,7 @@ def safe_akshare_call(fn, *args, **kwargs) -> pd.DataFrame:
     try:
         akshare_limiter.acquire()
         df = fn(*args, **kwargs)
-        if df is None or (hasattr(df, 'empty') and df.empty):
+        if df is None or (hasattr(df, "empty") and df.empty):
             return pd.DataFrame()
         return df
     except Exception as e:

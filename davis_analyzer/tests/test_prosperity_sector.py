@@ -20,7 +20,6 @@ from davis_analyzer.types import (
     StockInfo,
 )
 
-
 # ── Helpers ──────────────────────────────────────────────────────────
 
 
@@ -686,7 +685,9 @@ class TestBuildStockDetails:
 
     def test_risk_warnings_populated(self):
         scores = {
-            "risky.SZ": _ps(ts_code="risky.SZ", delta_g=-5, revenue_score=20, slope_score=10, duration_score=10),
+            "risky.SZ": _ps(
+                ts_code="risky.SZ", delta_g=-5, revenue_score=20, slope_score=10, duration_score=10
+            ),
         }
         infos = {"risky.SZ": _si(ts_code="risky.SZ", industry="电子")}
         fd = {"risky.SZ": [_fd(ts_code="risky.SZ")]}
@@ -992,7 +993,11 @@ class TestE6BuildStockDetailsInflection:
     def test_dupont_driver_set_with_valid_revenue_assets(self):
         scores = {"x.SZ": _ps(ts_code="x.SZ", revenue_score=60, delta_g=5)}
         infos = {"x.SZ": _si(ts_code="x.SZ", industry="电子")}
-        fd = {"x.SZ": [_fd(ts_code="x.SZ", revenue=100.0, total_assets=200.0, total_debt=50.0, roe=15.0)]}
+        fd = {
+            "x.SZ": [
+                _fd(ts_code="x.SZ", revenue=100.0, total_assets=200.0, total_debt=50.0, roe=15.0)
+            ]
+        }
         result = build_stock_details(scores, infos, fd, set())
         assert result["x.SZ"].dupont_driver is not None
         assert isinstance(result["x.SZ"].dupont_driver, str)

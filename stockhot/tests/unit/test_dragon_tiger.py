@@ -2,33 +2,38 @@ import pandas as pd
 
 import stockhot.dragon_tiger as dt
 
+_DETAIL_DF = pd.DataFrame(
+    {
+        "代码": ["000001", "600519"],
+        "名称": ["平安银行", "贵州茅台"],
+        "上榜原因": ["涨幅偏离", "换手率达标的证券"],
+        "收盘价": [12.50, 1680.00],
+        "涨跌幅": [10.01, -5.23],
+        "龙虎榜净买额": [5000000.0, -3000000.0],
+        "龙虎榜买入额": [8000000.0, 2000000.0],
+        "龙虎榜卖出额": [3000000.0, 5000000.0],
+        "上榜日": ["20260512", "20260512"],
+    }
+)
 
-_DETAIL_DF = pd.DataFrame({
-    "代码": ["000001", "600519"],
-    "名称": ["平安银行", "贵州茅台"],
-    "上榜原因": ["涨幅偏离", "换手率达标的证券"],
-    "收盘价": [12.50, 1680.00],
-    "涨跌幅": [10.01, -5.23],
-    "龙虎榜净买额": [5000000.0, -3000000.0],
-    "龙虎榜买入额": [8000000.0, 2000000.0],
-    "龙虎榜卖出额": [3000000.0, 5000000.0],
-    "上榜日": ["20260512", "20260512"],
-})
+_INST_DF = pd.DataFrame(
+    {
+        "代码": ["INST001", "INST002"],
+        "名称": ["机构A", "机构B"],
+        "机构买入总额": [10000000.0, 5000000.0],
+        "机构卖出总额": [3000000.0, 8000000.0],
+        "机构买入净额": [7000000.0, -3000000.0],
+    }
+)
 
-_INST_DF = pd.DataFrame({
-    "代码": ["INST001", "INST002"],
-    "名称": ["机构A", "机构B"],
-    "机构买入总额": [10000000.0, 5000000.0],
-    "机构卖出总额": [3000000.0, 8000000.0],
-    "机构买入净额": [7000000.0, -3000000.0],
-})
-
-_BROKER_DF = pd.DataFrame({
-    "营业部名称": ["中信证券上海分公司", "国泰君安深圳分公司"],
-    "买入总金额": [6000000.0, 2000000.0],
-    "卖出总金额": [1000000.0, 4000000.0],
-    "总买卖净额": [5000000.0, -2000000.0],
-})
+_BROKER_DF = pd.DataFrame(
+    {
+        "营业部名称": ["中信证券上海分公司", "国泰君安深圳分公司"],
+        "买入总金额": [6000000.0, 2000000.0],
+        "卖出总金额": [1000000.0, 4000000.0],
+        "总买卖净额": [5000000.0, -2000000.0],
+    }
+)
 
 
 def test_fetch_lhb_detail_with_mock(monkeypatch):
@@ -116,7 +121,8 @@ def test_run_dragon_tiger_analysis_full(monkeypatch):
     monkeypatch.setattr(dt, "safe_akshare_call", _mock_safe_call)
     monkeypatch.setattr(dt, "save_daily_data", lambda d: saved_daily.update(d))
     monkeypatch.setattr(
-        dt, "save_analysis_result",
+        dt,
+        "save_analysis_result",
         lambda date, kind, payload: saved_analysis.append((date, kind)),
     )
 
@@ -135,15 +141,18 @@ def test_run_dragon_tiger_analysis_full(monkeypatch):
 def test_non_trading_day_graceful(monkeypatch):
     monkeypatch.setattr(dt, "safe_akshare_call", lambda fn, **kw: pd.DataFrame())
     monkeypatch.setattr(
-        dt.ak, "stock_lhb_detail_em",
+        dt.ak,
+        "stock_lhb_detail_em",
         lambda **kw: pd.DataFrame(),
     )
     monkeypatch.setattr(
-        dt.ak, "stock_lhb_jgmmtj_em",
+        dt.ak,
+        "stock_lhb_jgmmtj_em",
         lambda **kw: pd.DataFrame(),
     )
     monkeypatch.setattr(
-        dt.ak, "stock_lhb_hyyyb_em",
+        dt.ak,
+        "stock_lhb_hyyyb_em",
         lambda **kw: pd.DataFrame(),
     )
 

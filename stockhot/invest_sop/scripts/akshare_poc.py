@@ -12,11 +12,9 @@ import json
 import os
 import sys
 import time
-import traceback
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timedelta
 from typing import Any, Optional
-
 
 # ---------------------------------------------------------------------------
 # Proxy stripping – mirrors stockhot/data_collector/clients/akshare_sina.py
@@ -162,75 +160,114 @@ def get_endpoints() -> list[dict[str, Any]]:
     # =======================================================================
     cat = "1_海外市场_Overseas_Market"
 
-    endpoints.append(dict(
-        category=cat, endpoint_name="US Stock Indices (S&P500, Nasdaq, Dow)",
-        function_name="index_us_stock_sina", params={},
-        notes="Returns US stock index data from Sina",
-    ))
+    endpoints.append(
+        dict(
+            category=cat,
+            endpoint_name="US Stock Indices (S&P500, Nasdaq, Dow)",
+            function_name="index_us_stock_sina",
+            params={},
+            notes="Returns US stock index data from Sina",
+        )
+    )
 
-    endpoints.append(dict(
-        category=cat, endpoint_name="Global Indices Spot (US/EU/Asia)",
-        function_name="index_global_spot_em", params={},
-        notes="East Money global index real-time quotes, includes S&P500/Nasdaq/Dow",
-    ))
+    endpoints.append(
+        dict(
+            category=cat,
+            endpoint_name="Global Indices Spot (US/EU/Asia)",
+            function_name="index_global_spot_em",
+            params={},
+            notes="East Money global index real-time quotes, includes S&P500/Nasdaq/Dow",
+        )
+    )
 
-    endpoints.append(dict(
-        category=cat, endpoint_name="Global Indices Hist (S&P500)",
-        function_name="index_global_hist_em",
-        params={"symbol": "道琼斯"},
-        notes="Historical global index from East Money",
-    ))
+    endpoints.append(
+        dict(
+            category=cat,
+            endpoint_name="Global Indices Hist (S&P500)",
+            function_name="index_global_hist_em",
+            params={"symbol": "道琼斯"},
+            notes="Historical global index from East Money",
+        )
+    )
 
     # VIX – use China VIX as proxy (US VIX not directly available)
-    endpoints.append(dict(
-        category=cat, endpoint_name="China VIX (50ETF QVIX)",
-        function_name="index_option_50etf_qvix", params={},
-        notes="Chinese option implied volatility index, similar to VIX concept",
-    ))
+    endpoints.append(
+        dict(
+            category=cat,
+            endpoint_name="China VIX (50ETF QVIX)",
+            function_name="index_option_50etf_qvix",
+            params={},
+            notes="Chinese option implied volatility index, similar to VIX concept",
+        )
+    )
 
     # A50 futures (symbol code from Sina)
-    endpoints.append(dict(
-        category=cat, endpoint_name="A50 Futures (foreign)",
-        function_name="futures_foreign_hist",
-        params={"symbol": "CHA50CFD"},
-        notes="SGX A50 futures CFD historical data. Symbol: CHA50CFD",
-    ))
+    endpoints.append(
+        dict(
+            category=cat,
+            endpoint_name="A50 Futures (foreign)",
+            function_name="futures_foreign_hist",
+            params={"symbol": "CHA50CFD"},
+            notes="SGX A50 futures CFD historical data. Symbol: CHA50CFD",
+        )
+    )
 
     # USD/CNY exchange rate
-    endpoints.append(dict(
-        category=cat, endpoint_name="Forex Spot (USD/CNY)",
-        function_name="forex_spot_em", params={},
-        notes="East Money forex spot rates, includes USD/CNY",
-    ))
+    endpoints.append(
+        dict(
+            category=cat,
+            endpoint_name="Forex Spot (USD/CNY)",
+            function_name="forex_spot_em",
+            params={},
+            notes="East Money forex spot rates, includes USD/CNY",
+        )
+    )
 
-    endpoints.append(dict(
-        category=cat, endpoint_name="Forex Hist (USDCNH)",
-        function_name="forex_hist_em",
-        params={"symbol": "USDCNH"},
-        notes="Historical USD/CNH from East Money (signature: only takes symbol param)",
-    ))
+    endpoints.append(
+        dict(
+            category=cat,
+            endpoint_name="Forex Hist (USDCNH)",
+            function_name="forex_hist_em",
+            params={"symbol": "USDCNH"},
+            notes="Historical USD/CNH from East Money (signature: only takes symbol param)",
+        )
+    )
 
-    endpoints.append(dict(
-        category=cat, endpoint_name="BOC Exchange Rate",
-        function_name="currency_boc_sina",
-        params={"symbol": "美元", "start_date": _recent_date("%Y%m%d", 30), "end_date": _today("%Y%m%d")},
-        notes="PBOC reference rate for USD from Sina",
-    ))
+    endpoints.append(
+        dict(
+            category=cat,
+            endpoint_name="BOC Exchange Rate",
+            function_name="currency_boc_sina",
+            params={
+                "symbol": "美元",
+                "start_date": _recent_date("%Y%m%d", 30),
+                "end_date": _today("%Y%m%d"),
+            },
+            notes="PBOC reference rate for USD from Sina",
+        )
+    )
 
     # US 10Y treasury yield
-    endpoints.append(dict(
-        category=cat, endpoint_name="US Treasury Yield (bond_zh_us_rate)",
-        function_name="bond_zh_us_rate",
-        params={"start_date": _recent_date("%Y%m%d", 30)},
-        notes="China-US bond yield comparison, includes US 10Y",
-    ))
+    endpoints.append(
+        dict(
+            category=cat,
+            endpoint_name="US Treasury Yield (bond_zh_us_rate)",
+            function_name="bond_zh_us_rate",
+            params={"start_date": _recent_date("%Y%m%d", 30)},
+            notes="China-US bond yield comparison, includes US 10Y",
+        )
+    )
 
     # US stock spot data
-    endpoints.append(dict(
-        category=cat, endpoint_name="US Stock Spot",
-        function_name="stock_us_spot_em", params={},
-        notes="East Money US stock real-time quotes",
-    ))
+    endpoints.append(
+        dict(
+            category=cat,
+            endpoint_name="US Stock Spot",
+            function_name="stock_us_spot_em",
+            params={},
+            notes="East Money US stock real-time quotes",
+        )
+    )
 
     # =======================================================================
     # Category 2: 期货数据 (Futures)
@@ -238,46 +275,65 @@ def get_endpoints() -> list[dict[str, Any]]:
     cat = "2_期货数据_Futures"
 
     # IF index futures
-    endpoints.append(dict(
-        category=cat, endpoint_name="Futures Main Sina (IF)",
-        function_name="futures_main_sina",
-        params={"symbol": "IF0"},
-        notes="IF (CSI300) main contract continuous from Sina. Use IF0/IC0/IM0",
-    ))
+    endpoints.append(
+        dict(
+            category=cat,
+            endpoint_name="Futures Main Sina (IF)",
+            function_name="futures_main_sina",
+            params={"symbol": "IF0"},
+            notes="IF (CSI300) main contract continuous from Sina. Use IF0/IC0/IM0",
+        )
+    )
 
-    endpoints.append(dict(
-        category=cat, endpoint_name="Futures Main Sina (IC)",
-        function_name="futures_main_sina",
-        params={"symbol": "IC0"},
-        notes="IC (CSI500) main contract continuous",
-    ))
+    endpoints.append(
+        dict(
+            category=cat,
+            endpoint_name="Futures Main Sina (IC)",
+            function_name="futures_main_sina",
+            params={"symbol": "IC0"},
+            notes="IC (CSI500) main contract continuous",
+        )
+    )
 
-    endpoints.append(dict(
-        category=cat, endpoint_name="Futures Main Sina (IM)",
-        function_name="futures_main_sina",
-        params={"symbol": "IM0"},
-        notes="IM (CSI1000) main contract continuous",
-    ))
+    endpoints.append(
+        dict(
+            category=cat,
+            endpoint_name="Futures Main Sina (IM)",
+            function_name="futures_main_sina",
+            params={"symbol": "IM0"},
+            notes="IM (CSI1000) main contract continuous",
+        )
+    )
 
-    endpoints.append(dict(
-        category=cat, endpoint_name="Futures Spot Price (IF/IC/IM)",
-        function_name="futures_spot_price",
-        params={"date": _recent_date("%Y%m%d", 3), "vars_list": ["IF", "IC", "IM", "IH"]},
-        notes="Futures spot price with basis info for index futures",
-    ))
+    endpoints.append(
+        dict(
+            category=cat,
+            endpoint_name="Futures Spot Price (IF/IC/IM)",
+            function_name="futures_spot_price",
+            params={"date": _recent_date("%Y%m%d", 3), "vars_list": ["IF", "IC", "IM", "IH"]},
+            notes="Futures spot price with basis info for index futures",
+        )
+    )
 
-    endpoints.append(dict(
-        category=cat, endpoint_name="CSI300 Index Daily",
-        function_name="stock_zh_index_daily_em",
-        params={"symbol": "sh000300"},
-        notes="CSI300 index daily data from East Money",
-    ))
+    endpoints.append(
+        dict(
+            category=cat,
+            endpoint_name="CSI300 Index Daily",
+            function_name="stock_zh_index_daily_em",
+            params={"symbol": "sh000300"},
+            notes="CSI300 index daily data from East Money",
+        )
+    )
 
-    endpoints.append(dict(
-        category=cat, endpoint_name="Futures ZH Realtime",
-        function_name="futures_zh_realtime", params={},
-        notes="Chinese futures realtime quotes",
-    ))
+    endpoints.append(
+        dict(
+            category=cat,
+            endpoint_name="Futures ZH Realtime",
+            function_name="futures_zh_realtime",
+            params={},
+            notes="Chinese futures realtime quotes",
+        )
+    )
 
     # =======================================================================
     # Category 3: 资金面 (Capital Flow)
@@ -285,40 +341,56 @@ def get_endpoints() -> list[dict[str, Any]]:
     cat = "3_资金面_Capital_Flow"
 
     # Northbound capital
-    endpoints.append(dict(
-        category=cat, endpoint_name="Northbound Capital Hist",
-        function_name="stock_hsgt_hist_em",
-        params={"symbol": "北向资金"},
-        notes="Northbound capital flow history from East Money",
-    ))
+    endpoints.append(
+        dict(
+            category=cat,
+            endpoint_name="Northbound Capital Hist",
+            function_name="stock_hsgt_hist_em",
+            params={"symbol": "北向资金"},
+            notes="Northbound capital flow history from East Money",
+        )
+    )
 
-    endpoints.append(dict(
-        category=cat, endpoint_name="HSGT Fund Flow Summary",
-        function_name="stock_hsgt_fund_flow_summary_em", params={},
-        notes="Summary of northbound/southbound fund flows",
-    ))
+    endpoints.append(
+        dict(
+            category=cat,
+            endpoint_name="HSGT Fund Flow Summary",
+            function_name="stock_hsgt_fund_flow_summary_em",
+            params={},
+            notes="Summary of northbound/southbound fund flows",
+        )
+    )
 
     # Margin balance
-    endpoints.append(dict(
-        category=cat, endpoint_name="SSE Margin Detail",
-        function_name="stock_margin_detail_sse",
-        params={"date": _recent_date("%Y%m%d", 5)},
-        notes="Shanghai margin trading detail",
-    ))
+    endpoints.append(
+        dict(
+            category=cat,
+            endpoint_name="SSE Margin Detail",
+            function_name="stock_margin_detail_sse",
+            params={"date": _recent_date("%Y%m%d", 5)},
+            notes="Shanghai margin trading detail",
+        )
+    )
 
-    endpoints.append(dict(
-        category=cat, endpoint_name="SSE Margin Summary",
-        function_name="stock_margin_sse",
-        params={"start_date": _recent_date("%Y%m%d", 10), "end_date": _today("%Y%m%d")},
-        notes="Shanghai margin balance summary",
-    ))
+    endpoints.append(
+        dict(
+            category=cat,
+            endpoint_name="SSE Margin Summary",
+            function_name="stock_margin_sse",
+            params={"start_date": _recent_date("%Y%m%d", 10), "end_date": _today("%Y%m%d")},
+            notes="Shanghai margin balance summary",
+        )
+    )
 
-    endpoints.append(dict(
-        category=cat, endpoint_name="SZSE Margin Underlying Info",
-        function_name="stock_margin_underlying_info_szse",
-        params={"date": _recent_date("%Y%m%d", 5)},
-        notes="Shenzhen margin underlying securities info",
-    ))
+    endpoints.append(
+        dict(
+            category=cat,
+            endpoint_name="SZSE Margin Underlying Info",
+            function_name="stock_margin_underlying_info_szse",
+            params={"date": _recent_date("%Y%m%d", 5)},
+            notes="Shenzhen margin underlying securities info",
+        )
+    )
 
     # =======================================================================
     # Category 4: 产业链 (Supply Chain / Commodities)
@@ -327,58 +399,83 @@ def get_endpoints() -> list[dict[str, Any]]:
 
     # LME metals (Sina symbol codes: CAD=伦敦铜, AHD=伦敦铝, ZSD=伦敦锌)
     for metal_name, symbol in [("LME Copper", "CAD"), ("LME Aluminum", "AHD"), ("LME Zinc", "ZSD")]:
-        endpoints.append(dict(
-            category=cat, endpoint_name=f"Foreign Futures Hist ({metal_name})",
-            function_name="futures_foreign_hist",
-            params={"symbol": symbol},
-            notes=f"LME {metal_name} CFD historical data (Sina symbol: {symbol})",
-        ))
+        endpoints.append(
+            dict(
+                category=cat,
+                endpoint_name=f"Foreign Futures Hist ({metal_name})",
+                function_name="futures_foreign_hist",
+                params={"symbol": symbol},
+                notes=f"LME {metal_name} CFD historical data (Sina symbol: {symbol})",
+            )
+        )
 
-    endpoints.append(dict(
-        category=cat, endpoint_name="Foreign Commodity Realtime (LME metals)",
-        function_name="futures_foreign_commodity_realtime",
-        params={"symbol": "CAD"},
-        notes="Realtime LME Copper quote (single symbol, list has parsing bug)",
-    ))
+    endpoints.append(
+        dict(
+            category=cat,
+            endpoint_name="Foreign Commodity Realtime (LME metals)",
+            function_name="futures_foreign_commodity_realtime",
+            params={"symbol": "CAD"},
+            notes="Realtime LME Copper quote (single symbol, list has parsing bug)",
+        )
+    )
 
     # Coal (spot_goods only accepts: 波罗的海干散货指数, 钢坯价格指数, 澳大利亚粉矿价格)
-    endpoints.append(dict(
-        category=cat, endpoint_name="Spot Goods (BDI Index)",
-        function_name="spot_goods",
-        params={"symbol": "波罗的海干散货指数"},
-        notes="Baltic Dry Index – only 3 symbols accepted by spot_goods",
-    ))
+    endpoints.append(
+        dict(
+            category=cat,
+            endpoint_name="Spot Goods (BDI Index)",
+            function_name="spot_goods",
+            params={"symbol": "波罗的海干散货指数"},
+            notes="Baltic Dry Index – only 3 symbols accepted by spot_goods",
+        )
+    )
 
     # CFLP price index (commodity price indices)
-    endpoints.append(dict(
-        category=cat, endpoint_name="CFLP Commodity Price Index",
-        function_name="index_price_cflp",
-        params={"symbol": "周指数"},
-        notes="China Federation of Logistics commodity price index, may include lithium/solar materials",
-    ))
+    endpoints.append(
+        dict(
+            category=cat,
+            endpoint_name="CFLP Commodity Price Index",
+            function_name="index_price_cflp",
+            params={"symbol": "周指数"},
+            notes="China Federation of Logistics commodity price index, may include lithium/solar materials",
+        )
+    )
 
     # Futures spot price for commodities
-    endpoints.append(dict(
-        category=cat, endpoint_name="Futures Spot Price (commodities)",
-        function_name="futures_spot_price",
-        params={"date": _recent_date("%Y%m%d", 3), "vars_list": ["CU", "AL", "ZN", "J", "JM", "I", "RB"]},
-        notes="Commodity futures spot prices: Cu/Al/Zn/coal/iron/steel",
-    ))
+    endpoints.append(
+        dict(
+            category=cat,
+            endpoint_name="Futures Spot Price (commodities)",
+            function_name="futures_spot_price",
+            params={
+                "date": _recent_date("%Y%m%d", 3),
+                "vars_list": ["CU", "AL", "ZN", "J", "JM", "I", "RB"],
+            },
+            notes="Commodity futures spot prices: Cu/Al/Zn/coal/iron/steel",
+        )
+    )
 
     # Spot goods - lithium NOT available via spot_goods, note the limitation
-    endpoints.append(dict(
-        category=cat, endpoint_name="Spot Goods (钢坯/HRC)",
-        function_name="spot_goods",
-        params={"symbol": "钢坯价格指数"},
-        notes="Steel billet price index. Lithium/solar NOT available via spot_goods",
-    ))
+    endpoints.append(
+        dict(
+            category=cat,
+            endpoint_name="Spot Goods (钢坯/HRC)",
+            function_name="spot_goods",
+            params={"symbol": "钢坯价格指数"},
+            notes="Steel billet price index. Lithium/solar NOT available via spot_goods",
+        )
+    )
 
     # Energy
-    endpoints.append(dict(
-        category=cat, endpoint_name="Energy Oil Hist",
-        function_name="energy_oil_hist", params={},
-        notes="Historical oil price data",
-    ))
+    endpoints.append(
+        dict(
+            category=cat,
+            endpoint_name="Energy Oil Hist",
+            function_name="energy_oil_hist",
+            params={},
+            notes="Historical oil price data",
+        )
+    )
 
     # =======================================================================
     # Category 5: 日历 (Calendar)
@@ -386,46 +483,68 @@ def get_endpoints() -> list[dict[str, Any]]:
     cat = "5_日历_Calendar"
 
     # Trade calendar – ALREADY CONFIRMED
-    endpoints.append(dict(
-        category=cat, endpoint_name="Trade Date History (Sina)",
-        function_name="tool_trade_date_hist_sina", params={},
-        notes="CONFIRMED WORKING – A-share trade calendar from Sina",
-    ))
+    endpoints.append(
+        dict(
+            category=cat,
+            endpoint_name="Trade Date History (Sina)",
+            function_name="tool_trade_date_hist_sina",
+            params={},
+            notes="CONFIRMED WORKING – A-share trade calendar from Sina",
+        )
+    )
 
     # Restricted shares release
-    endpoints.append(dict(
-        category=cat, endpoint_name="Restricted Release Queue (Sina)",
-        function_name="stock_restricted_release_queue_sina",
-        params={"symbol": "600000"},
-        notes="Restricted shares release schedule for a sample stock",
-    ))
+    endpoints.append(
+        dict(
+            category=cat,
+            endpoint_name="Restricted Release Queue (Sina)",
+            function_name="stock_restricted_release_queue_sina",
+            params={"symbol": "600000"},
+            notes="Restricted shares release schedule for a sample stock",
+        )
+    )
 
-    endpoints.append(dict(
-        category=cat, endpoint_name="Restricted Release Queue (EM)",
-        function_name="stock_restricted_release_queue_em",
-        params={"symbol": "600000"},
-        notes="Restricted shares release schedule from East Money",
-    ))
+    endpoints.append(
+        dict(
+            category=cat,
+            endpoint_name="Restricted Release Queue (EM)",
+            function_name="stock_restricted_release_queue_em",
+            params={"symbol": "600000"},
+            notes="Restricted shares release schedule from East Money",
+        )
+    )
 
-    endpoints.append(dict(
-        category=cat, endpoint_name="Restricted Release Summary (EM)",
-        function_name="stock_restricted_release_summary_em", params={},
-        notes="Aggregate restricted shares release summary",
-    ))
+    endpoints.append(
+        dict(
+            category=cat,
+            endpoint_name="Restricted Release Summary (EM)",
+            function_name="stock_restricted_release_summary_em",
+            params={},
+            notes="Aggregate restricted shares release summary",
+        )
+    )
 
     # Macro calendar – use specific macro functions
-    endpoints.append(dict(
-        category=cat, endpoint_name="LPR Rate",
-        function_name="macro_china_lpr", params={},
-        notes="Loan Prime Rate – key economic indicator calendar item",
-    ))
+    endpoints.append(
+        dict(
+            category=cat,
+            endpoint_name="LPR Rate",
+            function_name="macro_china_lpr",
+            params={},
+            notes="Loan Prime Rate – key economic indicator calendar item",
+        )
+    )
 
     # Global news / events
-    endpoints.append(dict(
-        category=cat, endpoint_name="Global Market Info (CLS)",
-        function_name="stock_info_global_cls", params={},
-        notes="CLS global financial news/events feed",
-    ))
+    endpoints.append(
+        dict(
+            category=cat,
+            endpoint_name="Global Market Info (CLS)",
+            function_name="stock_info_global_cls",
+            params={},
+            notes="CLS global financial news/events feed",
+        )
+    )
 
     return endpoints
 
@@ -443,7 +562,7 @@ def main() -> None:
         _restore_proxies(removed)
 
     print("=" * 80)
-    print(f"AKShare Endpoint Verification Script")
+    print("AKShare Endpoint Verification Script")
     print(f"AKShare version: {version}")
     print(f"Date: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print(f"Python: {sys.version.split()[0]}")
@@ -492,7 +611,11 @@ def main() -> None:
     json_path = os.path.abspath(json_path)
     with open(json_path, "w", encoding="utf-8") as f:
         json.dump(
-            {"version": version, "run_date": datetime.now().isoformat(), "results": [asdict(r) for r in results]},
+            {
+                "version": version,
+                "run_date": datetime.now().isoformat(),
+                "results": [asdict(r) for r in results],
+            },
             f,
             ensure_ascii=False,
             indent=2,

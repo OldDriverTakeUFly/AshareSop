@@ -37,14 +37,14 @@ def _real_auth():
 def seeded_db(tmp_path):
     """Create a temp DB with init_database and seed rows for every data type."""
     db_path = tmp_path / "integration.db"
-    with patch("stockhot.storage.database.DB_PATH", db_path), patch(
-        "stockhot.core.config.DB_PATH", db_path
+    with (
+        patch("stockhot.storage.database.DB_PATH", db_path),
+        patch("stockhot.core.config.DB_PATH", db_path),
     ):
         init_database()
         conn = sqlite3.connect(db_path)
         conn.execute(
-            "INSERT INTO daily_data (trade_date, data_type, data_json) "
-            "VALUES (?, ?, ?)",
+            "INSERT INTO daily_data (trade_date, data_type, data_json) " "VALUES (?, ?, ?)",
             (
                 DATE,
                 "limit_up_pool",
@@ -68,18 +68,15 @@ def seeded_db(tmp_path):
             ),
         )
         conn.execute(
-            "INSERT INTO daily_data (trade_date, data_type, data_json) "
-            "VALUES (?, ?, ?)",
+            "INSERT INTO daily_data (trade_date, data_type, data_json) " "VALUES (?, ?, ?)",
             (DATE, "broken_pool", json.dumps([])),
         )
         conn.execute(
-            "INSERT INTO daily_data (trade_date, data_type, data_json) "
-            "VALUES (?, ?, ?)",
+            "INSERT INTO daily_data (trade_date, data_type, data_json) " "VALUES (?, ?, ?)",
             (DATE, "limit_down_pool", json.dumps([])),
         )
         conn.execute(
-            "INSERT INTO daily_data (trade_date, data_type, data_json) "
-            "VALUES (?, ?, ?)",
+            "INSERT INTO daily_data (trade_date, data_type, data_json) " "VALUES (?, ?, ?)",
             (
                 DATE,
                 "dragon_tiger_detail",
@@ -101,8 +98,7 @@ def seeded_db(tmp_path):
             ),
         )
         conn.execute(
-            "INSERT INTO daily_data (trade_date, data_type, data_json) "
-            "VALUES (?, ?, ?)",
+            "INSERT INTO daily_data (trade_date, data_type, data_json) " "VALUES (?, ?, ?)",
             (
                 DATE,
                 "fund_flow_market",
@@ -122,8 +118,7 @@ def seeded_db(tmp_path):
             ),
         )
         conn.execute(
-            "INSERT INTO daily_data (trade_date, data_type, data_json) "
-            "VALUES (?, ?, ?)",
+            "INSERT INTO daily_data (trade_date, data_type, data_json) " "VALUES (?, ?, ?)",
             (
                 DATE,
                 "fund_flow_sector",
@@ -144,8 +139,7 @@ def seeded_db(tmp_path):
             ),
         )
         conn.execute(
-            "INSERT INTO daily_data (trade_date, data_type, data_json) "
-            "VALUES (?, ?, ?)",
+            "INSERT INTO daily_data (trade_date, data_type, data_json) " "VALUES (?, ?, ?)",
             (
                 DATE,
                 "risk_alert_raw",
@@ -231,8 +225,9 @@ def seeded_db(tmp_path):
 @pytest.fixture()
 def integration_client(seeded_db):
     """TestClient wired to the seeded temp DB (auth bypassed)."""
-    with patch("stockhot.api.config.settings.DB_PATH", str(seeded_db)), patch(
-        "stockhot.api.db.DB_PATH", str(seeded_db)
+    with (
+        patch("stockhot.api.config.settings.DB_PATH", str(seeded_db)),
+        patch("stockhot.api.db.DB_PATH", str(seeded_db)),
     ):
         yield TestClient(app)
 
@@ -240,8 +235,9 @@ def integration_client(seeded_db):
 @pytest.fixture()
 def auth_client(seeded_db, _real_auth):
     """TestClient with real auth enforcement and seeded DB."""
-    with patch("stockhot.api.config.settings.DB_PATH", str(seeded_db)), patch(
-        "stockhot.api.db.DB_PATH", str(seeded_db)
+    with (
+        patch("stockhot.api.config.settings.DB_PATH", str(seeded_db)),
+        patch("stockhot.api.db.DB_PATH", str(seeded_db)),
     ):
         yield TestClient(app)
 
@@ -339,9 +335,7 @@ class TestAuthProtection:
         assert resp.status_code != 401
 
     def test_trigger_status_correct_auth_returns_200(self, auth_client):
-        resp = auth_client.get(
-            self.PROTECTED_STATUS, auth=("stockhot", "stockhot")
-        )
+        resp = auth_client.get(self.PROTECTED_STATUS, auth=("stockhot", "stockhot"))
         assert resp.status_code == 200
 
 
@@ -362,9 +356,7 @@ class TestLimitUpWithData:
         assert body["analysis"]["summary"] == "涨停分析摘要"
 
     def test_summary_returns_200(self, auth_client):
-        resp = auth_client.get(
-            f"/api/limit-up/{DATE}/summary", auth=("stockhot", "stockhot")
-        )
+        resp = auth_client.get(f"/api/limit-up/{DATE}/summary", auth=("stockhot", "stockhot"))
         assert resp.status_code == 200
         body = resp.json()
         assert body["date"] == DATE
@@ -373,9 +365,7 @@ class TestLimitUpWithData:
 
 class TestDragonTigerWithData:
     def test_returns_ok_with_data(self, auth_client):
-        resp = auth_client.get(
-            f"/api/dragon-tiger/{DATE}", auth=("stockhot", "stockhot")
-        )
+        resp = auth_client.get(f"/api/dragon-tiger/{DATE}", auth=("stockhot", "stockhot"))
         assert resp.status_code == 200
         body = resp.json()
         assert body["status"] == "ok"
@@ -385,9 +375,7 @@ class TestDragonTigerWithData:
         assert body["summary"] == "龙虎榜摘要"
 
     def test_summary_returns_200(self, auth_client):
-        resp = auth_client.get(
-            f"/api/dragon-tiger/{DATE}/summary", auth=("stockhot", "stockhot")
-        )
+        resp = auth_client.get(f"/api/dragon-tiger/{DATE}/summary", auth=("stockhot", "stockhot"))
         assert resp.status_code == 200
         body = resp.json()
         assert body["date"] == DATE
@@ -396,9 +384,7 @@ class TestDragonTigerWithData:
 
 class TestFundFlowWithData:
     def test_returns_ok_with_data(self, auth_client):
-        resp = auth_client.get(
-            f"/api/fund-flow/{DATE}", auth=("stockhot", "stockhot")
-        )
+        resp = auth_client.get(f"/api/fund-flow/{DATE}", auth=("stockhot", "stockhot"))
         assert resp.status_code == 200
         body = resp.json()
         assert body["status"] == "ok"
@@ -410,9 +396,7 @@ class TestFundFlowWithData:
 
 class TestRiskAlertWithData:
     def test_returns_ok_with_data(self, auth_client):
-        resp = auth_client.get(
-            f"/api/risk-alert/{DATE}", auth=("stockhot", "stockhot")
-        )
+        resp = auth_client.get(f"/api/risk-alert/{DATE}", auth=("stockhot", "stockhot"))
         assert resp.status_code == 200
         body = resp.json()
         assert body["status"] == "ok"
@@ -425,30 +409,22 @@ class TestNoDataDate:
     """Requesting a date with no data should return status no_data."""
 
     def test_limit_up_no_data(self, auth_client):
-        resp = auth_client.get(
-            "/api/limit-up/2099-01-01", auth=("stockhot", "stockhot")
-        )
+        resp = auth_client.get("/api/limit-up/2099-01-01", auth=("stockhot", "stockhot"))
         assert resp.status_code == 200
         assert resp.json()["status"] == "no_data"
 
     def test_dragon_tiger_no_data(self, auth_client):
-        resp = auth_client.get(
-            "/api/dragon-tiger/2099-01-01", auth=("stockhot", "stockhot")
-        )
+        resp = auth_client.get("/api/dragon-tiger/2099-01-01", auth=("stockhot", "stockhot"))
         assert resp.status_code == 200
         assert resp.json()["status"] == "no_data"
 
     def test_fund_flow_no_data(self, auth_client):
-        resp = auth_client.get(
-            "/api/fund-flow/2099-01-01", auth=("stockhot", "stockhot")
-        )
+        resp = auth_client.get("/api/fund-flow/2099-01-01", auth=("stockhot", "stockhot"))
         assert resp.status_code == 200
         assert resp.json()["status"] == "no_data"
 
     def test_risk_alert_no_data(self, auth_client):
-        resp = auth_client.get(
-            "/api/risk-alert/2099-01-01", auth=("stockhot", "stockhot")
-        )
+        resp = auth_client.get("/api/risk-alert/2099-01-01", auth=("stockhot", "stockhot"))
         assert resp.status_code == 200
         assert resp.json()["status"] == "no_data"
 
@@ -466,9 +442,7 @@ class TestTriggerEndpoint:
             "stockhot.api.routers.trigger.asyncio.create_subprocess_exec",
             return_value=mock_proc,
         ):
-            resp = auth_client.post(
-                f"/api/trigger/{DATE}", auth=("stockhot", "stockhot")
-            )
+            resp = auth_client.post(f"/api/trigger/{DATE}", auth=("stockhot", "stockhot"))
         assert resp.status_code == 200
         body = resp.json()
         assert body["status"] == "triggered"
@@ -476,8 +450,6 @@ class TestTriggerEndpoint:
         assert body["pid"] == 54321
 
     def test_trigger_status_with_auth(self, auth_client):
-        resp = auth_client.get(
-            "/api/trigger/status", auth=("stockhot", "stockhot")
-        )
+        resp = auth_client.get("/api/trigger/status", auth=("stockhot", "stockhot"))
         assert resp.status_code == 200
         assert resp.json() == {"status": "available"}

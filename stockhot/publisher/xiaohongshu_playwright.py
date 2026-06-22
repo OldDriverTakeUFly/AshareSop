@@ -12,7 +12,6 @@ from stockhot.core.config import (
     XHS_STORAGE_STATE_PATH,
 )
 
-
 RUNNER_PATH = PROJECT_ROOT / "stockhot" / "publisher" / "xiaohongshu_playwright_runner.cjs"
 
 

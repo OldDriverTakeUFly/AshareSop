@@ -64,9 +64,9 @@ def run_daily_workflow(date: str | None = None) -> dict:
     print("\n[Step 10/10] 发布...")
     results["publish"] = run_publish(target_date)
 
-    print("\n" + "="*50)
+    print("\n" + "=" * 50)
     print("每日工作流程完成!")
-    print("="*50 + "\n")
+    print("=" * 50 + "\n")
 
     return results
 
@@ -92,7 +92,9 @@ def run_scheduler() -> None:
     )
 
     print("Scheduler started. Press Ctrl+C to exit.")
-    print(f"Daily workflow runs at {SCHEDULER_WORKFLOW_HOUR}:{SCHEDULER_WORKFLOW_MINUTE:02d} every weekday.")
+    print(
+        f"Daily workflow runs at {SCHEDULER_WORKFLOW_HOUR}:{SCHEDULER_WORKFLOW_MINUTE:02d} every weekday."
+    )
 
     try:
         scheduler.start()

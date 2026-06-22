@@ -90,9 +90,7 @@ def _make_ohlcv_df(days=5):
 class TestFetchTechnicalSignal:
     def test_wraps_composite_score(self, monkeypatch):
         mock_result = _make_mock_score_result(score=72.5, state="强势")
-        monkeypatch.setattr(
-            technical, "composite_technical_score", lambda df: mock_result
-        )
+        monkeypatch.setattr(technical, "composite_technical_score", lambda df: mock_result)
         ohlcv = _make_ohlcv_df()
 
         signal = fetch_technical_signal("000001", ohlcv)
@@ -107,9 +105,7 @@ class TestFetchTechnicalSignal:
 
     def test_data_timestamp_from_last_index(self, monkeypatch):
         mock_result = _make_mock_score_result()
-        monkeypatch.setattr(
-            technical, "composite_technical_score", lambda df: mock_result
-        )
+        monkeypatch.setattr(technical, "composite_technical_score", lambda df: mock_result)
         ohlcv = _make_ohlcv_df()
 
         signal = fetch_technical_signal("000001", ohlcv)
@@ -119,9 +115,7 @@ class TestFetchTechnicalSignal:
 
     def test_data_age_days_calculated(self, monkeypatch):
         mock_result = _make_mock_score_result()
-        monkeypatch.setattr(
-            technical, "composite_technical_score", lambda df: mock_result
-        )
+        monkeypatch.setattr(technical, "composite_technical_score", lambda df: mock_result)
         old_date = date.today() - timedelta(days=5)
         ohlcv = pd.DataFrame(
             {"open": [10.0], "high": [11.0], "low": [9.0], "close": [10.5], "volume": [1000]},
@@ -167,8 +161,20 @@ class TestFetchTechnicalSignal:
 def _make_spot_df(code="000001", price=10.5, change=2.3, volume=999000):
     return pd.DataFrame(
         [
-            {"代码": code, "名称": "TestStock", "最新价": price, "涨跌幅": change, "成交量": volume},
-            {"代码": "600519", "名称": "OtherStock", "最新价": 1800.0, "涨跌幅": -1.0, "成交量": 5000},
+            {
+                "代码": code,
+                "名称": "TestStock",
+                "最新价": price,
+                "涨跌幅": change,
+                "成交量": volume,
+            },
+            {
+                "代码": "600519",
+                "名称": "OtherStock",
+                "最新价": 1800.0,
+                "涨跌幅": -1.0,
+                "成交量": 5000,
+            },
         ]
     )
 
@@ -176,9 +182,7 @@ def _make_spot_df(code="000001", price=10.5, change=2.3, volume=999000):
 class TestFetchRealtimePrice:
     def test_extracts_correct_fields(self, monkeypatch):
         mock_df = _make_spot_df(code="000001", price=10.5, change=2.3, volume=999000)
-        monkeypatch.setattr(
-            technical, "safe_akshare_call", lambda fn, *a, **kw: mock_df
-        )
+        monkeypatch.setattr(technical, "safe_akshare_call", lambda fn, *a, **kw: mock_df)
 
         result = fetch_realtime_price("000001")
 
@@ -190,9 +194,7 @@ class TestFetchRealtimePrice:
 
     def test_filters_by_code(self, monkeypatch):
         mock_df = _make_spot_df()
-        monkeypatch.setattr(
-            technical, "safe_akshare_call", lambda fn, *a, **kw: mock_df
-        )
+        monkeypatch.setattr(technical, "safe_akshare_call", lambda fn, *a, **kw: mock_df)
 
         result = fetch_realtime_price("600519")
 
@@ -200,9 +202,7 @@ class TestFetchRealtimePrice:
         assert result["current_price"] == 1800.0
 
     def test_empty_df_returns_none_price(self, monkeypatch):
-        monkeypatch.setattr(
-            technical, "safe_akshare_call", lambda fn, *a, **kw: pd.DataFrame()
-        )
+        monkeypatch.setattr(technical, "safe_akshare_call", lambda fn, *a, **kw: pd.DataFrame())
 
         result = fetch_realtime_price("000001")
 
@@ -210,9 +210,7 @@ class TestFetchRealtimePrice:
         assert result["code"] == "000001"
 
     def test_none_df_returns_none_price(self, monkeypatch):
-        monkeypatch.setattr(
-            technical, "safe_akshare_call", lambda fn, *a, **kw: None
-        )
+        monkeypatch.setattr(technical, "safe_akshare_call", lambda fn, *a, **kw: None)
 
         result = fetch_realtime_price("000001")
 
@@ -220,9 +218,7 @@ class TestFetchRealtimePrice:
 
     def test_code_not_in_df_returns_none_price(self, monkeypatch):
         mock_df = _make_spot_df(code="000001")
-        monkeypatch.setattr(
-            technical, "safe_akshare_call", lambda fn, *a, **kw: mock_df
-        )
+        monkeypatch.setattr(technical, "safe_akshare_call", lambda fn, *a, **kw: mock_df)
 
         result = fetch_realtime_price("999999")
 
@@ -281,9 +277,7 @@ class TestGetCurrentDavisScore:
         mock_result = _make_pipeline_result_with_stock(
             ts_code="000001.SZ", final_score=78.5, distress=65.0, rank=3, total=30
         )
-        monkeypatch.setattr(
-            fundamental, "run_screening_pipeline", lambda **kw: mock_result
-        )
+        monkeypatch.setattr(fundamental, "run_screening_pipeline", lambda **kw: mock_result)
 
         result = get_current_davis_score("000001")
 
@@ -310,12 +304,8 @@ class TestGetCurrentDavisScore:
         assert result["final_score"] == 90.0
 
     def test_stock_not_found_returns_no_data(self, monkeypatch):
-        mock_result = _make_pipeline_result_with_stock(
-            ts_code="000001.SZ", rank=1, total=5
-        )
-        monkeypatch.setattr(
-            fundamental, "run_screening_pipeline", lambda **kw: mock_result
-        )
+        mock_result = _make_pipeline_result_with_stock(ts_code="000001.SZ", rank=1, total=5)
+        monkeypatch.setattr(fundamental, "run_screening_pipeline", lambda **kw: mock_result)
 
         result = get_current_davis_score("999999")
 
@@ -336,9 +326,7 @@ class TestGetCurrentDavisScore:
             distress_signals={},
             financial_data={},
         )
-        monkeypatch.setattr(
-            fundamental, "run_screening_pipeline", lambda **kw: empty_result
-        )
+        monkeypatch.setattr(fundamental, "run_screening_pipeline", lambda **kw: empty_result)
 
         result = get_current_davis_score("000001")
 
@@ -355,12 +343,8 @@ class TestGetCurrentDavisScore:
         assert result["error"] == "no_data"
 
     def test_percentile_rank_decreases_with_rank(self, monkeypatch):
-        mock_result = _make_pipeline_result_with_stock(
-            ts_code="000001.SZ", rank=1, total=10
-        )
-        monkeypatch.setattr(
-            fundamental, "run_screening_pipeline", lambda **kw: mock_result
-        )
+        mock_result = _make_pipeline_result_with_stock(ts_code="000001.SZ", rank=1, total=10)
+        monkeypatch.setattr(fundamental, "run_screening_pipeline", lambda **kw: mock_result)
 
         result_rank1 = get_current_davis_score("000001")
 
@@ -368,12 +352,8 @@ class TestGetCurrentDavisScore:
         # swapping in the rank=10 mock so the second lookup actually
         # re-invokes the (patched) pipeline.
         clear_pipeline_cache()
-        mock_result2 = _make_pipeline_result_with_stock(
-            ts_code="000001.SZ", rank=10, total=10
-        )
-        monkeypatch.setattr(
-            fundamental, "run_screening_pipeline", lambda **kw: mock_result2
-        )
+        mock_result2 = _make_pipeline_result_with_stock(ts_code="000001.SZ", rank=10, total=10)
+        monkeypatch.setattr(fundamental, "run_screening_pipeline", lambda **kw: mock_result2)
 
         result_rank10 = get_current_davis_score("000001")
 

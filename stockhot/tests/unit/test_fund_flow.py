@@ -92,7 +92,13 @@ def test_analyze_fund_flow_trend_inflow():
     market_flow = [
         {"main_net": 5.0, "huge_net": 2.0, "large_net": 3.0, "medium_net": -1.0, "small_net": -4.0},
         {"main_net": 8.0, "huge_net": 4.0, "large_net": 4.0, "medium_net": -2.0, "small_net": -6.0},
-        {"main_net": 12.0, "huge_net": 6.0, "large_net": 6.0, "medium_net": -3.0, "small_net": -9.0},
+        {
+            "main_net": 12.0,
+            "huge_net": 6.0,
+            "large_net": 6.0,
+            "medium_net": -3.0,
+            "small_net": -9.0,
+        },
     ]
 
     result = ff.analyze_fund_flow_trend(market_flow, lookback=3)
@@ -104,9 +110,27 @@ def test_analyze_fund_flow_trend_inflow():
 
 def test_analyze_fund_flow_trend_outflow():
     market_flow = [
-        {"main_net": -5.0, "huge_net": -2.0, "large_net": -3.0, "medium_net": 1.0, "small_net": 4.0},
-        {"main_net": -8.0, "huge_net": -4.0, "large_net": -4.0, "medium_net": 2.0, "small_net": 6.0},
-        {"main_net": -12.0, "huge_net": -6.0, "large_net": -6.0, "medium_net": 3.0, "small_net": 9.0},
+        {
+            "main_net": -5.0,
+            "huge_net": -2.0,
+            "large_net": -3.0,
+            "medium_net": 1.0,
+            "small_net": 4.0,
+        },
+        {
+            "main_net": -8.0,
+            "huge_net": -4.0,
+            "large_net": -4.0,
+            "medium_net": 2.0,
+            "small_net": 6.0,
+        },
+        {
+            "main_net": -12.0,
+            "huge_net": -6.0,
+            "large_net": -6.0,
+            "medium_net": 3.0,
+            "small_net": 9.0,
+        },
     ]
 
     result = ff.analyze_fund_flow_trend(market_flow, lookback=3)
@@ -119,7 +143,13 @@ def test_analyze_fund_flow_trend_outflow():
 
 def test_generate_summary():
     market_flow = [
-        {"main_net": 15.0, "huge_net": 8.0, "large_net": 7.0, "medium_net": -1.0, "small_net": -14.0},
+        {
+            "main_net": 15.0,
+            "huge_net": 8.0,
+            "large_net": 7.0,
+            "medium_net": -1.0,
+            "small_net": -14.0,
+        },
     ]
     sector_flow = [{"name": "电子", "main_net": 25.6}]
     trend = {"direction": "持续流入", "momentum": "加速", "large_vs_retail_divergence": True}
@@ -152,8 +182,11 @@ def test_run_fund_flow_analysis_full(monkeypatch):
 
     monkeypatch.setattr(ff, "save_daily_data", lambda data: saved_daily.update(data))
     monkeypatch.setattr(
-        ff, "save_analysis_result",
-        lambda date, atype, result: saved_analysis.update({"date": date, "type": atype, "result": result}),
+        ff,
+        "save_analysis_result",
+        lambda date, atype, result: saved_analysis.update(
+            {"date": date, "type": atype, "result": result}
+        ),
     )
 
     result = ff.run_fund_flow_analysis("2026-05-03")
@@ -175,7 +208,9 @@ def test_empty_data_graceful(monkeypatch):
     saved_analysis = {}
 
     monkeypatch.setattr(ff, "save_daily_data", lambda data: saved_daily.update(data))
-    monkeypatch.setattr(ff, "save_analysis_result", lambda *a, **kw: saved_analysis.update({"called": True}))
+    monkeypatch.setattr(
+        ff, "save_analysis_result", lambda *a, **kw: saved_analysis.update({"called": True})
+    )
 
     result = ff.run_fund_flow_analysis("2026-05-03")
 

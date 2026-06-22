@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from typing import Any
 
-
 COMMERCIAL_SPACE_EVIDENCE: dict[str, Any] = {
     "theme": "商业航天",
     "aliases": ["商业航天", "火箭回收", "可重复使用火箭"],

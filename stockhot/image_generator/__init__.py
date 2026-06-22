@@ -1,9 +1,7 @@
 """Image generation module for StockHot-CN."""
 
-import os
 import random
 from datetime import datetime
-from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 
@@ -25,8 +23,27 @@ from stockhot.core.config import (
     COLOR_DOWN,
 )
 from stockhot.data_collector.sector_map import get_stock_sector
-from stockhot.image_generator.renderer import create_background, draw_card, get_change_color, format_number
+from stockhot.image_generator.renderer import (
+    create_background,
+    draw_card,
+    get_change_color,
+    format_number,
+)
 from stockhot.storage.database import get_analysis_result, save_image_path
+
+# Re-exports consumed by callers/tests via `from stockhot.image_generator import ...`.
+# Declaring __all__ also silences ruff F401 for these intentional re-exports.
+__all__ = [
+    "COLOR_BACKGROUND",
+    "COLOR_CARD_BACKGROUND",
+    "COLOR_SUCCESS",
+    "COLOR_DANGER",
+    "create_background",
+    "draw_card",
+    "get_change_color",
+    "format_number",
+    "get_analysis_result",
+]
 
 
 def run_generation(date: str | None = None) -> dict:
@@ -61,17 +78,19 @@ def generate_cover(data: dict) -> str:
 
     draw.text((COVER_WIDTH // 2 - 120, 120), title, font=get_font(48), fill=COLOR_PRIMARY)
 
-    draw.text((COVER_WIDTH // 2 - 80, 190), date_formatted, font=get_font(28), fill=COLOR_TEXT_SECONDARY)
+    draw.text(
+        (COVER_WIDTH // 2 - 80, 190), date_formatted, font=get_font(28), fill=COLOR_TEXT_SECONDARY
+    )
 
     draw.line([(100, 250), (COVER_WIDTH - 100, 250)], fill=COLOR_PRIMARY, width=2)
 
     narrative = [
-        ("今日市场", "今天的市场演绎了一场"), 
+        ("今日市场", "今天的市场演绎了一场"),
         ("银行板块", "银行板块全天强势，"),
-        ("资金流向", "资金方面，主力资金"), 
+        ("资金流向", "资金方面，主力资金"),
         ("明日展望", "明日关注"),
     ]
-    
+
     content_y = 300
     for label, text in narrative:
         draw.text((100, content_y), f"▸ {label}", font=get_font(32), fill=COLOR_PRIMARY)
@@ -113,7 +132,7 @@ def create_cyberpunk_background(width: int, height: int) -> Image.Image:
 def draw_cyberpunk_border(draw: ImageDraw.ImageDraw, width: int, height: int) -> None:
     """Draw cyberpunk styled border with corner markers."""
     border_color = COLOR_PRIMARY
-    
+
     draw.rectangle([(20, 20), (width - 20, height - 20)], outline=border_color, width=3)
 
     corner_size = 40
@@ -126,8 +145,16 @@ def draw_cyberpunk_border(draw: ImageDraw.ImageDraw, width: int, height: int) ->
     draw.line([(20, height - 20 - corner_size), (20, height - 20)], fill=border_color, width=4)
     draw.line([(20, height - 20), (20 + corner_size, height - 20)], fill=border_color, width=4)
 
-    draw.line([(width - 20 - corner_size, height - 20), (width - 20, height - 20)], fill=border_color, width=4)
-    draw.line([(width - 20, height - 20 - corner_size), (width - 20, height - 20)], fill=border_color, width=4)
+    draw.line(
+        [(width - 20 - corner_size, height - 20), (width - 20, height - 20)],
+        fill=border_color,
+        width=4,
+    )
+    draw.line(
+        [(width - 20, height - 20 - corner_size), (width - 20, height - 20)],
+        fill=border_color,
+        width=4,
+    )
 
 
 def draw_stats_section(draw: ImageDraw.ImageDraw, date_str: str) -> None:
@@ -160,7 +187,7 @@ def get_font(size: int) -> ImageFont.FreeTypeFont:
     for font_path in chinese_fonts:
         try:
             return ImageFont.truetype(font_path, size)
-        except:
+        except Exception:
             continue
     return ImageFont.load_default()
 
@@ -197,8 +224,15 @@ def generate_data_card(data: dict) -> str:
         draw.rectangle([(50, y_offset), (70, y_offset + 40)], fill=item["color"])
         draw.text((90, y_offset + 5), f"#{i+1}", font=get_font(22), fill=COLOR_TEXT_SECONDARY)
         draw.text((140, y_offset + 5), item["name"], font=get_font(28), fill=COLOR_TEXT_PRIMARY)
-        draw.text((140, y_offset + 35), f"  [{sector}]", font=get_font(18), fill=COLOR_TEXT_SECONDARY)
-        draw.text((CONTENT_WIDTH - 160, y_offset + 5), item["value"], font=get_font(28), fill=item["color"])
+        draw.text(
+            (140, y_offset + 35), f"  [{sector}]", font=get_font(18), fill=COLOR_TEXT_SECONDARY
+        )
+        draw.text(
+            (CONTENT_WIDTH - 160, y_offset + 5),
+            item["value"],
+            font=get_font(28),
+            fill=item["color"],
+        )
         y_offset += 100
 
     filename = f"{card_type}_{date}.png"
@@ -229,24 +263,75 @@ def generate_sector_card(data: dict) -> str:
         "fund_today": 700,
         "fund_5d": 880,
     }
-    col_widths = [120, 130, 130, 130, 170, 170]
 
     draw.text((col_positions["sector"], 100), "板块", font=get_font(20), fill=COLOR_TEXT_SECONDARY)
     draw.text((col_positions["today"], 100), "今日", font=get_font(20), fill=COLOR_TEXT_SECONDARY)
     draw.text((col_positions["3d"], 100), "近3日", font=get_font(20), fill=COLOR_TEXT_SECONDARY)
     draw.text((col_positions["1m"], 100), "近1月", font=get_font(20), fill=COLOR_TEXT_SECONDARY)
-    draw.text((col_positions["fund_today"], 100), "当日资金", font=get_font(20), fill=COLOR_TEXT_SECONDARY)
-    draw.text((col_positions["fund_5d"], 100), "5日资金", font=get_font(20), fill=COLOR_TEXT_SECONDARY)
+    draw.text(
+        (col_positions["fund_today"], 100), "当日资金", font=get_font(20), fill=COLOR_TEXT_SECONDARY
+    )
+    draw.text(
+        (col_positions["fund_5d"], 100), "5日资金", font=get_font(20), fill=COLOR_TEXT_SECONDARY
+    )
 
     draw.line([(50, 130), (CONTENT_WIDTH - 50, 130)], fill=COLOR_BORDER, width=1)
 
     sample_sectors = [
-        {"name": "银行", "today": "+3.45%", "3d": "+5.23%", "1m": "+8.12%", "fund_today": "+45.2亿", "fund_5d": "+128.5亿", "color": COLOR_UP},
-        {"name": "白酒", "today": "+2.18%", "3d": "+3.56%", "1m": "-2.34%", "fund_today": "+23.8亿", "fund_5d": "+56.2亿", "color": COLOR_UP},
-        {"name": "半导体", "today": "+1.87%", "3d": "-1.23%", "1m": "-5.67%", "fund_today": "-12.3亿", "fund_5d": "-35.6亿", "color": COLOR_UP},
-        {"name": "新能源车", "today": "+1.45%", "3d": "+2.89%", "1m": "+12.34%", "fund_today": "+18.5亿", "fund_5d": "+42.3亿", "color": COLOR_UP},
-        {"name": "房地产", "today": "-0.89%", "3d": "-2.45%", "1m": "-8.76%", "fund_today": "-8.9亿", "fund_5d": "-25.4亿", "color": COLOR_DOWN},
-        {"name": "医药", "today": "-1.23%", "3d": "-3.12%", "1m": "-10.23%", "fund_today": "-15.6亿", "fund_5d": "-48.2亿", "color": COLOR_DOWN},
+        {
+            "name": "银行",
+            "today": "+3.45%",
+            "3d": "+5.23%",
+            "1m": "+8.12%",
+            "fund_today": "+45.2亿",
+            "fund_5d": "+128.5亿",
+            "color": COLOR_UP,
+        },
+        {
+            "name": "白酒",
+            "today": "+2.18%",
+            "3d": "+3.56%",
+            "1m": "-2.34%",
+            "fund_today": "+23.8亿",
+            "fund_5d": "+56.2亿",
+            "color": COLOR_UP,
+        },
+        {
+            "name": "半导体",
+            "today": "+1.87%",
+            "3d": "-1.23%",
+            "1m": "-5.67%",
+            "fund_today": "-12.3亿",
+            "fund_5d": "-35.6亿",
+            "color": COLOR_UP,
+        },
+        {
+            "name": "新能源车",
+            "today": "+1.45%",
+            "3d": "+2.89%",
+            "1m": "+12.34%",
+            "fund_today": "+18.5亿",
+            "fund_5d": "+42.3亿",
+            "color": COLOR_UP,
+        },
+        {
+            "name": "房地产",
+            "today": "-0.89%",
+            "3d": "-2.45%",
+            "1m": "-8.76%",
+            "fund_today": "-8.9亿",
+            "fund_5d": "-25.4亿",
+            "color": COLOR_DOWN,
+        },
+        {
+            "name": "医药",
+            "today": "-1.23%",
+            "3d": "-3.12%",
+            "1m": "-10.23%",
+            "fund_today": "-15.6亿",
+            "fund_5d": "-48.2亿",
+            "color": COLOR_DOWN,
+        },
     ]
 
     y_offset = 160
@@ -255,25 +340,59 @@ def generate_sector_card(data: dict) -> str:
         draw.text((90, y_offset + 5), f"#{i+1}", font=get_font(18), fill=COLOR_TEXT_SECONDARY)
         draw.text((140, y_offset + 8), sector["name"], font=get_font(24), fill=COLOR_TEXT_PRIMARY)
 
-        draw.text((col_positions["today"], y_offset + 8), sector["today"], font=get_font(22), fill=sector["color"])
+        draw.text(
+            (col_positions["today"], y_offset + 8),
+            sector["today"],
+            font=get_font(22),
+            fill=sector["color"],
+        )
         color_3d = COLOR_UP if "+" in sector["3d"] else COLOR_DOWN
-        draw.text((col_positions["3d"], y_offset + 8), sector["3d"], font=get_font(22), fill=color_3d)
+        draw.text(
+            (col_positions["3d"], y_offset + 8), sector["3d"], font=get_font(22), fill=color_3d
+        )
         color_1m = COLOR_UP if "+" in sector["1m"] else COLOR_DOWN
-        draw.text((col_positions["1m"], y_offset + 8), sector["1m"], font=get_font(22), fill=color_1m)
+        draw.text(
+            (col_positions["1m"], y_offset + 8), sector["1m"], font=get_font(22), fill=color_1m
+        )
 
         fund_today_color = COLOR_UP if "+" in sector["fund_today"] else COLOR_DOWN
-        draw.text((col_positions["fund_today"], y_offset + 8), sector["fund_today"], font=get_font(22), fill=fund_today_color)
+        draw.text(
+            (col_positions["fund_today"], y_offset + 8),
+            sector["fund_today"],
+            font=get_font(22),
+            fill=fund_today_color,
+        )
 
         fund_5d_color = COLOR_UP if "+" in sector["fund_5d"] else COLOR_DOWN
-        draw.text((col_positions["fund_5d"], y_offset + 8), sector["fund_5d"], font=get_font(22), fill=fund_5d_color)
+        draw.text(
+            (col_positions["fund_5d"], y_offset + 8),
+            sector["fund_5d"],
+            font=get_font(22),
+            fill=fund_5d_color,
+        )
 
         y_offset += 90
 
     draw.line([(50, 780), (CONTENT_WIDTH - 50, 780)], fill=COLOR_BORDER, width=1)
     draw.text((50, 800), "📊 趋势解读", font=get_font(24), fill=COLOR_PRIMARY)
-    draw.text((50, 840), "银行板块持续强势，资金大幅净流入，短期有望继续走强", font=get_font(18), fill=COLOR_TEXT_SECONDARY)
-    draw.text((50, 870), "新能源车延续反弹，关注回调后的低吸机会", font=get_font(18), fill=COLOR_TEXT_SECONDARY)
-    draw.text((50, 900), "医药板块资金持续流出，建议观望为主", font=get_font(18), fill=COLOR_TEXT_SECONDARY)
+    draw.text(
+        (50, 840),
+        "银行板块持续强势，资金大幅净流入，短期有望继续走强",
+        font=get_font(18),
+        fill=COLOR_TEXT_SECONDARY,
+    )
+    draw.text(
+        (50, 870),
+        "新能源车延续反弹，关注回调后的低吸机会",
+        font=get_font(18),
+        fill=COLOR_TEXT_SECONDARY,
+    )
+    draw.text(
+        (50, 900),
+        "医药板块资金持续流出，建议观望为主",
+        font=get_font(18),
+        fill=COLOR_TEXT_SECONDARY,
+    )
 
     filename = f"sectors_tracking_{date}.png"
     filepath = IMAGES_DIR / filename

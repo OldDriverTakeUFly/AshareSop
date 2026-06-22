@@ -7,11 +7,9 @@ score data, not ``{}``.
 
 from __future__ import annotations
 
-import json
 from datetime import date, timedelta
 
 import pandas as pd
-import pytest
 
 import stockhot.advisor.signal_aggregator as agg
 from stockhot.advisor.signal_aggregator import (
@@ -72,9 +70,7 @@ def _mock_realtime(code="000001", price=10.5) -> dict:
     }
 
 
-def _mock_davis_score(
-    final_score=65.0, percentile_rank=70.0, distress_score=40.0
-) -> dict:
+def _mock_davis_score(final_score=65.0, percentile_rank=70.0, distress_score=40.0) -> dict:
     return {
         "final_score": final_score,
         "percentile_rank": percentile_rank,
@@ -84,20 +80,14 @@ def _mock_davis_score(
 
 
 def _setup_all_mocks(monkeypatch, holding=None):
+    monkeypatch.setattr(agg, "fetch_technical_signal", lambda code, df: _make_unified())
+    monkeypatch.setattr(agg, "fetch_realtime_price", lambda code: _mock_realtime())
     monkeypatch.setattr(
-        agg, "fetch_technical_signal", lambda code, df: _make_unified()
+        agg,
+        "fetch_davis_signal",
+        lambda code: _make_unified(name="davis", value=65.0, source="davis_analyzer"),
     )
-    monkeypatch.setattr(
-        agg, "fetch_realtime_price", lambda code: _mock_realtime()
-    )
-    monkeypatch.setattr(
-        agg, "fetch_davis_signal", lambda code: _make_unified(
-            name="davis", value=65.0, source="davis_analyzer"
-        )
-    )
-    monkeypatch.setattr(
-        agg, "get_current_davis_score", lambda code: _mock_davis_score()
-    )
+    monkeypatch.setattr(agg, "get_current_davis_score", lambda code: _mock_davis_score())
 
 
 # ── aggregate_signals — basic structure ────────────────────────────
@@ -241,7 +231,13 @@ class TestWithHolding:
         _setup_all_mocks(monkeypatch)
         captured = {}
         ohlcv = pd.DataFrame(
-            {"close": [10, 11], "low": [9, 10], "open": [10, 10], "high": [11, 11], "volume": [100, 200]},
+            {
+                "close": [10, 11],
+                "low": [9, 10],
+                "open": [10, 10],
+                "high": [11, 11],
+                "volume": [100, 200],
+            },
             index=pd.DatetimeIndex(["2024-01-01", "2024-01-02"]),
         )
 
@@ -282,18 +278,10 @@ class TestThesisBrokenReceivesRealDavis:
         expected_davis = _mock_davis_score(
             final_score=45.0, percentile_rank=45.0, distress_score=20.0
         )
-        monkeypatch.setattr(
-            agg, "fetch_technical_signal", lambda c, df: _make_unified()
-        )
-        monkeypatch.setattr(
-            agg, "fetch_realtime_price", lambda c: _mock_realtime()
-        )
-        monkeypatch.setattr(
-            agg, "fetch_davis_signal", lambda c: _make_unified(name="davis")
-        )
-        monkeypatch.setattr(
-            agg, "get_current_davis_score", lambda c: expected_davis
-        )
+        monkeypatch.setattr(agg, "fetch_technical_signal", lambda c, df: _make_unified())
+        monkeypatch.setattr(agg, "fetch_realtime_price", lambda c: _mock_realtime())
+        monkeypatch.setattr(agg, "fetch_davis_signal", lambda c: _make_unified(name="davis"))
+        monkeypatch.setattr(agg, "get_current_davis_score", lambda c: expected_davis)
 
         captured = {}
 

@@ -11,7 +11,6 @@ import numpy as np
 import pandas as pd
 import pytest
 
-
 # ── Fixtures ───────────────────────────────────────────────────────────────
 
 
@@ -54,9 +53,7 @@ def sample_ohlcv() -> pd.DataFrame:
     """60-day OHLCV with realistic random-walk prices for general tests."""
     np.random.seed(42)
     idx = pd.date_range("2024-01-01", periods=60, freq="B")
-    close = pd.Series(
-        np.cumsum(np.random.randn(60) * 0.5) + 100, index=idx
-    )
+    close = pd.Series(np.cumsum(np.random.randn(60) * 0.5) + 100, index=idx)
     return pd.DataFrame(
         {
             "open": close,
@@ -137,12 +134,9 @@ class TestMACD:
         # Skip NaN warmup rows
         valid = result.dropna()
         if len(valid) > 0:
-            diff = (valid["macd_dif"] - valid["macd_dea"]).abs()
             # hist should be close to 2*(DIF-DEA) or (DIF-DEA) depending on convention
             # Just check hist has same sign as (dif - dea) for most rows
-            sign_match = (
-                (valid["macd_hist"] * (valid["macd_dif"] - valid["macd_dea"])) >= 0
-            ).sum()
+            sign_match = ((valid["macd_hist"] * (valid["macd_dif"] - valid["macd_dea"])) >= 0).sum()
             assert sign_match >= len(valid) * 0.8
 
     def test_index_preserved(self, sample_ohlcv):
@@ -175,9 +169,7 @@ class TestKDJ:
         valid = result.dropna()
         if len(valid) > 0:
             expected_j = 3 * valid["k"] - 2 * valid["d"]
-            np.testing.assert_allclose(
-                valid["j"].values, expected_j.values, rtol=0.01
-            )
+            np.testing.assert_allclose(valid["j"].values, expected_j.values, rtol=0.01)
 
     def test_index_preserved(self, sample_ohlcv):
         from stockhot.technical_analyzer.indicators import kdj

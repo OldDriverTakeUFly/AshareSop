@@ -142,9 +142,7 @@ def migrate(db_path: Path = _CACHE_DB, dry_run: bool = False) -> Counter:
     """Run the migration. Returns a ``Counter`` of rows handled per table."""
     _init_cache_db(db_path)
     with sqlite3.connect(str(db_path)) as conn:
-        legacy = conn.execute(
-            "SELECT endpoint, response, fetched_at FROM api_cache"
-        ).fetchall()
+        legacy = conn.execute("SELECT endpoint, response, fetched_at FROM api_cache").fetchall()
 
     total_legacy = len(legacy)
     counts: Counter = Counter()

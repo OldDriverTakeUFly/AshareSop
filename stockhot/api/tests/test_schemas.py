@@ -1,7 +1,5 @@
 """Schema validation tests for StockHot-CN API models."""
 
-import pytest
-
 from stockhot.api.schemas import (
     AvailableDates,
     Broker,
@@ -77,7 +75,9 @@ class TestLimitUpSchemas:
         assert corr.count == 8
 
     def test_seal_strength(self):
-        seal = SealStrength(code="000001", name="测试", seal_amount=1e8, broken_count=0.0, score=1e8)
+        seal = SealStrength(
+            code="000001", name="测试", seal_amount=1e8, broken_count=0.0, score=1e8
+        )
         assert seal.score == 1e8
 
     def test_limit_up_analysis(self):

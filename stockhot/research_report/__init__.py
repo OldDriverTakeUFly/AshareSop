@@ -81,9 +81,11 @@ def build_research_report(
         resolved_catalyst = (
             evidence["headline"]
             if has_external_evidence
-            else f"近期围绕“{resolved_theme}”的市场关注度升温。"
-            if resolved_theme and has_theme_matches
-            else "当前暂无与该主题直接匹配的催化样本。"
+            else (
+                f"近期围绕“{resolved_theme}”的市场关注度升温。"
+                if resolved_theme and has_theme_matches
+                else "当前暂无与该主题直接匹配的催化样本。"
+            )
         )
 
     chain_segments = _build_chain_segments(resolved_theme, matched_sectors, evidence)

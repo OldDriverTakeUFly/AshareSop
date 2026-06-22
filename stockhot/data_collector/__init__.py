@@ -45,12 +45,16 @@ def run_collection(date: str | None = None) -> dict:
 
     save_daily_data(data)
 
-    return {"date": target_date, "status": "success", "counts": {
-        "gainers": len(gainers),
-        "losers": len(losers),
-        "sectors": len(sectors),
-        "fund_flows": len(fund_flows),
-    }}
+    return {
+        "date": target_date,
+        "status": "success",
+        "counts": {
+            "gainers": len(gainers),
+            "losers": len(losers),
+            "sectors": len(sectors),
+            "fund_flows": len(fund_flows),
+        },
+    }
 
 
 def get_gainers(limit: int = 20) -> list[dict[str, Any]]:

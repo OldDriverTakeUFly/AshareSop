@@ -2,7 +2,6 @@ from pathlib import Path
 
 import stockhot.research_report as rr
 
-
 SAMPLE_MARKET_DATA = {
     "date": "2026-04-17",
     "gainers": [

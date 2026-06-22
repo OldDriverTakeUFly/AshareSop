@@ -191,18 +191,24 @@ class THSClient:
                     "name": name,
                     "change_pct": self._parse_float(row.get(resolved["change_pct"]), "change_pct"),
                     "net_inflow": self._parse_float(row.get(resolved["net_inflow"]), "net_inflow"),
-                    "inflow": self._parse_float(row.get(resolved.get("inflow")), "inflow")
-                    if resolved.get("inflow") is not None
-                    else 0.0,
-                    "outflow": self._parse_float(row.get(resolved.get("outflow")), "outflow")
-                    if resolved.get("outflow") is not None
-                    else 0.0,
+                    "inflow": (
+                        self._parse_float(row.get(resolved.get("inflow")), "inflow")
+                        if resolved.get("inflow") is not None
+                        else 0.0
+                    ),
+                    "outflow": (
+                        self._parse_float(row.get(resolved.get("outflow")), "outflow")
+                        if resolved.get("outflow") is not None
+                        else 0.0
+                    ),
                     "leader_stock": safe_text(row.get(resolved["leader_stock"])),
-                    "leader_change_pct": self._parse_float(
-                        row.get(resolved.get("leader_change_pct")), "leader_change_pct"
-                    )
-                    if resolved.get("leader_change_pct") is not None
-                    else 0.0,
+                    "leader_change_pct": (
+                        self._parse_float(
+                            row.get(resolved.get("leader_change_pct")), "leader_change_pct"
+                        )
+                        if resolved.get("leader_change_pct") is not None
+                        else 0.0
+                    ),
                 }
             )
 

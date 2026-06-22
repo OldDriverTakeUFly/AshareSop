@@ -1,18 +1,13 @@
 """Image rendering utilities for StockHot-CN."""
 
 from PIL import Image, ImageDraw, ImageFont
-from typing import Any
 
 from stockhot.core.config import (
-    COVER_WIDTH,
-    COVER_HEIGHT,
-    CONTENT_WIDTH,
     COLOR_BACKGROUND,
     COLOR_CARD_BACKGROUND,
     COLOR_PRIMARY,
     COLOR_SUCCESS,
     COLOR_DANGER,
-    COLOR_WARNING,
     COLOR_TEXT_PRIMARY,
     COLOR_TEXT_SECONDARY,
     COLOR_BORDER,

@@ -62,8 +62,7 @@ BALANCESHEET_FIELDS = (
     "total_cur_liab,total_assets,total_liab"
 )
 CASHFLOW_FIELDS = (
-    "ts_code,end_date,n_cashflow_act,n_cashflow_inv_act,free_cashflow,"
-    "c_pay_acquisition_fixed"
+    "ts_code,end_date,n_cashflow_act,n_cashflow_inv_act,free_cashflow," "c_pay_acquisition_fixed"
 )
 FINA_INDICATOR_FIELDS = (
     "ts_code,end_date,grossprofit_margin,netprofit_margin,rd_exp,"
@@ -188,9 +187,7 @@ def fetch_all(client: TushareClient) -> dict:
         logger.info("══════ 开始获取 {} ══════", code)
 
         # ── 扩展字段财务数据 ──
-        r = _fetch_extended_financials(
-            client, code, "income", client._pro.income, INCOME_FIELDS
-        )
+        r = _fetch_extended_financials(client, code, "income", client._pro.income, INCOME_FIELDS)
         payload["income"][code] = r["records"]
         if r["error"]:
             payload["_errors"].setdefault("income", {})[code] = r["error"]
@@ -357,9 +354,7 @@ def completeness_report(payload: dict) -> str:
             n = len(records)
             # 时间范围
             dates = [
-                str(r.get(date_field, ""))
-                for r in records
-                if r.get(date_field) not in (None, "")
+                str(r.get(date_field, "")) for r in records if r.get(date_field) not in (None, "")
             ]
             if dates:
                 tmin, tmax = min(dates), max(dates)

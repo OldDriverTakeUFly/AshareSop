@@ -21,7 +21,6 @@ from davis_analyzer.types import (
     ProsperityScore,
 )
 
-
 # ── Helpers ──────────────────────────────────────────────────────────
 
 
@@ -459,7 +458,12 @@ class TestAssessRiskFactors:
         )
         risks = _assess_risk_factors(data, score)
         types = [r.signal_type for r in risks]
-        for old_type in ("roe_improving", "cashflow_positive", "debt_declining", "revenue_stabilizing"):
+        for old_type in (
+            "roe_improving",
+            "cashflow_positive",
+            "debt_declining",
+            "revenue_stabilizing",
+        ):
             assert old_type not in types
 
     def test_insufficient_data_returns_empty(self):
@@ -571,7 +575,11 @@ class TestAnalyzeInflection:
         result = analyze_inflection(score, "上升拐点", data)
         assert result.stage == "上升拐点"
         assert len(result.catalysts) > 0
-        assert "回升" in result.narrative or "恢复" in result.narrative or "上升拐点确认" in result.narrative
+        assert (
+            "回升" in result.narrative
+            or "恢复" in result.narrative
+            or "上升拐点确认" in result.narrative
+        )
 
     def test_falling_inflection_stage(self):
         score = _ps(revenue_score=50.0, delta_g=-8.0)
@@ -582,7 +590,11 @@ class TestAnalyzeInflection:
         result = analyze_inflection(score, "下降拐点", data)
         assert result.stage == "下降拐点"
         assert len(result.catalysts) > 0
-        assert "下降拐点确认" in result.narrative or "走弱" in result.narrative or "恶化" in result.narrative
+        assert (
+            "下降拐点确认" in result.narrative
+            or "走弱" in result.narrative
+            or "恶化" in result.narrative
+        )
 
     def test_deceleration_stage(self):
         score = _ps(revenue_score=85.0, delta_g=-5.0)
@@ -640,7 +652,11 @@ class TestGenerateInflectionNarrative:
             stage="上升拐点",
             inflection_quarter="2024Q3",
             primary_driver="营收企稳回升",
-            catalysts=[CatalystSignal(signal_type="roe_improving", description="ROE从10%升至15%", strength=50.0)],
+            catalysts=[
+                CatalystSignal(
+                    signal_type="roe_improving", description="ROE从10%升至15%", strength=50.0
+                )
+            ],
             narrative="",
         )
         result = generate_inflection_narrative(analysis)
@@ -689,7 +705,11 @@ class TestGenerateInflectionNarrative:
             stage="上升拐点",
             inflection_quarter="2024Q1",
             primary_driver="营收企稳回升",
-            catalysts=[CatalystSignal(signal_type="roe_improving", description="ROE从10%升至12%", strength=20.0)],
+            catalysts=[
+                CatalystSignal(
+                    signal_type="roe_improving", description="ROE从10%升至12%", strength=20.0
+                )
+            ],
             narrative="",
         )
         result = generate_inflection_narrative(analysis)

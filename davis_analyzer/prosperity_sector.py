@@ -48,10 +48,14 @@ def aggregate_industry_prosperity(
             weights = {c: market_cap_map.get(c, 0) for c in codes}
             total_w = sum(w for w in weights.values() if w > 0)
             if total_w > 0:
-                return sum(
-                    getattr(prosperity_scores[c], attr) * weights[c]
-                    for c in codes if weights[c] > 0
-                ) / total_w
+                return (
+                    sum(
+                        getattr(prosperity_scores[c], attr) * weights[c]
+                        for c in codes
+                        if weights[c] > 0
+                    )
+                    / total_w
+                )
         return _mean(getattr(prosperity_scores[c], attr) for c in codes)
 
     industry_buckets: dict[str, list[str]] = {}
@@ -70,9 +74,7 @@ def aggregate_industry_prosperity(
         delta_values = [s.delta_g for s in scores]
         median_delta = statistics.median(delta_values)
 
-        sorted_by_composite = sorted(
-            scores, key=lambda s: s.composite_score, reverse=True
-        )
+        sorted_by_composite = sorted(scores, key=lambda s: s.composite_score, reverse=True)
         top_codes = [s.ts_code for s in sorted_by_composite[:INDUSTRY_TOP_STOCK_COUNT]]
 
         results.append(
@@ -103,9 +105,7 @@ def classify_stock_stage(
     Uses max(revenue_score, profit_score) for growth assessment with
     a transition zone (75-85) resolved by relative_delta_g direction.
     """
-    max_score = max(
-        prosperity_score.revenue_score, prosperity_score.profit_score
-    )
+    max_score = max(prosperity_score.revenue_score, prosperity_score.profit_score)
 
     if max_score > HIGH_GROWTH_CONFIRMED_THRESHOLD:
         is_high_growth = True
@@ -138,9 +138,7 @@ def classify_industry_stage(
     Uses max(avg_revenue_score, avg_profit_score) with the same transition
     zone logic as classify_stock_stage, using median_delta_g direction.
     """
-    max_score = max(
-        industry_score.avg_revenue_score, industry_score.avg_profit_score
-    )
+    max_score = max(industry_score.avg_revenue_score, industry_score.avg_profit_score)
 
     if max_score > HIGH_GROWTH_CONFIRMED_THRESHOLD:
         is_high_growth = True
@@ -196,9 +194,7 @@ def screen_g_delta_g_ignition(
         if financial_data:
             fd_list = financial_data.get(ts_code, [])
             if fd_list:
-                latest_fd = sorted(
-                    fd_list, key=lambda d: d.report_period
-                )[-1]
+                latest_fd = sorted(fd_list, key=lambda d: d.report_period)[-1]
                 if latest_fd.operating_cf <= 0:
                     continue
 
@@ -322,17 +318,19 @@ def build_stock_details(
             is_ignition=ts_code in ignition_set,
             risk_warnings=generate_risk_warnings(score, fd),
             rank_in_industry=industry_ranks.get(ts_code, 0),
-            ignition_reasons=generate_ignition_reasons(score)
-            if ts_code in ignition_set
-            else [],
+            ignition_reasons=generate_ignition_reasons(score) if ts_code in ignition_set else [],
         )
         details[ts_code].inflection = analyze_inflection(score, details[ts_code].stage, fd)
 
         if fd:
             latest_fd = sorted(fd, key=lambda d: d.report_period)[-1]
             net_margin = latest_fd.net_profit / latest_fd.revenue if latest_fd.revenue else 0.0
-            asset_turnover = latest_fd.revenue / latest_fd.total_assets if latest_fd.total_assets else 0.0
-            leverage_ratio = latest_fd.total_debt / latest_fd.total_assets if latest_fd.total_assets else 0.0
+            asset_turnover = (
+                latest_fd.revenue / latest_fd.total_assets if latest_fd.total_assets else 0.0
+            )
+            leverage_ratio = (
+                latest_fd.total_debt / latest_fd.total_assets if latest_fd.total_assets else 0.0
+            )
             details[ts_code].dupont_driver = dupont_decomposition(
                 latest_fd.roe, net_margin, asset_turnover, leverage_ratio
             )

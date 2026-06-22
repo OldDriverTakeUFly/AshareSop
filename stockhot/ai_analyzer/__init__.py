@@ -2,7 +2,6 @@
 
 import os
 from datetime import datetime
-from typing import Any
 
 from stockhot.ai_analyzer.prompts.templates import (
     SYSTEM_PROMPT,
@@ -10,7 +9,11 @@ from stockhot.ai_analyzer.prompts.templates import (
     REPORT_PROMPT,
 )
 from stockhot.core.utils import fund_flow_direction_phrase, fund_flow_scope_label, safe_float
-from stockhot.storage.database import get_daily_data, get_preferred_analysis_result, save_analysis_result
+from stockhot.storage.database import (
+    get_daily_data,
+    get_preferred_analysis_result,
+    save_analysis_result,
+)
 
 
 def run_analysis(date: str | None = None) -> dict:
@@ -42,20 +45,20 @@ def analyze_hotspots(data: dict) -> dict:
     sectors = data.get("sectors", [])
     fund_flows = data.get("fund_flows", [])
 
-    gainers_text = "\n".join([
-        f"{i+1}. {s['name']} ({s['code']}): +{safe_float(s['change_pct']):.2f}%"
-        for i, s in enumerate(gainers[:10])
-    ])
+    gainers_text = "\n".join(
+        [
+            f"{i+1}. {s['name']} ({s['code']}): +{safe_float(s['change_pct']):.2f}%"
+            for i, s in enumerate(gainers[:10])
+        ]
+    )
 
-    sectors_text = "\n".join([
-        f"{s['name']}: +{safe_float(s['change_pct']):.2f}%"
-        for s in sectors[:8]
-    ])
+    sectors_text = "\n".join(
+        [f"{s['name']}: +{safe_float(s['change_pct']):.2f}%" for s in sectors[:8]]
+    )
 
-    fund_flows_text = "\n".join([
-        f"{f['name']}: 净流入 {safe_float(f['net_inflow']):.2f}亿"
-        for f in fund_flows[:8]
-    ])
+    fund_flows_text = "\n".join(
+        [f"{f['name']}: 净流入 {safe_float(f['net_inflow']):.2f}亿" for f in fund_flows[:8]]
+    )
 
     prompt = HOTSPOT_ANALYSIS_PROMPT.format(
         gainers=gainers_text,
@@ -100,7 +103,6 @@ def generate_daily_report(data: dict, analysis: dict) -> str:
     market_data = _format_market_data(data)
     hotspots = analysis.get("hotspots", [])
     reasons = analysis.get("reasons", [])
-    fund_flow_analysis = analysis.get("fund_flow_analysis", "")
 
     analysis_text = f"热点主题: {', '.join(hotspots[:3])}\n"
     if reasons:
@@ -126,6 +128,7 @@ def call_ai(prompt: str, model: str = "gpt-4o-mini") -> str:
 
     try:
         from openai import OpenAI
+
         client = OpenAI(api_key=api_key)
         response = client.chat.completions.create(
             model=model,
@@ -196,7 +199,9 @@ def _fallback_analysis(prompt: str) -> str:
 
 
 def _has_market_data(data: dict) -> bool:
-    return bool(data.get("gainers") or data.get("losers") or data.get("sectors") or data.get("fund_flows"))
+    return bool(
+        data.get("gainers") or data.get("losers") or data.get("sectors") or data.get("fund_flows")
+    )
 
 
 def _local_reasons(data: dict, ai_result: str) -> list[str]:
@@ -214,7 +219,6 @@ def _local_daily_report(data: dict, analysis: dict) -> str:
     gainers = data.get("gainers", [])
     sectors = data.get("sectors", [])
     fund_flows = data.get("fund_flows", [])
-    reasons = analysis.get("reasons", [])
     fund_flow_analysis = analysis.get("fund_flow_analysis", "")
 
     lines = ["## 市场复盘摘要\n"]
@@ -236,7 +240,6 @@ def _local_daily_report(data: dict, analysis: dict) -> str:
         lines.append(f"{scope}资金样本中，{top_flow['name']}{direction}。")
 
     themes = analysis.get("themes", [])
-    lead_theme = analysis.get("lead_theme")
     if themes:
         theme_names = [t["name"] for t in themes if "name" in t]
         if theme_names:
@@ -271,7 +274,18 @@ def _extract_hotspots(text: str, sectors: list[dict] | None = None) -> list[str]
     matched = [name for name in sector_names if name in text]
     if matched:
         return matched[:5]
-    keywords = ["银行", "白酒", "新能源", "医药", "半导体", "房地产", "军工", "券商", "光伏", "汽车"]
+    keywords = [
+        "银行",
+        "白酒",
+        "新能源",
+        "医药",
+        "半导体",
+        "房地产",
+        "军工",
+        "券商",
+        "光伏",
+        "汽车",
+    ]
     return [k for k in keywords if k in text][:5]
 
 
@@ -303,11 +317,13 @@ def _extract_risks(text: str) -> list[str]:
 def _parse_json(text: str) -> list[dict]:
     """解析JSON"""
     import re
+
     match = re.search(r"\[.*\]", text, re.DOTALL)
     if match:
         import json
+
         try:
             return json.loads(match.group())
-        except:
+        except Exception:
             pass
     return []

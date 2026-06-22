@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 from unittest.mock import patch
 
-import pytest
 
 from stockhot.sell_monitor import (
     SELL_SIGNALS_END,
@@ -240,21 +239,27 @@ class TestReportInjection:
             generate_report,
         )
 
-        with patch(
-            "stockhot.invest_sop.scripts.generate_premarket_report._fetch_overseas",
-            return_value=None,
-        ), patch(
-            "stockhot.invest_sop.scripts.generate_premarket_report._fetch_events",
-            return_value=[],
-        ), patch(
-            "stockhot.invest_sop.scripts.generate_premarket_report._fetch_futures",
-            return_value=None,
-        ), patch(
-            "stockhot.invest_sop.scripts.generate_premarket_report._fetch_cycle_assessments",
-            return_value=[],
-        ), patch(
-            "stockhot.invest_sop.scripts.generate_premarket_report._fetch_active_holdings",
-            return_value=[],
+        with (
+            patch(
+                "stockhot.invest_sop.scripts.generate_premarket_report._fetch_overseas",
+                return_value=None,
+            ),
+            patch(
+                "stockhot.invest_sop.scripts.generate_premarket_report._fetch_events",
+                return_value=[],
+            ),
+            patch(
+                "stockhot.invest_sop.scripts.generate_premarket_report._fetch_futures",
+                return_value=None,
+            ),
+            patch(
+                "stockhot.invest_sop.scripts.generate_premarket_report._fetch_cycle_assessments",
+                return_value=[],
+            ),
+            patch(
+                "stockhot.invest_sop.scripts.generate_premarket_report._fetch_active_holdings",
+                return_value=[],
+            ),
         ):
             result = generate_report("2024-01-15")
 
@@ -268,21 +273,27 @@ class TestReportInjection:
             generate_report,
         )
 
-        with patch(
-            "stockhot.invest_sop.scripts.generate_premarket_report._fetch_overseas",
-            return_value=None,
-        ), patch(
-            "stockhot.invest_sop.scripts.generate_premarket_report._fetch_events",
-            return_value=[],
-        ), patch(
-            "stockhot.invest_sop.scripts.generate_premarket_report._fetch_futures",
-            return_value=None,
-        ), patch(
-            "stockhot.invest_sop.scripts.generate_premarket_report._fetch_cycle_assessments",
-            return_value=[],
-        ), patch(
-            "stockhot.invest_sop.scripts.generate_premarket_report._fetch_active_holdings",
-            return_value=[],
+        with (
+            patch(
+                "stockhot.invest_sop.scripts.generate_premarket_report._fetch_overseas",
+                return_value=None,
+            ),
+            patch(
+                "stockhot.invest_sop.scripts.generate_premarket_report._fetch_events",
+                return_value=[],
+            ),
+            patch(
+                "stockhot.invest_sop.scripts.generate_premarket_report._fetch_futures",
+                return_value=None,
+            ),
+            patch(
+                "stockhot.invest_sop.scripts.generate_premarket_report._fetch_cycle_assessments",
+                return_value=[],
+            ),
+            patch(
+                "stockhot.invest_sop.scripts.generate_premarket_report._fetch_active_holdings",
+                return_value=[],
+            ),
         ):
             result = generate_report("2024-01-15")
 
@@ -302,21 +313,27 @@ class TestReportInjection:
             stop_loss_hard=9.0,
             target_price=13.0,
         )
-        with patch(
-            "stockhot.invest_sop.scripts.generate_premarket_report._fetch_overseas",
-            return_value=None,
-        ), patch(
-            "stockhot.invest_sop.scripts.generate_premarket_report._fetch_events",
-            return_value=[],
-        ), patch(
-            "stockhot.invest_sop.scripts.generate_premarket_report._fetch_futures",
-            return_value=None,
-        ), patch(
-            "stockhot.invest_sop.scripts.generate_premarket_report._fetch_cycle_assessments",
-            return_value=[],
-        ), patch(
-            "stockhot.invest_sop.scripts.generate_premarket_report._fetch_active_holdings",
-            return_value=[h],
+        with (
+            patch(
+                "stockhot.invest_sop.scripts.generate_premarket_report._fetch_overseas",
+                return_value=None,
+            ),
+            patch(
+                "stockhot.invest_sop.scripts.generate_premarket_report._fetch_events",
+                return_value=[],
+            ),
+            patch(
+                "stockhot.invest_sop.scripts.generate_premarket_report._fetch_futures",
+                return_value=None,
+            ),
+            patch(
+                "stockhot.invest_sop.scripts.generate_premarket_report._fetch_cycle_assessments",
+                return_value=[],
+            ),
+            patch(
+                "stockhot.invest_sop.scripts.generate_premarket_report._fetch_active_holdings",
+                return_value=[h],
+            ),
         ):
             result = generate_report("2024-01-15")
 

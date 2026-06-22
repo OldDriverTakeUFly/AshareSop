@@ -2,7 +2,6 @@
 
 import sqlite3
 from datetime import datetime, timedelta
-from pathlib import Path
 from typing import Any
 
 from stockhot.core.config import DB_PATH, DATA_RETENTION_DAYS
@@ -235,7 +234,9 @@ def init_database() -> None:
         """)
 
         # Migrate: add quantity and avg_cost columns if missing
-        holdings_cols = [r[1] for r in conn.execute("PRAGMA table_info(invest_holdings)").fetchall()]
+        holdings_cols = [
+            r[1] for r in conn.execute("PRAGMA table_info(invest_holdings)").fetchall()
+        ]
         if "quantity" not in holdings_cols:
             conn.execute("ALTER TABLE invest_holdings ADD COLUMN quantity INTEGER DEFAULT 0")
         if "avg_cost" not in holdings_cols:
@@ -248,19 +249,19 @@ def init_database() -> None:
 
         # Insert default sector rules
         default_rules = [
-            ('AI', -0.15, 0.25),
-            ('半导体', -0.15, 0.25),
-            ('软件', -0.12, 0.20),
-            ('锂电', -0.15, 0.25),
-            ('光伏', -0.15, 0.25),
-            ('新能源车', -0.15, 0.25),
-            ('有色', -0.12, 0.20),
-            ('化工', -0.12, 0.20),
-            ('煤炭', -0.10, 0.15),
-            ('消费', -0.10, 0.15),
-            ('金融', -0.08, 0.12),
-            ('医药', -0.12, 0.20),
-            ('default', -0.12, 0.20),
+            ("AI", -0.15, 0.25),
+            ("半导体", -0.15, 0.25),
+            ("软件", -0.12, 0.20),
+            ("锂电", -0.15, 0.25),
+            ("光伏", -0.15, 0.25),
+            ("新能源车", -0.15, 0.25),
+            ("有色", -0.12, 0.20),
+            ("化工", -0.12, 0.20),
+            ("煤炭", -0.10, 0.15),
+            ("消费", -0.10, 0.15),
+            ("金融", -0.08, 0.12),
+            ("医药", -0.12, 0.20),
+            ("default", -0.12, 0.20),
         ]
         for sector, sl, tp in default_rules:
             conn.execute(

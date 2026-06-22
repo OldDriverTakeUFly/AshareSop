@@ -59,7 +59,7 @@ def _merge_financial_dfs(
     balancesheet: pd.DataFrame,
     cashflow: pd.DataFrame,
     fina_indicator: pd.DataFrame,
-    ) -> pd.DataFrame:
+) -> pd.DataFrame:
     merge_on = ["ts_code", _MERGE_KEY]
 
     def _safe_merge(left: pd.DataFrame, right: pd.DataFrame) -> pd.DataFrame:

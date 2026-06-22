@@ -1,5 +1,4 @@
 import sqlite3
-import tempfile
 from pathlib import Path
 from unittest.mock import patch
 
@@ -21,8 +20,9 @@ def _bypass_auth():
 @pytest.fixture()
 def test_db(tmp_path: Path):
     db_path = tmp_path / "test.db"
-    with patch("stockhot.storage.database.DB_PATH", db_path), patch(
-        "stockhot.core.config.DB_PATH", db_path
+    with (
+        patch("stockhot.storage.database.DB_PATH", db_path),
+        patch("stockhot.core.config.DB_PATH", db_path),
     ):
         conn = sqlite3.connect(db_path)
         conn.row_factory = sqlite3.Row

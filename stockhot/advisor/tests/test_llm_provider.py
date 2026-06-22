@@ -19,7 +19,7 @@ network calls are made.
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -33,7 +33,6 @@ from stockhot.advisor import (
     get_provider,
 )
 import stockhot.advisor.llm_provider as lp_module
-
 
 # ── Fixtures / helpers ───────────────────────────────────────────────────
 
@@ -80,16 +79,22 @@ def _build_provider(cls, monkeypatch, **ctor_kwargs):
 class TestLLMResponse:
     def test_is_frozen(self):
         resp = LLMResponse(
-            content="x", prompt_tokens=1, completion_tokens=2,
-            model="m", latency_ms=10,
+            content="x",
+            prompt_tokens=1,
+            completion_tokens=2,
+            model="m",
+            latency_ms=10,
         )
         with pytest.raises(Exception):
             resp.content = "y"  # type: ignore[misc]
 
     def test_fields(self):
         resp = LLMResponse(
-            content="hello", prompt_tokens=5, completion_tokens=7,
-            model="glm-5.2", latency_ms=123,
+            content="hello",
+            prompt_tokens=5,
+            completion_tokens=7,
+            model="glm-5.2",
+            latency_ms=123,
         )
         assert resp.content == "hello"
         assert resp.prompt_tokens == 5
@@ -126,7 +131,8 @@ class TestProviderSuccess:
     def test_token_tracking(self, provider_cls, monkeypatch):
         provider, _ = _build_provider(provider_cls, monkeypatch)
         mock_resp = _make_mock_response(
-            prompt_tokens=77, completion_tokens=33,
+            prompt_tokens=77,
+            completion_tokens=33,
         )
         provider._client.chat.completions.create.return_value = mock_resp
 
@@ -312,7 +318,9 @@ class TestProviderDefaults:
 
     def test_base_url_override(self, monkeypatch):
         provider, captured = _build_provider(
-            GLMProvider, monkeypatch, base_url="https://custom.example.com/v1",
+            GLMProvider,
+            monkeypatch,
+            base_url="https://custom.example.com/v1",
         )
         assert captured["base_url"] == "https://custom.example.com/v1"
 
@@ -335,6 +343,7 @@ class TestGetProvider:
         def fake_openai_init(self, api_key=None, base_url=None, **kw):
             self.chat = MagicMock()
             self.models = MagicMock()
+
         monkeypatch.setattr(lp_module.OpenAI, "__init__", fake_openai_init)
 
     def test_default_is_glm(self, monkeypatch):

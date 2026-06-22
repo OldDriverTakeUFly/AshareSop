@@ -7,7 +7,6 @@ from stockhot.core.rate_limiter import safe_akshare_call
 from stockhot.core.utils import safe_float, safe_text, to_akshare_date
 from stockhot.storage.database import save_analysis_result, save_daily_data
 
-
 # ---------------------------------------------------------------------------
 # Field mappings (AkShare Chinese column names → internal keys)
 # ---------------------------------------------------------------------------
@@ -44,6 +43,7 @@ _BROKER_FIELDS = {
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _extract_rows(df, field_map: dict[str, str]) -> list[dict]:
     """Convert a DataFrame to list-of-dicts using *field_map*."""
     if df is None or df.empty:
@@ -54,7 +54,14 @@ def _extract_rows(df, field_map: dict[str, str]) -> list[dict]:
         item = {}
         for col, alias in available.items():
             val = row[col]
-            if alias in ("buy_amount", "sell_amount", "net_amount", "net_buy_amount", "close_price", "change_pct"):
+            if alias in (
+                "buy_amount",
+                "sell_amount",
+                "net_amount",
+                "net_buy_amount",
+                "close_price",
+                "change_pct",
+            ):
                 item[alias] = safe_float(val)
             else:
                 item[alias] = safe_text(val)
@@ -65,6 +72,7 @@ def _extract_rows(df, field_map: dict[str, str]) -> list[dict]:
 # ---------------------------------------------------------------------------
 # Fetchers
 # ---------------------------------------------------------------------------
+
 
 def fetch_lhb_detail(start_date: str, end_date: str) -> list[dict]:
     """Fetch 龙虎榜明细 from AkShare.
@@ -122,6 +130,7 @@ def fetch_active_brokers(start_date: str, end_date: str) -> list[dict]:
 # Analysis
 # ---------------------------------------------------------------------------
 
+
 def analyze_hot_money_tracking(detail: list[dict], brokers: list[dict]) -> list[dict]:
     """Cross-reference broker offices with their buy/sell targets.
 
@@ -154,12 +163,14 @@ def analyze_hot_money_tracking(detail: list[dict], brokers: list[dict]) -> list[
         else:
             net_direction = "neutral"
 
-        results.append({
-            "broker": name,
-            "buy_targets": buy_targets,
-            "sell_targets": sell_targets,
-            "net_direction": net_direction,
-        })
+        results.append(
+            {
+                "broker": name,
+                "buy_targets": buy_targets,
+                "sell_targets": sell_targets,
+                "net_direction": net_direction,
+            }
+        )
 
     return results
 
@@ -215,6 +226,7 @@ def generate_summary(
 # Main entry point
 # ---------------------------------------------------------------------------
 
+
 def run_dragon_tiger_analysis(date: str) -> dict:
     """Main entry point: fetch LHB data for a single day, analyze, persist.
 
@@ -253,7 +265,9 @@ def run_dragon_tiger_analysis(date: str) -> dict:
     save_daily_data({"date": date, "dragon_tiger_detail": detail})
     save_analysis_result(date, "dragon_tiger", data)
 
-    logger.info(f"龙虎榜分析完成: {date}, detail={len(detail)}, inst={len(inst)}, brokers={len(brokers)}")
+    logger.info(
+        f"龙虎榜分析完成: {date}, detail={len(detail)}, inst={len(inst)}, brokers={len(brokers)}"
+    )
 
     return {
         "date": date,

@@ -10,7 +10,6 @@ Covers five scenarios:
 
 import argparse
 
-import pytest
 
 from stockhot.invest_sop.utils.db_helpers import query_by_date, upsert_record
 from stockhot.invest_sop.scripts.generate_premarket_report import (
@@ -27,82 +26,107 @@ TEST_DATE = "2026-05-13"
 # Helpers to seed test data into invest_ tables
 # ---------------------------------------------------------------------------
 
+
 def _insert_overseas(date: str) -> None:
-    upsert_record("invest_overseas_market", {
-        "date": date,
-        "sp500_pct": 0.52,
-        "nasdaq_pct": 1.23,
-        "dow_pct": -0.15,
-        "us_10y": 4.4521,
-        "us_10y_change_bp": 3.2,
-        "vix": 15.67,
-        "a50_pct": -0.34,
-        "usd_cny": 7.2150,
-    }, unique_keys=["date"])
+    upsert_record(
+        "invest_overseas_market",
+        {
+            "date": date,
+            "sp500_pct": 0.52,
+            "nasdaq_pct": 1.23,
+            "dow_pct": -0.15,
+            "us_10y": 4.4521,
+            "us_10y_change_bp": 3.2,
+            "vix": 15.67,
+            "a50_pct": -0.34,
+            "usd_cny": 7.2150,
+        },
+        unique_keys=["date"],
+    )
 
 
 def _insert_events(date: str) -> None:
-    upsert_record("invest_domestic_events", {
-        "date": date,
-        "event_name": "LPR利率公布",
-        "affected_sector": "银行",
-        "impact_direction": "偏多",
-        "severity": "🟠",
-        "source": "manual",
-    }, unique_keys=["date", "event_name"])
+    upsert_record(
+        "invest_domestic_events",
+        {
+            "date": date,
+            "event_name": "LPR利率公布",
+            "affected_sector": "银行",
+            "impact_direction": "偏多",
+            "severity": "🟠",
+            "source": "manual",
+        },
+        unique_keys=["date", "event_name"],
+    )
 
 
 def _insert_futures(date: str) -> None:
-    upsert_record("invest_futures_sentiment", {
-        "date": date,
-        "if_pct": 0.45,
-        "ic_pct": -0.23,
-        "im_pct": 0.12,
-        "if_basis": -0.35,
-        "ic_basis": -0.28,
-        "northbound_net": 35.67,
-        "margin_balance": 15234.5,
-        "put_call_ratio": 0.82,
-    }, unique_keys=["date"])
+    upsert_record(
+        "invest_futures_sentiment",
+        {
+            "date": date,
+            "if_pct": 0.45,
+            "ic_pct": -0.23,
+            "im_pct": 0.12,
+            "if_basis": -0.35,
+            "ic_basis": -0.28,
+            "northbound_net": 35.67,
+            "margin_balance": 15234.5,
+            "put_call_ratio": 0.82,
+        },
+        unique_keys=["date"],
+    )
 
 
 def _insert_morning(date: str) -> None:
-    upsert_record("invest_morning_data", {
-        "date": date,
-        "a50_morning_pct": -0.15,
-        "nikkei_pct": 0.67,
-        "kospi_pct": -0.23,
-        "usd_cny_morning": 7.2100,
-        "notes": "vs overnight: A50Δ=0.19%",
-    }, unique_keys=["date"])
+    upsert_record(
+        "invest_morning_data",
+        {
+            "date": date,
+            "a50_morning_pct": -0.15,
+            "nikkei_pct": 0.67,
+            "kospi_pct": -0.23,
+            "usd_cny_morning": 7.2100,
+            "notes": "vs overnight: A50Δ=0.19%",
+        },
+        unique_keys=["date"],
+    )
 
 
 def _insert_cycle() -> None:
-    upsert_record("invest_cycle_assessments", {
-        "sector": "AI",
-        "cycle_position": "繁荣",
-        "crowding_score": 7,
-        "assessment_date": "2026-05-12",
-        "notes": "高景气度持续",
-    }, unique_keys=["sector"])
+    upsert_record(
+        "invest_cycle_assessments",
+        {
+            "sector": "AI",
+            "cycle_position": "繁荣",
+            "crowding_score": 7,
+            "assessment_date": "2026-05-12",
+            "notes": "高景气度持续",
+        },
+        unique_keys=["sector"],
+    )
 
 
 def _insert_holding() -> None:
-    upsert_record("invest_holdings", {
-        "code": "688256",
-        "name": "寒武纪",
-        "sector": "AI",
-        "entry_price": 250.00,
-        "current_price": 268.50,
-        "stop_loss_logic": 220.00,
-        "stop_loss_technical": 235.00,
-        "stop_loss_hard": 200.00,
-        "target_price": 320.00,
-        "position_pct": 10.0,
-        "entry_date": "2026-04-15",
-        "status": "active",
-        "notes": "AI芯片龙头",
-    }, unique_keys=[])
+    upsert_record(
+        "invest_holdings",
+        {
+            "code": "688256",
+            "name": "寒武纪",
+            "sector": "AI",
+            "entry_price": 250.00,
+            "current_price": 268.50,
+            "stop_loss_logic": 220.00,
+            "stop_loss_technical": 235.00,
+            "stop_loss_hard": 200.00,
+            "target_price": 320.00,
+            "position_pct": 10.0,
+            "entry_date": "2026-04-15",
+            "status": "active",
+            "notes": "AI芯片龙头",
+        },
+        unique_keys=[],
+    )
 
 
 def _seed_all(date: str) -> None:
@@ -117,6 +141,7 @@ def _seed_all(date: str) -> None:
 # ===================================================================
 # Scenario 1: Empty DB → full flow
 # ===================================================================
+
 
 class TestEmptyDBFullFlow:
 
@@ -136,6 +161,7 @@ class TestEmptyDBFullFlow:
 # ===================================================================
 # Scenario 2: Single day complete flow
 # ===================================================================
+
 
 class TestSingleDayFullFlow:
 
@@ -196,14 +222,20 @@ class TestSingleDayFullFlow:
 # Scenario 3: Holdings CRUD + report linkage
 # ===================================================================
 
+
 class TestHoldingsCRUDAndReport:
 
     def _add_holding(self, **overrides):
         defaults = dict(
-            code="688256", name="寒武纪", sector="AI",
-            price=250.00, stop_loss_logic=220.00,
-            target=320.00, position_pct=10.0,
-            stop_loss_hard=None, stop_loss_technical=None,
+            code="688256",
+            name="寒武纪",
+            sector="AI",
+            price=250.00,
+            stop_loss_logic=220.00,
+            target=320.00,
+            position_pct=10.0,
+            stop_loss_hard=None,
+            stop_loss_technical=None,
         )
         defaults.update(overrides)
         holdings_cli.cmd_add(argparse.Namespace(**defaults))
@@ -212,7 +244,9 @@ class TestHoldingsCRUDAndReport:
         self._add_holding()
 
         conn = get_connection()
-        rows = [dict(r) for r in conn.execute("SELECT * FROM invest_holdings WHERE status='active'")]
+        rows = [
+            dict(r) for r in conn.execute("SELECT * FROM invest_holdings WHERE status='active'")
+        ]
         conn.close()
         assert len(rows) == 1
         assert rows[0]["name"] == "寒武纪"
@@ -245,15 +279,23 @@ class TestHoldingsCRUDAndReport:
 # Scenario 4: Non-trading day skip
 # ===================================================================
 
+
 class TestNonTradingDay:
 
     def test_weekend_not_trading_day(self, monkeypatch):
         from stockhot.invest_sop.utils import trading_calendar
 
-        monkeypatch.setattr(trading_calendar, "_trade_dates", {
-            "2026-05-11", "2026-05-12", "2026-05-13",
-            "2026-05-14", "2026-05-15",
-        })
+        monkeypatch.setattr(
+            trading_calendar,
+            "_trade_dates",
+            {
+                "2026-05-11",
+                "2026-05-12",
+                "2026-05-13",
+                "2026-05-14",
+                "2026-05-15",
+            },
+        )
         assert trading_calendar.is_trading_day("2026-05-16") is False
         assert trading_calendar.is_trading_day("2026-05-17") is False
 
@@ -266,15 +308,21 @@ class TestNonTradingDay:
     def test_holiday_weekday_not_trading_day(self, monkeypatch):
         from stockhot.invest_sop.utils import trading_calendar
 
-        monkeypatch.setattr(trading_calendar, "_trade_dates", {
-            "2026-05-11", "2026-05-13",
-        })
+        monkeypatch.setattr(
+            trading_calendar,
+            "_trade_dates",
+            {
+                "2026-05-11",
+                "2026-05-13",
+            },
+        )
         assert trading_calendar.is_trading_day("2026-05-12") is False
 
 
 # ===================================================================
 # Scenario 5: Duplicate run idempotency
 # ===================================================================
+
 
 class TestIdempotency:
 
@@ -290,8 +338,10 @@ class TestIdempotency:
 
     def test_event_upsert_twice_keeps_one(self, temp_db):
         data = {
-            "date": TEST_DATE, "event_name": "LPR利率公布",
-            "affected_sector": "银行", "severity": "🟠",
+            "date": TEST_DATE,
+            "event_name": "LPR利率公布",
+            "affected_sector": "银行",
+            "severity": "🟠",
         }
         upsert_record("invest_domestic_events", data, unique_keys=["date", "event_name"])
         data["severity"] = "🔴"
@@ -313,18 +363,25 @@ class TestIdempotency:
 
     def test_supply_chain_upsert_twice_keeps_one(self, temp_db):
         data = {
-            "date": TEST_DATE, "sector": "有色", "metric_name": "LME铜",
-            "value": 9523.0, "unit": "USD/t", "source": "test",
+            "date": TEST_DATE,
+            "sector": "有色",
+            "metric_name": "LME铜",
+            "value": 9523.0,
+            "unit": "USD/t",
+            "source": "test",
         }
         upsert_record("invest_supply_chain", data, unique_keys=["date", "sector", "metric_name"])
         data["value"] = 9600.0
         upsert_record("invest_supply_chain", data, unique_keys=["date", "sector", "metric_name"])
 
         conn = get_connection()
-        rows = [dict(r) for r in conn.execute(
-            "SELECT * FROM invest_supply_chain WHERE date=? AND sector=? AND metric_name=?",
-            (TEST_DATE, "有色", "LME铜"),
-        )]
+        rows = [
+            dict(r)
+            for r in conn.execute(
+                "SELECT * FROM invest_supply_chain WHERE date=? AND sector=? AND metric_name=?",
+                (TEST_DATE, "有色", "LME铜"),
+            )
+        ]
         conn.close()
         assert len(rows) == 1
         assert rows[0]["value"] == 9600.0
@@ -336,7 +393,10 @@ class TestIdempotency:
         upsert_record("invest_cycle_assessments", data, unique_keys=["sector"])
 
         conn = get_connection()
-        rows = [dict(r) for r in conn.execute("SELECT * FROM invest_cycle_assessments WHERE sector='AI'")]
+        rows = [
+            dict(r)
+            for r in conn.execute("SELECT * FROM invest_cycle_assessments WHERE sector='AI'")
+        ]
         conn.close()
         assert len(rows) == 1
         assert rows[0]["crowding_score"] == 8

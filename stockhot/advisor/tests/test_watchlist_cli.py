@@ -81,9 +81,7 @@ class TestList:
         assert "No watchlist entries found" in captured.out
 
     def test_list_shows_entries(self, temp_db, capsys):
-        add_args = watchlist_cli.build_parser().parse_args(
-            ["add", "600519", "--name", "贵州茅台"]
-        )
+        add_args = watchlist_cli.build_parser().parse_args(["add", "600519", "--name", "贵州茅台"])
         watchlist_cli.cmd_add(add_args)
         capsys.readouterr()
 
@@ -105,9 +103,7 @@ class TestList:
                 watchlist_cli.cmd_update(up_args)
                 capsys.readouterr()
 
-        list_args = watchlist_cli.build_parser().parse_args(
-            ["list", "--status", "watching"]
-        )
+        list_args = watchlist_cli.build_parser().parse_args(["list", "--status", "watching"])
         watchlist_cli.cmd_list(list_args)
         captured = capsys.readouterr()
         assert "000001" in captured.out
@@ -116,9 +112,7 @@ class TestList:
 
     def test_list_sector_filter(self, temp_db, capsys):
         for code, sector in [("000001", "AI"), ("000002", "AI"), ("000003", "医药")]:
-            add_args = watchlist_cli.build_parser().parse_args(
-                ["add", code, "--sector", sector]
-            )
+            add_args = watchlist_cli.build_parser().parse_args(["add", code, "--sector", sector])
             watchlist_cli.cmd_add(add_args)
             capsys.readouterr()
 
@@ -163,9 +157,7 @@ class TestUpdate:
         watchlist_cli.cmd_add(add_args)
         capsys.readouterr()
 
-        up_args = watchlist_cli.build_parser().parse_args(
-            ["update", "600519", "--priority", "3"]
-        )
+        up_args = watchlist_cli.build_parser().parse_args(["update", "600519", "--priority", "3"])
         watchlist_cli.cmd_update(up_args)
         captured = capsys.readouterr()
         assert "[OK]" in captured.out
@@ -189,9 +181,7 @@ class TestUpdate:
         assert row["status"] == "bought"
 
     def test_update_nonexistent_exit_one(self, temp_db, capsys):
-        up_args = watchlist_cli.build_parser().parse_args(
-            ["update", "999999", "--priority", "3"]
-        )
+        up_args = watchlist_cli.build_parser().parse_args(["update", "999999", "--priority", "3"])
         with pytest.raises(SystemExit) as exc_info:
             watchlist_cli.cmd_update(up_args)
 

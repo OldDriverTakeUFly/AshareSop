@@ -16,7 +16,6 @@ from davis_analyzer.distress import (
 from davis_analyzer.scoring import calculate_davis_double_score, rank_stocks
 from davis_analyzer.types import DavisDoubleScore
 
-
 # ── Layer 1 signal tests ────────────────────────────────────────────────────
 
 
@@ -44,9 +43,7 @@ class TestCheckEpsDecline:
         # [2.0, 99, 99, 99, 1.0] → decline = (1.0-2.0)/1.0 = -1.0 → 0.0
         assert check_eps_decline([2.0, 99.0, 99.0, 99.0, 1.0]) == 0.0
         # [0.5, 99, 99, 99, 1.0] → decline = 0.5 → 1.0
-        assert check_eps_decline([0.5, 99.0, 99.0, 99.0, 1.0]) == pytest.approx(
-            1.0, abs=0.01
-        )
+        assert check_eps_decline([0.5, 99.0, 99.0, 99.0, 1.0]) == pytest.approx(1.0, abs=0.01)
 
 
 class TestCheckPePbPercentile:
@@ -289,11 +286,7 @@ class TestCalculateDistressScore:
 
     def test_total_weighted_formula(self):
         result = calculate_distress_score(**self._make_high_score_kwargs())
-        expected = (
-            result.layer1_score * 0.3
-            + result.layer2_score * 0.3
-            + result.layer3_score * 0.4
-        )
+        expected = result.layer1_score * 0.3 + result.layer2_score * 0.3 + result.layer3_score * 0.4
         assert result.total_score == pytest.approx(expected, abs=0.02)
 
 
@@ -402,16 +395,12 @@ class TestCalculateDavisDoubleScore:
         assert result.final_score == 0.0
 
     def test_max_scores(self):
-        result = calculate_davis_double_score(
-            100.0, 100.0, 100.0, trend_score=100.0
-        )
+        result = calculate_davis_double_score(100.0, 100.0, 100.0, trend_score=100.0)
         assert result.final_score == pytest.approx(100.0, abs=0.01)
 
     def test_trend_score_default_zero(self):
         result_without = calculate_davis_double_score(80.0, 70.0, 60.0)
-        result_with = calculate_davis_double_score(
-            80.0, 70.0, 60.0, trend_score=0.0
-        )
+        result_with = calculate_davis_double_score(80.0, 70.0, 60.0, trend_score=0.0)
         assert result_without.final_score == result_with.final_score
         assert result_without.trend_score == 0.0
 

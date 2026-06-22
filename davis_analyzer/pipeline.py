@@ -56,9 +56,7 @@ def run_screening_pipeline(
         client = TushareClient()
     except Exception:
         if dry_run:
-            logger.warning(
-                "dry_run=True but no cached data available — returning empty list"
-            )
+            logger.warning("dry_run=True but no cached data available — returning empty list")
             return PipelineResult(
                 scores=[],
                 stock_infos={},
@@ -117,12 +115,8 @@ def run_screening_pipeline(
         )
 
     # ── Step 5/8: Fetch financial data for filtered stocks ──
-    logger.info(
-        "Step 5/8: Fetching financial data for {} stocks...", len(filtered_codes)
-    )
-    financial_data: dict[str, list[FinancialData]] = fetch_batch_financial(
-        client, filtered_codes
-    )
+    logger.info("Step 5/8: Fetching financial data for {} stocks...", len(filtered_codes))
+    financial_data: dict[str, list[FinancialData]] = fetch_batch_financial(client, filtered_codes)
     logger.info("Financial data fetched for {} stocks", len(financial_data))
 
     # ── Step 6/8: Calculate prosperity scores ──
@@ -131,9 +125,7 @@ def run_screening_pipeline(
     logger.info("Prosperity scores calculated for {} stocks", len(prosperity_scores))
 
     # ── Step 7/8: Calculate distress scores + combine ──
-    logger.info(
-        "Step 7/8: Calculating distress scores for {} stocks...", len(prosperity_scores)
-    )
+    logger.info("Step 7/8: Calculating distress scores for {} stocks...", len(prosperity_scores))
 
     # ── Step 7.5: Fetch daily PE/PB series and calculate trend scores ──
     logger.info("Step 7.5: Calculating PE/PB trend scores for {} stocks...", len(prosperity_scores))
@@ -176,9 +168,7 @@ def run_screening_pipeline(
             latest = fin_data[0]  # Use latest period for balance sheet
             total_debt = latest.total_debt
             total_assets = latest.total_assets
-            debt_ratio = (
-                total_debt / total_assets if total_assets > 0 else 0.0
-            )
+            debt_ratio = total_debt / total_assets if total_assets > 0 else 0.0
             operating_cf = latest.operating_cf
 
             distress = calculate_distress_score(
@@ -212,9 +202,7 @@ def run_screening_pipeline(
             logger.exception("Error processing stock {} — skipping", ts_code)
             continue
 
-    logger.info(
-        "Step 8/8: Scored {} stocks, ranking top {}...", len(scored_stocks), top_n
-    )
+    logger.info("Step 8/8: Scored {} stocks, ranking top {}...", len(scored_stocks), top_n)
     ranked = rank_stocks(scored_stocks, top_n)
 
     logger.info(

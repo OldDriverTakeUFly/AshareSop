@@ -89,9 +89,7 @@ def get_current_davis_score(code: str) -> dict:
     total = len(result.scores)
     for score in result.scores:
         if score.ts_code == ts_code:
-            percentile = round(
-                (total - score.rank + 1) / total * 100.0, 2
-            ) if total > 0 else 50.0
+            percentile = round((total - score.rank + 1) / total * 100.0, 2) if total > 0 else 50.0
             return {
                 "final_score": score.final_score,
                 "percentile_rank": percentile,

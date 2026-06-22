@@ -14,6 +14,7 @@
   7. 货币资金 + 经营CF (burn rate)
   8. 资本开支强度 (n_cashflow_inv_act 代理)
 """
+
 from __future__ import annotations
 
 import json
@@ -41,6 +42,7 @@ T1_FETCHED = "2026-06-20T09:48:30"
 
 
 # ───────────────────── helpers ─────────────────────
+
 
 def _f(v):
     """safe float -> rounded 4dp or None"""
@@ -121,23 +123,32 @@ def source_tag(endpoint: str, end_date: str = "latest") -> str:
 
 # ───────────────────── indicator builders ─────────────────────
 
+
 def build_gross_margin(data: dict) -> dict:
     """
     Indicator 1: 毛利率趋势
     Use fina_indicator.q_gsprofit_margin (single-quarter) + grossprofit_margin (cumulative).
     """
-    result = {"_source": source_tag("fina_indicator"), "tianyue": [], "peers": {}, "trend": "", "analysis": ""}
+    result = {
+        "_source": source_tag("fina_indicator"),
+        "tianyue": [],
+        "peers": {},
+        "trend": "",
+        "analysis": "",
+    }
     for code in ALL_CODES:
         recs = dedupe_by_enddate(data["fina_indicator"][code])
         last8 = last_n_quarters(recs, 8)
         series = []
         for r in last8:
-            series.append({
-                "period": r["end_date"],
-                "quarter": quarter_suffix(r["end_date"]),
-                "q_gross_margin": _f(r.get("q_gsprofit_margin")),  # 单季
-                "cum_gross_margin": _f(r.get("grossprofit_margin")),  # 累计
-            })
+            series.append(
+                {
+                    "period": r["end_date"],
+                    "quarter": quarter_suffix(r["end_date"]),
+                    "q_gross_margin": _f(r.get("q_gsprofit_margin")),  # 单季
+                    "cum_gross_margin": _f(r.get("grossprofit_margin")),  # 累计
+                }
+            )
         if code == TARGET:
             result["tianyue"] = series
         else:
@@ -163,8 +174,6 @@ def build_gross_margin(data: dict) -> dict:
     # analysis text
     ty_q = result["tianyue"]
     latest_ty = ty_q[-1] if ty_q else {}
-    q4_2025 = next((s for s in reversed(ty_q) if s["quarter"] == "2025Q4"), {})
-    q1_2026 = next((s for s in reversed(ty_q) if s["quarter"] == "2026Q1"), {})
     # peer latest
     peer_latest = {}
     for p, s in result["peers"].items():
@@ -189,7 +198,13 @@ def build_rd_ratio(data: dict) -> dict:
     Indicator 2: 研发费率 = rd_exp / revenue (累计口径).
     income.rd_exp is None for Q1/Q3 in some cases → use annual + H1.
     """
-    result = {"_source": source_tag("income"), "tianyue": [], "peers": {}, "trend": "", "analysis": ""}
+    result = {
+        "_source": source_tag("income"),
+        "tianyue": [],
+        "peers": {},
+        "trend": "",
+        "analysis": "",
+    }
     for code in ALL_CODES:
         recs = dedupe_by_enddate(data["income"][code])
         last8 = last_n_quarters(recs, 8)
@@ -200,13 +215,15 @@ def build_rd_ratio(data: dict) -> dict:
             ratio = None
             if rev and rd is not None and rev != 0:
                 ratio = round(rd / rev * 100, 2)
-            series.append({
-                "period": r["end_date"],
-                "quarter": quarter_suffix(r["end_date"]),
-                "rd_exp": _f(rd),
-                "revenue": _f(rev),
-                "rd_ratio_pct": ratio,
-            })
+            series.append(
+                {
+                    "period": r["end_date"],
+                    "quarter": quarter_suffix(r["end_date"]),
+                    "rd_exp": _f(rd),
+                    "revenue": _f(rev),
+                    "rd_ratio_pct": ratio,
+                }
+            )
         if code == TARGET:
             result["tianyue"] = series
         else:
@@ -247,7 +264,13 @@ def build_expense_ratio(data: dict) -> dict:
     Indicator 3: 费用率 = (sell_exp + admin_exp + fin_exp) / revenue.
     Decompose into 销售/管理/财务 three components.
     """
-    result = {"_source": source_tag("income"), "tianyue": [], "peers": {}, "trend": "", "analysis": ""}
+    result = {
+        "_source": source_tag("income"),
+        "tianyue": [],
+        "peers": {},
+        "trend": "",
+        "analysis": "",
+    }
     for code in ALL_CODES:
         recs = dedupe_by_enddate(data["income"][code])
         last8 = last_n_quarters(recs, 8)
@@ -259,19 +282,21 @@ def build_expense_ratio(data: dict) -> dict:
             fin = r.get("fin_exp") or 0
             total_exp = sell + admin + fin
             ratio = round(total_exp / rev * 100, 2) if rev and rev != 0 else None
-            series.append({
-                "period": r["end_date"],
-                "quarter": quarter_suffix(r["end_date"]),
-                "sell_exp": _f(sell),
-                "admin_exp": _f(admin),
-                "fin_exp": _f(fin),
-                "total_3exp": _f(total_exp),
-                "revenue": _f(rev),
-                "expense_ratio_pct": ratio,
-                "sell_ratio_pct": round(sell / rev * 100, 2) if rev and rev != 0 else None,
-                "admin_ratio_pct": round(admin / rev * 100, 2) if rev and rev != 0 else None,
-                "fin_ratio_pct": round(fin / rev * 100, 2) if rev and rev != 0 else None,
-            })
+            series.append(
+                {
+                    "period": r["end_date"],
+                    "quarter": quarter_suffix(r["end_date"]),
+                    "sell_exp": _f(sell),
+                    "admin_exp": _f(admin),
+                    "fin_exp": _f(fin),
+                    "total_3exp": _f(total_exp),
+                    "revenue": _f(rev),
+                    "expense_ratio_pct": ratio,
+                    "sell_ratio_pct": round(sell / rev * 100, 2) if rev and rev != 0 else None,
+                    "admin_ratio_pct": round(admin / rev * 100, 2) if rev and rev != 0 else None,
+                    "fin_ratio_pct": round(fin / rev * 100, 2) if rev and rev != 0 else None,
+                }
+            )
         if code == TARGET:
             result["tianyue"] = series
         else:
@@ -313,7 +338,13 @@ def build_contract_liab(data: dict) -> dict:
     Indicator 4: 合同负债趋势 (balancesheet.contract_liab).
     Order signal — 环比 + 同比.
     """
-    result = {"_source": source_tag("balancesheet"), "tianyue": [], "peers": {}, "trend": "", "analysis": ""}
+    result = {
+        "_source": source_tag("balancesheet"),
+        "tianyue": [],
+        "peers": {},
+        "trend": "",
+        "analysis": "",
+    }
     for code in ALL_CODES:
         recs = dedupe_by_enddate(data["balancesheet"][code])
         last8 = last_n_quarters(recs, 8)
@@ -322,21 +353,23 @@ def build_contract_liab(data: dict) -> dict:
             cl = r.get("contract_liab")
             # QoQ: compare with previous in series
             qoq = None
-            if i > 0 and cl is not None and last8[i-1].get("contract_liab") is not None:
-                prev = last8[i-1].get("contract_liab")
+            if i > 0 and cl is not None and last8[i - 1].get("contract_liab") is not None:
+                prev = last8[i - 1].get("contract_liab")
                 qoq = round((cl - prev) / prev * 100, 2) if prev != 0 else None
             # YoY: compare with 4 periods ago
             yoy = None
-            if i >= 4 and cl is not None and last8[i-4].get("contract_liab") is not None:
-                y4 = last8[i-4].get("contract_liab")
+            if i >= 4 and cl is not None and last8[i - 4].get("contract_liab") is not None:
+                y4 = last8[i - 4].get("contract_liab")
                 yoy = round((cl - y4) / y4 * 100, 2) if y4 != 0 else None
-            series.append({
-                "period": r["end_date"],
-                "quarter": quarter_suffix(r["end_date"]),
-                "contract_liab": _f(cl),
-                "qoq_pct": qoq,
-                "yoy_pct": yoy,
-            })
+            series.append(
+                {
+                    "period": r["end_date"],
+                    "quarter": quarter_suffix(r["end_date"]),
+                    "contract_liab": _f(cl),
+                    "qoq_pct": qoq,
+                    "yoy_pct": yoy,
+                }
+            )
         if code == TARGET:
             result["tianyue"] = series
         else:
@@ -372,7 +405,13 @@ def build_cip(data: dict) -> dict:
     """
     Indicator 5: 在建工程 (balancesheet.cip) — 产能扩张节奏.
     """
-    result = {"_source": source_tag("balancesheet"), "tianyue": [], "peers": {}, "trend": "", "analysis": ""}
+    result = {
+        "_source": source_tag("balancesheet"),
+        "tianyue": [],
+        "peers": {},
+        "trend": "",
+        "analysis": "",
+    }
     for code in ALL_CODES:
         recs = dedupe_by_enddate(data["balancesheet"][code])
         last8 = last_n_quarters(recs, 8)
@@ -383,17 +422,19 @@ def build_cip(data: dict) -> dict:
             # cip / fix_assets ratio = 扩产强度
             cip_fa_ratio = round(cip / fa * 100, 2) if cip and fa and fa != 0 else None
             qoq = None
-            if i > 0 and cip is not None and last8[i-1].get("cip") is not None:
-                prev = last8[i-1].get("cip")
+            if i > 0 and cip is not None and last8[i - 1].get("cip") is not None:
+                prev = last8[i - 1].get("cip")
                 qoq = round((cip - prev) / prev * 100, 2) if prev != 0 else None
-            series.append({
-                "period": r["end_date"],
-                "quarter": quarter_suffix(r["end_date"]),
-                "cip": _f(cip),
-                "fix_assets": _f(fa),
-                "cip_to_fix_assets_pct": cip_fa_ratio,
-                "qoq_pct": qoq,
-            })
+            series.append(
+                {
+                    "period": r["end_date"],
+                    "quarter": quarter_suffix(r["end_date"]),
+                    "cip": _f(cip),
+                    "fix_assets": _f(fa),
+                    "cip_to_fix_assets_pct": cip_fa_ratio,
+                    "qoq_pct": qoq,
+                }
+            )
         if code == TARGET:
             result["tianyue"] = series
         else:
@@ -426,7 +467,13 @@ def build_inventory_turnover(data: dict) -> dict:
     Indicator 6: 存货 + 应收周转.
     存货/营收 (累计) 作为存货周转代理, 应收/营收 作为应收占比.
     """
-    result = {"_source": source_tag("balancesheet + income"), "tianyue": [], "peers": {}, "trend": "", "analysis": ""}
+    result = {
+        "_source": source_tag("balancesheet + income"),
+        "tianyue": [],
+        "peers": {},
+        "trend": "",
+        "analysis": "",
+    }
     for code in ALL_CODES:
         bs_recs = dedupe_by_enddate(data["balancesheet"][code])
         inc_recs = dedupe_by_enddate(data["income"][code])
@@ -442,15 +489,17 @@ def build_inventory_turnover(data: dict) -> dict:
             # inventory / (YTD rev) ratio as proxy; for annual this is ~inventory turnover days/365
             inv_to_rev = round(inv / ttm_rev * 100, 2) if inv and ttm_rev and ttm_rev != 0 else None
             ar_to_rev = round(ar / ttm_rev * 100, 2) if ar and ttm_rev and ttm_rev != 0 else None
-            series.append({
-                "period": ed,
-                "quarter": quarter_suffix(ed),
-                "inventories": _f(inv),
-                "accounts_receiv": _f(ar),
-                "ytd_revenue": _f(ttm_rev),
-                "inv_to_rev_pct": inv_to_rev,
-                "ar_to_rev_pct": ar_to_rev,
-            })
+            series.append(
+                {
+                    "period": ed,
+                    "quarter": quarter_suffix(ed),
+                    "inventories": _f(inv),
+                    "accounts_receiv": _f(ar),
+                    "ytd_revenue": _f(ttm_rev),
+                    "inv_to_rev_pct": inv_to_rev,
+                    "ar_to_rev_pct": ar_to_rev,
+                }
+            )
         if code == TARGET:
             result["tianyue"] = series
         else:
@@ -485,7 +534,13 @@ def build_burn_rate(data: dict) -> dict:
     Indicator 7: 货币资金 + 经营现金流 → burn rate.
     runway = money_cap / |latest quarterly net loss|
     """
-    result = {"_source": source_tag("balancesheet + income + cashflow"), "tianyue": [], "peers": {}, "trend": "", "analysis": ""}
+    result = {
+        "_source": source_tag("balancesheet + income + cashflow"),
+        "tianyue": [],
+        "peers": {},
+        "trend": "",
+        "analysis": "",
+    }
     for code in ALL_CODES:
         bs_recs = dedupe_by_enddate(data["balancesheet"][code])
         inc_recs = dedupe_by_enddate(data["income"][code])
@@ -501,13 +556,15 @@ def build_burn_rate(data: dict) -> dict:
             cf = cf_map.get(ed, {})
             n_income = inc.get("n_income")
             ocf = cf.get("n_cashflow_act")
-            series.append({
-                "period": ed,
-                "quarter": quarter_suffix(ed),
-                "money_cap": _f(mc),
-                "ytd_n_income": _f(n_income),
-                "ytd_ocf": _f(ocf),
-            })
+            series.append(
+                {
+                    "period": ed,
+                    "quarter": quarter_suffix(ed),
+                    "money_cap": _f(mc),
+                    "ytd_n_income": _f(n_income),
+                    "ytd_ocf": _f(ocf),
+                }
+            )
         if code == TARGET:
             result["tianyue"] = series
         else:
@@ -529,7 +586,9 @@ def build_burn_rate(data: dict) -> dict:
             latest_sq_period = item["end_date"]
             break
     # annual 2025 net loss
-    annual_2025_ni = next((r.get("n_income") for r in ty_inc if r.get("end_date") == "20251231"), None)
+    annual_2025_ni = next(
+        (r.get("n_income") for r in ty_inc if r.get("end_date") == "20251231"), None
+    )
     # runway calc
     runway_quarters = None
     if latest_mc and latest_sq_ni and latest_sq_ni < 0:
@@ -573,7 +632,13 @@ def build_capex(data: dict) -> dict:
     c_pay_acquisition_fixed 全部缺失 → 用 n_cashflow_inv_act (投资活动现金流) 代理.
     capex_intensity = |n_cashflow_inv_act| / revenue.
     """
-    result = {"_source": source_tag("cashflow (n_cashflow_inv_act proxy, c_pay_acquisition_fixed 缺失)"), "tianyue": [], "peers": {}, "trend": "", "analysis": ""}
+    result = {
+        "_source": source_tag("cashflow (n_cashflow_inv_act proxy, c_pay_acquisition_fixed 缺失)"),
+        "tianyue": [],
+        "peers": {},
+        "trend": "",
+        "analysis": "",
+    }
     for code in ALL_CODES:
         cf_recs = dedupe_by_enddate(data["cashflow"][code])
         inc_recs = dedupe_by_enddate(data["income"][code])
@@ -590,16 +655,22 @@ def build_capex(data: dict) -> dict:
                 fcf_field = ocf + inv_cf
             inc = inc_map.get(ed, {})
             rev = inc.get("revenue")
-            capex_intensity = round(abs(inv_cf) / rev * 100, 2) if inv_cf is not None and rev and rev != 0 else None
-            series.append({
-                "period": ed,
-                "quarter": quarter_suffix(ed),
-                "inv_cashflow": _f(inv_cf),
-                "ocf": _f(ocf),
-                "free_cashflow": _f(fcf_field),
-                "ytd_revenue": _f(rev),
-                "capex_intensity_pct": capex_intensity,  # |inv_cf|/rev
-            })
+            capex_intensity = (
+                round(abs(inv_cf) / rev * 100, 2)
+                if inv_cf is not None and rev and rev != 0
+                else None
+            )
+            series.append(
+                {
+                    "period": ed,
+                    "quarter": quarter_suffix(ed),
+                    "inv_cashflow": _f(inv_cf),
+                    "ocf": _f(ocf),
+                    "free_cashflow": _f(fcf_field),
+                    "ytd_revenue": _f(rev),
+                    "capex_intensity_pct": capex_intensity,  # |inv_cf|/rev
+                }
+            )
         if code == TARGET:
             result["tianyue"] = series
         else:
@@ -634,6 +705,7 @@ def build_capex(data: dict) -> dict:
 
 # ───────────────────── inflection signals ─────────────────────
 
+
 def build_inflection_signals(gm: dict, rd: dict, cl: dict, burn: dict, capex: dict) -> list[str]:
     """识别盈亏拐点信号."""
     signals = []
@@ -643,10 +715,14 @@ def build_inflection_signals(gm: dict, rd: dict, cl: dict, burn: dict, capex: di
     latest_q_gm = ty_gm[-1].get("q_gross_margin") if ty_gm else None
     if latest_q_gm is not None:
         if latest_q_gm >= 25:
-            signals.append(f"✅ 毛利率突破25%阈值（当前{latest_q_gm}%）→ 规模效应全面显现，单季扭亏在即")
+            signals.append(
+                f"✅ 毛利率突破25%阈值（当前{latest_q_gm}%）→ 规模效应全面显现，单季扭亏在即"
+            )
         elif latest_q_gm >= 19:
-            signals.append(f"🟡 毛利率回升至{latest_q_gm}%（接近20%但未达25%盈亏线）→ 价格拐点确认，"
-                           "预计2026Q2-Q3随价格继续回升突破25%，单季扭亏时点或在2026Q3-Q4")
+            signals.append(
+                f"🟡 毛利率回升至{latest_q_gm}%（接近20%但未达25%盈亏线）→ 价格拐点确认，"
+                "预计2026Q2-Q3随价格继续回升突破25%，单季扭亏时点或在2026Q3-Q4"
+            )
         else:
             signals.append(f"🔴 毛利率仅{latest_q_gm}%，仍低于盈亏线，价格回升力度不足")
 
@@ -656,34 +732,46 @@ def build_inflection_signals(gm: dict, rd: dict, cl: dict, burn: dict, capex: di
     latest_qoq = latest_cl.get("qoq_pct")
     if latest_qoq is not None:
         if latest_qoq > 0:
-            signals.append(f"✅ 合同负债环比+{latest_qoq}% → 订单回暖领先指标确认，客户结束观望开始锁价")
+            signals.append(
+                f"✅ 合同负债环比+{latest_qoq}% → 订单回暖领先指标确认，客户结束观望开始锁价"
+            )
         else:
-            signals.append(f"🟡 合同负债环比{latest_qoq}%仍为负 → 订单回暖尚未确认，"
-                           "需关注2026Q2是否转正（SiC价格反弹传导至订单通常滞后1-2季度）")
+            signals.append(
+                f"🟡 合同负债环比{latest_qoq}%仍为负 → 订单回暖尚未确认，"
+                "需关注2026Q2是否转正（SiC价格反弹传导至订单通常滞后1-2季度）"
+            )
 
     # 3. burn rate / runway
     runway = burn.get("quarters_runway")
     latest_sq_ni = burn.get("latest_quarter_net_income")
     if runway is not None:
-        signals.append(f"🟢 货币资金充裕：按最新单季净亏损计算可维持 {runway} 个季度，"
-                       "且2025年经营现金流已转正（+2.31亿），实际融资压力远低于账面亏损暗示的水平")
+        signals.append(
+            f"🟢 货币资金充裕：按最新单季净亏损计算可维持 {runway} 个季度，"
+            "且2025年经营现金流已转正（+2.31亿），实际融资压力远低于账面亏损暗示的水平"
+        )
     elif latest_sq_ni is not None and latest_sq_ni >= 0:
         signals.append("✅ 最新单季已扭亏为盈（经营层面）→ 盈亏拐点可能已过")
 
     # 4. OCF positive signal
     ty_burn = burn["tianyue"]
-    annual_2025_ocf = next((s.get("ytd_ocf") for s in reversed(ty_burn) if s["quarter"] == "2025Q4"), None)
+    annual_2025_ocf = next(
+        (s.get("ytd_ocf") for s in reversed(ty_burn) if s["quarter"] == "2025Q4"), None
+    )
     if annual_2025_ocf is not None and annual_2025_ocf > 0:
-        signals.append(f"✅ 2025年经营现金流净额+{annual_2025_ocf/1e8:.2f}亿元（同比+249.8%）→ "
-                       "经营造血能力恢复，现金流口径下已实现盈亏平衡，利润表亏损主因折旧+一次性税务")
+        signals.append(
+            f"✅ 2025年经营现金流净额+{annual_2025_ocf/1e8:.2f}亿元（同比+249.8%）→ "
+            "经营造血能力恢复，现金流口径下已实现盈亏平衡，利润表亏损主因折旧+一次性税务"
+        )
 
     # 5. R&D counter-cyclical
     ty_rd = rd["tianyue"]
     annual_2025_rd = next((s for s in reversed(ty_rd) if s["quarter"] == "2025Q4"), {})
     rd_ratio = annual_2025_rd.get("rd_ratio_pct")
     if rd_ratio and rd_ratio >= 10:
-        signals.append(f"🟢 逆周期研发加码：2025年研发费率{rd_ratio}%（营收下降但研发绝对额+16.9%）→ "
-                       "12英寸技术储备为2027-2028年下一代竞争准备核武器")
+        signals.append(
+            f"🟢 逆周期研发加码：2025年研发费率{rd_ratio}%（营收下降但研发绝对额+16.9%）→ "
+            "12英寸技术储备为2027-2028年下一代竞争准备核武器"
+        )
 
     # 6. peer comparison — 天岳 best margins
     peer_latest_gm = {}
@@ -691,14 +779,17 @@ def build_inflection_signals(gm: dict, rd: dict, cl: dict, burn: dict, capex: di
         if s:
             peer_latest_gm[p] = s[-1].get("q_gross_margin")
     if latest_q_gm and all(latest_q_gm >= (v or -999) for v in peer_latest_gm.values()):
-        signals.append(f"🏆 横向最优：天岳单季毛利率{latest_q_gm}%在4家国内同业中最高"
-                       f"（沪硅{peer_latest_gm.get('688126.SH')}%/立昂微{peer_latest_gm.get('605358.SH')}%/三安{peer_latest_gm.get('600703.SH')}%），"
-                       "成本结构全球竞争力验证，Wolfspeed破产后份额+定价权双收割")
+        signals.append(
+            f"🏆 横向最优：天岳单季毛利率{latest_q_gm}%在4家国内同业中最高"
+            f"（沪硅{peer_latest_gm.get('688126.SH')}%/立昂微{peer_latest_gm.get('605358.SH')}%/三安{peer_latest_gm.get('600703.SH')}%），"
+            "成本结构全球竞争力验证，Wolfspeed破产后份额+定价权双收割"
+        )
 
     return signals
 
 
 # ───────────────────── summary ─────────────────────
+
 
 def build_summary(gm, rd, exp, cl, cip, inv, burn, capex, signals) -> str:
     pos = sum(1 for s in signals if s.startswith("✅") or s.startswith("🏆") or s.startswith("🟢"))
@@ -726,6 +817,7 @@ def build_summary(gm, rd, exp, cl, cip, inv, burn, capex, signals) -> str:
 
 # ───────────────────── main ─────────────────────
 
+
 def main():
     with open(T1_PATH) as f:
         data = json.load(f)
@@ -752,9 +844,8 @@ def main():
         "peers": PEERS,
         "peer_names": {k: NAME_MAP[k] for k in PEERS},
         "note": "区别于现有报告Ch.2基础财务分析，本文件聚焦8个扩展深度指标+盈亏拐点信号。"
-                "所有数据来自T1缓存JSON，未重新调API。c_pay_acquisition_fixed字段全部缺失，"
-                "资本开支用n_cashflow_inv_act代理。",
-
+        "所有数据来自T1缓存JSON，未重新调API。c_pay_acquisition_fixed字段全部缺失，"
+        "资本开支用n_cashflow_inv_act代理。",
         "gross_margin": gm,
         "rd_ratio": rd,
         "expense_ratio": exp,
@@ -763,7 +854,6 @@ def main():
         "inventory_turnover": inv,
         "burn_rate": burn,
         "capex": capex,
-
         "inflection_signals": signals,
         "summary": summary,
     }
@@ -775,8 +865,16 @@ def main():
     print(f"✅ Written {OUT_PATH} ({OUT_PATH.stat().st_size} bytes)", file=sys.stderr)
 
     # verify coverage
-    indicators = ["gross_margin", "rd_ratio", "expense_ratio", "contract_liab",
-                  "cip", "inventory_turnover", "burn_rate", "capex"]
+    indicators = [
+        "gross_margin",
+        "rd_ratio",
+        "expense_ratio",
+        "contract_liab",
+        "cip",
+        "inventory_turnover",
+        "burn_rate",
+        "capex",
+    ]
     print("\n=== 覆盖验证 ===", file=sys.stderr)
     for ind in indicators:
         d = output[ind]
@@ -784,7 +882,10 @@ def main():
         has_peers = len(d.get("peers", {})) == 3
         has_analysis = bool(d.get("analysis"))
         status = "✅" if (has_ty and has_peers and has_analysis) else "❌"
-        print(f"  {status} {ind}: tianyue={len(d.get('tianyue', []))}期, peers={len(d.get('peers', {}))}, analysis={'Y' if has_analysis else 'N'}", file=sys.stderr)
+        print(
+            f"  {status} {ind}: tianyue={len(d.get('tianyue', []))}期, peers={len(d.get('peers', {}))}, analysis={'Y' if has_analysis else 'N'}",
+            file=sys.stderr,
+        )
     print(f"\n  inflection_signals: {len(signals)} 条", file=sys.stderr)
     print(f"  summary: {len(summary)} chars", file=sys.stderr)
 

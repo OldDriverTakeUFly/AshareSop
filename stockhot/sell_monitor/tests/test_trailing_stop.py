@@ -60,8 +60,13 @@ class TestTrailingStop:
         lows = [c - 0.1 for c in closes]
         highs = [c + 0.5 for c in closes]
         ohlcv = pd.DataFrame(
-            {"open": closes, "high": highs, "low": lows, "close": closes,
-             "volume": [1_000_000] * 30},
+            {
+                "open": closes,
+                "high": highs,
+                "low": lows,
+                "close": closes,
+                "volume": [1_000_000] * 30,
+            },
             index=dates,
         )
 
@@ -81,8 +86,13 @@ class TestTrailingStop:
         lows = [c - 0.1 for c in closes]
         highs = [c + 0.5 for c in closes]
         ohlcv = pd.DataFrame(
-            {"open": closes, "high": highs, "low": lows, "close": closes,
-             "volume": [1_000_000] * 30},
+            {
+                "open": closes,
+                "high": highs,
+                "low": lows,
+                "close": closes,
+                "volume": [1_000_000] * 30,
+            },
             index=dates,
         )
 
@@ -94,9 +104,7 @@ class TestTrailingStop:
         result = check_trailing_stop(holding, ohlcv)
 
         assert recent_low < ma20
-        assert result["details"]["trailing_stop"] == pytest.approx(
-            ma20 * 0.98, abs=0.01
-        )
+        assert result["details"]["trailing_stop"] == pytest.approx(ma20 * 0.98, abs=0.01)
 
     def test_2pct_buffer_applied(self):
         ohlcv = _make_ohlcv(30, base_close=10.0)
@@ -107,16 +115,19 @@ class TestTrailingStop:
         holding = _make_holding(current_price=100.0)
         result = check_trailing_stop(holding, ohlcv)
 
-        assert result["details"]["trailing_stop"] == pytest.approx(
-            expected_stop, abs=0.05
-        )
+        assert result["details"]["trailing_stop"] == pytest.approx(expected_stop, abs=0.05)
 
     def test_insufficient_data_returns_not_triggered(self):
         dates = pd.bdate_range("2024-01-01", periods=10)
         closes = [10.0] * 10
         ohlcv = pd.DataFrame(
-            {"open": closes, "high": closes, "low": closes, "close": closes,
-             "volume": [1_000_000] * 10},
+            {
+                "open": closes,
+                "high": closes,
+                "low": closes,
+                "close": closes,
+                "volume": [1_000_000] * 10,
+            },
             index=dates,
         )
         holding = _make_holding(current_price=5.0)

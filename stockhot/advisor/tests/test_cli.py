@@ -202,9 +202,7 @@ class TestDaily:
         cli.main(["daily", "--no-telegram"])
         assert captured.get("holding", {}).get("code") == "000001"
 
-    def test_daily_watchlist_passes_none_holding(
-        self, monkeypatch, capsys, mock_rec
-    ):
+    def test_daily_watchlist_passes_none_holding(self, monkeypatch, capsys, mock_rec):
         holdings = []
         watchlist = [{"code": "600519"}]
 
@@ -222,9 +220,7 @@ class TestDaily:
         cli.main(["daily", "--no-telegram"])
         assert captured_holding[0] is None
 
-    def test_daily_single_stock_error_doesnt_stop_batch(
-        self, monkeypatch, capsys, mock_rec
-    ):
+    def test_daily_single_stock_error_doesnt_stop_batch(self, monkeypatch, capsys, mock_rec):
         holdings = [{"code": "000001"}, {"code": "000002"}, {"code": "000003"}]
         call_count = [0]
 
@@ -298,9 +294,7 @@ class TestDaily:
 class TestTelegramPush:
     def test_no_telegram_flag_skips_push(self, monkeypatch, capsys, mock_rec):
         push_called: list = []
-        monkeypatch.setattr(
-            cli, "_try_telegram_push", lambda recs: push_called.append(recs)
-        )
+        monkeypatch.setattr(cli, "_try_telegram_push", lambda recs: push_called.append(recs))
         monkeypatch.setattr(cli, "_get_active_holdings", lambda: [{"code": "000001"}])
         monkeypatch.setattr(cli, "_get_watchlist", lambda: [])
         monkeypatch.setattr(cli, "run_for_stock", lambda *a, **kw: mock_rec)
@@ -310,9 +304,7 @@ class TestTelegramPush:
 
     def test_telegram_push_called_without_flag(self, monkeypatch, capsys, mock_rec):
         push_called: list = []
-        monkeypatch.setattr(
-            cli, "_try_telegram_push", lambda recs: push_called.append(recs)
-        )
+        monkeypatch.setattr(cli, "_try_telegram_push", lambda recs: push_called.append(recs))
         monkeypatch.setattr(cli, "_get_active_holdings", lambda: [{"code": "000001"}])
         monkeypatch.setattr(cli, "_get_watchlist", lambda: [])
         monkeypatch.setattr(cli, "run_for_stock", lambda *a, **kw: mock_rec)

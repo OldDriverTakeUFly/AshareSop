@@ -77,9 +77,7 @@ def run_prosperity_sector_pipeline(
     ts_codes: list[str] = [s.ts_code for s in stock_list]
 
     # ── Step 3/8: Fetch financial data for ALL stocks ──
-    logger.info(
-        "Step 3/8: Fetching financial data for {} stocks...", len(ts_codes)
-    )
+    logger.info("Step 3/8: Fetching financial data for {} stocks...", len(ts_codes))
     if progress_callback:
         progress_callback(10.0, f"正在获取 {len(ts_codes)} 只股票的财务数据...")
 
@@ -100,12 +98,8 @@ def run_prosperity_sector_pipeline(
     logger.info("Step 4/8: Calculating prosperity (景气度) scores...")
     if progress_callback:
         progress_callback(55.0, "正在计算景气度评分...")
-    prosperity_scores: dict[str, ProsperityScore] = batch_prosperity(
-        financial_data
-    )
-    logger.info(
-        "Prosperity scores calculated for {} stocks", len(prosperity_scores)
-    )
+    prosperity_scores: dict[str, ProsperityScore] = batch_prosperity(financial_data)
+    logger.info("Prosperity scores calculated for {} stocks", len(prosperity_scores))
 
     # ── Step 4.5/8: Build market_cap_map ──
     logger.info("Step 4.5/8: Fetching market cap data...")
@@ -115,9 +109,7 @@ def run_prosperity_sector_pipeline(
     start_date = (now - timedelta(days=30)).strftime("%Y%m%d")
     for ts_code in prosperity_scores:
         try:
-            df = client.get_daily_basic(
-                ts_code, start_date=start_date, end_date=end_date
-            )
+            df = client.get_daily_basic(ts_code, start_date=start_date, end_date=end_date)
             if not df.empty:
                 market_cap_map[ts_code] = float(df.iloc[-1]["total_mv"])
         except Exception:

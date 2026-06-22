@@ -7,7 +7,6 @@ from davis_analyzer.rescorer import (
 )
 from davis_analyzer.types import DavisDoubleScore, PipelineResult, RescoredResult
 
-
 # ── Fixtures ─────────────────────────────────────────────────────────
 
 

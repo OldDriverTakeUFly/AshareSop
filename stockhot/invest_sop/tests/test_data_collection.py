@@ -3,9 +3,7 @@
 import argparse
 
 import pandas as pd
-import pytest
 
-from stockhot.invest_sop.utils.db_helpers import upsert_record
 from stockhot.storage.database import get_connection
 
 TEST_DATE = "2026-05-13"
@@ -14,6 +12,7 @@ TEST_DATE = "2026-05-13"
 # ===================================================================
 # overseas_market_data
 # ===================================================================
+
 
 class TestOverseasMarketDataCalc:
 
@@ -83,6 +82,7 @@ class TestOverseasMarketDataCalc:
 # domestic_events
 # ===================================================================
 
+
 class TestDomesticEventsGrading:
 
     def test_grade_severity_red(self):
@@ -115,12 +115,15 @@ class TestDomesticEventsCollect:
         from stockhot.invest_sop.scripts import domestic_events
 
         monkeypatch.setattr(
-            domestic_events, "_call_akshare",
-            lambda *a, **kw: pd.DataFrame({
-                "解禁时间": ["2026-05-13"],
-                "实际解禁市值": [600e8],
-                "当日解禁股票家数": [5],
-            }),
+            domestic_events,
+            "_call_akshare",
+            lambda *a, **kw: pd.DataFrame(
+                {
+                    "解禁时间": ["2026-05-13"],
+                    "实际解禁市值": [600e8],
+                    "当日解禁股票家数": [5],
+                }
+            ),
         )
         events = domestic_events._collect_restricted_release_events(TEST_DATE)
         assert len(events) == 1
@@ -131,12 +134,15 @@ class TestDomesticEventsCollect:
         from stockhot.invest_sop.scripts import domestic_events
 
         monkeypatch.setattr(
-            domestic_events, "_call_akshare",
-            lambda *a, **kw: pd.DataFrame({
-                "解禁时间": ["2026-05-13"],
-                "实际解禁市值": [100e8],
-                "当日解禁股票家数": [2],
-            }),
+            domestic_events,
+            "_call_akshare",
+            lambda *a, **kw: pd.DataFrame(
+                {
+                    "解禁时间": ["2026-05-13"],
+                    "实际解禁市值": [100e8],
+                    "当日解禁股票家数": [2],
+                }
+            ),
         )
         events = domestic_events._collect_restricted_release_events(TEST_DATE)
         assert len(events) == 1
@@ -146,7 +152,8 @@ class TestDomesticEventsCollect:
         from stockhot.invest_sop.scripts import domestic_events
 
         monkeypatch.setattr(
-            domestic_events, "_call_akshare",
+            domestic_events,
+            "_call_akshare",
             lambda **kw: pd.DataFrame(),
         )
         assert domestic_events._collect_restricted_release_events(TEST_DATE) == []
@@ -155,12 +162,15 @@ class TestDomesticEventsCollect:
         from stockhot.invest_sop.scripts import domestic_events
 
         monkeypatch.setattr(
-            domestic_events, "_call_akshare",
-            lambda *a, **kw: pd.DataFrame({
-                "标题": ["PMI数据超预期", "旧闻"],
-                "内容": ["PMI好于预期", "无关"],
-                "发布日期": [TEST_DATE, "2026-05-12"],
-            }),
+            domestic_events,
+            "_call_akshare",
+            lambda *a, **kw: pd.DataFrame(
+                {
+                    "标题": ["PMI数据超预期", "旧闻"],
+                    "内容": ["PMI好于预期", "无关"],
+                    "发布日期": [TEST_DATE, "2026-05-12"],
+                }
+            ),
         )
         events = domestic_events._collect_cls_news_events(TEST_DATE)
         assert len(events) == 1
@@ -171,6 +181,7 @@ class TestDomesticEventsCollect:
 # ===================================================================
 # futures_sentiment
 # ===================================================================
+
 
 class TestFuturesSentimentCalc:
 
@@ -189,7 +200,8 @@ class TestFuturesSentimentCalc:
         from stockhot.invest_sop.scripts import futures_sentiment
 
         monkeypatch.setattr(
-            futures_sentiment, "_call_akshare",
+            futures_sentiment,
+            "_call_akshare",
             lambda method_name, **kw: pd.DataFrame({"收盘": [3500.0, 3517.5]}),
         )
         result = futures_sentiment._collect_futures_pct(TEST_DATE)
@@ -200,7 +212,8 @@ class TestFuturesSentimentCalc:
         from stockhot.invest_sop.scripts import futures_sentiment
 
         monkeypatch.setattr(
-            futures_sentiment, "_call_akshare",
+            futures_sentiment,
+            "_call_akshare",
             lambda **kw: (_ for _ in ()).throw(ConnectionError("down")),
         )
         result = futures_sentiment._collect_futures_pct(TEST_DATE)
@@ -212,6 +225,7 @@ class TestFuturesSentimentCalc:
 # ===================================================================
 # supply_chain
 # ===================================================================
+
 
 class TestSupplyChainCalc:
 
@@ -237,7 +251,8 @@ class TestSupplyChainCalc:
         from stockhot.invest_sop.scripts import supply_chain
 
         monkeypatch.setattr(
-            supply_chain, "_call_akshare",
+            supply_chain,
+            "_call_akshare",
             lambda *a, **kw: pd.DataFrame({"close": [9500.0, 9523.0]}),
         )
         records = supply_chain._collect_lme_metals(TEST_DATE)
@@ -249,7 +264,8 @@ class TestSupplyChainCalc:
         from stockhot.invest_sop.scripts import supply_chain
 
         monkeypatch.setattr(
-            supply_chain, "_call_akshare",
+            supply_chain,
+            "_call_akshare",
             lambda **kw: (_ for _ in ()).throw(ConnectionError("down")),
         )
         assert supply_chain._collect_lme_metals(TEST_DATE) == []
@@ -258,7 +274,8 @@ class TestSupplyChainCalc:
         from stockhot.invest_sop.scripts import supply_chain
 
         monkeypatch.setattr(
-            supply_chain, "_call_akshare",
+            supply_chain,
+            "_call_akshare",
             lambda *a, **kw: pd.DataFrame({"date": ["d1", "d2"], "指数": [1500, 1523]}),
         )
         records = supply_chain._collect_bdi(TEST_DATE)
@@ -270,6 +287,7 @@ class TestSupplyChainCalc:
 # ===================================================================
 # morning_confirm
 # ===================================================================
+
 
 class TestMorningConfirmCalc:
 
@@ -300,6 +318,7 @@ class TestMorningConfirmCalc:
 # ===================================================================
 # weekly_cycle
 # ===================================================================
+
 
 class TestWeeklyCycleCalc:
 
@@ -341,7 +360,9 @@ class TestWeeklyCycleCalc:
     def test_build_cycle_speed_table(self):
         from stockhot.invest_sop.scripts.weekly_cycle import build_cycle_speed_table
 
-        result = build_cycle_speed_table([{"sector": "AI", "cycle_position": "繁荣", "crowding_score": 7}])
+        result = build_cycle_speed_table(
+            [{"sector": "AI", "cycle_position": "繁荣", "crowding_score": 7}]
+        )
         assert "AI" in result
         assert "繁荣" in result
         assert "7/12" in result
@@ -350,12 +371,19 @@ class TestWeeklyCycleCalc:
         from stockhot.invest_sop.scripts import weekly_cycle
 
         monkeypatch.setattr(weekly_cycle, "get_recent_trade_day", lambda: TEST_DATE)
-        weekly_cycle.update_sector(argparse.Namespace(
-            update_sector="AI", position="复苏", crowding=4, notes="开始复苏",
-        ))
+        weekly_cycle.update_sector(
+            argparse.Namespace(
+                update_sector="AI",
+                position="复苏",
+                crowding=4,
+                notes="开始复苏",
+            )
+        )
 
         conn = get_connection()
-        row = dict(conn.execute("SELECT * FROM invest_cycle_assessments WHERE sector='AI'").fetchone())
+        row = dict(
+            conn.execute("SELECT * FROM invest_cycle_assessments WHERE sector='AI'").fetchone()
+        )
         conn.close()
         assert row["cycle_position"] == "复苏"
         assert row["crowding_score"] == 4

@@ -43,6 +43,7 @@ def _download_vix_lookup() -> dict[str, float]:
 
 def _ensure_tables() -> None:
     from stockhot.storage.database import init_database
+
     init_database()
     conn = get_connection()
     try:
@@ -67,7 +68,9 @@ def backfill(start_date: str, end_date: str, source: str = "all", dry_run: bool 
         d += timedelta(days=1)
 
     total = len(dates)
-    print(f"[BACKFILL] {start_date} -> {end_date} ({total} calendar days), source={source}, dry_run={dry_run}")
+    print(
+        f"[BACKFILL] {start_date} -> {end_date} ({total} calendar days), source={source}, dry_run={dry_run}"
+    )
     print()
 
     vix_lookup = {}
@@ -115,7 +118,9 @@ def backfill(start_date: str, end_date: str, source: str = "all", dry_run: bool 
                     elif "多晶硅" in metric:
                         ps_val = val
                     if not dry_run:
-                        upsert_record(TABLE_SUPPLY, rec, unique_keys=["date", "sector", "metric_name"])
+                        upsert_record(
+                            TABLE_SUPPLY, rec, unique_keys=["date", "sector", "metric_name"]
+                        )
                         records_written += 1
             except Exception as e:
                 print(f"  [ERROR] LC/PS futures failed for {date_str}: {e}")
@@ -126,7 +131,9 @@ def backfill(start_date: str, end_date: str, source: str = "all", dry_run: bool 
                 spots = _collect_lc_ps_spot(date_str)
                 for rec in spots:
                     if not dry_run:
-                        upsert_record(TABLE_SUPPLY, rec, unique_keys=["date", "sector", "metric_name"])
+                        upsert_record(
+                            TABLE_SUPPLY, rec, unique_keys=["date", "sector", "metric_name"]
+                        )
                         records_written += 1
             except Exception as e:
                 print(f"  [ERROR] LC/PS spot failed for {date_str}: {e}")

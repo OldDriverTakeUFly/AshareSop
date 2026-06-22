@@ -19,7 +19,6 @@ from stockhot.core.utils import (
 from stockhot.storage.database import save_analysis_result, save_daily_data
 
 
-
 def fetch_market_fund_flow() -> list[dict]:
     """Fetch recent market-wide fund flow history via AkShare.
 
@@ -286,7 +285,9 @@ def run_fund_flow_analysis(date: str) -> dict:
         "summary": summary,
     }
 
-    save_daily_data({"date": date, "fund_flow_market": market_flow, "fund_flow_sector": sector_flow})
+    save_daily_data(
+        {"date": date, "fund_flow_market": market_flow, "fund_flow_sector": sector_flow}
+    )
 
     save_analysis_result(date, "fund_flow_trend", {"trend": trend, "summary": summary})
 

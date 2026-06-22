@@ -1,7 +1,6 @@
 """Publisher module for StockHot-CN."""
 
 from datetime import datetime
-from typing import Any
 
 from stockhot.storage.database import get_images_by_date, get_analysis_result
 import json
@@ -36,7 +35,7 @@ def run_publish(date: str | None = None, dry_run: bool = False) -> dict:
 
 def publish_to_xiaohongshu(images: list[str], caption: str) -> dict:
     """发布到小红书"""
-    print(f"[Publisher] 准备发布到小红书")
+    print("[Publisher] 准备发布到小红书")
     print(f"[Publisher] 图片数量: {len(images)}")
     print(f"[Publisher] 标题: {caption[:50]}...")
 
@@ -57,7 +56,7 @@ def _generate_caption(analysis: dict | None) -> str:
     if isinstance(result, str):
         try:
             result = json.loads(result)
-        except:
+        except Exception:
             result = {}
 
     text = result.get("text", "")
@@ -73,7 +72,6 @@ def _default_caption(date: str) -> str:
 今日市场有哪些机会？来看看详细数据~
 
 #A股 #每日复盘 #投资 #热点追踪"""
-
 
 
 def _save_publish_record(date: str, platform: str, result: dict) -> None:

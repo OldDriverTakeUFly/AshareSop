@@ -20,8 +20,16 @@ from stockhot.storage.database import get_connection
 TABLE = "invest_holdings"
 
 COLUMNS_DISPLAY = [
-    "id", "code", "name", "sector", "entry_price", "current_price",
-    "stop_loss_hard", "target_price", "position_pct", "status",
+    "id",
+    "code",
+    "name",
+    "sector",
+    "entry_price",
+    "current_price",
+    "stop_loss_hard",
+    "target_price",
+    "position_pct",
+    "status",
 ]
 
 
@@ -193,10 +201,20 @@ def build_parser() -> argparse.ArgumentParser:
     p_add.add_argument("--position-pct", required=True, type=float, dest="position_pct")
     p_add.add_argument("--stop-loss-hard", type=float, dest="stop_loss_hard")
     p_add.add_argument("--stop-loss-technical", type=float, dest="stop_loss_technical")
-    p_add.add_argument("--davis-score", type=float, default=None, dest="davis_score_at_buy",
-                        help="Davis Double score at buy time (for thesis tracking)")
-    p_add.add_argument("--thesis-snapshot", type=str, default=None, dest="thesis_snapshot_json",
-                        help='JSON string of thesis snapshot, e.g. \'{"percentile_rank": 80}\'')
+    p_add.add_argument(
+        "--davis-score",
+        type=float,
+        default=None,
+        dest="davis_score_at_buy",
+        help="Davis Double score at buy time (for thesis tracking)",
+    )
+    p_add.add_argument(
+        "--thesis-snapshot",
+        type=str,
+        default=None,
+        dest="thesis_snapshot_json",
+        help="JSON string of thesis snapshot, e.g. '{\"percentile_rank\": 80}'",
+    )
 
     p_rm = sub.add_parser("remove", help="Close a holding")
     p_rm.add_argument("--id", required=True, type=int)

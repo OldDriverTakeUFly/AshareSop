@@ -17,7 +17,6 @@ from davis_analyzer.types import (
     StockInfo,
 )
 
-
 # ── fixtures ──────────────────────────────────────────────────────────
 
 
@@ -71,32 +70,42 @@ def mock_pipeline_result(mock_stock_info):
         "600036.SH": (55.0, 0.30, 0.40),
     }
     prosperity_scores = {
-        "000001.SZ": ProsperityScore(
-            "000001.SZ", 78.0, 72.0, 68.0, 75.0, 73.5, 5.2
-        ),
-        "600036.SH": ProsperityScore(
-            "600036.SH", 65.0, 60.0, 55.0, 50.0, 58.75, 2.1
-        ),
+        "000001.SZ": ProsperityScore("000001.SZ", 78.0, 72.0, 68.0, 75.0, 73.5, 5.2),
+        "600036.SH": ProsperityScore("600036.SH", 65.0, 60.0, 55.0, 50.0, 58.75, 2.1),
     }
     distress_signals = {
-        "000001.SZ": DistressSignal(
-            "000001.SZ", 80.0, 70.0, 60.0, 69.0, {"eps_decline": True}
-        ),
-        "600036.SH": DistressSignal(
-            "600036.SH", 50.0, 45.0, 40.0, 44.5, {}
-        ),
+        "000001.SZ": DistressSignal("000001.SZ", 80.0, 70.0, 60.0, 69.0, {"eps_decline": True}),
+        "600036.SH": DistressSignal("600036.SH", 50.0, 45.0, 40.0, 44.5, {}),
     }
     financial_data = {
         "000001.SZ": [
             FinancialData(
-                "000001.SZ", "20240331", 10000.0, 3000.0, 0.50, 15.0,
-                2000.0, 5000.0, 15000.0, 12.0, 18.0,
+                "000001.SZ",
+                "20240331",
+                10000.0,
+                3000.0,
+                0.50,
+                15.0,
+                2000.0,
+                5000.0,
+                15000.0,
+                12.0,
+                18.0,
             )
         ],
         "600036.SH": [
             FinancialData(
-                "600036.SH", "20240331", 8000.0, 2500.0, 0.45, 14.0,
-                1800.0, 4000.0, 12000.0, 8.0, 10.0,
+                "600036.SH",
+                "20240331",
+                8000.0,
+                2500.0,
+                0.45,
+                14.0,
+                1800.0,
+                4000.0,
+                12000.0,
+                8.0,
+                10.0,
             )
         ],
     }
@@ -184,9 +193,7 @@ class TestPipelineResultStructure:
     def test_pipeline_result_trend_scores_is_dict(self, mock_pipeline_result):
         assert isinstance(mock_pipeline_result.trend_scores, dict)
 
-    def test_pipeline_result_trend_scores_contains_floats(
-        self, mock_pipeline_result
-    ):
+    def test_pipeline_result_trend_scores_contains_floats(self, mock_pipeline_result):
         for ts_code, score in mock_pipeline_result.trend_scores.items():
             assert isinstance(ts_code, str)
             assert isinstance(score, float)
@@ -324,9 +331,7 @@ class TestChecklistRescorerIntegration:
         from davis_analyzer.checklist_generator import generate_batch_checklists
         from davis_analyzer.rescorer import batch_rescore
 
-        saved = generate_batch_checklists(
-            mock_pipeline_result, str(tmp_path), top_n=2
-        )
+        saved = generate_batch_checklists(mock_pipeline_result, str(tmp_path), top_n=2)
         assert len(saved) == 2
 
         rescored = batch_rescore(mock_pipeline_result, str(tmp_path))
@@ -351,9 +356,7 @@ class TestChecklistRescorerIntegration:
     ):
         from davis_analyzer.checklist_generator import generate_batch_checklists
 
-        saved = generate_batch_checklists(
-            mock_pipeline_result, str(tmp_path), top_n=1
-        )
+        saved = generate_batch_checklists(mock_pipeline_result, str(tmp_path), top_n=1)
         assert len(saved) == 1
         assert "调研checklist" in saved[0]
         assert "000001.SZ" in saved[0]

@@ -19,8 +19,13 @@ from stockhot.storage.database import get_connection
 TABLE = "invest_watchlist"
 
 COLUMNS_DISPLAY = [
-    "code", "name", "sector", "priority", "status",
-    "trigger_reason", "added_date",
+    "code",
+    "name",
+    "sector",
+    "priority",
+    "status",
+    "trigger_reason",
+    "added_date",
 ]
 
 
@@ -29,9 +34,7 @@ def cmd_add(args: argparse.Namespace) -> None:
 
     conn = get_connection()
     try:
-        cur = conn.execute(
-            f"SELECT 1 FROM {TABLE} WHERE code = ?", (args.code,)
-        )
+        cur = conn.execute(f"SELECT 1 FROM {TABLE} WHERE code = ?", (args.code,))
         if cur.fetchone() is not None:
             print(f"[ERROR] {args.code} 已在关注列表中")
             sys.exit(1)
@@ -183,13 +186,18 @@ def build_parser() -> argparse.ArgumentParser:
     p_add.add_argument("--name", default=None, help="Stock name")
     p_add.add_argument("--sector", default=None, help="Sector classification")
     p_add.add_argument("--reason", default=None, help="Trigger reason for watching")
-    p_add.add_argument("--entry-low", type=float, default=None, dest="entry_low",
-                       help="Target entry price low")
-    p_add.add_argument("--entry-high", type=float, default=None, dest="entry_high",
-                       help="Target entry price high")
-    p_add.add_argument("--stop-loss", type=float, default=None, dest="stop_loss",
-                       help="Stop-loss percentage")
-    p_add.add_argument("--priority", type=int, default=None, help="Priority (higher = more important)")
+    p_add.add_argument(
+        "--entry-low", type=float, default=None, dest="entry_low", help="Target entry price low"
+    )
+    p_add.add_argument(
+        "--entry-high", type=float, default=None, dest="entry_high", help="Target entry price high"
+    )
+    p_add.add_argument(
+        "--stop-loss", type=float, default=None, dest="stop_loss", help="Stop-loss percentage"
+    )
+    p_add.add_argument(
+        "--priority", type=int, default=None, help="Priority (higher = more important)"
+    )
     p_add.add_argument("--notes", default=None, help="Free-text notes")
 
     p_list = sub.add_parser("list", help="List watchlist entries")

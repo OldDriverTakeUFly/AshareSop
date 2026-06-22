@@ -11,8 +11,7 @@ produces action="NO_ACTION", confidence="LOW".
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, field
-from datetime import date
+from dataclasses import dataclass
 
 from stockhot.advisor.conflict_resolver import ArbitrationResult
 from stockhot.advisor.exceptions import LLMUnavailableError
@@ -123,9 +122,7 @@ def _build_context(
     resistance_levels = details.get("resistance_levels", [])
     volume_ratio = details.get("volume_ratio", "N/A")
 
-    triggered = [
-        s["signal_type"] for s in aggregated.sell_signals if s.get("triggered")
-    ]
+    triggered = [s["signal_type"] for s in aggregated.sell_signals if s.get("triggered")]
     triggered_str = ", ".join(triggered) if triggered else "none"
 
     position_pct = holding.get("position_pct", "N/A") if holding else "N/A"
@@ -301,9 +298,7 @@ def generate_recommendation(
     )
 
 
-def _llm_unavailable_rec(
-    code: str, rec_type: str, template: PromptTemplate
-) -> Recommendation:
+def _llm_unavailable_rec(code: str, rec_type: str, template: PromptTemplate) -> Recommendation:
     return Recommendation(
         code=code,
         recommendation_type=rec_type,
@@ -387,8 +382,12 @@ def run_for_stock(
     arbitration = arbitrate(aggregated)
 
     rec = generate_recommendation(
-        code, aggregated, arbitration, default_registry,
-        provider=provider, holding=holding,
+        code,
+        aggregated,
+        arbitration,
+        default_registry,
+        provider=provider,
+        holding=holding,
     )
 
     if rec.recommendation_type == "none":

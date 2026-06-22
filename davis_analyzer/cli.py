@@ -36,21 +36,13 @@ def main() -> None:
 
 def _add_run_parser(subparsers) -> None:
     run_parser = subparsers.add_parser("run", help="运行估值筛选分析")
-    run_parser.add_argument(
-        "--dry-run", action="store_true", help="使用缓存数据，不调用API"
-    )
-    run_parser.add_argument(
-        "--top", type=int, default=30, help="输出前N个标的 (默认30)"
-    )
-    run_parser.add_argument(
-        "--output", type=str, default=None, help="报告输出目录"
-    )
+    run_parser.add_argument("--dry-run", action="store_true", help="使用缓存数据，不调用API")
+    run_parser.add_argument("--top", type=int, default=30, help="输出前N个标的 (默认30)")
+    run_parser.add_argument("--output", type=str, default=None, help="报告输出目录")
 
 
 def _add_deep_research_parser(subparsers) -> None:
-    dr_parser = subparsers.add_parser(
-        "deep-research", help="生成深度调研checklist"
-    )
+    dr_parser = subparsers.add_parser("deep-research", help="生成深度调研checklist")
     dr_parser.add_argument(
         "--top",
         type=int,
@@ -66,9 +58,7 @@ def _add_deep_research_parser(subparsers) -> None:
 
 
 def _add_rescore_parser(subparsers) -> None:
-    rs_parser = subparsers.add_parser(
-        "rescore", help="根据填写的checklist重新评分"
-    )
+    rs_parser = subparsers.add_parser("rescore", help="根据填写的checklist重新评分")
     rs_parser.add_argument(
         "--checklist-dir",
         type=str,
@@ -143,16 +133,10 @@ def _deep_research_command(args: argparse.Namespace) -> None:
         print("\nNo pipeline results — cannot generate checklists.")
         return
 
-    logger.info(
-        "Generating checklists for top {} stocks to {}", args.top, args.checklist_dir
-    )
+    logger.info("Generating checklists for top {} stocks to {}", args.top, args.checklist_dir)
     try:
-        saved = generate_batch_checklists(
-            results, args.checklist_dir, top_n=args.top
-        )
-        print(
-            f"\n已生成 {len(saved)} 个调研checklist到 {args.checklist_dir}/"
-        )
+        saved = generate_batch_checklists(results, args.checklist_dir, top_n=args.top)
+        print(f"\n已生成 {len(saved)} 个调研checklist到 {args.checklist_dir}/")
     except Exception as exc:
         logger.error("Checklist generation failed: {}", exc)
         print(f"\nChecklist生成失败: {exc}")

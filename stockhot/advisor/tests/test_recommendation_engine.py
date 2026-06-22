@@ -5,10 +5,8 @@ Mocks LLM provider at function level; uses temp DB for persist tests.
 
 from __future__ import annotations
 
-import json
 import sqlite3
 from dataclasses import dataclass
-from pathlib import Path
 
 import pytest
 
@@ -33,7 +31,9 @@ from stockhot.storage import database as db_module
 
 @dataclass
 class FakeProvider:
-    response_content: str = '{"action": "buy", "confidence": "HIGH", "entry_zone": [10.5, 11.0], "stop_loss": 9.5, "target": 15.0, "reasoning": "Strong fundamentals"}'
+    response_content: str = (
+        '{"action": "buy", "confidence": "HIGH", "entry_zone": [10.5, 11.0], "stop_loss": 9.5, "target": 15.0, "reasoning": "Strong fundamentals"}'
+    )
     model: str = "test-model"
     raises: Exception | None = None
 
@@ -49,7 +49,9 @@ class FakeProvider:
         )
 
 
-def _make_signal(name="technical", value=50.0, source="technical_analyzer", details=None) -> UnifiedSignal:
+def _make_signal(
+    name="technical", value=50.0, source="technical_analyzer", details=None
+) -> UnifiedSignal:
     return UnifiedSignal(
         name=name,
         value=value,
@@ -72,7 +74,13 @@ def _make_agg(
         code="000001",
         technical=_make_signal("technical", tech_score, details=tech_details or {}),
         davis=_make_signal("davis", davis_score, source="davis_analyzer"),
-        realtime_price={"code": "000001", "current_price": current_price, "change_pct": 2.0, "volume": 100000, "timestamp": "2025-01-01"},
+        realtime_price={
+            "code": "000001",
+            "current_price": current_price,
+            "change_pct": 2.0,
+            "volume": 100000,
+            "timestamp": "2025-01-01",
+        },
         sell_signals=sell_signals or [],
         data_freshness={},
     )
@@ -114,15 +122,18 @@ class TestGenerateBuild:
         arb = _make_arb(action="HOLD")
         provider = FakeProvider()
 
-        rec = generate_recommendation("000001", agg, arb, default_registry, provider=provider, holding=None)
+        rec = generate_recommendation(
+            "000001", agg, arb, default_registry, provider=provider, holding=None
+        )
 
         assert rec.recommendation_type == "none"
         assert rec.action == "NO_ACTION"
 
     def test_exit_maps_to_clear(self):
-        agg = _make_agg(current_price=8.0, sell_signals=[
-            {"triggered": True, "signal_type": "hard_stop", "details": {}}
-        ])
+        agg = _make_agg(
+            current_price=8.0,
+            sell_signals=[{"triggered": True, "signal_type": "hard_stop", "details": {}}],
+        )
         arb = _make_arb(action="EXIT")
         provider = FakeProvider(
             response_content='{"action": "exit", "urgency": "HIGH", "reasoning": "stop hit"}'
@@ -134,16 +145,19 @@ class TestGenerateBuild:
         assert rec.action == "exit"
 
     def test_trim_maps_to_adjust(self):
-        agg = _make_agg(current_price=15.0, sell_signals=[
-            {"triggered": True, "signal_type": "target_reached", "details": {}}
-        ])
+        agg = _make_agg(
+            current_price=15.0,
+            sell_signals=[{"triggered": True, "signal_type": "target_reached", "details": {}}],
+        )
         arb = _make_arb(action="TRIM")
         provider = FakeProvider(
             response_content='{"action": "trim", "trim_pct": 0.5, "reasoning": "target"}'
         )
         holding = {"position_pct": 8.0, "avg_cost": 10.0, "stop_loss_hard": 8.0}
 
-        rec = generate_recommendation("000001", agg, arb, default_registry, provider=provider, holding=holding)
+        rec = generate_recommendation(
+            "000001", agg, arb, default_registry, provider=provider, holding=holding
+        )
 
         assert rec.recommendation_type == "adjust"
 
@@ -254,7 +268,9 @@ class TestTTrade:
         )
         holding = {"position_pct": 5.0}
 
-        rec = generate_recommendation("000001", agg, arb, default_registry, provider=provider, holding=holding)
+        rec = generate_recommendation(
+            "000001", agg, arb, default_registry, provider=provider, holding=holding
+        )
 
         assert rec.recommendation_type == "t_trade"
         assert rec.confidence == "LOW"
@@ -268,7 +284,9 @@ class TestTTrade:
         )
         holding = {"position_pct": 5.0}
 
-        rec = generate_recommendation("000001", agg, arb, default_registry, provider=provider, holding=holding)
+        rec = generate_recommendation(
+            "000001", agg, arb, default_registry, provider=provider, holding=holding
+        )
 
         assert rec.recommendation_type == "t_trade"
 
@@ -278,7 +296,9 @@ class TestTTrade:
         provider = FakeProvider()
         holding = {"position_pct": 5.0}
 
-        rec = generate_recommendation("000001", agg, arb, default_registry, provider=provider, holding=holding)
+        rec = generate_recommendation(
+            "000001", agg, arb, default_registry, provider=provider, holding=holding
+        )
 
         assert rec.recommendation_type != "t_trade"
 
@@ -382,29 +402,59 @@ class TestRunForStock:
         monkeypatch.setattr(db_module, "DB_PATH", temp_path)
         db_module.init_database()
 
-        import stockhot.advisor.recommendation_engine as engine
         import stockhot.advisor.signal_aggregator as agg_mod
 
         monkeypatch.setattr(
-            agg_mod, "fetch_technical_signal",
+            agg_mod,
+            "fetch_technical_signal",
             lambda code, df: _make_signal("technical", 35.0),
         )
         monkeypatch.setattr(
-            agg_mod, "fetch_realtime_price",
-            lambda code: {"code": code, "current_price": 12.0, "change_pct": 2.0, "volume": 100000, "timestamp": "2025-01-01"},
+            agg_mod,
+            "fetch_realtime_price",
+            lambda code: {
+                "code": code,
+                "current_price": 12.0,
+                "change_pct": 2.0,
+                "volume": 100000,
+                "timestamp": "2025-01-01",
+            },
         )
         monkeypatch.setattr(
-            agg_mod, "fetch_davis_signal",
+            agg_mod,
+            "fetch_davis_signal",
             lambda code: _make_signal("davis", 80.0, source="davis_analyzer"),
         )
         monkeypatch.setattr(
-            agg_mod, "get_current_davis_score",
-            lambda code: {"final_score": 80.0, "percentile_rank": 90.0, "distress_score": 50.0, "data_date": "2025-01-01"},
+            agg_mod,
+            "get_current_davis_score",
+            lambda code: {
+                "final_score": 80.0,
+                "percentile_rank": 90.0,
+                "distress_score": 50.0,
+                "data_date": "2025-01-01",
+            },
         )
-        monkeypatch.setattr(agg_mod, "check_hard_stop_loss", lambda h, p: {"triggered": False, "signal_type": "hard_stop", "details": {}})
-        monkeypatch.setattr(agg_mod, "check_trailing_stop", lambda h, df: {"triggered": False, "signal_type": "trailing_stop", "details": {}})
-        monkeypatch.setattr(agg_mod, "check_target_reached", lambda h, p: {"triggered": False, "signal_type": "target_reached", "details": {}})
-        monkeypatch.setattr(agg_mod, "check_thesis_broken", lambda h, d: {"triggered": False, "signal_type": "thesis_broken", "details": {}})
+        monkeypatch.setattr(
+            agg_mod,
+            "check_hard_stop_loss",
+            lambda h, p: {"triggered": False, "signal_type": "hard_stop", "details": {}},
+        )
+        monkeypatch.setattr(
+            agg_mod,
+            "check_trailing_stop",
+            lambda h, df: {"triggered": False, "signal_type": "trailing_stop", "details": {}},
+        )
+        monkeypatch.setattr(
+            agg_mod,
+            "check_target_reached",
+            lambda h, p: {"triggered": False, "signal_type": "target_reached", "details": {}},
+        )
+        monkeypatch.setattr(
+            agg_mod,
+            "check_thesis_broken",
+            lambda h, d: {"triggered": False, "signal_type": "thesis_broken", "details": {}},
+        )
 
         provider = FakeProvider()
         holding = {"position_pct": 5.0, "avg_cost": 10.0, "stop_loss_hard": 8.0}
@@ -423,25 +473,56 @@ class TestRunForStock:
         import stockhot.advisor.signal_aggregator as agg_mod
 
         monkeypatch.setattr(
-            agg_mod, "fetch_technical_signal",
+            agg_mod,
+            "fetch_technical_signal",
             lambda code, df: _make_signal("technical", 35.0),
         )
         monkeypatch.setattr(
-            agg_mod, "fetch_realtime_price",
-            lambda code: {"code": code, "current_price": 12.0, "change_pct": 2.0, "volume": 100000, "timestamp": "2025-01-01"},
+            agg_mod,
+            "fetch_realtime_price",
+            lambda code: {
+                "code": code,
+                "current_price": 12.0,
+                "change_pct": 2.0,
+                "volume": 100000,
+                "timestamp": "2025-01-01",
+            },
         )
         monkeypatch.setattr(
-            agg_mod, "fetch_davis_signal",
+            agg_mod,
+            "fetch_davis_signal",
             lambda code: _make_signal("davis", 80.0, source="davis_analyzer"),
         )
         monkeypatch.setattr(
-            agg_mod, "get_current_davis_score",
-            lambda code: {"final_score": 80.0, "percentile_rank": 90.0, "distress_score": 50.0, "data_date": "2025-01-01"},
+            agg_mod,
+            "get_current_davis_score",
+            lambda code: {
+                "final_score": 80.0,
+                "percentile_rank": 90.0,
+                "distress_score": 50.0,
+                "data_date": "2025-01-01",
+            },
         )
-        monkeypatch.setattr(agg_mod, "check_hard_stop_loss", lambda h, p: {"triggered": False, "signal_type": "hard_stop", "details": {}})
-        monkeypatch.setattr(agg_mod, "check_trailing_stop", lambda h, df: {"triggered": False, "signal_type": "trailing_stop", "details": {}})
-        monkeypatch.setattr(agg_mod, "check_target_reached", lambda h, p: {"triggered": False, "signal_type": "target_reached", "details": {}})
-        monkeypatch.setattr(agg_mod, "check_thesis_broken", lambda h, d: {"triggered": False, "signal_type": "thesis_broken", "details": {}})
+        monkeypatch.setattr(
+            agg_mod,
+            "check_hard_stop_loss",
+            lambda h, p: {"triggered": False, "signal_type": "hard_stop", "details": {}},
+        )
+        monkeypatch.setattr(
+            agg_mod,
+            "check_trailing_stop",
+            lambda h, df: {"triggered": False, "signal_type": "trailing_stop", "details": {}},
+        )
+        monkeypatch.setattr(
+            agg_mod,
+            "check_target_reached",
+            lambda h, p: {"triggered": False, "signal_type": "target_reached", "details": {}},
+        )
+        monkeypatch.setattr(
+            agg_mod,
+            "check_thesis_broken",
+            lambda h, d: {"triggered": False, "signal_type": "thesis_broken", "details": {}},
+        )
 
         provider = FakeProvider()
 
@@ -458,25 +539,56 @@ class TestRunForStock:
         import stockhot.advisor.signal_aggregator as agg_mod
 
         monkeypatch.setattr(
-            agg_mod, "fetch_technical_signal",
+            agg_mod,
+            "fetch_technical_signal",
             lambda code, df: _make_signal("technical", 35.0),
         )
         monkeypatch.setattr(
-            agg_mod, "fetch_realtime_price",
-            lambda code: {"code": code, "current_price": 12.0, "change_pct": 2.0, "volume": 100000, "timestamp": "2025-01-01"},
+            agg_mod,
+            "fetch_realtime_price",
+            lambda code: {
+                "code": code,
+                "current_price": 12.0,
+                "change_pct": 2.0,
+                "volume": 100000,
+                "timestamp": "2025-01-01",
+            },
         )
         monkeypatch.setattr(
-            agg_mod, "fetch_davis_signal",
+            agg_mod,
+            "fetch_davis_signal",
             lambda code: _make_signal("davis", 80.0, source="davis_analyzer"),
         )
         monkeypatch.setattr(
-            agg_mod, "get_current_davis_score",
-            lambda code: {"final_score": 80.0, "percentile_rank": 90.0, "distress_score": 50.0, "data_date": "2025-01-01"},
+            agg_mod,
+            "get_current_davis_score",
+            lambda code: {
+                "final_score": 80.0,
+                "percentile_rank": 90.0,
+                "distress_score": 50.0,
+                "data_date": "2025-01-01",
+            },
         )
-        monkeypatch.setattr(agg_mod, "check_hard_stop_loss", lambda h, p: {"triggered": False, "signal_type": "hard_stop", "details": {}})
-        monkeypatch.setattr(agg_mod, "check_trailing_stop", lambda h, df: {"triggered": False, "signal_type": "trailing_stop", "details": {}})
-        monkeypatch.setattr(agg_mod, "check_target_reached", lambda h, p: {"triggered": False, "signal_type": "target_reached", "details": {}})
-        monkeypatch.setattr(agg_mod, "check_thesis_broken", lambda h, d: {"triggered": False, "signal_type": "thesis_broken", "details": {}})
+        monkeypatch.setattr(
+            agg_mod,
+            "check_hard_stop_loss",
+            lambda h, p: {"triggered": False, "signal_type": "hard_stop", "details": {}},
+        )
+        monkeypatch.setattr(
+            agg_mod,
+            "check_trailing_stop",
+            lambda h, df: {"triggered": False, "signal_type": "trailing_stop", "details": {}},
+        )
+        monkeypatch.setattr(
+            agg_mod,
+            "check_target_reached",
+            lambda h, p: {"triggered": False, "signal_type": "target_reached", "details": {}},
+        )
+        monkeypatch.setattr(
+            agg_mod,
+            "check_thesis_broken",
+            lambda h, d: {"triggered": False, "signal_type": "thesis_broken", "details": {}},
+        )
 
         provider = FakeProvider()
 

@@ -19,6 +19,7 @@ The 8 indicators computed:
 
 输入: {OUTPUT_DIR}/t1-tushare-data.json   输出: {OUTPUT_DIR}/t4-financial-deep.json
 """
+
 from __future__ import annotations
 
 import json
@@ -30,9 +31,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[4]))
 from davis_analyzer.config import PROJECT_ROOT
 
 # ========== CONFIG: 填入你的标的 ==========
-TARGET_CODE = "000000.SH"       # 目标股票ts_code
-PEER_CODES = ["000001.SH"]      # 同业ts_code列表（≥3个）
-OUTPUT_DIR = "output"           # JSON输出目录
+TARGET_CODE = "000000.SH"  # 目标股票ts_code
+PEER_CODES = ["000001.SH"]  # 同业ts_code列表（≥3个）
+OUTPUT_DIR = "output"  # JSON输出目录
 # ==========================================
 
 ALL_CODES = [TARGET_CODE] + PEER_CODES
@@ -43,6 +44,7 @@ _T1_FETCHED = "unknown"
 
 # ── helpers ──
 
+
 def _f(v):
     if v is None:
         return None
@@ -52,6 +54,7 @@ def _f(v):
         return None
     return None if f != f else round(f, 4)
 
+
 def dedupe(records):
     seen, out = set(), []
     for r in records:
@@ -60,24 +63,30 @@ def dedupe(records):
             out.append(r)
     return out
 
+
 def sort_d(records):
     return sorted(records, key=lambda r: r.get("end_date") or "")
 
+
 _QMAP = {"03": "Q1", "06": "Q2", "09": "Q3", "12": "Q4"}
+
 
 def qsuf(ed):
     if not ed or len(ed) < 8:
         return ed
     return f"{ed[:4]}{_QMAP.get(ed[4:6], ed[4:6])}"
 
+
 def last_n(records, n=8):
     return sort_d(records)[-n:]
+
 
 def latest_q4(series):
     for s in reversed(series):
         if str(s.get("quarter", "")).endswith("Q4"):
             return s
     return {}
+
 
 def sq_from_cum(records, field):
     out, pv, pd = [], None, None
@@ -94,11 +103,14 @@ def sq_from_cum(records, field):
         pv, pd = val, ed
     return out
 
+
 def stag(ep):
     return f"来源: tushare {ep} (fetched_at={_T1_FETCHED})"
 
+
 def new_result(ep):
     return {"_source": stag(ep), "target": [], "peers": {}, "trend": "", "analysis": TODO}
+
 
 def assign(res, code, series):
     if code == TARGET_CODE:
@@ -106,16 +118,24 @@ def assign(res, code, series):
     else:
         res["peers"][code] = series
 
+
 # ── 8 indicator builders (data extraction only) ──
+
 
 def build_gross_margin(data):
     """1. 毛利率趋势 (q_gsprofit_margin + grossprofit_margin)."""
     res = new_result("fina_indicator")
     for code in ALL_CODES:
         last8 = last_n(dedupe(data["fina_indicator"][code]))
-        s = [{"period": r["end_date"], "quarter": qsuf(r["end_date"]),
-              "q_gross_margin": _f(r.get("q_gsprofit_margin")),
-              "cum_gross_margin": _f(r.get("grossprofit_margin"))} for r in last8]
+        s = [
+            {
+                "period": r["end_date"],
+                "quarter": qsuf(r["end_date"]),
+                "q_gross_margin": _f(r.get("q_gsprofit_margin")),
+                "cum_gross_margin": _f(r.get("grossprofit_margin")),
+            }
+            for r in last8
+        ]
         assign(res, code, s)
     gm = [x["q_gross_margin"] for x in res["target"] if x["q_gross_margin"] is not None]
     if len(gm) >= 2:
@@ -129,6 +149,7 @@ def build_gross_margin(data):
             res["trend"] = "稳定"
     return res
 
+
 def build_rd_ratio(data):
     """2. 研发费率 = rd_exp / revenue."""
     res = new_result("income")
@@ -138,13 +159,21 @@ def build_rd_ratio(data):
         for r in last8:
             rev, rd = r.get("revenue"), r.get("rd_exp")
             ratio = round(rd / rev * 100, 2) if rev and rd is not None and rev != 0 else None
-            s.append({"period": r["end_date"], "quarter": qsuf(r["end_date"]),
-                      "rd_exp": _f(rd), "revenue": _f(rev), "rd_ratio_pct": ratio})
+            s.append(
+                {
+                    "period": r["end_date"],
+                    "quarter": qsuf(r["end_date"]),
+                    "rd_exp": _f(rd),
+                    "revenue": _f(rev),
+                    "rd_ratio_pct": ratio,
+                }
+            )
         assign(res, code, s)
     rd = [x["rd_ratio_pct"] for x in res["target"] if x["rd_ratio_pct"] is not None]
     if len(rd) >= 2:
         res["trend"] = "上升" if rd[-1] > rd[0] else ("下降" if rd[-1] < rd[0] else "稳定")
     return res
+
 
 def build_expense_ratio(data):
     """3. 费用率 = (sell + admin + fin) / revenue, 三费分解."""
@@ -154,19 +183,37 @@ def build_expense_ratio(data):
         s = []
         for r in last8:
             rev = r.get("revenue")
-            sell, admin, fin = r.get("sell_exp") or 0, r.get("admin_exp") or 0, r.get("fin_exp") or 0
+            sell, admin, fin = (
+                r.get("sell_exp") or 0,
+                r.get("admin_exp") or 0,
+                r.get("fin_exp") or 0,
+            )
             total = sell + admin + fin
-            pct = lambda v: round(v / rev * 100, 2) if rev and rev != 0 else None
-            s.append({"period": r["end_date"], "quarter": qsuf(r["end_date"]),
-                      "sell_exp": _f(sell), "admin_exp": _f(admin), "fin_exp": _f(fin),
-                      "total_3exp": _f(total), "revenue": _f(rev),
-                      "expense_ratio_pct": pct(total), "sell_ratio_pct": pct(sell),
-                      "admin_ratio_pct": pct(admin), "fin_ratio_pct": pct(fin)})
+
+            def pct(v):
+                return round(v / rev * 100, 2) if rev and rev != 0 else None
+
+            s.append(
+                {
+                    "period": r["end_date"],
+                    "quarter": qsuf(r["end_date"]),
+                    "sell_exp": _f(sell),
+                    "admin_exp": _f(admin),
+                    "fin_exp": _f(fin),
+                    "total_3exp": _f(total),
+                    "revenue": _f(rev),
+                    "expense_ratio_pct": pct(total),
+                    "sell_ratio_pct": pct(sell),
+                    "admin_ratio_pct": pct(admin),
+                    "fin_ratio_pct": pct(fin),
+                }
+            )
         assign(res, code, s)
     exp = [x["expense_ratio_pct"] for x in res["target"] if x["expense_ratio_pct"] is not None]
     if len(exp) >= 2:
         res["trend"] = "下降" if exp[-1] < exp[0] else ("上升" if exp[-1] > exp[0] else "稳定")
     return res
+
 
 def build_contract_liab(data):
     """4. 合同负债趋势 — QoQ + YoY."""
@@ -176,16 +223,36 @@ def build_contract_liab(data):
         s = []
         for i, r in enumerate(last8):
             cl = r.get("contract_liab")
-            qoq = round((cl - last8[i-1]["contract_liab"]) / last8[i-1]["contract_liab"] * 100, 2) \
-                if i > 0 and cl is not None and last8[i-1].get("contract_liab") and last8[i-1]["contract_liab"] != 0 else None
-            yoy = round((cl - last8[i-4]["contract_liab"]) / last8[i-4]["contract_liab"] * 100, 2) \
-                if i >= 4 and cl is not None and last8[i-4].get("contract_liab") and last8[i-4]["contract_liab"] != 0 else None
-            s.append({"period": r["end_date"], "quarter": qsuf(r["end_date"]),
-                      "contract_liab": _f(cl), "qoq_pct": qoq, "yoy_pct": yoy})
+            qoq = (
+                round((cl - last8[i - 1]["contract_liab"]) / last8[i - 1]["contract_liab"] * 100, 2)
+                if i > 0
+                and cl is not None
+                and last8[i - 1].get("contract_liab")
+                and last8[i - 1]["contract_liab"] != 0
+                else None
+            )
+            yoy = (
+                round((cl - last8[i - 4]["contract_liab"]) / last8[i - 4]["contract_liab"] * 100, 2)
+                if i >= 4
+                and cl is not None
+                and last8[i - 4].get("contract_liab")
+                and last8[i - 4]["contract_liab"] != 0
+                else None
+            )
+            s.append(
+                {
+                    "period": r["end_date"],
+                    "quarter": qsuf(r["end_date"]),
+                    "contract_liab": _f(cl),
+                    "qoq_pct": qoq,
+                    "yoy_pct": yoy,
+                }
+            )
         assign(res, code, s)
     qoq = res["target"][-1].get("qoq_pct") if res["target"] else None
     res["trend"] = "环比转正" if qoq and qoq > 0 else ("环比下降" if qoq and qoq < 0 else "待观察")
     return res
+
 
 def build_cip(data):
     """5. 在建工程 (cip) — 产能扩张节奏."""
@@ -196,15 +263,32 @@ def build_cip(data):
         for i, r in enumerate(last8):
             cip, fa = r.get("cip"), r.get("fix_assets")
             cip_fa = round(cip / fa * 100, 2) if cip and fa and fa != 0 else None
-            qoq = round((cip - last8[i-1]["cip"]) / last8[i-1]["cip"] * 100, 2) \
-                if i > 0 and cip is not None and last8[i-1].get("cip") and last8[i-1]["cip"] != 0 else None
-            s.append({"period": r["end_date"], "quarter": qsuf(r["end_date"]),
-                      "cip": _f(cip), "fix_assets": _f(fa), "cip_to_fix_assets_pct": cip_fa, "qoq_pct": qoq})
+            qoq = (
+                round((cip - last8[i - 1]["cip"]) / last8[i - 1]["cip"] * 100, 2)
+                if i > 0
+                and cip is not None
+                and last8[i - 1].get("cip")
+                and last8[i - 1]["cip"] != 0
+                else None
+            )
+            s.append(
+                {
+                    "period": r["end_date"],
+                    "quarter": qsuf(r["end_date"]),
+                    "cip": _f(cip),
+                    "fix_assets": _f(fa),
+                    "cip_to_fix_assets_pct": cip_fa,
+                    "qoq_pct": qoq,
+                }
+            )
         assign(res, code, s)
     cip = [x["cip"] for x in res["target"] if x["cip"] is not None]
     if len(cip) >= 2:
-        res["trend"] = "扩张中" if cip[-1] > cip[0] else ("收缩（转固）" if cip[-1] < cip[0] else "稳定")
+        res["trend"] = (
+            "扩张中" if cip[-1] > cip[0] else ("收缩（转固）" if cip[-1] < cip[0] else "稳定")
+        )
     return res
+
 
 def build_inventory_turnover(data):
     """6. 存货/营收 + 应收/营收 (营运效率代理)."""
@@ -215,17 +299,33 @@ def build_inventory_turnover(data):
         s = []
         for r in last8:
             ed = r["end_date"]
-            inv, ar, rev = r.get("inventories"), r.get("accounts_receiv"), inc_map.get(ed, {}).get("revenue")
-            s.append({"period": ed, "quarter": qsuf(ed), "inventories": _f(inv),
-                      "accounts_receiv": _f(ar), "ytd_revenue": _f(rev),
-                      "inv_to_rev_pct": round(inv / rev * 100, 2) if inv and rev and rev != 0 else None,
-                      "ar_to_rev_pct": round(ar / rev * 100, 2) if ar and rev and rev != 0 else None})
+            inv, ar, rev = (
+                r.get("inventories"),
+                r.get("accounts_receiv"),
+                inc_map.get(ed, {}).get("revenue"),
+            )
+            s.append(
+                {
+                    "period": ed,
+                    "quarter": qsuf(ed),
+                    "inventories": _f(inv),
+                    "accounts_receiv": _f(ar),
+                    "ytd_revenue": _f(rev),
+                    "inv_to_rev_pct": (
+                        round(inv / rev * 100, 2) if inv and rev and rev != 0 else None
+                    ),
+                    "ar_to_rev_pct": round(ar / rev * 100, 2) if ar and rev and rev != 0 else None,
+                }
+            )
         assign(res, code, s)
     ann = [x for x in res["target"] if x["quarter"].endswith("Q4")]
     ir = [x["inv_to_rev_pct"] for x in ann if x["inv_to_rev_pct"] is not None]
     if len(ir) >= 2:
-        res["trend"] = "存货堆积" if ir[-1] > ir[-2] else ("存货去化" if ir[-1] < ir[-2] else "稳定")
+        res["trend"] = (
+            "存货堆积" if ir[-1] > ir[-2] else ("存货去化" if ir[-1] < ir[-2] else "稳定")
+        )
     return res
+
 
 def build_burn_rate(data):
     """7. 货币资金 + 经营CF → burn rate, runway = money_cap / |季度净亏|."""
@@ -234,10 +334,16 @@ def build_burn_rate(data):
         inc_map = {r["end_date"]: r for r in dedupe(data["income"][code])}
         cf_map = {r["end_date"]: r for r in dedupe(data["cashflow"][code])}
         last8 = last_n(dedupe(data["balancesheet"][code]))
-        s = [{"period": r["end_date"], "quarter": qsuf(r["end_date"]),
-              "money_cap": _f(r.get("money_cap")),
-              "ytd_n_income": _f(inc_map.get(r["end_date"], {}).get("n_income")),
-              "ytd_ocf": _f(cf_map.get(r["end_date"], {}).get("n_cashflow_act"))} for r in last8]
+        s = [
+            {
+                "period": r["end_date"],
+                "quarter": qsuf(r["end_date"]),
+                "money_cap": _f(r.get("money_cap")),
+                "ytd_n_income": _f(inc_map.get(r["end_date"], {}).get("n_income")),
+                "ytd_ocf": _f(cf_map.get(r["end_date"], {}).get("n_cashflow_act")),
+            }
+            for r in last8
+        ]
         assign(res, code, s)
     # runway (target only)
     ty_inc = sort_d(dedupe(data["income"][TARGET_CODE]))
@@ -248,7 +354,9 @@ def build_burn_rate(data):
         if item["value"] is not None:
             sq_ni_val, sq_ni_per = item["value"], item["end_date"]
             break
-    annual_ni = next((r.get("n_income") for r in ty_inc if str(r.get("end_date", ""))[4:6] == "12"), None)
+    annual_ni = next(
+        (r.get("n_income") for r in ty_inc if str(r.get("end_date", ""))[4:6] == "12"), None
+    )
     runway = round(mc / abs(sq_ni_val), 1) if mc and sq_ni_val and sq_ni_val < 0 else None
     res["money_cap_latest"] = mc
     res["latest_quarter_net_income"] = sq_ni_val
@@ -257,8 +365,13 @@ def build_burn_rate(data):
     res["quarters_runway"] = runway
     mc_s = [x["money_cap"] for x in res["target"] if x["money_cap"] is not None]
     if len(mc_s) >= 2:
-        res["trend"] = "大幅增厚" if mc_s[-1] > mc_s[-2] * 1.3 else ("增厚" if mc_s[-1] > mc_s[-2] else ("消耗中" if mc_s[-1] < mc_s[-2] else "稳定"))
+        res["trend"] = (
+            "大幅增厚"
+            if mc_s[-1] > mc_s[-2] * 1.3
+            else ("增厚" if mc_s[-1] > mc_s[-2] else ("消耗中" if mc_s[-1] < mc_s[-2] else "稳定"))
+        )
     return res
+
 
 def build_capex(data):
     """8. 资本开支强度 = |n_cashflow_inv_act| / revenue."""
@@ -274,17 +387,33 @@ def build_capex(data):
             if fcf is None and ocf is not None and inv_cf is not None:
                 fcf = ocf + inv_cf
             rev = inc_map.get(ed, {}).get("revenue")
-            s.append({"period": ed, "quarter": qsuf(ed), "inv_cashflow": _f(inv_cf), "ocf": _f(ocf),
-                      "free_cashflow": _f(fcf), "ytd_revenue": _f(rev),
-                      "capex_intensity_pct": round(abs(inv_cf) / rev * 100, 2) if inv_cf is not None and rev and rev != 0 else None})
+            s.append(
+                {
+                    "period": ed,
+                    "quarter": qsuf(ed),
+                    "inv_cashflow": _f(inv_cf),
+                    "ocf": _f(ocf),
+                    "free_cashflow": _f(fcf),
+                    "ytd_revenue": _f(rev),
+                    "capex_intensity_pct": (
+                        round(abs(inv_cf) / rev * 100, 2)
+                        if inv_cf is not None and rev and rev != 0
+                        else None
+                    ),
+                }
+            )
         assign(res, code, s)
     ann = [x for x in res["target"] if x["quarter"].endswith("Q4")]
     ci = [x["capex_intensity_pct"] for x in ann if x["capex_intensity_pct"] is not None]
     if len(ci) >= 2:
-        res["trend"] = "扩张加速" if ci[-1] > ci[-2] else ("扩张放缓" if ci[-1] < ci[-2] else "稳定")
+        res["trend"] = (
+            "扩张加速" if ci[-1] > ci[-2] else ("扩张放缓" if ci[-1] < ci[-2] else "稳定")
+        )
     return res
 
+
 # ── inflection signals (generic thresholds) ──
+
 
 def build_inflection_signals(gm, rd, cl, burn, capex):
     """盈亏拐点信号 — 通用阈值, 无标的特定叙述."""
@@ -301,8 +430,10 @@ def build_inflection_signals(gm, rd, cl, burn, capex):
     ty_cl = cl["target"]
     qoq = ty_cl[-1].get("qoq_pct") if ty_cl else None
     if qoq is not None:
-        signals.append(f"[CL_{'POS' if qoq > 0 else 'NEG'}] contract_liab QoQ {qoq}% → "
-                       f"{'order recovery signal' if qoq > 0 else 'order recovery not confirmed'}")
+        signals.append(
+            f"[CL_{'POS' if qoq > 0 else 'NEG'}] contract_liab QoQ {qoq}% → "
+            f"{'order recovery signal' if qoq > 0 else 'order recovery not confirmed'}"
+        )
     runway = burn.get("quarters_runway")
     sq_ni = burn.get("latest_quarter_net_income")
     if runway is not None:
@@ -311,7 +442,9 @@ def build_inflection_signals(gm, rd, cl, burn, capex):
         signals.append("[PROFIT] latest quarter net income >= 0 → breakeven may have passed")
     ocf = latest_q4(burn["target"]).get("ytd_ocf")
     if ocf is not None and ocf > 0:
-        signals.append(f"[OCF_POS] annual OCF positive ({ocf}) → operational break-even (cash basis)")
+        signals.append(
+            f"[OCF_POS] annual OCF positive ({ocf}) → operational break-even (cash basis)"
+        )
     rd_r = latest_q4(rd["target"]).get("rd_ratio_pct")
     if rd_r and rd_r >= 10:
         signals.append(f"[RD_HIGH] rd_ratio {rd_r}% (annual) → counter-cyclical R&D investment")
@@ -320,7 +453,9 @@ def build_inflection_signals(gm, rd, cl, burn, capex):
         signals.append(f"[PEER_BEST] target gross_margin {lg}% highest among peers")
     return signals
 
+
 # ── main ──
+
 
 def main():
     global _T1_FETCHED
@@ -340,22 +475,42 @@ def main():
     output = {
         "analyzed_at": datetime.now(timezone.utc).isoformat(),
         "data_source": f"{T1_PATH.name} (fetched_at={_T1_FETCHED})",
-        "target": TARGET_CODE, "peers": PEER_CODES,
+        "target": TARGET_CODE,
+        "peers": PEER_CODES,
         "note": "8个扩展深度指标+盈亏拐点信号。所有analysis字段待agent填写。"
-                "c_pay_acquisition_fixed缺失时资本开支用n_cashflow_inv_act代理。",
-        "gross_margin": gm, "rd_ratio": rd, "expense_ratio": exp, "contract_liab": cl,
-        "cip": cip, "inventory_turnover": inv, "burn_rate": burn, "capex": capex,
-        "inflection_signals": signals, "summary": TODO,
+        "c_pay_acquisition_fixed缺失时资本开支用n_cashflow_inv_act代理。",
+        "gross_margin": gm,
+        "rd_ratio": rd,
+        "expense_ratio": exp,
+        "contract_liab": cl,
+        "cip": cip,
+        "inventory_turnover": inv,
+        "burn_rate": burn,
+        "capex": capex,
+        "inflection_signals": signals,
+        "summary": TODO,
     }
     OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     with open(OUT_PATH, "w", encoding="utf-8") as f:
         json.dump(output, f, ensure_ascii=False, indent=2)
     print(f"✅ Written {OUT_PATH} ({OUT_PATH.stat().st_size} bytes)", file=sys.stderr)
-    for ind in ["gross_margin", "rd_ratio", "expense_ratio", "contract_liab",
-                "cip", "inventory_turnover", "burn_rate", "capex"]:
+    for ind in [
+        "gross_margin",
+        "rd_ratio",
+        "expense_ratio",
+        "contract_liab",
+        "cip",
+        "inventory_turnover",
+        "burn_rate",
+        "capex",
+    ]:
         d = output[ind]
         ok = "✅" if d.get("target") and d.get("peers") else "❌"
-        print(f"  {ok} {ind}: target={len(d.get('target', []))}期, peers={len(d.get('peers', {}))}", file=sys.stderr)
+        print(
+            f"  {ok} {ind}: target={len(d.get('target', []))}期, peers={len(d.get('peers', {}))}",
+            file=sys.stderr,
+        )
+
 
 if __name__ == "__main__":
     main()

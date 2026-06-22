@@ -51,38 +51,33 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-import pandas as pd
 from loguru import logger
 
 # ── davis_analyzer 核心模块（只读调用，不修改源码）──
 from davis_analyzer.constants import CYCLICAL_INDUSTRIES
 from davis_analyzer.pipeline import run_screening_pipeline
-from davis_analyzer.scoring import calculate_davis_double_score, rank_stocks
-from davis_analyzer.stock_universe import build_stock_universe
-from davis_analyzer.tushare_client import TushareClient
 from davis_analyzer.types import (
-    DavisDoubleScore,
     FinancialData,
     PipelineResult,
     ProsperityScore,
     StockInfo,
 )
-from davis_analyzer.valuation import batch_valuation, detect_cyclical
+from davis_analyzer.valuation import detect_cyclical
 
 # ========== CONFIG: 填入你的筛选参数 ==========
-TOP_N_PER_DOMAIN = 20          # 每个域输出的前 N 名候选标的数量
-OUTPUT_DIR = "output"           # JSON 输出目录 (相对仓库根目录或绝对路径)
-DRY_RUN = False                 # True=使用缓存数据, False=实时调用 Tushare
+TOP_N_PER_DOMAIN = 20  # 每个域输出的前 N 名候选标的数量
+OUTPUT_DIR = "output"  # JSON 输出目录 (相对仓库根目录或绝对路径)
+DRY_RUN = False  # True=使用缓存数据, False=实时调用 Tushare
 # ===============================================
 
 # ── 硬编码常量 (与 SKILL.md 一致，请勿手动修改) ──
 
 # 硬过滤层阈值
-HARD_FILTER_ROE_MIN = 12.0          # ROE (TTM) ≥ 12%
-HARD_FILTER_CAGR_MIN = 15.0         # 收入 3 年 CAGR ≥ 15%
-HARD_FILTER_DEBT_EBITDA_MAX = 2.5   # 净债务 / EBITDA < 2.5
-HARD_FILTER_OCF_POSITIVE = 0.0      # 经营性现金流 (TTM) > 0
-HARD_FILTER_PE_MAX = 25.0           # PE (TTM) < 25
+HARD_FILTER_ROE_MIN = 12.0  # ROE (TTM) ≥ 12%
+HARD_FILTER_CAGR_MIN = 15.0  # 收入 3 年 CAGR ≥ 15%
+HARD_FILTER_DEBT_EBITDA_MAX = 2.5  # 净债务 / EBITDA < 2.5
+HARD_FILTER_OCF_POSITIVE = 0.0  # 经营性现金流 (TTM) > 0
+HARD_FILTER_PE_MAX = 25.0  # PE (TTM) < 25
 
 # 打分层默认权重 (四桶合计 100%)
 DEFAULT_WEIGHTS = {
@@ -95,17 +90,17 @@ DEFAULT_WEIGHTS = {
 # 分域权重覆盖 (每域四桶权重合计 100%)
 DOMAIN_WEIGHTS = {
     "dividend": {"growth": 0.20, "valuation": 0.25, "technical": 0.25, "sentiment": 0.30},
-    "growth":   {"growth": 0.40, "valuation": 0.15, "technical": 0.20, "sentiment": 0.25},
-    "value":    {"growth": 0.25, "valuation": 0.35, "technical": 0.20, "sentiment": 0.20},
+    "growth": {"growth": 0.40, "valuation": 0.15, "technical": 0.20, "sentiment": 0.25},
+    "value": {"growth": 0.25, "valuation": 0.35, "technical": 0.20, "sentiment": 0.20},
     "cyclical": {"growth": 0.20, "valuation": 0.30, "technical": 0.25, "sentiment": 0.25},
 }
 
 # 加分层信号加分 (上限为综合分的 10%)
 ENHANCEMENT_BONUS = {
-    "institutional_accumulation": 5.0,   # 机构加仓 +5%
-    "insider_purchase": 3.0,            # 高管/大股东增持 +3%
-    "esg_leadership": 2.0,              # ESG 评级 A 级以上 +2%
-    "supply_chain_spread": 2.0,         # 上下游价差信号 +2%
+    "institutional_accumulation": 5.0,  # 机构加仓 +5%
+    "insider_purchase": 3.0,  # 高管/大股东增持 +3%
+    "esg_leadership": 2.0,  # ESG 评级 A 级以上 +2%
+    "supply_chain_spread": 2.0,  # 上下游价差信号 +2%
 }
 ENHANCEMENT_CAP_PCT = 10.0  # 加分总额上限为综合分的 10%
 
@@ -269,7 +264,6 @@ def score_stock_universe(
     stock_infos = pipeline_result.stock_infos
     valuation_data = pipeline_result.valuation_data
     prosperity_scores = pipeline_result.prosperity_scores
-    distress_signals = pipeline_result.distress_signals
     financial_data = pipeline_result.financial_data
 
     # Step 1: 收集所有通过股票的原始因子值（用于后续行业内排名）
@@ -285,9 +279,7 @@ def score_stock_universe(
         # 提取因子原始值
         roe = latest.roe
         revenue_growth = latest.yoy_revenue_growth or 0.0
-        operating_cf_ratio = (
-            latest.operating_cf / latest.revenue if latest.revenue > 0 else 0.0
-        )
+        operating_cf_ratio = latest.operating_cf / latest.revenue if latest.revenue > 0 else 0.0
         pe_pct = val_entry[1] if val_entry else 0.5
         pb_pct = val_entry[2] if val_entry else 0.5
         prosp_score = prosp.composite_score if prosp else 50.0
@@ -317,8 +309,12 @@ def score_stock_universe(
             continue
 
         for factor_name in [
-            "roe", "revenue_growth", "operating_cf_ratio",
-            "pe_percentile", "pb_percentile", "prosperity_score",
+            "roe",
+            "revenue_growth",
+            "operating_cf_ratio",
+            "pe_percentile",
+            "pb_percentile",
+            "prosperity_score",
         ]:
             # 获取该因子在该行业的所有值
             values = [(c, raw_factors[c][factor_name]) for c in codes]
@@ -354,10 +350,7 @@ def score_stock_universe(
         )
 
         # Valuation 桶 = PE 倒数 + PB 百分位
-        valuation_tier = (
-            tiers.get("pe_percentile", 0) * 0.6
-            + tiers.get("pb_percentile", 0) * 0.4
-        )
+        valuation_tier = tiers.get("pe_percentile", 0) * 0.6 + tiers.get("pb_percentile", 0) * 0.4
 
         # Technical 桶 = 使用 prosperity slope 近似（数据受限）
         technical_tier = tiers.get("prosperity_score", 0) * 0.5

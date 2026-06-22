@@ -11,10 +11,7 @@ ANTI_HALLUCINATION = (
 BUILD_POSITION_V1 = PromptTemplate(
     name="build_position",
     version="v1",
-    system=(
-        "你是A股投资助理，根据技术面和基本面数据提供建仓建议。"
-        + ANTI_HALLUCINATION
-    ),
+    system=("你是A股投资助理，根据技术面和基本面数据提供建仓建议。" + ANTI_HALLUCINATION),
     user_template=(
         "股票代码: {code}\n"
         "当前价: {current_price}\n"
@@ -43,10 +40,7 @@ BUILD_POSITION_V1 = PromptTemplate(
 ADJUST_POSITION_V1 = PromptTemplate(
     name="adjust_position",
     version="v1",
-    system=(
-        "你是A股投资助理，根据持仓和信号变化提供调仓建议。"
-        + ANTI_HALLUCINATION
-    ),
+    system=("你是A股投资助理，根据持仓和信号变化提供调仓建议。" + ANTI_HALLUCINATION),
     user_template=(
         "股票代码: {code}\n"
         "当前价: {current_price}\n"
@@ -67,10 +61,7 @@ ADJUST_POSITION_V1 = PromptTemplate(
 CLEAR_POSITION_V1 = PromptTemplate(
     name="clear_position",
     version="v1",
-    system=(
-        "你是A股投资助理，根据卖出信号提供清仓建议。"
-        + ANTI_HALLUCINATION
-    ),
+    system=("你是A股投资助理，根据卖出信号提供清仓建议。" + ANTI_HALLUCINATION),
     user_template=(
         "股票代码: {code}\n"
         "触发的卖出信号: {triggered_signals}\n"
@@ -92,8 +83,7 @@ T_TRADE_V1 = PromptTemplate(
     version="v1",
     system=(
         "你是A股投资助理，根据支撑压力位和量价关系提供粗略做T建议。"
-        "注意：做T建议仅供参考，风险较高。"
-        + ANTI_HALLUCINATION
+        "注意：做T建议仅供参考，风险较高。" + ANTI_HALLUCINATION
     ),
     user_template=(
         "股票代码: {code}\n"

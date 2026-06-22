@@ -37,13 +37,9 @@ def _format_detail(signal: dict) -> str:
 
     if sig_type == "target_reached":
         trim = details["suggested_trim"]
-        trim_label = {"1/2": "减半", "1/3": "减1/3", "none": "暂不减持"}.get(
-            trim, trim
-        )
+        trim_label = {"1/2": "减半", "1/3": "减1/3", "none": "暂不减持"}.get(trim, trim)
         return (
-            f"目标价{details['target']:.2f}, "
-            f"现价{details['current']:.2f}, "
-            f"建议{trim_label}"
+            f"目标价{details['target']:.2f}, " f"现价{details['current']:.2f}, " f"建议{trim_label}"
         )
 
     if sig_type == "thesis_broken":
@@ -140,9 +136,7 @@ def build_section_holdings_monitor(holdings: list[dict], date: str) -> str:
             lines.append("| 信号类型 | 详情 |")
             lines.append("|----------|------|")
             for sig in triggered_signals:
-                label = _SIGNAL_LABELS.get(
-                    sig["signal_type"], sig["signal_type"]
-                )
+                label = _SIGNAL_LABELS.get(sig["signal_type"], sig["signal_type"])
                 detail_str = _format_detail(sig)
                 lines.append(f"| {label} | {detail_str} |")
             lines.append("")

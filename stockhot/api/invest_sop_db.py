@@ -12,13 +12,15 @@ import aiosqlite
 from stockhot.api.config import settings
 from stockhot.invest_sop.config import INVEST_REPORTS_DIR
 
-_ALLOWED_TABLES = frozenset({
-    "invest_overseas_market",
-    "invest_supply_chain",
-    "invest_futures_sentiment",
-    "invest_morning_data",
-    "invest_domestic_events",
-})
+_ALLOWED_TABLES = frozenset(
+    {
+        "invest_overseas_market",
+        "invest_supply_chain",
+        "invest_futures_sentiment",
+        "invest_morning_data",
+        "invest_domestic_events",
+    }
+)
 
 _REPORT_TYPE_MAP = {
     "pre_market": "盘前预研",
@@ -181,8 +183,7 @@ async def get_overseas_history(
     db = await get_connection()
     try:
         cursor = await db.execute(
-            "SELECT * FROM invest_overseas_market "
-            "WHERE date BETWEEN ? AND ? ORDER BY date",
+            "SELECT * FROM invest_overseas_market " "WHERE date BETWEEN ? AND ? ORDER BY date",
             (start_date, end_date),
         )
         return [dict(row) async for row in cursor]
@@ -249,9 +250,11 @@ async def get_report_dates() -> list[dict]:
         report_type = _REPORT_TYPE_MAP.get(suffix)
         if report_type is None:
             continue
-        results.append({
-            "date": date_str,
-            "type": report_type,
-            "filename": path.name,
-        })
+        results.append(
+            {
+                "date": date_str,
+                "type": report_type,
+                "filename": path.name,
+            }
+        )
     return results

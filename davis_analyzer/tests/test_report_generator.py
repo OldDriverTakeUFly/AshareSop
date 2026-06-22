@@ -22,7 +22,6 @@ from davis_analyzer.types import (
     ValuationData,
 )
 
-
 # ── fixtures ──────────────────────────────────────────────────────────
 
 
@@ -135,15 +134,9 @@ def sample_pipeline_result(
 @pytest.fixture
 def multi_stock_pipeline_result():
     infos = {
-        "000001.SZ": StockInfo(
-            "000001.SZ", "平安银行", "银行", "L", False
-        ),
-        "600036.SH": StockInfo(
-            "600036.SH", "招商银行", "银行", "L", False
-        ),
-        "000858.SZ": StockInfo(
-            "000858.SZ", "五粮液", "食品饮料", "L", False
-        ),
+        "000001.SZ": StockInfo("000001.SZ", "平安银行", "银行", "L", False),
+        "600036.SH": StockInfo("600036.SH", "招商银行", "银行", "L", False),
+        "000858.SZ": StockInfo("000858.SZ", "五粮液", "食品饮料", "L", False),
     }
     val_data = {
         "000001.SZ": (60.0, 0.15, 0.25),
@@ -151,23 +144,13 @@ def multi_stock_pipeline_result():
         "000858.SZ": (70.0, 0.10, 0.20),
     }
     prosperity = {
-        "000001.SZ": ProsperityScore(
-            "000001.SZ", 78.0, 72.0, 68.0, 75.0, 73.5, 5.2
-        ),
-        "600036.SH": ProsperityScore(
-            "600036.SH", 65.0, 60.0, 55.0, 50.0, 58.75, 2.1
-        ),
-        "000858.SZ": ProsperityScore(
-            "000858.SZ", 85.0, 80.0, 75.0, 100.0, 84.25, 8.3
-        ),
+        "000001.SZ": ProsperityScore("000001.SZ", 78.0, 72.0, 68.0, 75.0, 73.5, 5.2),
+        "600036.SH": ProsperityScore("600036.SH", 65.0, 60.0, 55.0, 50.0, 58.75, 2.1),
+        "000858.SZ": ProsperityScore("000858.SZ", 85.0, 80.0, 75.0, 100.0, 84.25, 8.3),
     }
     distress = {
-        "000001.SZ": DistressSignal(
-            "000001.SZ", 80.0, 70.0, 60.0, 69.0, {"eps_decline": True}
-        ),
-        "600036.SH": DistressSignal(
-            "600036.SH", 50.0, 45.0, 40.0, 44.5, {}
-        ),
+        "000001.SZ": DistressSignal("000001.SZ", 80.0, 70.0, 60.0, 69.0, {"eps_decline": True}),
+        "600036.SH": DistressSignal("600036.SH", 50.0, 45.0, 40.0, 44.5, {}),
         "000858.SZ": DistressSignal(
             "000858.SZ", 90.0, 85.0, 80.0, 84.5, {"pe_pb_percentile": "深度低估"}
         ),
@@ -175,20 +158,47 @@ def multi_stock_pipeline_result():
     fin_data = {
         "000001.SZ": [
             FinancialData(
-                "000001.SZ", "20240331", 10000.0, 3000.0, 0.50, 15.0,
-                2000.0, 5000.0, 15000.0, 12.0, 18.0,
+                "000001.SZ",
+                "20240331",
+                10000.0,
+                3000.0,
+                0.50,
+                15.0,
+                2000.0,
+                5000.0,
+                15000.0,
+                12.0,
+                18.0,
             )
         ],
         "600036.SH": [
             FinancialData(
-                "600036.SH", "20240331", 8000.0, 2500.0, 0.45, 14.0,
-                1800.0, 4000.0, 12000.0, 8.0, 10.0,
+                "600036.SH",
+                "20240331",
+                8000.0,
+                2500.0,
+                0.45,
+                14.0,
+                1800.0,
+                4000.0,
+                12000.0,
+                8.0,
+                10.0,
             )
         ],
         "000858.SZ": [
             FinancialData(
-                "000858.SZ", "20240331", 15000.0, 6000.0, 1.20, 25.0,
-                4000.0, 3000.0, 20000.0, 20.0, 25.0,
+                "000858.SZ",
+                "20240331",
+                15000.0,
+                6000.0,
+                1.20,
+                25.0,
+                4000.0,
+                3000.0,
+                20000.0,
+                20.0,
+                25.0,
             )
         ],
     }
@@ -242,44 +252,67 @@ class TestComputeDupontConclusion:
     def test_with_valid_financial_data(self, sample_financial_data):
         result = _compute_dupont_conclusion(sample_financial_data)
         assert "数据不足" not in result
-        assert any(
-            kw in result
-            for kw in ["净利率驱动", "周转率驱动", "杠杆驱动"]
-        )
+        assert any(kw in result for kw in ["净利率驱动", "周转率驱动", "杠杆驱动"])
 
     def test_with_none(self):
         assert _compute_dupont_conclusion(None) == "数据不足"
 
     def test_zero_revenue(self):
         fin = FinancialData(
-            "000001.SZ", "20240331", 0.0, 0.0, 0.0, 0.0,
-            0.0, 0.0, 0.0,
+            "000001.SZ",
+            "20240331",
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
         )
         result = _compute_dupont_conclusion(fin)
         assert "数据周期不足" in result
 
     def test_zero_total_assets(self):
         fin = FinancialData(
-            "000001.SZ", "20240331", 100.0, 30.0, 0.5, 15.0,
-            20.0, 0.0, 0.0,
+            "000001.SZ",
+            "20240331",
+            100.0,
+            30.0,
+            0.5,
+            15.0,
+            20.0,
+            0.0,
+            0.0,
         )
         result = _compute_dupont_conclusion(fin)
         assert "数据周期不足" in result
 
     def test_zero_equity(self):
         fin = FinancialData(
-            "000001.SZ", "20240331", 100.0, 30.0, 0.5, 15.0,
-            20.0, 100.0, 100.0,
+            "000001.SZ",
+            "20240331",
+            100.0,
+            30.0,
+            0.5,
+            15.0,
+            20.0,
+            100.0,
+            100.0,
         )
         result = _compute_dupont_conclusion(fin)
         assert "数据周期不足" in result
 
     def test_net_margin_dominant(self):
         fin = FinancialData(
-            "000001.SZ", "20240331",
-            revenue=100.0, net_profit=200.0,
-            eps=1.0, roe=50.0,
-            operating_cf=50.0, total_debt=100.0, total_assets=1000.0,
+            "000001.SZ",
+            "20240331",
+            revenue=100.0,
+            net_profit=200.0,
+            eps=1.0,
+            roe=50.0,
+            operating_cf=50.0,
+            total_debt=100.0,
+            total_assets=1000.0,
         )
         result = _compute_dupont_conclusion(fin)
         assert "净利率驱动" in result
@@ -560,10 +593,7 @@ class TestSaveAllReports:
         report_path = [p for p in saved if "深度研报" in p][0]
         content = open(report_path, encoding="utf-8").read()
         assert "数据不足" not in content
-        assert any(
-            kw in content
-            for kw in ["净利率驱动", "周转率驱动", "杠杆驱动"]
-        )
+        assert any(kw in content for kw in ["净利率驱动", "周转率驱动", "杠杆驱动"])
 
     def test_multiple_stocks(
         self,

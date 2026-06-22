@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import sqlite3
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -24,9 +23,7 @@ def temp_db(monkeypatch, tmp_path):
 def _get_table_names(db_path: Path) -> list[str]:
     conn = sqlite3.connect(str(db_path))
     try:
-        cursor = conn.execute(
-            "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name"
-        )
+        cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
         return [r[0] for r in cursor.fetchall()]
     finally:
         conn.close()
@@ -35,9 +32,7 @@ def _get_table_names(db_path: Path) -> list[str]:
 def _get_index_names(db_path: Path) -> list[str]:
     conn = sqlite3.connect(str(db_path))
     try:
-        cursor = conn.execute(
-            "SELECT name FROM sqlite_master WHERE type='index' ORDER BY name"
-        )
+        cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='index' ORDER BY name")
         return [r[0] for r in cursor.fetchall()]
     finally:
         conn.close()

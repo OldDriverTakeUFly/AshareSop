@@ -59,14 +59,10 @@ def generate_checklist(
     cyclical_label = "是" if stock_info.is_cyclical else "否"
 
     prosperity_display = (
-        f"{prosperity_score.composite_score:.1f}"
-        if prosperity_score is not None
-        else _PLACEHOLDER
+        f"{prosperity_score.composite_score:.1f}" if prosperity_score is not None else _PLACEHOLDER
     )
     distress_display = (
-        f"{distress_score.total_score:.1f}"
-        if distress_score is not None
-        else _PLACEHOLDER
+        f"{distress_score.total_score:.1f}" if distress_score is not None else _PLACEHOLDER
     )
 
     content = _CHECKLIST_TEMPLATE.format(
@@ -87,9 +83,7 @@ def generate_checklist(
     out = Path(output_dir)
     out.mkdir(parents=True, exist_ok=True)
 
-    filename = (
-        f"{davis_score.rank}_{stock_info.ts_code}_{stock_info.name}_调研checklist.md"
-    )
+    filename = f"{davis_score.rank}_{stock_info.ts_code}_{stock_info.name}_调研checklist.md"
     filepath = out / filename
     filepath.write_text(content, encoding="utf-8")
     return str(filepath)

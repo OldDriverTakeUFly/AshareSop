@@ -11,7 +11,6 @@ from stockhot.invest_sop.scripts.run_daily_advisor import (
     run_report,
 )
 
-
 # ── run_advisor ────
 
 
@@ -108,9 +107,7 @@ class TestMain:
 
     @patch("stockhot.invest_sop.scripts.run_daily_advisor.run_report")
     @patch("stockhot.invest_sop.scripts.run_daily_advisor.run_advisor")
-    def test_advisor_failure_doesnt_block_report(
-        self, mock_advisor, mock_report, capsys
-    ):
+    def test_advisor_failure_doesnt_block_report(self, mock_advisor, mock_report, capsys):
         mock_advisor.return_value = False
         mock_report.return_value = True
 

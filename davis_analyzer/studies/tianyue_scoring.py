@@ -46,7 +46,6 @@ from davis_analyzer.trend import (
     batch_trend,
     calculate_monthly_trend,
     calculate_trend_acceleration,
-    calculate_trend_score,
     calculate_trend_slope,
 )
 from davis_analyzer.tushare_client import TushareClient
@@ -97,9 +96,7 @@ def _explain_eps_decline(eps_history: list[float]) -> str:
             f"部分确认（{pct:.1f}%/30%={score:.2f}）"
         )
     else:
-        return (
-            f"得分={score:.2f}，{cmp_desc}，EPS增长{-pct:.1f}%，无困境信号"
-        )
+        return f"得分={score:.2f}，{cmp_desc}，EPS增长{-pct:.1f}%，无困境信号"
 
 
 def _explain_pe_pb_percentile(pe_pct: float, pb_pct: float) -> str:
@@ -151,8 +148,10 @@ def _explain_operating_cf(operating_cf: float, total_assets: float) -> str:
             f"总资产={total_assets/1e8:.2f}亿，"
             f"CF/资产={ratio*100:.2f}%（公式: clamp(CF/资产, 0, 1)={score:.2f}）"
         )
-    return f"得分={score:.2f}，经营现金流={operating_cf/1e8:.2f}亿，总资产未知，" \
-           f"{'>0计1.0' if operating_cf > 0 else '≤0计0.0'}"
+    return (
+        f"得分={score:.2f}，经营现金流={operating_cf/1e8:.2f}亿，总资产未知，"
+        f"{'>0计1.0' if operating_cf > 0 else '≤0计0.0'}"
+    )
 
 
 def _explain_roe_trend(roe_history: list[float]) -> str:
@@ -267,8 +266,7 @@ def score_tianyue() -> dict:
     logger.info("获取到 {} 期财务数据", len(fin_data))
     for fd in fin_data:
         logger.debug(
-            "  {} rev={:.0f} np={:.0f} eps={:.4f} roe={:.2f} "
-            "yoy_rev={} yoy_prof={}",
+            "  {} rev={:.0f} np={:.0f} eps={:.4f} roe={:.2f} " "yoy_rev={} yoy_prof={}",
             fd.report_period,
             fd.revenue or 0,
             fd.net_profit or 0,
@@ -313,9 +311,7 @@ def score_tianyue() -> dict:
         pe_pct = calculate_percentile(latest_val.pe_ttm, pe_series)
         pb_pct = calculate_percentile(latest_val.pb, pb_series)
         stock_info = _build_stock_info(client, TS_CODE, STOCK_NAME)
-        val_score, pe_pct, pb_pct = calculate_valuation_score(
-            val_history, stock_info.is_cyclical
-        )
+        val_score, pe_pct, pb_pct = calculate_valuation_score(val_history, stock_info.is_cyclical)
         logger.info(
             "估值评分={:.2f} PE百分位={:.1f}% PB百分位={:.1f}% (行业={} 周期={})",
             val_score,
@@ -345,9 +341,7 @@ def score_tianyue() -> dict:
     trend_detail: dict = {"score": 50.0, "reason": "数据不足，趋势评分=N/A(50.0)"}
     if val_history and len(val_history) >= 3:
         try:
-            dates = pd.to_datetime(
-                [v.trade_date for v in val_history], format="%Y%m%d"
-            )
+            dates = pd.to_datetime([v.trade_date for v in val_history], format="%Y%m%d")
             daily_pe = pd.Series([v.pe_ttm for v in val_history], index=dates)
             daily_pb = pd.Series([v.pb for v in val_history], index=dates)
 
@@ -442,23 +436,17 @@ def score_tianyue() -> dict:
                 "reason": _explain_eps_decline(eps_history),
             },
             "pe_pb_percentile": {
-                "score": round(
-                    distress.signals_detail["layer1"]["pe_pb_percentile"], 4
-                ),
+                "score": round(distress.signals_detail["layer1"]["pe_pb_percentile"], 4),
                 "reason": _explain_pe_pb_percentile(pe_pct, pb_pct),
             },
             "financial_health": {
-                "score": round(
-                    distress.signals_detail["layer1"]["financial_health"], 4
-                ),
+                "score": round(distress.signals_detail["layer1"]["financial_health"], 4),
                 "reason": _explain_financial_health(debt_ratio, operating_cf),
             },
         },
         "layer2": {
             "balance_sheet": {
-                "score": round(
-                    distress.signals_detail["layer2"]["balance_sheet"], 4
-                ),
+                "score": round(distress.signals_detail["layer2"]["balance_sheet"], 4),
                 "reason": _explain_balance_sheet(total_debt, total_assets),
             },
             "operating_cf": {
@@ -472,21 +460,15 @@ def score_tianyue() -> dict:
         },
         "layer3": {
             "revenue_inflection": {
-                "score": round(
-                    distress.signals_detail["layer3"]["revenue_inflection"], 4
-                ),
+                "score": round(distress.signals_detail["layer3"]["revenue_inflection"], 4),
                 "reason": _explain_revenue_inflection(revenue_growth),
             },
             "profit_inflection": {
-                "score": round(
-                    distress.signals_detail["layer3"]["profit_inflection"], 4
-                ),
+                "score": round(distress.signals_detail["layer3"]["profit_inflection"], 4),
                 "reason": _explain_profit_inflection(profit_growth),
             },
             "delta_g_positive": {
-                "score": round(
-                    distress.signals_detail["layer3"]["delta_g_positive"], 4
-                ),
+                "score": round(distress.signals_detail["layer3"]["delta_g_positive"], 4),
                 "reason": _explain_delta_g_positive(prosp_score.delta_g),
             },
         },

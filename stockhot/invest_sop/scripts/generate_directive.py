@@ -46,9 +46,7 @@ def fetch_morning(date: str) -> dict | None:
 def fetch_active_holdings() -> list[dict]:
     conn = get_connection()
     try:
-        cursor = conn.execute(
-            "SELECT * FROM invest_holdings WHERE status='active' ORDER BY id"
-        )
+        cursor = conn.execute("SELECT * FROM invest_holdings WHERE status='active' ORDER BY id")
         return [dict(row) for row in cursor]
     finally:
         conn.close()

@@ -1,4 +1,3 @@
-from stockhot.core.config import DB_PATH as INVEST_DB_PATH
 from stockhot.core.config import REPORTS_DIR
 
 INVEST_REPORTS_DIR = REPORTS_DIR / "invest_sop"
@@ -6,7 +5,7 @@ INVEST_REPORTS_DIR.mkdir(parents=True, exist_ok=True)
 
 API_TIMEOUT = 30
 
-from stockhot.storage.database import get_connection
+from stockhot.storage.database import get_connection  # noqa: E402
 
 DEFAULT_SECTOR_RULE = {"stop_loss_pct": -0.12, "target_pct": 0.20}
 

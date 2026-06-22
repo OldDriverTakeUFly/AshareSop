@@ -38,22 +38,18 @@ import json
 import sqlite3
 from dataclasses import dataclass
 from datetime import date
-from pathlib import Path
 
 import httpx
 import pandas as pd
 import pytest
 
-from stockhot.advisor import recommendation_engine as engine
 from stockhot.advisor import signal_aggregator as agg_mod
 from stockhot.advisor.data_sources import fundamental as fundamental_mod
 from stockhot.advisor.llm_provider import LLMResponse
-from stockhot.advisor.prompts.registry import default_registry
 from stockhot.advisor.recommendation_engine import run_for_stock
 from stockhot.advisor.report_integration import build_advisor_section
 from stockhot.notification.telegram_bot import TelegramNotifier
 from stockhot.storage import database as db_module
-
 
 # ── Fakes (LLM only — everything else is real) ─────────────────────────────
 
@@ -61,14 +57,17 @@ from stockhot.storage import database as db_module
 @dataclass
 class FakeProvider:
     """Deterministic LLM stand-in returning a well-formed build rec."""
-    response_content: str = json.dumps({
-        "action": "buy",
-        "confidence": "HIGH",
-        "entry_zone": [11.5, 12.0],
-        "stop_loss": 10.0,
-        "target": 16.0,
-        "reasoning": "Strong uptrend + high davis percentile + sector tailwind",
-    })
+
+    response_content: str = json.dumps(
+        {
+            "action": "buy",
+            "confidence": "HIGH",
+            "entry_zone": [11.5, 12.0],
+            "stop_loss": 10.0,
+            "target": 16.0,
+            "reasoning": "Strong uptrend + high davis percentile + sector tailwind",
+        }
+    )
     model: str = "test-model"
 
     def complete(self, prompt, system="", max_tokens=800, temperature=0.3):
@@ -89,7 +88,7 @@ def _make_bullish_ohlcv(days: int = 60, start_price: float = 10.0) -> pd.DataFra
     "strong" threshold. Volume is healthy and stable so volume_ratio ≈ 1.
     """
     dates = pd.date_range(end=date.today(), periods=days, freq="D")
-    closes = [round(start_price * (1.012 ** i), 2) for i in range(days)]
+    closes = [round(start_price * (1.012**i), 2) for i in range(days)]
     df = pd.DataFrame(
         {
             "open": [c * 0.998 for c in closes],
@@ -121,9 +120,7 @@ def patched_sources(monkeypatch):
     # B3 fix: aggregate_signals calls fetch_ohlcv_for_advisor when ohlcv_df
     # is None. Patch it on the aggregator module's namespace to inject a
     # deterministic bullish OHLCV without touching the network.
-    monkeypatch.setattr(
-        agg_mod, "fetch_ohlcv_for_advisor", lambda code, days=90: ohlcv
-    )
+    monkeypatch.setattr(agg_mod, "fetch_ohlcv_for_advisor", lambda code, days=90: ohlcv)
     monkeypatch.setattr(
         agg_mod,
         "fetch_realtime_price",
@@ -216,25 +213,21 @@ class TestE2EAdvisorChain:
         assert rows[0][0] == "000001"
         assert rows[0][1] != "none"
 
-    def test_technical_details_populated_with_support_resistance(
-        self, temp_db, patched_sources
-    ):
+    def test_technical_details_populated_with_support_resistance(self, temp_db, patched_sources):
         """B2 fix: technical.details must carry support/resistance/volume
         keys that _build_context reads, not just {state, signals}."""
         agg = agg_mod.aggregate_signals("000001")
 
         details = agg.technical.details
-        assert "support_levels" in details, (
-            "support_levels missing — B2 fix not wired"
-        )
+        assert "support_levels" in details, "support_levels missing — B2 fix not wired"
         assert "resistance_levels" in details
         assert "volume_ratio" in details
         assert "volume_trend" in details
         # Technical value should reflect the bullish OHLCV, not the old 50.0
         # placeholder.
-        assert agg.technical.value != 50.0, (
-            "Technical still 50.0 — OHLCV not flowing into composite score"
-        )
+        assert (
+            agg.technical.value != 50.0
+        ), "Technical still 50.0 — OHLCV not flowing into composite score"
 
     def test_davis_pipeline_cached_across_calls(self, temp_db, patched_sources, monkeypatch):
         """B4 fix: the pipeline runs at most once per process even when
@@ -255,9 +248,9 @@ class TestE2EAdvisorChain:
         fundamental_mod.get_current_davis_score("000001")
         fundamental_mod.get_current_davis_score("600519")
 
-        assert call_count["n"] == 1, (
-            f"Pipeline ran {call_count['n']} times, expected exactly 1 (cached)"
-        )
+        assert (
+            call_count["n"] == 1
+        ), f"Pipeline ran {call_count['n']} times, expected exactly 1 (cached)"
 
     def test_sell_monitor_survives_null_holding_fields(self, temp_db, patched_sources):
         """C1 fix: a holding row with NULL stop_loss_hard/target_price
@@ -285,9 +278,7 @@ class TestE2EAdvisorChain:
 
 
 class TestE2EReportRoundTrip:
-    def test_build_advisor_section_contains_persisted_rec(
-        self, temp_db, patched_sources
-    ):
+    def test_build_advisor_section_contains_persisted_rec(self, temp_db, patched_sources):
         """Persist then read back via build_advisor_section — verifies the
         reasoning_json round-trip and sentinel wrapping."""
         holding = {

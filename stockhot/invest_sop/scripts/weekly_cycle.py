@@ -55,9 +55,7 @@ def fetch_supply_chain_last_n(n_days: int = 5) -> list[dict]:
 def fetch_cycle_assessments() -> list[dict]:
     conn = get_connection()
     try:
-        cursor = conn.execute(
-            "SELECT * FROM invest_cycle_assessments ORDER BY sector"
-        )
+        cursor = conn.execute("SELECT * FROM invest_cycle_assessments ORDER BY sector")
         return [dict(row) for row in cursor]
     finally:
         conn.close()

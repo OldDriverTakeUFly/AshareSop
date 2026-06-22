@@ -73,21 +73,36 @@ def _weight_values(text: str, key: str) -> list[float]:
 # README documents TUSHARE_RATE_LIMIT / REPORT_MAX_WORDS as bare values only and
 # are validated separately in TestReadmeBareValueConstants.
 SCALAR_DOC_CASES = [
-    pytest.param("readme", "PERCENTILE_DAYS",
-                 float(constants.PERCENTILE_DAYS), id="readme-PERCENTILE_DAYS"),
-    pytest.param("sop", "PERCENTILE_DAYS",
-                 float(constants.PERCENTILE_DAYS), id="sop-PERCENTILE_DAYS"),
-    pytest.param("sop", "TUSHARE_RATE_LIMIT",
-                 float(constants.TUSHARE_RATE_LIMIT), id="sop-TUSHARE_RATE_LIMIT"),
-    pytest.param("sop", "REPORT_MAX_WORDS",
-                 float(constants.REPORT_MAX_WORDS), id="sop-REPORT_MAX_WORDS"),
-    pytest.param("sop", "PE_PB_TREND_MONTHS",
-                 float(constants.PE_PB_TREND_MONTHS), id="sop-PE_PB_TREND_MONTHS"),
-    pytest.param("sop", "MIN_TREND_MONTHS",
-                 float(constants.MIN_TREND_MONTHS), id="sop-MIN_TREND_MONTHS"),
-    pytest.param("sop", "EPS_NEAR_ZERO_THRESHOLD",
-                 float(constants.EPS_NEAR_ZERO_THRESHOLD),
-                 id="sop-EPS_NEAR_ZERO_THRESHOLD"),
+    pytest.param(
+        "readme", "PERCENTILE_DAYS", float(constants.PERCENTILE_DAYS), id="readme-PERCENTILE_DAYS"
+    ),
+    pytest.param(
+        "sop", "PERCENTILE_DAYS", float(constants.PERCENTILE_DAYS), id="sop-PERCENTILE_DAYS"
+    ),
+    pytest.param(
+        "sop",
+        "TUSHARE_RATE_LIMIT",
+        float(constants.TUSHARE_RATE_LIMIT),
+        id="sop-TUSHARE_RATE_LIMIT",
+    ),
+    pytest.param(
+        "sop", "REPORT_MAX_WORDS", float(constants.REPORT_MAX_WORDS), id="sop-REPORT_MAX_WORDS"
+    ),
+    pytest.param(
+        "sop",
+        "PE_PB_TREND_MONTHS",
+        float(constants.PE_PB_TREND_MONTHS),
+        id="sop-PE_PB_TREND_MONTHS",
+    ),
+    pytest.param(
+        "sop", "MIN_TREND_MONTHS", float(constants.MIN_TREND_MONTHS), id="sop-MIN_TREND_MONTHS"
+    ),
+    pytest.param(
+        "sop",
+        "EPS_NEAR_ZERO_THRESHOLD",
+        float(constants.EPS_NEAR_ZERO_THRESHOLD),
+        id="sop-EPS_NEAR_ZERO_THRESHOLD",
+    ),
 ]
 
 
@@ -100,21 +115,21 @@ def test_scalar_constant_by_name(
     occurrences = _scalar_occurrences(text, name)
     assert occurrences, f"{name} is not documented by name in {doc_name}"
     for value in occurrences:
-        assert abs(value - expected) < 1e-9, (
-            f"{name} in {doc_name} documented as {value}, expected {expected}"
-        )
+        assert (
+            abs(value - expected) < 1e-9
+        ), f"{name} in {doc_name} documented as {value}, expected {expected}"
 
 
 # ── Opt-in registry: weight dictionaries ─────────────────────────────────────
 WEIGHT_DICT_CASES = [
-    pytest.param("DAVIS_DOUBLE_WEIGHTS", "readme",
-                 constants.DAVIS_DOUBLE_WEIGHTS, id="readme-davis"),
-    pytest.param("DAVIS_DOUBLE_WEIGHTS", "sop",
-                 constants.DAVIS_DOUBLE_WEIGHTS, id="sop-davis"),
-    pytest.param("PROSPERITY_WEIGHTS", "readme",
-                 constants.PROSPERITY_WEIGHTS, id="readme-prosperity"),
-    pytest.param("PROSPERITY_WEIGHTS", "sop",
-                 constants.PROSPERITY_WEIGHTS, id="sop-prosperity"),
+    pytest.param(
+        "DAVIS_DOUBLE_WEIGHTS", "readme", constants.DAVIS_DOUBLE_WEIGHTS, id="readme-davis"
+    ),
+    pytest.param("DAVIS_DOUBLE_WEIGHTS", "sop", constants.DAVIS_DOUBLE_WEIGHTS, id="sop-davis"),
+    pytest.param(
+        "PROSPERITY_WEIGHTS", "readme", constants.PROSPERITY_WEIGHTS, id="readme-prosperity"
+    ),
+    pytest.param("PROSPERITY_WEIGHTS", "sop", constants.PROSPERITY_WEIGHTS, id="sop-prosperity"),
 ]
 
 
@@ -131,20 +146,16 @@ def test_weight_dictionary(
     found: dict[str, list[float]] = {}
     for key in expected:
         values = _weight_values(text, key)
-        assert values, (
-            f"weight key '{key}' of {label} is not documented in {doc_name}"
-        )
+        assert values, f"weight key '{key}' of {label} is not documented in {doc_name}"
         found[key] = values
 
     assert set(found) == set(expected), (
-        f"{label} in {doc_name}: documented keys {sorted(found)} "
-        f"!= expected {sorted(expected)}"
+        f"{label} in {doc_name}: documented keys {sorted(found)} " f"!= expected {sorted(expected)}"
     )
     for key, values in found.items():
         for value in values:
             assert abs(value - expected[key]) < 1e-9, (
-                f"{label}[{key}] in {doc_name} documented as {value}, "
-                f"expected {expected[key]}"
+                f"{label}[{key}] in {doc_name} documented as {value}, " f"expected {expected[key]}"
             )
 
 
@@ -154,21 +165,18 @@ class TestReadmeBareValueConstants:
     def test_tushare_rate_limit_value(self, docs: dict[str, str]) -> None:
         expected = int(constants.TUSHARE_RATE_LIMIT)
         assert re.search(rf"{expected}\s*次\s*/\s*分钟", docs["readme"]), (
-            f"README should document the Tushare rate limit as "
-            f"'{expected}次/分钟'"
+            f"README should document the Tushare rate limit as " f"'{expected}次/分钟'"
         )
 
     def test_report_max_words_value(self, docs: dict[str, str]) -> None:
         expected = int(constants.REPORT_MAX_WORDS)
-        assert re.search(rf"{expected}\s*词", docs["readme"]), (
-            f"README should document the report word cap as '{expected} 词'"
-        )
+        assert re.search(
+            rf"{expected}\s*词", docs["readme"]
+        ), f"README should document the report word cap as '{expected} 词'"
 
 
 @pytest.mark.parametrize("doc_name", ["readme", "sop"])
-def test_distress_scoring_described_as_continuous(
-    docs: dict[str, str], doc_name: str
-) -> None:
+def test_distress_scoring_described_as_continuous(docs: dict[str, str], doc_name: str) -> None:
     """Docs must describe distress scoring as continuous (not binary hit/miss)."""
     assert re.search(r"连续", docs[doc_name]), (
         f"{doc_name} must describe distress scoring as continuous "

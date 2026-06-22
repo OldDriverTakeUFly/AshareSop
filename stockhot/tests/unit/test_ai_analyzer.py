@@ -1,6 +1,5 @@
 import stockhot.ai_analyzer as aa
 
-
 SAMPLE_DATA = {
     "date": "2026-04-17",
     "gainers": [{"name": "N尚水", "code": "301665", "change_pct": 286.72}],

@@ -69,11 +69,11 @@ from davis_analyzer.config import PROJECT_ROOT
 from davis_analyzer.tushare_client import TushareClient
 
 # ========== CONFIG: 填入你的标的 ==========
-TARGET_CODE = "000000.SH"        # 目标股票 ts_code
-PEER_CODES = ["000001.SH"]       # 同业 ts_code 列表（建议 ≥ 3 个）
-START_DATE = "20210101"          # 数据起始日 (YYYYMMDD)
-END_DATE = "20251231"            # 数据截止日 (YYYYMMDD)
-OUTPUT_DIR = "output"            # JSON 输出目录（相对 PROJECT_ROOT）
+TARGET_CODE = "000000.SH"  # 目标股票 ts_code
+PEER_CODES = ["000001.SH"]  # 同业 ts_code 列表（建议 ≥ 3 个）
+START_DATE = "20210101"  # 数据起始日 (YYYYMMDD)
+END_DATE = "20251231"  # 数据截止日 (YYYYMMDD)
+OUTPUT_DIR = "output"  # JSON 输出目录（相对 PROJECT_ROOT）
 # ==========================================
 
 # 由 CONFIG 派生的运行时变量（请勿手动修改）
@@ -92,8 +92,7 @@ BALANCESHEET_FIELDS = (
     "total_cur_liab,total_assets,total_liab"
 )
 CASHFLOW_FIELDS = (
-    "ts_code,end_date,n_cashflow_act,n_cashflow_inv_act,free_cashflow,"
-    "c_pay_acquisition_fixed"
+    "ts_code,end_date,n_cashflow_act,n_cashflow_inv_act,free_cashflow," "c_pay_acquisition_fixed"
 )
 FINA_INDICATOR_FIELDS = (
     "ts_code,end_date,grossprofit_margin,netprofit_margin,rd_exp,"
@@ -239,9 +238,7 @@ def fetch_all(client: TushareClient) -> dict:
         logger.info("══════ 开始获取 {} ══════", code)
 
         # ── 扩展字段财务数据 ──
-        r = _fetch_extended_financials(
-            client, code, "income", client._pro.income, INCOME_FIELDS
-        )
+        r = _fetch_extended_financials(client, code, "income", client._pro.income, INCOME_FIELDS)
         payload["income"][code] = r["records"]
         if r["error"]:
             payload["_errors"].setdefault("income", {})[code] = r["error"]
@@ -407,18 +404,14 @@ def completeness_report(payload: dict) -> str:
         total_rows = sum(len(v) for v in data.values())
         stocks_with_data = sum(1 for v in data.values() if v)
         lines.append(f"── {ep} ──")
-        lines.append(
-            f"  总行数: {total_rows}  | 有数据股票: {stocks_with_data}/{total_stocks}"
-        )
+        lines.append(f"  总行数: {total_rows}  | 有数据股票: {stocks_with_data}/{total_stocks}")
 
         for code in payload["stocks"]:
             records = data.get(code, [])
             n = len(records)
             # 时间范围
             dates = [
-                str(r.get(date_field, ""))
-                for r in records
-                if r.get(date_field) not in (None, "")
+                str(r.get(date_field, "")) for r in records if r.get(date_field) not in (None, "")
             ]
             if dates:
                 tmin, tmax = min(dates), max(dates)

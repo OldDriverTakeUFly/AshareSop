@@ -17,7 +17,6 @@ from stockhot.advisor.report_integration import (
 )
 from stockhot.storage import database as db_module
 
-
 # ── temp DB fixture ────────────────────────────────────────────────
 
 
@@ -116,16 +115,33 @@ class TestWithRecommendations:
         conn = db_module.get_connection()
         try:
             _insert_run(
-                conn, "2025-01-01", "000001", "build", "buy", "HIGH",
+                conn,
+                "2025-01-01",
+                "000001",
+                "build",
+                "buy",
+                "HIGH",
                 reasoning="技术强势+基本面良好",
-                entry_zone=(10.5, 11.0), stop_loss=9.8, target=13.0,
+                entry_zone=(10.5, 11.0),
+                stop_loss=9.8,
+                target=13.0,
             )
             _insert_run(
-                conn, "2025-01-01", "600519", "clear", "exit", "HIGH",
+                conn,
+                "2025-01-01",
+                "600519",
+                "clear",
+                "exit",
+                "HIGH",
                 reasoning="硬止损触发",
             )
             _insert_run(
-                conn, "2025-01-01", "300750", "adjust", "trim", "MEDIUM",
+                conn,
+                "2025-01-01",
+                "300750",
+                "adjust",
+                "trim",
+                "MEDIUM",
                 reasoning="仓位偏重需减仓",
             )
         finally:
@@ -184,7 +200,12 @@ class TestTTradeRecommendations:
         conn = db_module.get_connection()
         try:
             _insert_run(
-                conn, "2025-01-01", "002594", "t_trade", "t_trade", "LOW",
+                conn,
+                "2025-01-01",
+                "002594",
+                "t_trade",
+                "t_trade",
+                "LOW",
                 reasoning="支撑位附近做T",
             )
         finally:
@@ -204,11 +225,21 @@ class TestDateFiltering:
         conn = db_module.get_connection()
         try:
             _insert_run(
-                conn, "2025-01-01", "000001", "build", "buy", "HIGH",
+                conn,
+                "2025-01-01",
+                "000001",
+                "build",
+                "buy",
+                "HIGH",
                 reasoning="Jan 1 rec",
             )
             _insert_run(
-                conn, "2025-01-02", "000002", "build", "buy", "HIGH",
+                conn,
+                "2025-01-02",
+                "000002",
+                "build",
+                "buy",
+                "HIGH",
                 reasoning="Jan 2 rec",
             )
         finally:

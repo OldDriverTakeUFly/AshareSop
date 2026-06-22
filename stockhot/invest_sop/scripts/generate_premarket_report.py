@@ -56,9 +56,7 @@ def _fetch_futures(date: str) -> dict | None:
 def _fetch_cycle_assessments() -> list[dict]:
     conn = get_connection()
     try:
-        cursor = conn.execute(
-            "SELECT * FROM invest_cycle_assessments ORDER BY sector"
-        )
+        cursor = conn.execute("SELECT * FROM invest_cycle_assessments ORDER BY sector")
         return [dict(row) for row in cursor]
     finally:
         conn.close()
@@ -67,9 +65,7 @@ def _fetch_cycle_assessments() -> list[dict]:
 def _fetch_active_holdings() -> list[dict]:
     conn = get_connection()
     try:
-        cursor = conn.execute(
-            "SELECT * FROM invest_holdings WHERE status='active' ORDER BY id"
-        )
+        cursor = conn.execute("SELECT * FROM invest_holdings WHERE status='active' ORDER BY id")
         return [dict(row) for row in cursor]
     finally:
         conn.close()
@@ -80,8 +76,12 @@ def build_section_1(overseas: dict | None, events: list[dict], futures: dict | N
     lines.append("### 1.1 海外市场")
 
     if overseas:
-        lines.append(f"- 美股：标普{_pct(overseas, 'sp500_pct')} 纳指{_pct(overseas, 'nasdaq_pct')} 道指{_pct(overseas, 'dow_pct')}")
-        lines.append(f"- 美债10Y：{_val(overseas, 'us_10y', '{:.4f}')}（变动{_bp(overseas, 'us_10y_change_bp')}）")
+        lines.append(
+            f"- 美股：标普{_pct(overseas, 'sp500_pct')} 纳指{_pct(overseas, 'nasdaq_pct')} 道指{_pct(overseas, 'dow_pct')}"
+        )
+        lines.append(
+            f"- 美债10Y：{_val(overseas, 'us_10y', '{:.4f}')}（变动{_bp(overseas, 'us_10y_change_bp')}）"
+        )
         lines.append(f"- VIX：{_val(overseas, 'vix')}")
         lines.append(f"- A50夜盘：{_pct(overseas, 'a50_pct')}")
         lines.append(f"- USD/CNY：{_val(overseas, 'usd_cny')}")
@@ -90,7 +90,9 @@ def build_section_1(overseas: dict | None, events: list[dict], futures: dict | N
             lines.append(f"- {label}：{NA}")
 
     if futures:
-        lines.append(f"- 股指期货：IF {_pct(futures, 'if_pct')} / IC {_pct(futures, 'ic_pct')} / IM {_pct(futures, 'im_pct')}")
+        lines.append(
+            f"- 股指期货：IF {_pct(futures, 'if_pct')} / IC {_pct(futures, 'ic_pct')} / IM {_pct(futures, 'im_pct')}"
+        )
     else:
         lines.append(f"- 股指期货：{NA}")
 
@@ -156,8 +158,6 @@ def build_section_3(holdings: list[dict]) -> str:
         name = h.get("name", NA)
         code = h.get("code", NA)
         pos_pct = h.get("position_pct", "-")
-        entry = h.get("entry_price", "-")
-        current = h.get("current_price", "-")
         sl_logic = h.get("stop_loss_logic", "-")
         sl_tech = h.get("stop_loss_technical", "-")
         sl_hard = h.get("stop_loss_hard", "-")
@@ -173,7 +173,9 @@ def build_section_3(holdings: list[dict]) -> str:
         lines.append("| 技术状态 | 强势/震荡/弱势 | 均线：__  支撑：__  压力：__ |")
         lines.append("| 周期位置 | 复苏/繁荣/衰退 | |")
         lines.append("| **操作决策** | **持有/减仓/加仓/清仓** | |")
-        lines.append(f"| 止损价 | {sl_hard}（距当前-%） | 逻辑止损{sl_logic} / 技术止损{sl_tech} / 硬止损{sl_hard} |")
+        lines.append(
+            f"| 止损价 | {sl_hard}（距当前-%） | 逻辑止损{sl_logic} / 技术止损{sl_tech} / 硬止损{sl_hard} |"
+        )
         lines.append(f"| 目标价 | {target}（距当前-%） | |")
         lines.append("| 执行方式 | 竞价减仓/开盘后观察/设提醒 | |")
         lines.append("")
@@ -182,55 +184,78 @@ def build_section_3(holdings: list[dict]) -> str:
 
 
 def build_section_4() -> str:
-    return "\n".join([
-        "", "---", "", "## 四、新增标的备选", "",
-        "（暂无备选标的）", "",
-    ])
+    return "\n".join(
+        [
+            "",
+            "---",
+            "",
+            "## 四、新增标的备选",
+            "",
+            "（暂无备选标的）",
+            "",
+        ]
+    )
 
 
 def build_section_5() -> str:
-    return "\n".join([
-        "", "---", "", "## 五、今日重点关注", "",
-        "### 5.1 时间事件",
-        "| 时间 | 事件 | 关注标的/板块 |",
-        "|------|------|--------------|",
-        f"| | {NA} | |",
-        "",
-        "### 5.2 关键价位提醒",
-        "| 标的 | 价位 | 类型 | 触发动作 |",
-        "|------|------|------|----------|",
-        f"| | | 支撑/压力/止损 | |",
-        "",
-        "### 5.3 情绪阈值（满足条件时执行预案）",
-        "| 条件 | 预案 |",
-        "|------|------|",
-        "| 开盘跌幅 > -% | |",
-        "",
-    ])
+    return "\n".join(
+        [
+            "",
+            "---",
+            "",
+            "## 五、今日重点关注",
+            "",
+            "### 5.1 时间事件",
+            "| 时间 | 事件 | 关注标的/板块 |",
+            "|------|------|--------------|",
+            f"| | {NA} | |",
+            "",
+            "### 5.2 关键价位提醒",
+            "| 标的 | 价位 | 类型 | 触发动作 |",
+            "|------|------|------|----------|",
+            "| | | 支撑/压力/止损 | |",
+            "",
+            "### 5.3 情绪阈值（满足条件时执行预案）",
+            "| 条件 | 预案 |",
+            "|------|------|",
+            "| 开盘跌幅 > -% | |",
+            "",
+        ]
+    )
 
 
 def build_section_6() -> str:
-    return "\n".join([
-        "---", "", "## 六、风控检查", "",
-        "| 检查项 | 当前值 | 限制 | 是否合规 |",
-        "|--------|--------|------|----------|",
-        "| 总仓位 | -% | -%- -% | ✅/❌ |",
-        "| 最大单票仓位 | -%(标的：-) | ≤25% | ✅/❌ |",
-        "| 最大板块集中度 | -%(板块：-) | ≤40% | ✅/❌ |",
-        "| 持仓数量 | -只 | ≤8只 | ✅/❌ |",
-        "| 最小止损距离 | -(标的：-) | ≥-12% | ✅/❌ |",
-        "",
-    ])
+    return "\n".join(
+        [
+            "---",
+            "",
+            "## 六、风控检查",
+            "",
+            "| 检查项 | 当前值 | 限制 | 是否合规 |",
+            "|--------|--------|------|----------|",
+            "| 总仓位 | -% | -%- -% | ✅/❌ |",
+            "| 最大单票仓位 | -%(标的：-) | ≤25% | ✅/❌ |",
+            "| 最大板块集中度 | -%(板块：-) | ≤40% | ✅/❌ |",
+            "| 持仓数量 | -只 | ≤8只 | ✅/❌ |",
+            "| 最小止损距离 | -(标的：-) | ≥-12% | ✅/❌ |",
+            "",
+        ]
+    )
 
 
 def build_section_7() -> str:
-    return "\n".join([
-        "---", "", "## 七、昨日复盘（简要）", "",
-        "- 昨日操作执行情况：",
-        "- 昨日判断准确度：",
-        "- 经验教训：",
-        "",
-    ])
+    return "\n".join(
+        [
+            "---",
+            "",
+            "## 七、昨日复盘（简要）",
+            "",
+            "- 昨日操作执行情况：",
+            "- 昨日判断准确度：",
+            "- 经验教训：",
+            "",
+        ]
+    )
 
 
 def generate_template(date: str) -> str:

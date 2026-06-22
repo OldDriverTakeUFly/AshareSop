@@ -59,9 +59,11 @@ SAMPLE_ANALYSIS = {
 def client_with_data(tmp_path):
     db_path = tmp_path / "test.db"
     app.dependency_overrides[verify_credentials] = lambda: True
-    with patch("stockhot.storage.database.DB_PATH", db_path), patch(
-        "stockhot.core.config.DB_PATH", db_path
-    ), patch("stockhot.api.config.settings.DB_PATH", str(db_path)):
+    with (
+        patch("stockhot.storage.database.DB_PATH", db_path),
+        patch("stockhot.core.config.DB_PATH", db_path),
+        patch("stockhot.api.config.settings.DB_PATH", str(db_path)),
+    ):
         init_database()
         conn = sqlite3.connect(db_path)
         conn.execute(
@@ -82,9 +84,11 @@ def client_with_data(tmp_path):
 def client_empty(tmp_path):
     db_path = tmp_path / "test.db"
     app.dependency_overrides[verify_credentials] = lambda: True
-    with patch("stockhot.storage.database.DB_PATH", db_path), patch(
-        "stockhot.core.config.DB_PATH", db_path
-    ), patch("stockhot.api.config.settings.DB_PATH", str(db_path)):
+    with (
+        patch("stockhot.storage.database.DB_PATH", db_path),
+        patch("stockhot.core.config.DB_PATH", db_path),
+        patch("stockhot.api.config.settings.DB_PATH", str(db_path)),
+    ):
         init_database()
         yield TestClient(app), db_path
     app.dependency_overrides.pop(verify_credentials, None)

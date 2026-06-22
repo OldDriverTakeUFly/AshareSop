@@ -21,11 +21,7 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
 PYTHON = str(PROJECT_ROOT / ".venv" / "bin" / "python")
 REPORT_SCRIPT = str(
-    PROJECT_ROOT
-    / "stockhot"
-    / "invest_sop"
-    / "scripts"
-    / "generate_premarket_report.py"
+    PROJECT_ROOT / "stockhot" / "invest_sop" / "scripts" / "generate_premarket_report.py"
 )
 
 
@@ -45,12 +41,8 @@ def run_report(trade_date: str) -> bool:
 
 def main(argv: list[str] | None = None) -> int:
     """Run daily advisor + report generation. Returns 0 on success, 1 on failure."""
-    parser = argparse.ArgumentParser(
-        description="Run daily advisor + report generation"
-    )
-    parser.add_argument(
-        "--date", default=None, help="Trade date (default: today)"
-    )
+    parser = argparse.ArgumentParser(description="Run daily advisor + report generation")
+    parser.add_argument("--date", default=None, help="Trade date (default: today)")
     args = parser.parse_args(argv)
 
     trade_date = args.date or date.today().isoformat()

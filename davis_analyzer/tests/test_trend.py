@@ -27,9 +27,7 @@ def _make_stock(ts_code: str, is_cyclical: bool = False) -> StockInfo:
     )
 
 
-def _make_daily_series(
-    start: str, months: int, pe_start: float, pe_step: float
-) -> pd.Series:
+def _make_daily_series(start: str, months: int, pe_start: float, pe_step: float) -> pd.Series:
     """Create a daily PE/PB series spanning *months* months with linear drift."""
     n_days = months * 30
     dates = pd.date_range(start, periods=n_days, freq="D")

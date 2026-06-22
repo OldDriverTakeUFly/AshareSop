@@ -48,9 +48,7 @@ class TelegramNotifier:
         self._transport = _transport
         self._backoff_override = _backoff_override
 
-    async def send_message(
-        self, text: str, parse_mode: str = "Markdown"
-    ) -> dict[str, Any]:
+    async def send_message(self, text: str, parse_mode: str = "Markdown") -> dict[str, Any]:
         """Send a single message via the Telegram Bot API.
 
         Retries up to 3 times. On a 429 the ``retry_after`` field from the

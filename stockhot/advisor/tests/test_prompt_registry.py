@@ -11,7 +11,6 @@ from stockhot.advisor.prompts.registry import (
 )
 from stockhot.advisor.prompts import templates  # noqa: F401 — triggers registration
 
-
 # ── PromptRegistry basic CRUD ────
 
 
@@ -51,12 +50,8 @@ class TestRegistryBasic:
 
     def test_list_names(self):
         reg = PromptRegistry()
-        reg.register(
-            PromptTemplate("a", "v1", "s", "u", {})
-        )
-        reg.register(
-            PromptTemplate("b", "v1", "s", "u", {})
-        )
+        reg.register(PromptTemplate("a", "v1", "s", "u", {}))
+        reg.register(PromptTemplate("b", "v1", "s", "u", {}))
         names = sorted(reg.list_names())
         assert names == ["a", "b"]
 
@@ -127,9 +122,9 @@ class TestPreRegisteredTemplates:
     @pytest.mark.parametrize("name", EXPECTED_TEMPLATE_NAMES)
     def test_anti_hallucination_instruction(self, name):
         tpl = default_registry.get(name)
-        assert "不能编造" in tpl.system, (
-            f"{name} system prompt missing anti-hallucination instruction"
-        )
+        assert (
+            "不能编造" in tpl.system
+        ), f"{name} system prompt missing anti-hallucination instruction"
 
     def test_build_position_placeholders(self):
         """build_position must include all required placeholders."""
@@ -146,9 +141,7 @@ class TestPreRegisteredTemplates:
             "{volume_ratio}",
         ]
         for ph in required:
-            assert ph in tpl.user_template, (
-                f"build_position missing placeholder {ph}"
-            )
+            assert ph in tpl.user_template, f"build_position missing placeholder {ph}"
 
     def test_adjust_position_placeholders(self):
         tpl = default_registry.get("adjust_position")
@@ -160,9 +153,7 @@ class TestPreRegisteredTemplates:
             "{avg_cost}",
             "{unrealized_pnl_pct}",
         ]:
-            assert ph in tpl.user_template, (
-                f"adjust_position missing placeholder {ph}"
-            )
+            assert ph in tpl.user_template, f"adjust_position missing placeholder {ph}"
 
     def test_clear_position_placeholders(self):
         tpl = default_registry.get("clear_position")
@@ -173,9 +164,7 @@ class TestPreRegisteredTemplates:
             "{stop_loss_hard}",
             "{thesis_status}",
         ]:
-            assert ph in tpl.user_template, (
-                f"clear_position missing placeholder {ph}"
-            )
+            assert ph in tpl.user_template, f"clear_position missing placeholder {ph}"
 
     def test_t_trade_placeholders(self):
         tpl = default_registry.get("t_trade")
@@ -187,6 +176,4 @@ class TestPreRegisteredTemplates:
             "{volume_ratio}",
             "{recent_volume_trend}",
         ]:
-            assert ph in tpl.user_template, (
-                f"t_trade missing placeholder {ph}"
-            )
+            assert ph in tpl.user_template, f"t_trade missing placeholder {ph}"

@@ -146,9 +146,7 @@ def test_collect_to_analyze(mock_market_data):
 # ---------------------------------------------------------------------------
 def test_analyze_to_hotspot_discovery(mock_market_data):
     """Use mock market data -> run hotspot discovery -> verify themes found."""
-    with (
-        patch.object(hd, "collect_news_events", return_value=[]),
-    ):
+    with (patch.object(hd, "collect_news_events", return_value=[]),):
         market_data = {**mock_market_data, "date": TEST_DATE}
         result = hd.build_hotspot_discovery(market_data, target_date=TEST_DATE)
 
@@ -203,11 +201,9 @@ def test_full_pipeline(mock_market_data):
         saved_images.append({"date": date, "type": image_type, "path": file_path})
 
     # Pre-built hotspot discovery payload for the image generator to consume
-    with (
-        patch.object(hd, "collect_news_events", return_value=[]),
-    ):
+    with (patch.object(hd, "collect_news_events", return_value=[]),):
         market_data = {**mock_market_data, "date": TEST_DATE}
-        hotspot_payload = hd.build_hotspot_discovery(market_data, target_date=TEST_DATE)
+        hd.build_hotspot_discovery(market_data, target_date=TEST_DATE)
 
     # Mock analysis results
     hotspot_analysis = ai_analyzer.analyze_hotspots({**mock_market_data, "date": TEST_DATE})
@@ -252,9 +248,7 @@ def test_full_pipeline(mock_market_data):
 # ---------------------------------------------------------------------------
 def test_pipeline_with_no_data():
     """Empty market data -> run analysis -> verify graceful degradation."""
-    with (
-        patch.object(ai_analyzer, "get_daily_data", return_value={"date": TEST_DATE}),
-    ):
+    with (patch.object(ai_analyzer, "get_daily_data", return_value={"date": TEST_DATE}),):
         result = ai_analyzer.run_analysis(TEST_DATE)
 
     assert result["status"] == "no_data"

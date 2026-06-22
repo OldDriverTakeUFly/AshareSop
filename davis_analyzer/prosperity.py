@@ -38,7 +38,7 @@ def calculate_revenue_score(revenue_history: list[float]) -> float:
     weighted_sum = 0.0
 
     for i, g in enumerate(revenue_history):
-        w = decay ** i
+        w = decay**i
         total_weight += w
         raw = _growth_to_raw_score(g)
         weighted_sum += raw * w
@@ -66,7 +66,7 @@ def calculate_profit_score(profit_history: list[float]) -> float:
     weighted_sum = 0.0
 
     for i, g in enumerate(profit_history):
-        w = decay ** i
+        w = decay**i
         total_weight += w
         raw = _growth_to_raw_score_profit(g)
         weighted_sum += raw * w
@@ -132,9 +132,7 @@ def calculate_duration_score(growth_history: list[float]) -> float:
     if base_score >= 100.0:
         base_score = 100.0
 
-    avg_growth = (
-        sum(positive_growths) / len(positive_growths) if positive_growths else 0.0
-    )
+    avg_growth = sum(positive_growths) / len(positive_growths) if positive_growths else 0.0
     bonus = min(DURATION_BONUS_MAX, avg_growth * DURATION_BONUS_GROWTH_FACTOR)
 
     return min(100.0, base_score + bonus)
@@ -296,9 +294,7 @@ def _clamp(v: float, lo: float = 0.0, hi: float = 100.0) -> float:
     return max(lo, min(hi, v))
 
 
-def _extract_yoy_series(
-    data: list[FinancialData], attr: str
-) -> list[float]:
+def _extract_yoy_series(data: list[FinancialData], attr: str) -> list[float]:
     """Extract pre-computed YoY growth from FinancialData (not raw cumulative).
 
     Tushare returns cumulative financials — sequential differencing of raw
@@ -306,8 +302,4 @@ def _extract_yoy_series(
     already computes true YoY via ``shift(4)``; this surfaces those values
     as percentages, skipping periods where YoY is unavailable (None sentinel).
     """
-    return [
-        getattr(d, attr) * 100
-        for d in data
-        if getattr(d, attr) is not None
-    ]
+    return [getattr(d, attr) * 100 for d in data if getattr(d, attr) is not None]

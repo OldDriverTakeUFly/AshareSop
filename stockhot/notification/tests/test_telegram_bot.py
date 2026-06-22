@@ -6,10 +6,8 @@ traffic occurs.
 
 from __future__ import annotations
 
-import asyncio
 import json
 import os
-from typing import Callable
 from unittest.mock import patch
 
 import httpx
@@ -110,9 +108,7 @@ class TestRateLimitRetry:
             _backoff_override=lambda _: 0,  # no real sleep for backoff
         )
 
-        with patch(
-            "stockhot.notification.telegram_bot.asyncio.sleep"
-        ) as mock_sleep:
+        with patch("stockhot.notification.telegram_bot.asyncio.sleep") as mock_sleep:
             result = await notifier.send_message("hi")
 
         assert result["ok"] is True

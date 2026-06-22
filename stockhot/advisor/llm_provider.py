@@ -240,9 +240,7 @@ def _complete_with_retry(
         )
 
     # Defensive: the loop above always either returns or raises.
-    raise LLMUnavailableError(
-        f"LLM call exhausted retries without returning: {last_exc}"
-    )
+    raise LLMUnavailableError(f"LLM call exhausted retries without returning: {last_exc}")
 
 
 # ── Factory ──────────────────────────────────────────────────────────────
@@ -284,8 +282,7 @@ def get_provider() -> LLMProvider:
     cls = _PROVIDERS.get(provider_name)
     if cls is None:
         raise ValueError(
-            f"Unsupported LLM_PROVIDER='{provider_name}'. "
-            f"Supported: {sorted(_PROVIDERS)}"
+            f"Unsupported LLM_PROVIDER='{provider_name}'. " f"Supported: {sorted(_PROVIDERS)}"
         )
 
     return cls(api_key=api_key, base_url=base_url, model=model)

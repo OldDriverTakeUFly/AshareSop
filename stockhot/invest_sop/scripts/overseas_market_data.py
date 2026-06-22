@@ -11,8 +11,7 @@ from datetime import datetime
 import akshare as ak
 import pandas as pd
 
-from stockhot.invest_sop.config import API_TIMEOUT
-from stockhot.invest_sop.utils.db_helpers import query_by_date, upsert_record
+from stockhot.invest_sop.utils.db_helpers import upsert_record
 from stockhot.invest_sop.utils.trading_calendar import is_trading_day
 
 TABLE = "invest_overseas_market"
@@ -136,7 +135,9 @@ def collect_overseas_data(target_date: str) -> dict:
     # USD/CNY
     try:
         date_clean = target_date.replace("-", "")
-        df = _call_akshare("currency_boc_sina", symbol="美元", start_date=date_clean, end_date=date_clean)
+        df = _call_akshare(
+            "currency_boc_sina", symbol="美元", start_date=date_clean, end_date=date_clean
+        )
         if df is not None and len(df) >= 1:
             results["usd_cny"] = _get_last_value(df, "央行中间价")
             print(f"  [OK] USD/CNY: {results.get('usd_cny')}")

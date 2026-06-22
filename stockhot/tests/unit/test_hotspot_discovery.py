@@ -2,7 +2,6 @@ import stockhot.hotspot_discovery as hd
 import stockhot.hotspot_discovery.news_sources as news_sources
 from stockhot.hotspot_discovery.news_sources import collect_curated_news_events
 
-
 SAMPLE_MARKET_DATA = {
     "date": "2026-04-17",
     "gainers": [
