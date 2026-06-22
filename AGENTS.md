@@ -316,3 +316,113 @@ Agents must not:
 ## Source of Truth
 
 If this section and the skill differ in detail, treat `skills/multi-factor-screening/SKILL.md` as the source of truth for multi-factor quantitative screening methodology.
+
+# AI 交易建议引擎（ai-trading-advisor）
+
+This repository expects coding agents to follow the AI trading advisor convention for any AI 建议生成、建仓/调仓/清仓/做T 建议 work involving the `stockhot/advisor/` module.
+
+## Default Rule
+
+For tasks involving AI 建议生成、信号聚合、冲突仲裁、或 watchlist 管理, agents must use:
+
+- `stockhot/advisor/` module
+
+Key entry points:
+
+- `stockhot/advisor/cli.py` — CLI with `ask` / `daily` / `watchlist` subcommands
+- `stockhot/advisor/recommendation_engine.py` — `run_for_stock()` core engine
+- `stockhot/advisor/llm_provider.py` — LLM provider abstraction (`get_provider`, `LLMProvider`)
+- `stockhot/advisor/watchlist_cli.py` — watchlist CRUD management
+
+## When This Applies
+
+Use this module whenever the task includes any of the following:
+
+- AI 建议生成（recommendation generation）—— 对个股生成建仓/调仓/清仓/做T 建议
+- 信号聚合（signal aggregation）—— 汇总 davis_analyzer、technical_analyzer、sell_monitor 等多源信号
+- 冲突仲裁（conflict arbitration）—— 当多个信号方向矛盾时，由硬编码 resolver 决定最终 action
+- LLM 调用（LLM invocation）—— 通过 provider 抽象（DeepSeek / GLM / OpenAI）调用大模型
+- watchlist 管理 —— 通过 CLI `watchlist add/list/remove/update` 管理关注列表
+- 每日批量建议（daily batch run）—— 对全部持仓 + watchlist 执行 `daily` 命令
+
+## Required Agent Behavior
+
+The requirements below are a non-exhaustive summary.
+
+Agents working on AI 交易建议 tasks must:
+
+1. use the prompt registry —— 所有 LLM prompt 从 prompt registry 加载，永远不在代码中内联 prompt 文本
+2. use the LLM provider abstraction —— 通过 `get_provider()` 获取 provider 实例，不直接 import 具体厂商 SDK
+3. use the hardcoded conflict resolver —— 当信号冲突时由确定性 resolver 仲裁，绝不将冲突交给 LLM 自行决定
+4. respect `MAX_STOCKS_PER_DAILY_RUN` —— `daily` 命令处理的股票数不得超过此上限（当前为 20），超出时截断并告警
+5. call `run_for_stock()` as the entry point —— 单股分析通过 `run_for_stock(code, trade_date, holding=...)` 调用
+6. report what was generated, skipped, or errored —— 区分 `generated`（有建议）、`skipped`（无建议或出错）
+
+## Guardrails
+
+This section is guidance for AI 交易建议 work only.
+
+Agents must not:
+
+- 自动下单或执行实际交易 —— advisor 只生成建议，不触碰交易系统
+- 让 LLM 仲裁信号冲突 —— 冲突必须由硬编码 resolver 处理，LLM 只负责生成自然语言表述
+- 捏造 fallback 数据 —— 当 davis_analyzer / technical_analyzer 数据缺失时标注"数据不可用"，不得编造
+- 超过 `MAX_STOCKS_PER_DAILY_RUN` 上限 —— 批量运行必须截断，不得动态提高上限
+- 在代码中内联 prompt 文本 —— 所有 prompt 必须从 prompt registry 加载，便于版本管理
+- 修改 `davis_analyzer` / `technical_analyzer` / `sell_monitor` 源码 —— 复用而非修改，advisor 只消费它们的输出
+
+## Source of Truth
+
+If this section and the module implementation differ in detail, treat `stockhot/advisor/` source code as the source of truth for AI trading advisor behavior.
+
+# 通知推送模块（notification）
+
+This repository expects coding agents to follow the notification convention for any Telegram 推送、消息通知 work involving the `stockhot/notification/` module.
+
+## Default Rule
+
+For tasks involving Telegram 推送、消息批处理、或用户授权验证, agents must use:
+
+- `stockhot/notification/` module
+
+Key entry points:
+
+- `stockhot/notification/telegram_bot.py` — `TelegramNotifier` class, `get_telegram_config()` helper
+
+## When This Applies
+
+Use this module whenever the task includes any of the following:
+
+- Telegram 推送（Telegram push）—— 通过 Bot API 发送 AI 交易建议或行情通知
+- 消息批处理（message batching）—— 将多条建议合并为 ≤5 条消息批量发送，紧急消息（EXIT / HIGH）优先
+- 用户授权验证（user authorization）—— 通过 `TELEGRAM_ALLOWED_USER_IDS` 白名单校验用户身份
+- 速率限制处理（rate-limit handling）—— 429 响应时读取 `retry_after` 并指数退避重试
+
+## Required Agent Behavior
+
+The requirements below are a non-exhaustive summary.
+
+Agents working on 通知推送 tasks must:
+
+1. use `httpx` for all API calls —— 直接调用 Telegram Bot API（`POST /sendMessage`），不引入 `python-telegram-bot` 依赖
+2. verify user allowlist —— 通过 `verify_user(user_id)` 或 `TELEGRAM_ALLOWED_USER_IDS` 环境变量校验，未授权用户命令一律忽略
+3. batch messages ≤5 per push —— 单次 `send_recommendations_batch` 最多发送 `max_messages`（默认 5）条消息
+4. handle 429 with `retry_after` —— 遇到 429 时读取响应体 `parameters.retry_after` 字段休眠，而非使用默认指数退避
+5. retry up to 3 times —— 所有 HTTP 错误最多重试 3 次，最终失败时 `raise_for_status()`
+6. send urgent first —— EXIT 动作或 HIGH 置信度的建议单独成条、优先发送
+
+## Guardrails
+
+This section is guidance for 通知推送 work only.
+
+Agents must not:
+
+- 实际发送测试消息到真实 Telegram —— 测试必须全 mock（`_transport=httpx.MockTransport`），不得触碰真实 API
+- 接受未授权用户命令 —— 白名单外的用户消息一律丢弃，不得回执
+- 超过 5 条消息/次推送 —— `max_messages` 上限为 5，紧急消息优先占用配额
+- 修改 `ai_analyzer` 源码 —— notification 模块只消费建议数据，不修改上游生成逻辑
+- 引入 `python-telegram-bot` 或其他 Telegram SDK —— 统一使用 `httpx` 原生调用
+
+## Source of Truth
+
+If this section and the module implementation differ in detail, treat `stockhot/notification/telegram_bot.py` source code as the source of truth for notification behavior.
