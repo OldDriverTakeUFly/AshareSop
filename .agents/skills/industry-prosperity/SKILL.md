@@ -403,3 +403,35 @@ This skill produces a **prosperity assessment and cycle classification**. It doe
 - Value loss-making companies (use valuation-loss-making-targets instead)
 
 The assessment's classification (for example, "Acceleration phase" or "Left side of mountain") reflects the prosperity analysis. The user reads the assessment and combines it with valuation, macro context, and risk management to make the final decision.
+
+## 11. Post-Completion Delivery (Mandatory)
+
+When this skill produces a research report (a markdown file written to `docs/`), the analysis is NOT complete until the report is committed and pushed to the remote repository. The repository-level `AGENTS.md` defines the authoritative Post-Report Push Rule; this section restates it here so that agents triggered via this skill do not skip it.
+
+A report is not "done" until it is on GitHub.
+
+### Required steps after the report file is written
+
+1. **Verify the report**: open the file and confirm chapter completeness, no `PART` placeholder markers, and a proper start (title + metadata block) and end (attribution footer).
+2. **Commit** with a semantic message in the repo style:
+   ```
+   feat(docs): add {report-name}
+   ```
+3. **Push** to `origin/master` immediately.
+4. **Confirm** the push succeeded before reporting completion to the user. If the push fails, surface the error rather than claiming success.
+
+### Commit footer (always include)
+
+```
+Ultraworked with [Sisyphus](https://github.com/code-yeongyu/oh-my-openagent)
+Co-authored-by: Sisyphus <clio-agent@sisyphuslabs.ai>
+```
+
+### Naming and remote
+
+- Use **Chinese filenames** for research reports (e.g. `docs/佛塑科技深度研报.md`, `docs/驰宏锌锗深度研报.md`). Do NOT use English filenames for research reports.
+- Remote: `origin` → `git@github.com:OldDriverTakeUFly/AshareSop.git`
+
+### Source of truth
+
+If this section and `AGENTS.md` differ in detail, treat the repository-level `AGENTS.md` "Post-Report Push Rule (MANDATORY)" as the source of truth. This section exists only so the rule is visible to agents that load this skill directly without reading `AGENTS.md`.
