@@ -502,6 +502,7 @@ For tasks involving 写研报、深度报告、产业链分析、个股研报、
 
 Companion materials are available here:
 
+- `.agents/skills/research-report/references/engine-usage.md` — **davis_analyzer 引擎调用指南**（调引擎取数时必读，含完整模板 + 常见错误速查）
 - `.agents/skills/research-report/references/report-templates.md` — 4 种报告类型的完整章节结构（写作前必读）
 - `.agents/skills/research-report/references/data-sourcing.md` — 数据来源分级体系 + 采集方法 + 引用格式
 - `.agents/skills/research-report/checklists/report-quality.md` — 提交前的质量检查清单（18 项）
