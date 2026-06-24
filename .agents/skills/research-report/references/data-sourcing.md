@@ -4,23 +4,44 @@
 
 ## 1. 结构化数据——调引擎取数
 
-财务、估值、景气度、困境反转这些**可计算的数据**，一律调 `davis_analyzer` 引擎，不手算。引擎清单：
+财务、估值、景气度、困境反转这些**可计算的数据**，一律调 `davis_analyzer` 引擎，不手算。
 
-| 数据类型 | 引擎函数 | 文件 | 输出 |
-|----------|----------|------|------|
-| 财务四表 | `fetch_financial_data(code)` | `davis_analyzer/financial_fetcher.py` | income/balancesheet/cashflow/fina_indicator 合并 + YoY |
-| 估值分位 | `calculate_valuation_score(code)` | `davis_analyzer/valuation.py` | PE/PB 3 年百分位（周期股用 PB） |
-| 景气度 | `calculate_prosperity_score(financials)` | `davis_analyzer/prosperity.py` | 4 维加权（营收0.3+利润0.3+斜率0.25+持续0.15）+ ΔG + DuPont |
-| 困境反转 | `calculate_distress_score(financials)` | `davis_analyzer/distress.py` | 3 层 9 信号（困境0.3+反转可能0.3+激活0.4） |
-| 综合评分 | `calculate_davis_double_score(...)` | `davis_analyzer/scoring.py` | 估值0.3+趋势0.15+景气0.3+困境0.25 |
-| 趋势 | `calculate_trend_score(code)` | `davis_analyzer/trend.py` | PE/PB 月度斜率/加速度 |
+### 1.1 三种调用入口（按易用度排序）
 
-**调用方式**：
-- 单股查询：`python -m davis_analyzer.cli run --top 30` 跑全市场筛选后查结果
-- 研究脚本：参考 `davis_analyzer/studies/tianyue_*.py` 的写法，直接 import 引擎函数
-- 批量：`sector_pipeline.run_prosperity_sector_pipeline()` 跑行业级景气度
+**入口 1：CLI 全市场筛选（最简单）**
+```bash
+python -m davis_analyzer.cli run --top 30 --output studies/
+```
+跑完整筛选管线（建股票池→估值预筛→财务取数→景气度→困境→趋势→综合评分→排名→生成报告），产出 Top 30 的 markdown 研报 + 汇总索引。适合批量发现标的。
 
-**数据源**：Tushare Pro API（`stock_basic` / `daily_basic` / `income` / `balancesheet` / `cashflow` / `fina_indicator`）。需 `TUSHARE_TOKEN` 环境变量。结果缓存在 SQLite（`davis_analyzer/cache/tushare_cache.db`），财务数据永久缓存。
+**入口 2：复制 studies 范例脚本做单股评分（推荐单股用）**
+`davis_analyzer/studies/tianyue_scoring.py` 是**单股完整四维评分的范例**——复制它改 `TS_CODE` 即可。它展示了正确的调用链：建 `TushareClient` → 取财务 → 取估值历史 → 算各维分数 → 合成 Davis 分。**不要从零拼调用**，底层函数签名复杂（如 `calculate_distress_score` 有 12 个参数），直接复用这个模板。
+
+**入口 3：batch 函数（批量用）**
+```python
+from davis_analyzer.tushare_client import TushareClient
+client = TushareClient()
+from davis_analyzer.financial_fetcher import fetch_batch_financial
+from davis_analyzer.valuation import batch_valuation
+from davis_analyzer.prosperity import batch_prosperity
+from davis_analyzer.trend import batch_trend
+# 每个批量函数接 client + stock_infos，返回 {ts_code: result} 字典
+```
+
+### 1.2 底层计算函数（仅供理解，不直接调）
+
+这些函数需要预处理后的数据，**不要直接调**，用上面的入口代替：
+
+| 函数 | 实际签名 | 说明 |
+|------|----------|------|
+| `fetch_financial_data` | `(client, ts_code, periods)` | 需要 client 对象 |
+| `calculate_valuation_score` | `(valuation_history, is_cyclical)` | 需要先 `fetch_valuation_history` |
+| `calculate_prosperity_score` | `(financial_data_list)` | 需要 fetch 后的财务列表 |
+| `calculate_distress_score` | `(eps_history, pe_pct, pb_pct, debt_ratio, ...)` | 12 个参数 |
+| `calculate_davis_double_score` | `(valuation, prosperity, distress, trend, ts_code, name)` | 合成最终分 |
+| `calculate_trend_score` | `(pe_slope, pb_slope, pe_acceleration, ...)` | 需先算斜率 |
+
+**数据源**：Tushare Pro API。需 `TUSHARE_TOKEN` 环境变量。结果缓存在 SQLite（`davis_analyzer/cache/tushare_cache.db`），财务数据永久缓存。
 
 **引用格式**：`(12.30亿, tushare income 20251231)` 或 `(PE 25.3, tushare daily_basic 2026-06-23)`
 
