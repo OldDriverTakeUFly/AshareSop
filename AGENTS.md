@@ -489,3 +489,62 @@ Agents must not:
 ## Source of Truth
 
 If this section and the skill differ in detail, treat `.agents/skills/invest-sop-pre-market/SKILL.md` as the source of truth for pre-market SOP report-generation behavior. The SOP methodology source of truth is `.sisyphus/drafts/a-share-pre-market-sop.md`.
+
+# 研报写作流程 Skill（research-report）
+
+This repository expects coding agents to follow the research-report skill for any 研报写作、深度分析、产业链报告、个股研报、方法论报告 work involving producing long-form Chinese research documents under `docs/`.
+
+## Default Rule
+
+For tasks involving 写研报、深度报告、产业链分析、个股研报、方法论报告、估值报告, agents must read and follow:
+
+- `.agents/skills/research-report/SKILL.md`
+
+Companion materials are available here:
+
+- `.agents/skills/research-report/references/report-templates.md` — 4 种报告类型的完整章节结构（写作前必读）
+- `.agents/skills/research-report/references/data-sourcing.md` — 数据来源分级体系 + 采集方法 + 引用格式
+- `.agents/skills/research-report/checklists/report-quality.md` — 提交前的质量检查清单（18 项）
+
+## When This Applies
+
+Use the skill whenever the task includes any of the following:
+
+- 研报写作（research report authoring）—— 在 `docs/` 下产出长篇中文研究文档
+- 个股深度研报（single-stock deep report）—— 11 章景气度结构
+- 产业链研报（industry-chain report）—— 6 节景气度结构或传统 8 章
+- 方法论研报（methodology report）—— 固定 8 章结构
+- 分析笔记/短篇（short analysis）—— 轻量 5 节结构
+- 估值报告（valuation report）—— 概率加权三情景区间
+
+## Required Agent Behavior
+
+The requirements below are a non-exhaustive summary. They do not replace `.agents/skills/research-report/SKILL.md`.
+
+Agents working on 研报 tasks must:
+
+1. reuse engines, don't reinvent —— 财务/估值/景气度数据调 `davis_analyzer` 引擎，不手算
+2. reference sibling skills —— 景气度方法论遵循 `industry-prosperity`，亏损标的估值遵循 `valuation-loss-making-targets`，本 skill 只管写作编排
+3. tag every number with a named source —— ≥80% 数字带 inline 来源标签，无来源数字不可接受
+4. output probability-weighted ranges, never a single target price —— 悲观/中性/乐观三情景概率加权
+5. declare what was computed, estimated, or unavailable —— 区分实算/估算/不可用，信息缺乏处标注，不编造
+6. verify before commit —— 用 `checklists/report-quality.md` 逐项检查，全通过才提交
+7. commit + push is mandatory —— 遵循 Post-Report Push Rule，中文文件名，`feat(docs): add {name}` 格式
+
+## Guardrails
+
+This skill is guidance for 研报写作 work only.
+
+Agents must not:
+
+- 给单一目标价 —— 必须概率加权区间
+- 编造数据 —— 无来源数字不可接受，信息缺乏标注"估算/不可用"
+- 写买卖建议 —— 合规风险，表述为"矩阵结果"/"投资框架定位"
+- 复制旧报告表格而不重新取数
+- 用 PE/PEG 对亏损标的做主估值 —— 遵循 `valuation-loss-making-targets` 的三角框架
+- 跳过验证直接提交 —— `checklists/report-quality.md` 全通过才提交
+- 提交后不 push —— "A report is not done until it is on GitHub"
+
+## Source of Truth
+
+If this section and the skill differ in detail, treat `.agents/skills/research-report/SKILL.md` as the source of truth for research-report authoring workflow. The methodology details defer to `docs/方法论/` (9 篇方法论文档) and the `davis_analyzer` engine for all quantitative computations.
