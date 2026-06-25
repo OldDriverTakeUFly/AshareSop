@@ -70,12 +70,28 @@ data = get_daily_data(date)
 
 输出到 `docs/盘后总结/{YYYY-MM-DD}_盘后总结.md`，使用下方模板。
 
+### Step 5（新增）：采集宏观景气度背景
+
+调用 `stockhot.macro` 模块拉取 Tushare 宏观数据（PMI/CPI/PPI/M2/Shibor/LPR），
+生成宏观景气度评分（0-100）和 markdown section，插入报告的"市场概览"之前。
+
+```python
+from stockhot.macro import collect_macro_snapshot, format_macro_section
+snap = collect_macro_snapshot()
+macro_md = format_macro_section(snap)  # 直接插入报告
+```
+
+宏观 section 提供 PMI/货币/通胀/利率的基准背景，用于校准当日市场表现的
+相对意义（如：宏观偏弱时逆势上涨更具含金量）。
+
 ## 3. 报告模板
 
 ```markdown
 # {YYYY-MM-DD} 盘后总结
 
-> **生成时间**：{YYYY-MM-DD HH:MM} | **数据来源**：daily-market-scan SQLite + web 搜索
+> **生成时间**：{YYYY-MM-DD HH:MM} | **数据来源**：daily-market-scan SQLite + web 搜索 + Tushare 宏观
+
+{宏观景气度 section — 由 stockhot.macro.format_macro_snapshot() 生成}
 
 ## 一、市场概览
 
