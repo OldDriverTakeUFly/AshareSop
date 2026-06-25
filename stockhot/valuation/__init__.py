@@ -78,38 +78,67 @@ def _years_ago_str(years: float) -> str:
 # Data fetchers
 # ---------------------------------------------------------------------------
 
+def _batch_fetch(pro, api_name: str, ts_code: str, lookback_years: float,
+                 fields: str, chunk_months: int = 6) -> pd.DataFrame:
+    """Fetch a daily series in 6-month batches to avoid endpoint timeouts.
+
+    The new Tushare endpoint (api.tushare.pro) times out on large queries
+    (3 years = 700+ rows). We split into chunks and concatenate.
+    """
+    from datetime import datetime, timedelta
+    end = _today_str()
+    start = _years_ago_str(lookback_years)
+    chunks: list[pd.DataFrame] = []
+    cur = datetime.strptime(start, "%Y%m%d")
+    end_dt = datetime.strptime(end, "%Y%m%d")
+    while cur < end_dt:
+        chunk_end = min(cur + timedelta(days=chunk_months * 30), end_dt)
+        try:
+            df = getattr(pro, api_name)(
+                ts_code=ts_code,
+                start_date=cur.strftime("%Y%m%d"),
+                end_date=chunk_end.strftime("%Y%m%d"),
+                fields=fields,
+            )
+            if df is not None and not df.empty:
+                chunks.append(df)
+        except Exception:
+            pass
+        cur = chunk_end + timedelta(days=1)
+    if not chunks:
+        return pd.DataFrame()
+    result = pd.concat(chunks, ignore_index=True)
+    if "trade_date" in result.columns:
+        result = result.drop_duplicates(subset="trade_date")
+        result = result.sort_values("trade_date").reset_index(drop=True)
+    return result
+
+
 def fetch_stock_pe_series(pro, ts_code: str, lookback_years: float = 3) -> pd.DataFrame:
-    """Daily PE(TTM) series for a stock over the lookback period."""
+    """Daily PE(TTM) series for a stock over the lookback period.
+
+    Uses batch fetching (6-month chunks) to avoid endpoint timeouts on
+    large historical queries.
+    """
     try:
-        df = pro.daily_basic(
-            ts_code=ts_code,
-            start_date=_years_ago_str(lookback_years),
-            end_date=_today_str(),
-            fields="ts_code,trade_date,pe,pe_ttm,pb",
-        )
+        return _batch_fetch(pro, "daily_basic", ts_code, lookback_years,
+                            "ts_code,trade_date,pe,pe_ttm,pb")
     except Exception as e:
-        logger.info(f"fetch_stock_pe_series: legacy API failed ({str(e)[:60]}), will try MCP")
+        logger.info(f"fetch_stock_pe_series failed ({str(e)[:60]})")
         return pd.DataFrame(columns=["trade_date", "pe_ttm", "pb"])
-    if df is None or df.empty:
-        return pd.DataFrame(columns=["trade_date", "pe_ttm", "pb"])
-    return df.sort_values("trade_date").reset_index(drop=True)
 
 
 def fetch_index_pe_series(pro, index_code: str, lookback_years: float = 3) -> pd.DataFrame:
-    """Daily PE(TTM) series for a benchmark index via index_dailybasic."""
+    """Daily PE(TTM) series for a benchmark index via index_dailybasic.
+
+    Uses batch fetching (6-month chunks) to avoid endpoint timeouts.
+    """
     try:
-        df = pro.index_dailybasic(
-            ts_code=index_code,
-            start_date=_years_ago_str(lookback_years),
-            end_date=_today_str(),
-            fields="ts_code,trade_date,pe_ttm,pb",
-        )
+        return _batch_fetch(pro, "index_dailybasic", index_code, lookback_years,
+                            "ts_code,trade_date,pe_ttm,pb")
     except Exception as e:
-        logger.info(f"fetch_index_pe_series: legacy API failed ({str(e)[:60]}), will try MCP")
+        logger.info(f"fetch_index_pe_series failed ({str(e)[:60]})")
         return pd.DataFrame(columns=["trade_date", "pe_ttm"])
-    if df is None or df.empty:
-        return pd.DataFrame(columns=["trade_date", "pe_ttm"])
-    return df.sort_values("trade_date").reset_index(drop=True)
 
 
 def fetch_risk_free_rate(pro) -> float:
