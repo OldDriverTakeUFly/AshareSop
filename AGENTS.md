@@ -490,6 +490,56 @@ Agents must not:
 
 If this section and the skill differ in detail, treat `.agents/skills/invest-sop-pre-market/SKILL.md` as the source of truth for pre-market SOP report-generation behavior. The SOP methodology source of truth is `.sisyphus/drafts/a-share-pre-market-sop.md`.
 
+# 盘后总结 Skill（after-hours-review）
+
+This repository expects coding agents to follow the after-hours-review skill for any 盘后总结、今日复盘、盘后复盘、今日热点 work involving generating a same-day market recap after close.
+
+## Default Rule
+
+For tasks involving 盘后总结、今日复盘、板块涨幅分析、领涨催化归因, agents must read and follow:
+
+- `.agents/skills/after-hours-review/SKILL.md`
+
+Companion materials:
+
+- `.agents/skills/after-hours-review/README.zh-CN.md`
+
+Output location: `docs/盘后总结/{YYYY-MM-DD}_盘后总结.md`
+
+## When This Applies
+
+Use the skill whenever the task includes any of the following:
+
+- 盘后总结（after-hours review）—— 收盘后生成当日市场总结
+- 今日复盘（daily recap）—— 梳理板块涨幅 + 领涨个股 + 热点方向
+- 领涨催化归因（catalyst attribution）—— web 搜索找出涨停/板块领涨的原因
+- 今日热点（today's hotspots）—— 分析当日核心热点方向
+
+## Required Agent Behavior
+
+Agents working on 盘后总结 tasks must:
+
+1. read daily-market-scan data only —— 只读 SQLite 的 daily_data 表（fund_flow_sector / limit_up_pool / limit_up_analysis / dragon_tiger_detail），不调 AKShare
+2. verify upstream data exists —— 若 daily-market-scan 未运行，提示用户先采集
+3. cross-validate hotspots —— 热点方向需"板块涨幅排名 × 涨停密度"交叉确认，不单一维度
+4. web-search catalysts with sources —— 每条催化必须附 web 来源 URL，搜不到标注"未找到明确催化"
+5. no fabrication —— 不编造催化消息，不猜测，信息缺乏处标注
+6. no trading advice —— 只呈现数据和分析，不做买卖建议
+
+## Guardrails
+
+Agents must not:
+
+- 自己调 AKShare 采集数据 —— 采集属于 `daily-market-scan` skill
+- 编造催化原因 —— 搜不到就标注，不猜测
+- 做买卖建议 —— 合规风险
+- 更新 docs/README.md 索引 —— 盘后总结是每日产物，非研报
+- 修改数据库 —— 所有查询必须是只读
+
+## Source of Truth
+
+If this section and the skill differ in detail, treat `.agents/skills/after-hours-review/SKILL.md` as the source of truth. Data format defers to `stockhot/storage/database.py` `get_daily_data()`.
+
 # 研报写作流程 Skill（research-report）
 
 This repository expects coding agents to follow the research-report skill for any 研报写作、深度分析、产业链报告、个股研报、方法论报告 work involving producing long-form Chinese research documents under `docs/`.
