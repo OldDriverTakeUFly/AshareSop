@@ -7,6 +7,8 @@ and persists results via the storage layer.
 
 from __future__ import annotations
 
+import re
+
 import akshare as ak
 
 from stockhot.core.logging import logger
@@ -17,6 +19,78 @@ from stockhot.core.utils import (
     safe_text,
 )
 from stockhot.storage.database import save_analysis_result, save_daily_data
+
+
+def _parse_pct(text: str) -> float:
+    """Parse a percentage string like '3.14%' into 3.14. Returns 0.0 on failure."""
+    return safe_float(re.sub(r"[^\d.\-]", "", text))
+
+
+def _fetch_sector_fund_flow_ths() -> list[dict]:
+    """Fallback: scrape Tonghuashun (同花顺) industry fund-flow HTML page.
+
+    Used when the primary East Money API (``push2.eastmoney.com``) is
+    unreachable or rate-limited. Tonghuashun serves a simple HTML table at
+    ``http://data.10jqka.com.cn/funds/hyzjl/`` that is robust to IP-level
+    blocks affecting East Money.
+
+    Returns rows in the same schema as ``fetch_sector_fund_flow``:
+    name, change_pct, main_net, huge_net, large_net, medium_net, small_net.
+    (main_pct is set to 0.0 since Tonghuashun does not report it.)
+    """
+    import os
+
+    import requests
+    from lxml import etree
+
+    # Tonghuashun is a domestic site; clear proxy to avoid the same
+    # ProxyError that affects East Money.
+    saved = {}
+    for key in (
+        "HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy",
+        "ALL_PROXY", "all_proxy",
+    ):
+        if key in os.environ:
+            saved[key] = os.environ.pop(key)
+    try:
+        url = "http://data.10jqka.com.cn/funds/hyzjl/"
+        r = requests.get(
+            url,
+            headers={"User-Agent": "Mozilla/5.0"},
+            timeout=15,
+            proxies={"http": None, "https": None},
+        )
+        r.raise_for_status()
+        tree = etree.HTML(r.text)
+        trs = tree.xpath('//table//tr')
+        rows: list[dict] = []
+        for tr in trs[1:]:  # skip header row
+            cells = [c.strip() for c in tr.xpath('.//td//text()') if c.strip()]
+            # Expected: [序号, 行业, 行业指数, 涨跌幅, 流入资金(亿),
+            #            流出资金(亿), 净额(亿), 公司家数, 领涨股, 涨跌幅]
+            if len(cells) < 7:
+                continue
+            name = cells[1]
+            if not name:
+                continue
+            main_net = safe_float(cells[6])  # 净额(亿), already in 亿
+            rows.append({
+                "name": name,
+                "change_pct": _parse_pct(cells[3]),
+                "main_net": main_net,
+                "main_pct": 0.0,  # not reported by THS
+                "huge_net": 0.0,
+                "large_net": main_net,  # THS net ≈ main (large+)
+                "medium_net": 0.0,
+                "small_net": -main_net,  # zero-sum approximation
+            })
+        logger.info(f"fetch_sector_fund_flow (THS fallback): {len(rows)} rows")
+        return rows
+    except Exception as e:
+        logger.warning(f"THS fallback failed: {e}")
+        return []
+    finally:
+        os.environ.update(saved)
 
 
 def fetch_market_fund_flow() -> list[dict]:
@@ -85,8 +159,8 @@ def fetch_sector_fund_flow(
         sector_type=sector_type,
     )
     if df is None or df.empty:
-        logger.warning("fetch_sector_fund_flow: empty result")
-        return []
+        logger.warning("fetch_sector_fund_flow: empty result, trying THS fallback")
+        return _fetch_sector_fund_flow_ths()
 
     rows: list[dict] = []
     for _, row in df.iterrows():
