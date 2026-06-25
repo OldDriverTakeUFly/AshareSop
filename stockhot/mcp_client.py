@@ -124,6 +124,14 @@ class TushareMCP:
             return []
 
         result = data.get("result", {})
+        # MCP may return isError=true with an error message in content
+        if result.get("isError"):
+            for item in result.get("content", []):
+                txt = item.get("text", "")
+                if "权限" in txt or "error" in txt.lower():
+                    logger.warning(f"MCP {tool_name}: {txt[:120]}")
+            return []
+
         content = result.get("content", [])
         # content is a list of {"type": "text", "text": "[...]"}
         rows: list[dict] = []
