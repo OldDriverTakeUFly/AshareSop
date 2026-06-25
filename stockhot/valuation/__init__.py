@@ -132,6 +132,93 @@ def fetch_risk_free_rate(pro) -> float:
     return 2.5  # conservative fallback
 
 
+def _mcp_pe_series(ts_code: str, lookback_years: float = 3) -> pd.DataFrame:
+    """Fallback: fetch PE history via Tushare MCP, in batches.
+
+    The MCP endpoint times out on large queries (3 years = 700+ rows),
+    so we fetch in 6-month chunks and concatenate. Returns a DataFrame
+    with trade_date/pe_ttm/pb columns sorted ascending.
+    """
+    try:
+        from stockhot.mcp_client import TushareMCP
+        mcp = TushareMCP()
+    except Exception as e:
+        logger.warning(f"MCP init failed: {e}")
+        return pd.DataFrame()
+
+    end = _today_str()
+    start = _years_ago_str(lookback_years)
+    # Generate 6-month chunks
+    chunks: list[pd.DataFrame] = []
+    chunk_start = start
+    from datetime import datetime, timedelta
+    cur = datetime.strptime(start, "%Y%m%d")
+    end_dt = datetime.strptime(end, "%Y%m%d")
+    while cur < end_dt:
+        chunk_end_dt = min(cur + timedelta(days=180), end_dt)
+        chunk_start_str = cur.strftime("%Y%m%d")
+        chunk_end_str = chunk_end_dt.strftime("%Y%m%d")
+        try:
+            df = mcp.query(
+                "daily_basic",
+                ts_code=ts_code,
+                start_date=chunk_start_str,
+                end_date=chunk_end_str,
+                fields="ts_code,trade_date,pe_ttm,pb",
+            )
+            if not df.empty:
+                chunks.append(df)
+        except Exception as e:
+            logger.warning(f"MCP chunk {chunk_start_str}-{chunk_end_str} failed: {e}")
+        cur = chunk_end_dt + timedelta(days=1)
+
+    if not chunks:
+        return pd.DataFrame()
+    result = pd.concat(chunks, ignore_index=True).drop_duplicates(subset="trade_date")
+    result = result.sort_values("trade_date").reset_index(drop=True)
+    logger.info(f"MCP fallback (stock PE series): {ts_code} {len(result)} rows")
+    return result
+
+
+def _mcp_index_pe_series(index_code: str, lookback_years: float = 3) -> pd.DataFrame:
+    """Fallback: fetch index PE history via MCP in 6-month batches."""
+    try:
+        from stockhot.mcp_client import TushareMCP
+        mcp = TushareMCP()
+    except Exception as e:
+        logger.warning(f"MCP init failed: {e}")
+        return pd.DataFrame()
+
+    end = _today_str()
+    start = _years_ago_str(lookback_years)
+    chunks: list[pd.DataFrame] = []
+    from datetime import datetime, timedelta
+    cur = datetime.strptime(start, "%Y%m%d")
+    end_dt = datetime.strptime(end, "%Y%m%d")
+    while cur < end_dt:
+        chunk_end_dt = min(cur + timedelta(days=180), end_dt)
+        try:
+            df = mcp.query(
+                "index_dailybasic",
+                ts_code=index_code,
+                start_date=cur.strftime("%Y%m%d"),
+                end_date=chunk_end_dt.strftime("%Y%m%d"),
+                fields="ts_code,trade_date,pe_ttm",
+            )
+            if not df.empty:
+                chunks.append(df)
+        except Exception as e:
+            logger.warning(f"MCP index chunk failed: {e}")
+        cur = chunk_end_dt + timedelta(days=1)
+
+    if not chunks:
+        return pd.DataFrame()
+    result = pd.concat(chunks, ignore_index=True).drop_duplicates(subset="trade_date")
+    result = result.sort_values("trade_date").reset_index(drop=True)
+    logger.info(f"MCP fallback (index PE series): {index_code} {len(result)} rows")
+    return result
+
+
 def _mcp_latest_pe(ts_code: str) -> pd.DataFrame:
     """Fallback: fetch latest single-day PE via Tushare MCP endpoint.
 
@@ -233,12 +320,12 @@ def analyze_relative_valuation(
     stock_df = fetch_stock_pe_series(pro, ts_code, lookback_years)
     index_df = fetch_index_pe_series(pro, rv.benchmark, lookback_years)
 
-    # MCP fallback: if legacy API returned empty (token issues), try MCP
-    # for at least the latest single-day PE values (no history series).
+    # MCP fallback: if legacy API returned empty (token issues), use MCP
+    # to fetch the full history series in 6-month batches.
     if stock_df.empty:
-        stock_df = _mcp_latest_pe(ts_code)
+        stock_df = _mcp_pe_series(ts_code, lookback_years)
     if index_df.empty:
-        index_df = _mcp_latest_index_pe(rv.benchmark)
+        index_df = _mcp_index_pe_series(rv.benchmark, lookback_years)
 
     if stock_df.empty:
         rv.signals.append("个股PE数据不可用（可能亏损或未上市足够久）")
