@@ -234,7 +234,7 @@ print(f"景气度: composite={pscore.composite_score}, ΔG={pscore.delta_g}, 阶
 | `detect_cyclical` 永远返回 False | 传了 ts_code 而非行业名 | 传行业名字符串，如 "半导体" |
 | `total_mv` 数值异常大 | 单位是万元 | `/1e4` 转亿元 |
 | 数据正确但公司不对（静默错误） | ts_code 用错（如 603096≠603890），引擎不报错 | 取数后核对 `fin[0].ts_code` 与预期公司名；用 `client.get_stock_list()` 按名查码 |
-| 港股取不到数据（返回空/None） | Tushare A 股接口不覆盖港股（.HK 后缀） | 港股标的（如海光芯正 1191.HK）改用招股书 + 手动 PS 估值；遵循 `valuation-loss-making-targets` skill |
+| 港股取不到数据（返回空/None） | Tushare **有**港股接口（`hk_basic`/`hk_daily`/`hk_income`），但受限：①`hk_basic`/`hk_daily` 低权限可用但**新股（如海光芯正 1191.HK，2026-06 IPO）上市后 1-3 个月才被收录**；②`hk_income`/`hk_balancesheet`/`hk_cashflow` **需 5000 积分**（普通账户无权限）。davis_analyzer 的 `fetch_financial_data`/`get_daily_basic` 只封装了 A 股端点 | 港股标的先用 `pro.hk_basic` + `pro.hk_daily` 探测是否已收录；未收录或财务无权限时，改用招股书 + 手动 PS 估值，遵循 `valuation-loss-making-targets` skill。code 格式用 `01191.HK`（补零至 5 位） |
 
 ## 9. dataclass 字段速查表
 
