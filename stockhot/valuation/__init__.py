@@ -28,11 +28,14 @@ from dotenv import load_dotenv
 from stockhot.core.logging import logger
 
 
-# Benchmark index mapping by market board
+# Benchmark index mapping by market board.
+# NOTE: 科创50 (000688.SH) is NOT covered by Tushare's index_dailybasic,
+# so 科创板 falls back to 沪深300 (same as 主板). This is acceptable because
+# the purpose is cross-sectional anchoring against a broad-market benchmark.
 BENCHMARK_MAP = {
     "主板": "000300.SH",   # 沪深300
     "创业板": "399006.SZ",  # 创业板指
-    "科创板": "000688.SH",  # 科创50 (approx)
+    "科创板": "000300.SH",  # fallback to 沪深300 (科创50 not in index_dailybasic)
     "default": "000300.SH",
 }
 
@@ -77,12 +80,16 @@ def _years_ago_str(years: float) -> str:
 
 def fetch_stock_pe_series(pro, ts_code: str, lookback_years: float = 3) -> pd.DataFrame:
     """Daily PE(TTM) series for a stock over the lookback period."""
-    df = pro.daily_basic(
-        ts_code=ts_code,
-        start_date=_years_ago_str(lookback_years),
-        end_date=_today_str(),
-        fields="ts_code,trade_date,pe,pe_ttm,pb",
-    )
+    try:
+        df = pro.daily_basic(
+            ts_code=ts_code,
+            start_date=_years_ago_str(lookback_years),
+            end_date=_today_str(),
+            fields="ts_code,trade_date,pe,pe_ttm,pb",
+        )
+    except Exception as e:
+        logger.info(f"fetch_stock_pe_series: legacy API failed ({str(e)[:60]}), will try MCP")
+        return pd.DataFrame(columns=["trade_date", "pe_ttm", "pb"])
     if df is None or df.empty:
         return pd.DataFrame(columns=["trade_date", "pe_ttm", "pb"])
     return df.sort_values("trade_date").reset_index(drop=True)
@@ -90,12 +97,16 @@ def fetch_stock_pe_series(pro, ts_code: str, lookback_years: float = 3) -> pd.Da
 
 def fetch_index_pe_series(pro, index_code: str, lookback_years: float = 3) -> pd.DataFrame:
     """Daily PE(TTM) series for a benchmark index via index_dailybasic."""
-    df = pro.index_dailybasic(
-        ts_code=index_code,
-        start_date=_years_ago_str(lookback_years),
-        end_date=_today_str(),
-        fields="ts_code,trade_date,pe_ttm,pb",
-    )
+    try:
+        df = pro.index_dailybasic(
+            ts_code=index_code,
+            start_date=_years_ago_str(lookback_years),
+            end_date=_today_str(),
+            fields="ts_code,trade_date,pe_ttm,pb",
+        )
+    except Exception as e:
+        logger.info(f"fetch_index_pe_series: legacy API failed ({str(e)[:60]}), will try MCP")
+        return pd.DataFrame(columns=["trade_date", "pe_ttm"])
     if df is None or df.empty:
         return pd.DataFrame(columns=["trade_date", "pe_ttm"])
     return df.sort_values("trade_date").reset_index(drop=True)
@@ -119,6 +130,46 @@ def fetch_risk_free_rate(pro) -> float:
     except Exception:
         pass
     return 2.5  # conservative fallback
+
+
+def _mcp_latest_pe(ts_code: str) -> pd.DataFrame:
+    """Fallback: fetch latest single-day PE via Tushare MCP endpoint.
+
+    Used when the legacy ``api.waditu.com`` endpoint fails (token issues).
+    Returns a 1-row DataFrame with pe_ttm/pb columns, or empty on failure.
+    """
+    try:
+        from stockhot.mcp_client import TushareMCP
+        mcp = TushareMCP()
+        df = mcp.query(
+            "daily_basic",
+            ts_code=ts_code,
+            fields="ts_code,trade_date,pe_ttm,pb",
+        )
+        if not df.empty:
+            logger.info(f"MCP fallback (stock PE): {ts_code} pe_ttm={df.iloc[0].get('pe_ttm')}")
+        return df
+    except Exception as e:
+        logger.warning(f"MCP fallback for {ts_code} failed: {e}")
+        return pd.DataFrame()
+
+
+def _mcp_latest_index_pe(index_code: str) -> pd.DataFrame:
+    """Fallback: fetch latest single-day index PE via Tushare MCP."""
+    try:
+        from stockhot.mcp_client import TushareMCP
+        mcp = TushareMCP()
+        df = mcp.query(
+            "index_dailybasic",
+            ts_code=index_code,
+            fields="ts_code,trade_date,pe_ttm",
+        )
+        if not df.empty:
+            logger.info(f"MCP fallback (index PE): {index_code} pe_ttm={df.iloc[0].get('pe_ttm')}")
+        return df
+    except Exception as e:
+        logger.warning(f"MCP fallback for {index_code} failed: {e}")
+        return pd.DataFrame()
 
 
 # ---------------------------------------------------------------------------
@@ -178,9 +229,16 @@ def analyze_relative_valuation(
     rv.board = _board_of(ts_code)
     rv.benchmark = _benchmark_for(ts_code)
 
-    # Fetch data
+    # Fetch data (try legacy API first; MCP fallback for latest values)
     stock_df = fetch_stock_pe_series(pro, ts_code, lookback_years)
     index_df = fetch_index_pe_series(pro, rv.benchmark, lookback_years)
+
+    # MCP fallback: if legacy API returned empty (token issues), try MCP
+    # for at least the latest single-day PE values (no history series).
+    if stock_df.empty:
+        stock_df = _mcp_latest_pe(ts_code)
+    if index_df.empty:
+        index_df = _mcp_latest_index_pe(rv.benchmark)
 
     if stock_df.empty:
         rv.signals.append("个股PE数据不可用（可能亏损或未上市足够久）")
