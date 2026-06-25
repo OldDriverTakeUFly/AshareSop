@@ -18,6 +18,8 @@ client = TushareClient()  # 需要 TUSHARE_TOKEN 环境变量，否则 raise Env
 
 **坑点 2**：`stockhot/core/config.py` 在 import 时会 mkdir，依赖 `PROJECT_ROOT` 环境变量。如果脚本 import 了 stockhot 链路，先 `os.environ.setdefault("PROJECT_ROOT", os.getcwd())`。
 
+**坑点 2b（代码张冠李戴）**：用错股票代码时引擎**不会报错**——`fetch_financial_data` 对任何有效 ts_code 都返回数据，即使它不是你要分析的公司。写春秋电子时曾误用 603096（正确应为 603890），取到了另一家公司的完整数据。**取数后务必用 `fin[0].ts_code` 或 `client.get_stock_list` 核对代码与公司名是否匹配**，尤其是凭记忆填代码时。可用 `client.get_stock_list()` 按名称模糊查代码。
+
 ## 2. 财务数据——fetch_financial_data
 
 ```python
@@ -231,6 +233,7 @@ print(f"景气度: composite={pscore.composite_score}, ΔG={pscore.delta_g}, 阶
 | `calculate_delta_g() missing argument` | 单独调 delta_g 缺参数 | 直接读 `pscore.delta_g`，不要单独调 |
 | `detect_cyclical` 永远返回 False | 传了 ts_code 而非行业名 | 传行业名字符串，如 "半导体" |
 | `total_mv` 数值异常大 | 单位是万元 | `/1e4` 转亿元 |
+| 数据正确但公司不对（静默错误） | ts_code 用错（如 603096≠603890），引擎不报错 | 取数后核对 `fin[0].ts_code` 与预期公司名；用 `client.get_stock_list()` 按名查码 |
 
 ## 9. dataclass 字段速查表
 
