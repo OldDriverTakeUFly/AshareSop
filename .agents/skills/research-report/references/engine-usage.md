@@ -234,6 +234,7 @@ print(f"景气度: composite={pscore.composite_score}, ΔG={pscore.delta_g}, 阶
 | `detect_cyclical` 永远返回 False | 传了 ts_code 而非行业名 | 传行业名字符串，如 "半导体" |
 | `total_mv` 数值异常大 | 单位是万元 | `/1e4` 转亿元 |
 | 数据正确但公司不对（静默错误） | ts_code 用错（如 603096≠603890），引擎不报错 | 取数后核对 `fin[0].ts_code` 与预期公司名；用 `client.get_stock_list()` 按名查码 |
+| 港股取不到数据（返回空/None） | Tushare A 股接口不覆盖港股（.HK 后缀） | 港股标的（如海光芯正 1191.HK）改用招股书 + 手动 PS 估值；遵循 `valuation-loss-making-targets` skill |
 
 ## 9. dataclass 字段速查表
 
