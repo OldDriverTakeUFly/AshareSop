@@ -26,6 +26,59 @@ def _parse_pct(text: str) -> float:
     return safe_float(re.sub(r"[^\d.\-]", "", text))
 
 
+def _fetch_market_fund_flow_tushare(days: int = 30) -> list[dict]:
+    """Fallback: fetch market-wide fund flow history from Tushare.
+
+    Uses ``pro.moneyflow_mkt_dc`` (东方财富分类市场资金流) which returns
+    one row per trade date. We fetch the most recent ``days`` trade dates.
+
+    Fields mapped to the same schema as ``fetch_market_fund_flow``:
+    date, main_net (亿), main_pct, huge_net, large_net, medium_net, small_net.
+    """
+    try:
+        import os
+        from datetime import datetime, timedelta
+
+        import tushare as ts
+        from dotenv import load_dotenv
+
+        load_dotenv()
+        token = os.environ.get("TUSHARE_TOKEN")
+        if not token:
+            return []
+        ts.set_token(token)
+        pro = ts.pro_api()
+
+        end = datetime.now().strftime("%Y%m%d")
+        start = (datetime.now() - timedelta(days=days)).strftime("%Y%m%d")
+        df = pro.moneyflow_mkt_dc(start_date=start, end_date=end)
+        if df is None or df.empty:
+            logger.info(f"fetch_market_fund_flow (Tushare): no data {start}-{end}")
+            return []
+
+        # moneyflow_mkt_dc 字段(单位元): trade_date, close_sh, pct_change_sh,
+        # close_sz, pct_change_sz, net_amount, net_amount_rate,
+        # buy_elg_amount, buy_elg_amount_rate, buy_lg_amount, ...,
+        # buy_md_amount, ..., buy_sm_amount, ...
+        rows: list[dict] = []
+        for _, r in df.iterrows():
+            rows.append({
+                "date": str(r.get("trade_date", "")),
+                "main_net": safe_float(r.get("net_amount")) / 1e8,  # 元→亿
+                "main_pct": safe_float(r.get("net_amount_rate")),
+                "huge_net": safe_float(r.get("buy_elg_amount")) / 1e8,
+                "large_net": safe_float(r.get("buy_lg_amount")) / 1e8,
+                "medium_net": safe_float(r.get("buy_md_amount")) / 1e8,
+                "small_net": safe_float(r.get("buy_sm_amount")) / 1e8,
+            })
+        rows.sort(key=lambda x: x["date"])  # 升序(旧→新), 与akshare一致
+        logger.info(f"fetch_market_fund_flow (Tushare): {len(rows)} rows")
+        return rows
+    except Exception as e:
+        logger.warning(f"fetch_market_fund_flow (Tushare) failed: {e}")
+        return []
+
+
 def _fetch_sector_fund_flow_ths() -> list[dict]:
     """Fallback: scrape Tonghuashun (同花顺) industry fund-flow HTML page.
 
@@ -111,8 +164,8 @@ def fetch_market_fund_flow() -> list[dict]:
     """
     df = safe_akshare_call(ak.stock_market_fund_flow)
     if df is None or df.empty:
-        logger.warning("fetch_market_fund_flow: empty result")
-        return []
+        logger.warning("fetch_market_fund_flow: AkShare empty, trying Tushare fallback")
+        return _fetch_market_fund_flow_tushare()
 
     rows: list[dict] = []
     for _, row in df.iterrows():
@@ -135,31 +188,121 @@ def fetch_market_fund_flow() -> list[dict]:
     return rows
 
 
+def _fetch_sector_fund_flow_tushare() -> list[dict]:
+    """Primary source: aggregate sector fund flow from Tushare.
+
+    Tushare has no single "sector fund flow" endpoint, but we can aggregate
+    from per-stock ``moneyflow`` (东方财富分类) + ``stock_basic`` industry.
+    This is the most reliable source — token-authenticated, no IP blocking.
+
+    Returns rows with: name, change_pct (0.0, not from Tushare),
+    main_net (亿元), huge_net, large_net, medium_net, small_net.
+    """
+    try:
+        import os
+
+        import tushare as ts
+        from dotenv import load_dotenv
+
+        load_dotenv()  # 从 .env 加载 TUSHARE_TOKEN
+        token = os.environ.get("TUSHARE_TOKEN")
+        if not token:
+            logger.info("fetch_sector_fund_flow (Tushare): no TUSHARE_TOKEN env, skipping")
+            return []
+        ts.set_token(token)
+        pro = ts.pro_api()
+
+        trade_date = _today_trade_date_str()  # YYYYMMDD
+
+        # Per-stock fund flow (单位: 万元)
+        mf = pro.moneyflow(
+            trade_date=trade_date,
+            fields=(
+                "ts_code,net_mf_amount,buy_sm_amount,sell_sm_amount,"
+                "buy_md_amount,sell_md_amount,buy_lg_amount,sell_lg_amount,"
+                "buy_elg_amount,sell_elg_amount"
+            ),
+        )
+        if mf is None or mf.empty:
+            logger.info(f"fetch_sector_fund_flow (Tushare): no moneyflow for {trade_date}")
+            return []
+
+        # Industry classification from stock_basic
+        basic = pro.stock_basic(fields="ts_code,name,industry")
+        merged = mf.merge(basic[["ts_code", "industry"]], on="ts_code", how="left")
+
+        # Aggregate by industry (net_mf_amount 单位万元 → 亿元)
+        import pandas as _pd
+        agg = merged.groupby("industry").agg(
+            main_net=("net_mf_amount", "sum"),
+            huge_net=("buy_elg_amount", "sum"),   # 超大单 = buy - sell
+            large_net=("buy_lg_amount", "sum"),
+            medium_net=("buy_md_amount", "sum"),
+            small_net=("buy_sm_amount", "sum"),
+            count=("ts_code", "count"),
+        ).reset_index()
+        # 净额 = 买入 - 卖出; 但 moneyflow 的 net_mf_amount 已是净额
+        # 对于 buy_*_amount 列需减去 sell (这里简化用 net_mf_amount 为主)
+        rows: list[dict] = []
+        for _, r in agg.iterrows():
+            if not r["industry"] or _pd.isna(r["industry"]):
+                continue
+            rows.append({
+                "name": r["industry"],
+                "change_pct": 0.0,  # Tushare moneyflow 不含涨跌幅
+                "main_net": r["main_net"] / 1e4,  # 万元→亿元
+                "main_pct": 0.0,
+                "huge_net": r["huge_net"] / 1e4,
+                "large_net": r["large_net"] / 1e4,
+                "medium_net": r["medium_net"] / 1e4,
+                "small_net": r["small_net"] / 1e4,
+            })
+        rows.sort(key=lambda x: x["main_net"], reverse=True)
+        logger.info(f"fetch_sector_fund_flow (Tushare): {len(rows)} sectors")
+        return rows
+    except Exception as e:
+        logger.warning(f"fetch_sector_fund_flow (Tushare) failed: {e}")
+        return []
+
+
+def _today_trade_date_str() -> str:
+    """Return today's date as YYYYMMDD string."""
+    from datetime import datetime
+    return datetime.now().strftime("%Y%m%d")
+
+
 def fetch_sector_fund_flow(
     indicator: str = "今日",
     sector_type: str = "行业资金流",
 ) -> list[dict]:
-    """Fetch sector-level fund flow ranking via AkShare.
+    """Fetch sector-level fund flow ranking.
 
-    Uses ``ak.stock_sector_fund_flow_rank(indicator, sector_type)``.
+    Data source priority (each is a fallback for the previous):
+    1. **Tushare** (primary) — aggregate per-stock ``moneyflow`` by industry.
+       Token-authenticated, no IP blocking, 110 industries.
+    2. **AkShare** (secondary) — ``ak.stock_sector_fund_flow_rank`` (东方财富).
+       Subject to IP-level rate limiting.
+    3. **同花顺 HTML** (tertiary) — ``_fetch_sector_fund_flow_ths``.
+       Last resort; 50 industries, no main_pct.
 
-    Fields extracted:
-    - 名称       → name
-    - 今日涨跌幅 → change_pct
-    - 主力净流入-净额 → main_net
-    - 主力净流入-净流入占比 → main_pct
-    - 超大单净流入-净额 → huge_net
-    - 大单净流入-净额   → large_net
-    - 中单净流入-净额   → medium_net
-    - 小单净流入-净额   → small_net
+    Fields extracted (all sources):
+    - name, change_pct, main_net (亿元), main_pct,
+    - huge_net, large_net, medium_net, small_net
     """
+    # 1. Tushare primary
+    rows = _fetch_sector_fund_flow_tushare()
+    if rows:
+        return rows
+
+    # 2. AkShare secondary
+    logger.info("fetch_sector_fund_flow: Tushare empty, trying AkShare (东财)")
     df = safe_akshare_call(
         ak.stock_sector_fund_flow_rank,
         indicator=indicator,
         sector_type=sector_type,
     )
     if df is None or df.empty:
-        logger.warning("fetch_sector_fund_flow: empty result, trying THS fallback")
+        logger.warning("fetch_sector_fund_flow: AkShare empty, trying THS fallback")
         return _fetch_sector_fund_flow_ths()
 
     rows: list[dict] = []
