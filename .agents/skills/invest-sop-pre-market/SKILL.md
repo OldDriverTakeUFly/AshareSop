@@ -205,6 +205,8 @@ This runs after the evening data collection scripts finish. It produces the main
 
 3. **Query cycle assessments** from `invest_cycle_assessments` for sector context.
 
+3.5. **情绪温度计校准**——查当前月份的日历效应基准（见 `.agents/skills/after-hours-review/references/calendar-effect-baseline.md`），在 §1 市场环境评估的"综合判断"中标注：当前月份历史均值/胜率 + 今日走势是"符合季节性"还是"反季节异常"。这有助于校准仓位建议的激进/保守程度（如 2 月偏热可适当积极，1 月偏冷宜防守）。
+
 4. **Evaluate each holding** using the four-dimension framework from SOP §5:
    - **Logic status** (✅完好 / ⚠️动摇 / ❌破坏): Has the original investment thesis changed? Check supply chain data and domestic events for the holding's sector.
    - **Event impact** (🟢无 / 🟡轻微 / 🟠中度 / 🔴严重): Are there events in `invest_domestic_events` affecting this holding or its sector?
