@@ -250,4 +250,60 @@ print(f"景气度: composite={pscore.composite_score}, ΔG={pscore.delta_g}, 阶
 | `DistressSignal` | total_score, layer1_score, layer2_score, layer3_score, signals_detail |
 | `DavisDoubleScore` | final_score, rank, valuation_score, prosperity_score, distress_score, trend_score |
 
+## 10. 数据时效性校验（写报告前必做）
+
+**坑点 11（时效性盲区）**：报告写「研究日期 6/27」但财务数据其实是 Q1（4 月底披露），若不标注，读者会误以为是当周数据。半年报 8 月底、年报 4 月底才披露——中途财务快照只能到上一季报，这是结构性上限，不是缺陷，但**必须诚实标注时效边界**。此外，`forecast`（业绩预告）常先于正式财报披露（如 1 月底预告全年首亏、4 月预告 Q1），是更早的领先信号，不能漏。
+
+**写报告前先跑这个校验**，对每个标的查三项新鲜度。实例脚本：`davis_analyzer/studies/wf6_freshness_check.py`。
+
+```python
+import os
+from dotenv import load_dotenv
+load_dotenv(".env", override=True)   # override=True: 防 shell 导出 stale token
+os.environ["PROJECT_ROOT"] = os.getcwd()  # 防 .env 的 /app 值破坏 stockhot mkdir
+
+from stockhot.tushare_config import get_pro_api
+
+pro = get_pro_api(timeout=30)
+
+def freshness_check(ts_code, report_date):
+    """对单只标的查三项新鲜度，返回供报告标注的时效信息。"""
+    # 1. 估值数据最新交易日（daily_basic）
+    db = pro.daily_basic(ts_code=ts_code, limit=1)
+    latest_trade = db.iloc[0]["trade_date"] if len(db) else "none"
+
+    # 2. 财务最新报告期 + 披露日（income）
+    inc = pro.income(ts_code=ts_code,
+                     fields="ts_code,ann_date,end_date,f_ann_date", limit=1)
+    latest_period = inc.iloc[0]["end_date"] if len(inc) else "none"
+    latest_ann = inc.iloc[0]["ann_date"] if len(inc) else "none"
+
+    # 3. 业绩预告（forecast，领先信号）
+    fc = pro.forecast(ts_code=ts_code,
+                      fields="ts_code,ann_date,end_date,type,p_change_min,p_change_max")
+    forecast_info = ""
+    if len(fc):
+        r = fc.iloc[0]
+        forecast_info = (f"{r['type']} ann={r['ann_date']} end={r['end_date']} "
+                         f"同比=[{r['p_change_min']}, {r['p_change_max']}]%")
+
+    return {
+        "latest_trade_date": latest_trade,
+        "latest_report_period": latest_period,
+        "latest_ann_date": latest_ann,
+        "latest_forecast": forecast_info,
+    }
+
+# 用法：报告里据此标注
+# 「财务截至 2026Q1（20260421 披露），2026 半年报预计 8 月底披露」
+# 「估值快照 20260626（最新交易日）」
+# 「业绩预告：2025 全年首亏 -299%~-239%（20260131 披露）」
+```
+
+**时效边界标注规范**（写进报告元数据块或财务章开头）：
+- 财务：「财务快照截至 **YYYYQN（YYYYMMDD 披露）**，下季报 X 月披露」
+- 估值：「估值快照 YYYYMMDD（最新交易日）」
+- 预告：「业绩预告：YYYY 全年/QN {类型} {同比区间}（YYYYMMDD 披露）」
+- 过时预告不参考（如 2 年前的预告），只取最近一次覆盖目标期的预告
+
 **Source of Truth**：本指南与引擎实现可能随版本演进产生偏差。若调用结果与预期不符，以 `davis_analyzer/types.py`（字段定义）和各模块源码签名为准。
