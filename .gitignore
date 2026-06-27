@@ -48,3 +48,6 @@ logs/
 # OS
 .DS_Store
 Thumbs.db
+# Audio files (TTS output)
+*.mp3
+*.wav
