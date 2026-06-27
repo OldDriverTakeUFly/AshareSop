@@ -51,3 +51,6 @@ Thumbs.db
 # Audio files (TTS output)
 *.mp3
 *.wav
+
+# Speech-friendly text mirror (report_to_speech_text.py output)
+docs_speech/
