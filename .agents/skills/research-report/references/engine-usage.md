@@ -82,9 +82,12 @@ db = client.get_daily_basic("603690.SH", start, end)
 ### 3.2 算分位数（用 pandas，不要用 calculate_percentile）
 
 ```python
-pe = pd.to_numeric(db["pe_ttm"], errors="coerce").dropna()
-pb = pd.to_numeric(db["pb"], errors="coerce").dropna()
-ps = pd.to_numeric(db["ps"], errors="coerce").dropna()
+# ⚠️ get_daily_basic 返回 trade_date DESC（最新在前），必须先排序升序！
+#    否则 iloc[-1] 取到最旧值，分位完全算反（坑点见 §8）
+db = db.sort_values("trade_date")
+pe = pd.to_numeric(db["pe_ttm"], errors="coerce").dropna().sort_index()
+pb = pd.to_numeric(db["pb"], errors="coerce").dropna().sort_index()
+ps = pd.to_numeric(db["ps"], errors="coerce").dropna().sort_index()
 
 # 当前分位（有多少比例的历史值低于当前值）
 pe_pct = (pe < pe.iloc[-1]).sum() / len(pe) * 100  # 如 86.4
@@ -238,6 +241,7 @@ print(f"景气度: composite={pscore.composite_score}, ΔG={pscore.delta_g}, 阶
 | 数据正确但公司不对（静默错误） | ts_code 用错（如 603096≠603890），引擎不报错 | 取数后核对 `fin[0].ts_code` 与预期公司名；用 `client.get_stock_list()` 按名查码 |
 | 港股取不到数据（返回空/None） | Tushare **有**港股接口（`hk_basic`/`hk_daily`/`hk_income`），但受限：①`hk_basic`/`hk_daily` 低权限可用但**新股（如海光芯正 1191.HK，2026-06 IPO）上市后 1-3 个月才被收录**；②`hk_income`/`hk_balancesheet`/`hk_cashflow` **需 5000 积分**（普通账户无权限）。davis_analyzer 的 `fetch_financial_data`/`get_daily_basic` 只封装了 A 股端点 | 港股标的先用 `pro.hk_basic` + `pro.hk_daily` 探测是否已收录；未收录或财务无权限时，改用招股书 + 手动 PS 估值，遵循 `valuation-loss-making-targets` skill。code 格式用 `01191.HK`（补零至 5 位） |
 | `TushareClient` 报"您的token不对"但 `get_pro_api()` 能用 | **shell 环境导出了 STALE token**（旧 api.waditu.com 的 `76f191c0`），`load_dotenv()` 默认不覆盖已存在的环境变量，导致引擎读到旧 token | 脚本里用 `load_dotenv(".env", override=True)` 强制 .env 的新 token 生效；或在 `TushareClient()` 前 `os.environ["TUSHARE_TOKEN"]=...` 显式覆盖 |
+| **分位值算反（高分位写成低分位）** | `get_daily_basic` 返回 `ORDER BY trade_date DESC`（**最新在前**）。若不排序直接 `pe.iloc[-1]`，取到的是**最旧（3 年前）**的值当"当前值"，导致分位完全算反（如华泰 PE 实际 75% 分位被算成 8.3%） | **取数后必须 `db = db.sort_values("trade_date")` 升序排序**，再 `pe = pe.sort_index()`，确保 `iloc[-1]` 是最新交易日。§3.2 示例已隐含假设升序，但 `get_daily_basic` 默认降序——务必显式排序后再算分位 |
 | `stockhot.core.config` 报 `FileNotFoundError: /app/data` | `.env` 里有 Docker 配置 `PROJECT_ROOT=/app`，`load_dotenv(override=True)` 后覆盖了本地真实路径，触发 stockhot 在 import 时 mkdir `/app/data` | **必须在 `load_dotenv` 之后重新 `os.environ["PROJECT_ROOT"]=<本地项目根>`**，顺序：先 load_dotenv（拿新 token）→ 再 pin PROJECT_ROOT（修路径）→ 再 import stockhot |
 
 ## 9. dataclass 字段速查表
