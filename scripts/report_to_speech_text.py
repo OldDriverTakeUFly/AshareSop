@@ -419,16 +419,90 @@ def blocks_to_speech(
 
 # ── provider 工厂 ───────────────────────────────────────────────────────────
 
+# 推理模型（reasoning model）会把 token 花在 reasoning_content 上，导致改写
+# 任务的 content 为空。语音化是确定性改写，无需推理，自动切到非推理模型。
+_REASONING_MODELS = {"glm-5.2", "glm-5.1", "glm-4.5"}
+_NON_REASONING_FALLBACK = "glm-4-flash"
+
+# Coding Plan 专用端点（智谱订阅套餐）。按量付费端点 paas/v4 会对 Coding
+# Plan 用户报 1113（余额不足），需切到 coding 端点才走套餐额度。
+_CODING_BASE_URL = "https://open.bigmodel.cn/api/coding/paas/v4"
+_PAYG_BASE_URL = "https://open.bigmodel.cn/api/paas/v4"
+
+
+def _probe_provider(provider) -> str | None:
+    """对 provider 做一次极小探针调用，返回错误关键词或 None（成功）。
+
+    用 max_tokens=8 的单字探针，区分「配置 OK」vs「端点/余额/网络问题」。
+    """
+    try:
+        provider.complete(prompt="1", system="", max_tokens=8, temperature=0)
+        return None
+    except Exception as exc:
+        msg = str(exc)
+        # 1113 = 余额不足/端点不对（Coding Plan 用户用了按量付费端点）
+        if "1113" in msg or "余额不足" in msg:
+            return "endpoint"
+        return "other"
+
 
 def _get_llm_provider():
-    """获取 LLM provider，失败返回 None（触发规则降级）。"""
-    try:
-        from stockhot.advisor.llm_provider import get_provider
+    """获取 LLM provider，自动处理端点与模型选择。失败返回 None（触发规则降级）。
 
-        return get_provider()
+    自动处理（让用户只需配 LLM_API_KEY 即可）：
+    1. 推理模型 → 自动切非推理模型（glm-4-flash），避免 content 为空
+    2. 按量付费端点报 1113 → 自动切 Coding Plan 端点
+    """
+    try:
+        from stockhot.advisor.llm_provider import get_provider, GLMProvider
     except Exception as exc:
-        print(f"  [LLM 不可用] {type(exc).__name__}: {exc}，全程使用规则降级", file=sys.stderr)
+        print(f"  [LLM 不可用] 导入失败 {type(exc).__name__}: {exc}，全程使用规则降级", file=sys.stderr)
         return None
+
+    api_key = os.environ.get("LLM_API_KEY", "").strip()
+    if not api_key:
+        print("  [LLM 不可用] LLM_API_KEY 未配置，全程使用规则降级", file=sys.stderr)
+        return None
+
+    configured_model = os.environ.get("LLM_MODEL", "").strip() or None
+    configured_base = os.environ.get("LLM_BASE_URL", "").strip() or None
+
+    # 决定实际使用的模型：推理模型 → 非推理 fallback
+    use_model = configured_model
+    if configured_model in _REASONING_MODELS:
+        print(f"  [LLM] 检测到推理模型 {configured_model}，改写任务自动切换为 {_NON_REASONING_FALLBACK}", file=sys.stderr)
+        use_model = _NON_REASONING_FALLBACK
+
+    # 尝试顺序：(base_url, model) 组合，先用户配置，再自动兜底
+    candidates = []
+    if configured_base:
+        candidates.append((configured_base, use_model))
+    # 智谱默认两个端点都加入候选（按量付费在前，coding 在后作兜底）
+    if configured_base != _PAYG_BASE_URL:
+        candidates.append((_PAYG_BASE_URL, use_model))
+    candidates.append((_CODING_BASE_URL, use_model))
+
+    last_err = None
+    for base_url, model in candidates:
+        try:
+            provider = GLMProvider(api_key=api_key, base_url=base_url, model=model)
+        except Exception as exc:
+            last_err = exc
+            continue
+        err = _probe_provider(provider)
+        if err is None:
+            if base_url != configured_base:
+                print(f"  [LLM] 自动选用端点 {base_url}", file=sys.stderr)
+            print(f"  [LLM] 就绪：model={provider.model}", file=sys.stderr)
+            return provider
+        if err == "endpoint":
+            # 1113：这个端点不对，尝试下一个
+            continue
+        # other 错误（网络/auth）也尝试下一个候选
+        last_err = RuntimeError(f"{base_url}: {err}")
+
+    print(f"  [LLM 不可用] 所有端点均失败，全程使用规则降级（最后错误：{last_err}）", file=sys.stderr)
+    return None
 
 
 # ── CLI ─────────────────────────────────────────────────────────────────────

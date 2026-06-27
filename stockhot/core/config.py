@@ -1,5 +1,6 @@
 """Core configuration and constants for StockHot-CN."""
 
+import logging
 import os
 from pathlib import Path
 
@@ -10,12 +11,25 @@ DB_PATH = STORAGE_DIR / "database" / "stockhot.db"
 IMAGES_DIR = STORAGE_DIR / "files" / "images"
 REPORTS_DIR = STORAGE_DIR / "files" / "reports"
 
-DATA_DIR.mkdir(exist_ok=True)
-STORAGE_DIR.mkdir(exist_ok=True)
-(STORAGE_DIR / "files").mkdir(exist_ok=True)
-(STORAGE_DIR / "files" / "images").mkdir(exist_ok=True)
-(STORAGE_DIR / "files" / "reports").mkdir(exist_ok=True)
-(STORAGE_DIR / "database").mkdir(exist_ok=True)
+# Ensure storage dirs exist. Wrapped in try/except so an invalid PROJECT_ROOT
+# (e.g. a stale Docker value like /app) does not crash module import for tools
+# that only need other parts of stockhot (advisor, llm_provider). Callers that
+# actually read/write these paths will surface a clearer error at use time.
+try:
+    DATA_DIR.mkdir(exist_ok=True)
+    STORAGE_DIR.mkdir(exist_ok=True)
+    (STORAGE_DIR / "files").mkdir(exist_ok=True)
+    (STORAGE_DIR / "files" / "images").mkdir(exist_ok=True)
+    (STORAGE_DIR / "files" / "reports").mkdir(exist_ok=True)
+    (STORAGE_DIR / "database").mkdir(exist_ok=True)
+except OSError as exc:
+    logging.getLogger(__name__).warning(
+        "Could not create storage dirs under PROJECT_ROOT=%s: %s. "
+        "Path-dependent features (DB, images, reports) will fail at use time; "
+        "set PROJECT_ROOT to a writable directory.",
+        PROJECT_ROOT,
+        exc,
+    )
 
 COVER_WIDTH = 1242
 COVER_HEIGHT = 1660
