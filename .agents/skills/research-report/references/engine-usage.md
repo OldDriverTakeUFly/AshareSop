@@ -16,6 +16,8 @@ client = TushareClient()  # 需要 TUSHARE_TOKEN 环境变量，否则 raise Env
 
 **坑点 1**：`TushareClient()` 在无 `TUSHARE_TOKEN` 时直接抛 `EnvironmentError`。研报场景下 token 应已配置；若缺失，标注"引擎数据不可用"，不要编造。
 
+**坑点 1b（token 静默失效）**：如果环境变量里有一个**旧的/错误的 `TUSHARE_TOKEN`**（与 `.env` 文件里的不一致），`davis_analyzer/config.py` 的 `load_dotenv()` 默认**不覆盖**已存在的环境变量，导致引擎用了错误 token，报"您的token不对"。症状：直接用 tushare 库手动调能成功，但 davis_analyzer 引擎报 token 错误。修复：在脚本开头加 `load_dotenv('.env', override=True)` 强制用 .env 的正确 token 覆盖环境变量。
+
 **坑点 2**：`stockhot/core/config.py` 在 import 时会 mkdir，依赖 `PROJECT_ROOT` 环境变量。如果脚本 import 了 stockhot 链路，先 `os.environ.setdefault("PROJECT_ROOT", os.getcwd())`。
 
 **坑点 2b（代码张冠李戴）**：用错股票代码时引擎**不会报错**——`fetch_financial_data` 对任何有效 ts_code 都返回数据，即使它不是你要分析的公司。写春秋电子时曾误用 603096（正确应为 603890），取到了另一家公司的完整数据。**取数后务必用 `fin[0].ts_code` 或 `client.get_stock_list` 核对代码与公司名是否匹配**，尤其是凭记忆填代码时。可用 `client.get_stock_list()` 按名称模糊查代码。

@@ -171,7 +171,19 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--output",
         default=None,
-        help="输出 MP3 路径（默认：与输入同目录，.md → .mp3）",
+        help="输出 MP3 路径（默认：--mirror 模式下输出到 docs_audio/ 镜像目录）",
+    )
+    parser.add_argument(
+        "--mirror",
+        action="store_true",
+        default=True,
+        help="镜像模式：docs/xxx/yyy.md → docs_audio/xxx/yyy.mp3（默认开启）",
+    )
+    parser.add_argument(
+        "--no-mirror",
+        action="store_false",
+        dest="mirror",
+        help="关闭镜像模式，输出到输入文件同目录",
     )
     args = parser.parse_args(argv)
 
@@ -180,11 +192,25 @@ def main(argv: list[str] | None = None) -> int:
         print(f"错误：文件不存在 {input_path}")
         return 1
 
-    # 输出路径
+    # 输出路径：优先 --output，其次镜像模式，最后同目录
     if args.output:
         output_path = args.output
+    elif args.mirror:
+        # 镜像模式：docs/ → docs_audio/，保持子目录结构
+        input_str = str(input_path)
+        if input_str.startswith("docs/"):
+            output_path = input_str.replace("docs/", "docs_audio/", 1).replace(".md", ".mp3")
+        elif "/docs/" in input_str:
+            # 绝对路径含 /docs/
+            output_path = input_str.replace("/docs/", "/docs_audio/", 1).replace(".md", ".mp3")
+        else:
+            # 不在 docs/ 下，退回到同目录
+            output_path = str(input_path.with_suffix(".mp3"))
     else:
         output_path = str(input_path.with_suffix(".mp3"))
+
+    # 创建输出目录
+    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
 
     # 读取并清理 markdown
     md_text = input_path.read_text(encoding="utf-8")
