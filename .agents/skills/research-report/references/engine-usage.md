@@ -313,3 +313,53 @@ def freshness_check(ts_code, report_date):
 - 过时预告不参考（如 2 年前的预告），只取最近一次覆盖目标期的预告
 
 **Source of Truth**：本指南与引擎实现可能随版本演进产生偏差。若调用结果与预期不符，以 `davis_analyzer/types.py`（字段定义）和各模块源码签名为准。
+
+---
+
+## 11. 股东户数趋势分析（筹码集中度，每篇个股研报必备）
+
+**核心逻辑**：股东户数是筹码集中度的领先信号——
+- **户数逐期下降** → 筹码集中 → 主力收集 → **上涨动能增强 ✓**（看多信号）
+- **户数逐期上升** → 筹码分散 → **上涨动能减弱 ⚠**（警示信号）
+
+**接口**：`pro.stk_holdernumber`（注意拼写，一个词，**不是** `stk_holder_number`）。返回 `holder_num`（股东户数）。
+
+```python
+import os, pandas as pd
+from dotenv import load_dotenv
+load_dotenv(".env", override=True)
+os.environ["PROJECT_ROOT"] = os.getcwd()
+from stockhot.tushare_config import get_pro_api
+
+pro = get_pro_api(timeout=30)
+
+def holder_trend(ts_code, periods=8):
+    """股东户数趋势：返回近 N 期户数 + 环比变化 + 趋势判断。"""
+    h = pro.stk_holdernumber(
+        ts_code=ts_code, fields="ts_code,ann_date,end_date,holder_num"
+    ).sort_values("end_date").tail(periods)
+
+    rows = []
+    prev = None
+    for _, r in h.iterrows():
+        num = int(r["holder_num"])
+        chg = (num - prev) / prev * 100 if prev else None
+        rows.append({"end_date": r["end_date"], "holder_num": num, "chg_pct": chg})
+        prev = num
+
+    # 近 4 期趋势判断
+    nums4 = [r["holder_num"] for r in rows[-4:]] if len(rows) >= 4 else [r["holder_num"] for r in rows]
+    trend = "集中(动能增强✓)" if nums4[-1] < nums4[0] else "分散(动能减弱⚠)"
+    return {"rows": rows, "trend": trend, "latest": nums4[-1], "base": nums4[0]}
+
+# 用法
+result = holder_trend("600309.SH")
+for r in result["rows"]:
+    chg = f"{'↑' if r['chg_pct']>0 else '↓'}{abs(r['chg_pct']):.1f}%" if r["chg_pct"] else "基期"
+    print(f"  {r['end_date']}: {r['holder_num']:,} ({chg})")
+print(f"  → 趋势: {result['trend']}")
+```
+
+**报告写法**：在财务分析章节或独立「股东户数与筹码集中度」小节，附户数变化表（近 4-8 期 + 环比）+ 趋势判断结论。可补充 `pro.top10_floatholders` 的十大流通股东持股比例合计变化作交叉验证（top10 比例上升 ≈ 户数下降，两者方向一致）。
+
+**坑点 12（接口名）**：`stk_holdernumber` 是一个词，写成 `stk_holder_number` 会报"请指定正确的接口名"。
