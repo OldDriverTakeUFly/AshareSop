@@ -2,6 +2,40 @@
 
 This repository expects coding agents to follow the local development environment skill for any environment-related work.
 
+## RTK 使用规范（RTK Token-Saving CLI Proxy）
+
+本仓库已全局安装 [RTK](https://github.com/reachingforthejack/rtk)（Rust Token Killer，`/home/leo/.local/bin/rtk`，v0.43.0+），一个为 LLM agent 设计的命令行 token 节省代理。**使用与否按任务类型区分，不强制全量替代原生命令。**
+
+### 何时使用 RTK（代码/工程类工作）
+
+涉及**代码修改、引擎调试、工程操作**时，优先用 `rtk` 前缀替代原生命令，节省 token：
+
+- 版本控制：`rtk git status` / `rtk git log` / `rtk gh pr list`
+- 目录遍历：`rtk ls` / `rtk tree` / `rtk find -name "*.py"`
+- 搜索：`rtk grep` / `rtk rg "pattern"`
+- 构建/测试：`rtk test`（只看失败）/ `rtk pytest` / `rtk tsc`（分组错误）
+- 依赖/格式：`rtk deps` / `rtk format` / `rtk lint`
+- diff/log：`rtk diff`（只看变更行）/ `rtk log`（去重日志）
+- JSON/查看：`rtk json` / `rtk read <file>` / `rtk smart <file>`
+
+### 何时禁用 RTK（研报/分析类工作）
+
+涉及**研报写作、数据分析、财务取数**时，**使用原生命令**，不加 `rtk` 前缀：
+
+- `davis_analyzer` 引擎取数脚本输出（需要完整 JSON 数据做研报，压缩会丢数字）
+- `tushare` / `stockhot` 取数与数据库查询
+- 读取要精读的研报模板、财务表格、checklist
+- 任何输出需要完整进入上下文的场景
+
+**判定原则**：输出是要"精读消化"的（研报数据/财务表/模板）→ 原生命令；输出是要"扫一眼找信息"的（git 状态/目录结构/测试结果/依赖列表）→ 用 rtk。
+
+### 验证与回退
+
+- 验证安装：`rtk --version`（应显示 rtk X.Y.Z）
+- 查看 token 节省：`rtk gain`
+- 不确定时用原生命令（永远准确），RTK 只是优化层
+- `rtk proxy <cmd>` 或 `rtk run <cmd>` 可绕过过滤执行原始命令（调试用）
+
 ## Default Rule
 
 For tasks involving local setup, dependency installation, runtime selection, environment repair, toolchain isolation, local services, or project switching, agents must read and follow:
