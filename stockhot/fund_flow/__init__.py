@@ -7,12 +7,13 @@ and persists results via the storage layer.
 
 from __future__ import annotations
 
+import os
 import re
 
 import akshare as ak
 
 from stockhot.core.logging import logger
-from stockhot.core.rate_limiter import safe_akshare_call
+from stockhot.core.rate_limiter import akshare_limiter, safe_akshare_call
 from stockhot.core.utils import (
     from_akshare_date,
     safe_float,
@@ -289,42 +290,68 @@ def fetch_sector_fund_flow(
     - name, change_pct, main_net (亿元), main_pct,
     - huge_net, large_net, medium_net, small_net
     """
-    # 1. Tushare primary
-    rows = _fetch_sector_fund_flow_tushare()
-    if rows:
+    # 1. Tushare primary (reliable, token-authenticated)
+    tushare_rows = _fetch_sector_fund_flow_tushare()
+
+    # 2. AkShare secondary (has change_pct — Tushare does not)
+    # AkShare's stock_sector_fund_flow_rank makes 5 paginated requests to
+    # push2.eastmoney.com internally. If a proxy is configured, later pages
+    # may fail with ProxyError, truncating the result to ~1 row.
+    # We must clear proxy BEFORE the call so all 5 pages connect directly.
+    from stockhot.core.rate_limiter import _call_without_proxy
+
+    logger.info("fetch_sector_fund_flow: trying AkShare (东财) for change_pct")
+    try:
+        akshare_limiter.acquire()
+        df = _call_without_proxy(
+            ak.stock_sector_fund_flow_rank,
+            indicator=indicator,
+            sector_type=sector_type,
+        )
+    except Exception as e:
+        logger.warning(f"fetch_sector_fund_flow: AkShare failed: {e}")
+        df = None
+
+    if df is not None and not df.empty:
+        rows: list[dict] = []
+        for _, row in df.iterrows():
+            name = safe_text(row.get("名称"))
+            if not name:
+                continue
+            # AkShare returns 元, convert to 亿
+            rows.append(
+                {
+                    "name": name,
+                    "change_pct": safe_float(row.get("今日涨跌幅")),
+                    "main_net": safe_float(row.get("主力净流入-净额")) / 1e8,
+                    "main_pct": safe_float(row.get("主力净流入-净流入占比")),
+                    "huge_net": safe_float(row.get("超大单净流入-净额")) / 1e8,
+                    "large_net": safe_float(row.get("大单净流入-净额")) / 1e8,
+                    "medium_net": safe_float(row.get("中单净流入-净额")) / 1e8,
+                    "small_net": safe_float(row.get("小单净流入-净额")) / 1e8,
+                }
+            )
+        logger.info(f"fetch_sector_fund_flow: AkShare {len(rows)} rows (with change_pct)")
+
+        # If Tushare also succeeded, merge Tushare fund-flow data for
+        # sectors not in AkShare (different industry classification).
+        # AkShare change_pct is preferred over Tushare's 0.0.
+        if tushare_rows:
+            ak_names = {r["name"] for r in rows}
+            for tr in tushare_rows:
+                if tr["name"] not in ak_names:
+                    rows.append(tr)
+
         return rows
 
-    # 2. AkShare secondary
-    logger.info("fetch_sector_fund_flow: Tushare empty, trying AkShare (东财)")
-    df = safe_akshare_call(
-        ak.stock_sector_fund_flow_rank,
-        indicator=indicator,
-        sector_type=sector_type,
-    )
-    if df is None or df.empty:
-        logger.warning("fetch_sector_fund_flow: AkShare empty, trying THS fallback")
-        return _fetch_sector_fund_flow_ths()
+    # 3. AkShare empty — use Tushare if available (change_pct=0.0)
+    if tushare_rows:
+        logger.info(f"fetch_sector_fund_flow: using Tushare {len(tushare_rows)} rows (change_pct=0.0)")
+        return tushare_rows
 
-    rows: list[dict] = []
-    for _, row in df.iterrows():
-        name = safe_text(row.get("名称"))
-        if not name:
-            continue
-        # AkShare returns 元, convert to 亿
-        rows.append(
-            {
-                "name": name,
-                "change_pct": safe_float(row.get("今日涨跌幅")),
-                "main_net": safe_float(row.get("主力净流入-净额")) / 1e8,
-                "main_pct": safe_float(row.get("主力净流入-净流入占比")),
-                "huge_net": safe_float(row.get("超大单净流入-净额")) / 1e8,
-                "large_net": safe_float(row.get("大单净流入-净额")) / 1e8,
-                "medium_net": safe_float(row.get("中单净流入-净额")) / 1e8,
-                "small_net": safe_float(row.get("小单净流入-净额")) / 1e8,
-            }
-        )
-    logger.info(f"fetch_sector_fund_flow: {len(rows)} rows")
-    return rows
+    # 4. THS fallback (has change_pct)
+    logger.warning("fetch_sector_fund_flow: AkShare+Tushare empty, trying THS fallback")
+    return _fetch_sector_fund_flow_ths()
 
 
 def fetch_individual_fund_flow(
