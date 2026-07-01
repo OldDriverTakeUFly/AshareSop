@@ -789,6 +789,43 @@ class TestBuildStockDetails:
         result = build_stock_details(scores, infos, fd, set())
         assert result["x.SZ"].dupont_driver == "ROE为负（需警惕）"
 
+    def test_b4_dupont_uses_equity_multiplier_not_debt_ratio(self):
+        """Regression: leverage_ratio must be the equity multiplier
+        (assets/equity), NOT debt/assets. With debt/assets=0.1 but
+        assets/equity=1.11, the two formulas diverge:
+          - OLD buggy (debt/assets=0.1): max(|0.25|,|1.0|,|0.1|) = turnover → 周转率
+          - NEW (assets/equity=1.11): max(|0.25|,|1.0|,|1.11|) = leverage → 杠杆
+        Asserting the NEW result matches a direct dupont_decomposition call
+        with the equity multiplier, locking the contract."""
+        fd = {
+            "x.SZ": [
+                _fd(
+                    ts_code="x.SZ",
+                    roe=15.0,
+                    revenue=200.0,
+                    net_profit=50.0,
+                    total_debt=20.0,
+                    total_assets=200.0,
+                )
+            ]
+        }
+        scores = {"x.SZ": _ps(ts_code="x.SZ")}
+        infos = {"x.SZ": _si(ts_code="x.SZ")}
+        result = build_stock_details(scores, infos, fd, set())
+        driver = result["x.SZ"].dupont_driver
+        from davis_analyzer.prosperity import dupont_decomposition
+
+        expected = dupont_decomposition(
+            roe=15.0,
+            net_margin=0.25,
+            asset_turnover=1.0,
+            leverage_ratio=200.0 / 180.0,  # equity multiplier
+        )
+        assert driver == expected
+        # The OLD buggy debt/assets formula would have yielded 周转率驱动 here;
+        # the corrected equity-multiplier formula yields 杠杆驱动.
+        assert driver == "杠杆驱动（需警惕可持续性）"
+
 
 # ── G. compute_relative_delta_g ──────────────────────────────────────
 

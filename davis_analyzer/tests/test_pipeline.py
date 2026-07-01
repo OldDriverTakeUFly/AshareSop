@@ -166,11 +166,14 @@ class TestCLISubcommands:
         captured = capsys.readouterr()
         assert "--checklist-dir" in captured.out
 
-    def test_cli_run_dry_run_prints_message(self, capsys):
+    def test_cli_run_dry_run_flag_removed(self, capsys):
+        """The ``--dry-run`` flag was a no-op (printed a message, did nothing)
+        and has been removed. argparse must now reject it."""
         with patch("sys.argv", ["davis_analyzer", "run", "--dry-run"]):
-            cli_main()
+            with pytest.raises(SystemExit):
+                cli_main()
         captured = capsys.readouterr()
-        assert "Dry-run" in captured.out
+        assert "unrecognized arguments: --dry-run" in captured.err
 
 
 # ── PipelineResult structure tests ────────────────────────────────────

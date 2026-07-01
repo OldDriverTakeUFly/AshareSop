@@ -94,3 +94,22 @@ INFLECTION_RISK_ROE_STRENGTH: float = 60.0  # ROE declining risk
 INFLECTION_RISK_CF_STRENGTH: float = 50.0  # cash-flow negative risk
 INFLECTION_RISK_DEBT_STRENGTH: float = 55.0  # debt ratio rising risk
 INFLECTION_RISK_GROWTH_STRENGTH: float = 65.0  # delta_g negative risk
+
+# ── Forecast (业绩预告) leading-indicator scoring ──
+# Forecast YoY net-profit change midpoints (p_change_min+p_change_max)/2 are
+# mapped to a 0–100 leading-indicator score, mirroring the profit-growth
+# bands so the forward signal is comparable to the realised one.
+FORECAST_HIGH_THRESHOLD: float = 50.0  # >50% midpoint → 80-100
+FORECAST_MID_THRESHOLD: float = 20.0  # 20-50% → 50-80
+FORECAST_LOW_THRESHOLD: float = 0.0  # 0-20% → 25-50, <0 → 0-20
+
+# Distance (in calendar days) from the forecast announcement to today, beyond
+# which a forecast is considered stale. A forecast covers a fixed report
+# period and is superseded by newer pre-announcements.
+FORECAST_STALE_DAYS: int = 400
+
+# ── Holder-concentration (筹码集中度) scoring ──
+HOLDER_LOOKBACK_PERIODS: int = 4  # reporting periods scored over
+# Fractional holder-count decline over the look-back window needed for a
+# full (100) concentration score.
+HOLDER_CONCENTRATION_FULL_DECLINE: float = 0.15  # -15% holders → 100

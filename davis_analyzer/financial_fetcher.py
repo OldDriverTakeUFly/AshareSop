@@ -19,16 +19,24 @@ def _compute_date_range(periods: int) -> tuple[str, str]:
     return start.strftime("%Y%m%d"), today.strftime("%Y%m%d")
 
 
-def _safe_float(value) -> float:
+def _safe_float(value) -> float | None:
+    """Coerce *value* to float, returning ``0.0`` for non-finite numbers.
+
+    Returns ``None`` **only** when *value* is itself ``None`` — used for YoY
+    growth fields where ``None`` is a sentinel meaning "no prior-year base,
+    skip this period" (see :func:`_extract_yoy_series`). All other parse
+    failures fall back to ``0.0`` so downstream division never hits a
+    ``TypeError`` on ``None``.
+    """
     if value is None:
-        return None  # type: ignore
+        return None
     try:
         f = float(value)
         if np.isnan(f) or np.isinf(f):
             return 0.0
         return f
     except (ValueError, TypeError):
-        return None  # type: ignore
+        return 0.0
 
 
 def _calculate_yoy_growth(df: pd.DataFrame, col: str) -> pd.Series:
@@ -116,6 +124,13 @@ def fetch_financial_data(
 
     results: list[FinancialData] = []
     for _, row in merged.iterrows():
+        gross_margin = _safe_float(row.get("grossprofit_margin"))
+        rd_exp = _safe_float(row.get("rd_exp"))
+        revenue_val = _safe_float(row.get("total_revenue")) or 0.0
+        # Derive gross profit (元) from the margin % when available.
+        gross_profit = None
+        if gross_margin is not None and revenue_val:
+            gross_profit = gross_margin / 100.0 * revenue_val
         fd = FinancialData(
             ts_code=ts_code,
             report_period=str(row.get("report_period", "")),
@@ -128,6 +143,9 @@ def fetch_financial_data(
             total_assets=_safe_float(row.get("total_assets")),
             yoy_revenue_growth=_safe_float(row.get("yoy_revenue_growth")),
             yoy_profit_growth=_safe_float(row.get("yoy_profit_growth")),
+            gross_profit=gross_profit,
+            grossprofit_margin=gross_margin,
+            rd_exp=rd_exp,
         )
         results.append(fd)
 

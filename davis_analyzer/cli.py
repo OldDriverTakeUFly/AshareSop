@@ -36,7 +36,6 @@ def main() -> None:
 
 def _add_run_parser(subparsers) -> None:
     run_parser = subparsers.add_parser("run", help="运行估值筛选分析")
-    run_parser.add_argument("--dry-run", action="store_true", help="使用缓存数据，不调用API")
     run_parser.add_argument("--top", type=int, default=30, help="输出前N个标的 (默认30)")
     run_parser.add_argument("--output", type=str, default=None, help="报告输出目录")
 
@@ -70,11 +69,6 @@ def _add_rescore_parser(subparsers) -> None:
 def _run_pipeline(args: argparse.Namespace):
     """Shared pipeline invocation for run / deep-research / rescore."""
     from davis_analyzer.pipeline import run_screening_pipeline
-
-    if getattr(args, "dry_run", False):
-        print("\nDry-run mode: pipeline dry_run relies on cache availability.")
-        print("Use without --dry-run for a full screening run.\n")
-        return None
 
     logger.info("Starting Davis Double screening pipeline...")
     try:
@@ -120,8 +114,6 @@ def _run_command(args: argparse.Namespace) -> None:
         except Exception as exc:
             logger.error("Report generation failed: {}", exc)
             print(f"\n报告生成失败: {exc}")
-
-    print("\nRe-run without --dry-run for live data.")
 
 
 def _deep_research_command(args: argparse.Namespace) -> None:

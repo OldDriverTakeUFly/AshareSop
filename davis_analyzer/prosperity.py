@@ -29,22 +29,7 @@ def calculate_revenue_score(revenue_history: list[float]) -> float:
         < 0 %          → 0–20
     Recent quarters are weighted more heavily via exponential decay.
     """
-    revenue_history = [g for g in revenue_history if math.isfinite(g)]
-    if not revenue_history:
-        return 0.0
-
-    decay = SCORING_DECAY_FACTOR
-    total_weight = 0.0
-    weighted_sum = 0.0
-
-    for i, g in enumerate(revenue_history):
-        w = decay**i
-        total_weight += w
-        raw = _growth_to_raw_score(g)
-        weighted_sum += raw * w
-
-    avg = weighted_sum / total_weight
-    return _clamp(avg)
+    return _decay_weighted_score(revenue_history, _growth_to_raw_score)
 
 
 def calculate_profit_score(profit_history: list[float]) -> float:
@@ -57,19 +42,29 @@ def calculate_profit_score(profit_history: list[float]) -> float:
         < 0 %          → 0–20
     Recent quarters are weighted more heavily via exponential decay.
     """
-    profit_history = [g for g in profit_history if math.isfinite(g)]
-    if not profit_history:
+    return _decay_weighted_score(profit_history, _growth_to_raw_score_profit)
+
+
+def _decay_weighted_score(
+    growth_history: list[float], raw_fn
+) -> float:
+    """Exponential-decay weighted average of ``raw_fn(g)`` over the series.
+
+    Shared by revenue and profit scoring — the only difference between them
+    is the per-period raw-score mapping (``raw_fn``).
+    """
+    growth_history = [g for g in growth_history if math.isfinite(g)]
+    if not growth_history:
         return 0.0
 
     decay = SCORING_DECAY_FACTOR
     total_weight = 0.0
     weighted_sum = 0.0
 
-    for i, g in enumerate(profit_history):
+    for i, g in enumerate(growth_history):
         w = decay**i
         total_weight += w
-        raw = _growth_to_raw_score_profit(g)
-        weighted_sum += raw * w
+        weighted_sum += raw_fn(g) * w
 
     avg = weighted_sum / total_weight
     return _clamp(avg)

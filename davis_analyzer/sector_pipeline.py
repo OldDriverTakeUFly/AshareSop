@@ -125,6 +125,9 @@ def run_prosperity_sector_pipeline(
     )
     logger.info("Aggregated {} industries", len(industry_scores))
 
+    # Must populate relative_delta_g before Step 6 (screen_g_delta_g_ignition
+    # reads it). build_stock_details (Step 7) re-runs this idempotently, which
+    # is harmless — keeping both so each step is self-sufficient.
     compute_relative_delta_g(prosperity_scores, stock_infos)
 
     # ── Step 6/8: Screen G+ΔG ignition ──

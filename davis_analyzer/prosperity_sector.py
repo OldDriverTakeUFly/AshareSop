@@ -328,9 +328,11 @@ def build_stock_details(
             asset_turnover = (
                 latest_fd.revenue / latest_fd.total_assets if latest_fd.total_assets else 0.0
             )
-            leverage_ratio = (
-                latest_fd.total_debt / latest_fd.total_assets if latest_fd.total_assets else 0.0
-            )
+            # DuPont leverage must be the equity multiplier (assets/equity),
+            # matching report_generator.py and the standard DuPont identity.
+            # Using debt/assets here (a 0–1 ratio) would misattribute the driver.
+            equity = latest_fd.total_assets - latest_fd.total_debt
+            leverage_ratio = latest_fd.total_assets / equity if abs(equity) > 1e-9 else 0.0
             details[ts_code].dupont_driver = dupont_decomposition(
                 latest_fd.roe, net_margin, asset_turnover, leverage_ratio
             )

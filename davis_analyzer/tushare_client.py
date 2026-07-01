@@ -80,6 +80,9 @@ def _init_cache_db(db_path: Path) -> None:
                 PRIMARY KEY (ts_code, end_date, endpoint)
             )
             """)
+        # Event-style endpoints (forecast / holder-number) are keyed the same
+        # way as financials (ts_code + end_date + endpoint), so they reuse the
+        # generic incremental-fetch path via _get_financial.
         conn.commit()
 
 
@@ -261,7 +264,38 @@ class TushareClient:
         return self._get_financial(
             "fina_indicator",
             self._pro.fina_indicator,
-            "ts_code,end_date,roe,eps,dt_eps,revenue_ps",
+            "ts_code,end_date,roe,eps,dt_eps,revenue_ps,grossprofit_margin,rd_exp",
+            ts_code,
+            start_date,
+            end_date,
+        )
+
+    def get_forecast(self, ts_code: str, start_date: str, end_date: str) -> pd.DataFrame:
+        """Return 业绩预告 (earnings pre-announcement) rows.
+
+        Cached per ``(ts_code, end_date)`` via the same incremental path as
+        financial data. Fields: ts_code, ann_date, end_date, type,
+        p_change_min, p_change_max.
+        """
+        return self._get_financial(
+            "forecast",
+            self._pro.forecast,
+            "ts_code,ann_date,end_date,type,p_change_min,p_change_max",
+            ts_code,
+            start_date,
+            end_date,
+        )
+
+    def get_stk_holdernumber(self, ts_code: str, start_date: str, end_date: str) -> pd.DataFrame:
+        """Return 股东户数 (shareholder count) rows for chip-concentration.
+
+        Cached per ``(ts_code, end_date)``. Fields: ts_code, ann_date,
+        end_date, holder_num.
+        """
+        return self._get_financial(
+            "stk_holdernumber",
+            self._pro.stk_holdernumber,
+            "ts_code,ann_date,end_date,holder_num",
             ts_code,
             start_date,
             end_date,

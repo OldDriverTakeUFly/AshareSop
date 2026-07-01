@@ -44,7 +44,10 @@ def run_screening_pipeline(
     """Execute the full Davis Double Play screening pipeline.
 
     Args:
-        dry_run: If True, only use cached data. Returns empty list if no cache.
+        dry_run: When True and the TushareClient cannot be created (e.g. no
+            token), return an empty result instead of raising. This is *not*
+            a cache-only mode — the pipeline still issues live API calls once
+            the client exists. True offline replay is not implemented.
         top_n: Number of top-ranked stocks to return.
 
     Returns:

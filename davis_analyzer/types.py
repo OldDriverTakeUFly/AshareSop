@@ -35,6 +35,13 @@ class FinancialData:
     total_assets: float
     yoy_revenue_growth: float | None = None
     yoy_profit_growth: float | None = None
+    # Profitability-quality fields (added for margin-trend engine).
+    # gross_profit is the gross profit (元); grossprofit_margin is the Tushare
+    # percentage. rd_exp is R&D expense (元). All default None because older
+    # cached fina_indicator payloads predate this fetch and lack the columns.
+    gross_profit: float | None = None
+    grossprofit_margin: float | None = None
+    rd_exp: float | None = None
 
 
 @dataclass
@@ -160,3 +167,39 @@ class ProsperitySectorResult:
     prosperity_scores: dict[str, ProsperityScore]
     financial_data: dict[str, list[FinancialData]]
     analysis_date: str
+
+
+@dataclass
+class ForecastSignal:
+    """业绩预告 (earnings pre-announcement) leading-indicator result.
+
+    Wraps a single most-relevant forecast row and a derived 0–100
+    leading-indicator score. ``p_change_mid`` is the midpoint of the
+    announced YoY net-profit change range.
+    """
+
+    ts_code: str
+    ann_date: str  # YYYYMMDD disclosure date of the pre-announcement
+    end_date: str  # report period the forecast covers, e.g. "20251231"
+    type: str  # 预增/预减/续亏/扭亏/首亏/略增/略减 …
+    p_change_min: float | None  # lower bound of YoY net-profit change (%)
+    p_change_max: float | None  # upper bound of YoY net-profit change (%)
+    p_change_mid: float | None  # midpoint, None when either bound missing
+    leading_score: float  # 0–100 forward-looking prosperity score
+    is_stale: bool  # True when ann_date older than FORECAST_STALE_DAYS
+
+
+@dataclass
+class HolderConcentration:
+    """筹码集中度 (chip concentration) from holder-count trend.
+
+    ``holder_counts`` and ``periods`` are chronologically ordered (oldest →
+    newest). A declining holder count signals 筹码集中 / 主力收集 (bullish).
+    """
+
+    ts_code: str
+    holder_counts: list[int]  # chronological, oldest first
+    periods: list[str]  # matching report periods (end_date)
+    concentration_score: float  # 0–100, higher = more concentrated
+    trend: str  # "集中(动能增强)" | "分散(动能减弱)" | "数据不足"
+    latest_chg_pct: float | None  # QoQ % change of the most recent period

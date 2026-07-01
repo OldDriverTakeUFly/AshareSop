@@ -91,12 +91,14 @@ def detect_cyclical(industry: str) -> bool:
 
 
 def handle_negative_eps(pe_values: list[float]) -> bool:
-    """Return True if any PE value is negative or near-zero (< EPS_NEAR_ZERO_THRESHOLD).
+    """Return True if any PE value is negative or near-zero.
 
     When True, PE is unreliable and PB should be used instead.
+    ``EPS_NEAR_ZERO_THRESHOLD`` (0.01) already covers negative values, so a
+    separate ``pe < 0`` check would be a dead branch.
     """
     for pe in pe_values:
-        if pe < 0 or pe < EPS_NEAR_ZERO_THRESHOLD:
+        if pe < EPS_NEAR_ZERO_THRESHOLD:
             return True
     return False
 

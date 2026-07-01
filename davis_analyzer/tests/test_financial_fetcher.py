@@ -33,7 +33,18 @@ class TestSafeFloat:
         assert _safe_float("3.14") == 3.14
 
     def test_invalid_string(self):
-        assert _safe_float("abc") is None
+        # Unparseable garbage is NOT a "skip period" sentinel, so it falls
+        # back to 0.0 rather than propagating None into downstream division.
+        assert _safe_float("abc") == 0.0
+
+    def test_garbage_never_returns_none(self):
+        """Regression: only ``None`` input may return ``None``. Any other
+        unparseable value must yield ``0.0`` so downstream code dividing by a
+        coerced field never hits ``TypeError: NoneType``."""
+        for bad in ["abc", object(), float("nan"), ""]:
+            result = _safe_float(bad)
+            assert result is not None, f"_safe_float({bad!r}) returned None"
+            assert isinstance(result, float)
 
 
 class TestCalculateYoyGrowth:
