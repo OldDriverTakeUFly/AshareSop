@@ -208,6 +208,8 @@ This runs after the evening data collection scripts finish. It produces the main
 
 3.5. **情绪温度计校准**——查当前月份的日历效应基准（见 `.agents/skills/after-hours-review/references/calendar-effect-baseline.md`），在 §1 市场环境评估的"综合判断"中标注：当前月份历史均值/胜率 + 今日走势是"符合季节性"还是"反季节异常"。这有助于校准仓位建议的激进/保守程度（如 2 月偏热可适当积极，1 月偏冷宜防守）。
 
+3.6. **大盘技术面预期（自动注入）**——`generate_premarket_report.py` 会自动读取前一交易日的 `index_technical` 数据（由 daily-market-scan Wave 2 采集），并据此填充 §1.4 综合判断（市场情绪/信心度/建议总仓位）+ 生成 §1.5 大盘技术面预期表。技术面基于 6 阶段趋势识别（主升/上涨中回调/高位震荡筑顶/主跌/下跌中反弹/低位筑底），每阶段对应盘前预期行为（如主跌浪→空仓观望，严禁抢反弹）。agent 无需手动填写 §1.4/§1.5，但应在 §3 持仓决策时参考技术面信号——若技术面"高位震荡筑顶/主跌浪"，应克制加仓冲动；若"主升浪/低位筑底"，可适度积极。**技术面是"避免梭哈"的硬约束**。
+
 4. **Evaluate each holding** using the four-dimension framework from SOP §5:
    - **Logic status** (✅完好 / ⚠️动摇 / ❌破坏): Has the original investment thesis changed? Check supply chain data and domestic events for the holding's sector.
    - **Event impact** (🟢无 / 🟡轻微 / 🟠中度 / 🔴严重): Are there events in `invest_domestic_events` affecting this holding or its sector?

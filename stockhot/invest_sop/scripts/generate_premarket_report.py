@@ -71,7 +71,12 @@ def _fetch_active_holdings() -> list[dict]:
         conn.close()
 
 
-def build_section_1(overseas: dict | None, events: list[dict], futures: dict | None) -> str:
+def build_section_1(
+    overseas: dict | None,
+    events: list[dict],
+    futures: dict | None,
+    index_technical: dict | None = None,
+) -> str:
     lines = ["## 一、市场环境评估\n"]
     lines.append("### 1.1 海外市场")
 
@@ -116,13 +121,109 @@ def build_section_1(overseas: dict | None, events: list[dict], futures: dict | N
     lines.append("|------|----------|----------|")
     lines.append(f"| {NA} | | |")
 
+    # §1.4 综合判断 — 基于 index_technical 自动填充（若前一交易日数据可用）
     lines.append("")
     lines.append("### 1.4 综合判断")
-    lines.append("- 市场情绪：🟡中性")
-    lines.append("- 信心度：-/5分")
-    lines.append("- 建议总仓位：-%- -%")
+    sentiment, confidence, position_range, tech_summary = _derive_market_sentiment(index_technical)
+    lines.append(f"- 市场情绪：{sentiment}")
+    lines.append(f"- 信心度：{confidence}/5分")
+    lines.append(f"- 建议总仓位：{position_range}")
+    if tech_summary:
+        lines.append(f"- 技术面依据：{tech_summary}")
+
+    # §1.5 大盘技术面预期 — 展示前一交易日收盘后的指数技术面（盘前用 T-1 数据）
+    lines.append("")
+    lines.append("### 1.5 大盘技术面预期（前一交易日收盘）")
+    tech_table = _format_index_technical_for_premarket(index_technical)
+    lines.append(tech_table)
 
     return "\n".join(lines)
+
+
+def _derive_market_sentiment(index_technical: dict | None) -> tuple[str, str, str, str]:
+    """从 index_technical 数据推导市场情绪/信心度/仓位建议。
+
+    基于前一交易日（T-1）的指数技术面，给出 T 日的盘前预期：
+    - 市场情绪：综合技术评分（强势=🟢/震荡=🟡/弱势=🔴）
+    - 信心度：各指数阶段反推（主升/筑底=4-5分；回调/反弹=2-3分；筑顶/主跌=1-2分）
+    - 建议总仓位：信心度映射（1分=0-20%、2分=20-40%、3分=40-60%、4分=60-80%、5分=80-100%）
+    """
+    if not index_technical or index_technical.get("status") != "success":
+        return ("🟡中性（技术面数据不可用）", "-", "-%- -%", "")
+
+    indices = index_technical.get("indices", {})
+    success_indices = [r for r in indices.values() if r.get("status") == "success"]
+    if not success_indices:
+        return ("🟡中性（技术面数据不可用）", "-", "-%- -%", "")
+
+    # 综合技术评分均值 → 情绪
+    avg_score = sum(r.get("technical_score", 50) for r in success_indices) / len(success_indices)
+    if avg_score > 65:
+        sentiment = f"🟢偏强（技术评分 {avg_score:.1f}）"
+    elif avg_score < 35:
+        sentiment = f"🔴偏弱（技术评分 {avg_score:.1f}）"
+    else:
+        sentiment = f"🟡中性（技术评分 {avg_score:.1f}）"
+
+    # 各指数信心度均值 → 总信心度
+    avg_conf = sum(r.get("confidence_score", 2) for r in success_indices) / len(success_indices)
+    confidence = max(1, min(5, round(avg_conf)))
+
+    # 信心度 → 仓位区间映射
+    position_map = {
+        1: "0%-20%（低仓位，防御为主）",
+        2: "20%-40%（轻仓，谨慎参与）",
+        3: "40%-60%（中等仓位，均衡配置）",
+        4: "60%-80%（较高仓位，适度进攻）",
+        5: "80%-100%（高仓位，积极配置）",
+    }
+    position_range = position_map[confidence]
+
+    summary = index_technical.get("summary", "")
+    return (sentiment, str(confidence), position_range, summary)
+
+
+def _format_index_technical_for_premarket(index_technical: dict | None) -> str:
+    """格式化 index_technical 为盘前报告的 §1.5 表格。"""
+    if not index_technical or index_technical.get("status") != "success":
+        return f"> {NA}（前一交易日 index_technical 未采集，请先运行 daily-market-scan）"
+
+    indices = index_technical.get("indices", {})
+    trade_date = indices.get("000001.SH", {}).get("trade_date", "?") if indices else "?"
+
+    lines = [f"> 数据来源：前一交易日（{trade_date}）收盘后的 index_technical 分析\n"]
+    lines.append("| 指数 | 收盘 | 涨跌% | 技术评分 | **阶段** | 置信度 | 盘前预期 |")
+    lines.append("|------|:---:|:---:|:---:|:---:|:---:|------|")
+    for ts_code, r in indices.items():
+        if r.get("status") != "success":
+            lines.append(f"| {r.get('name', ts_code)} | — | — | — | 数据不可用 | — | — |")
+            continue
+        lines.append(
+            f"| {r['name']} | {r['close']} | {r['pct_chg']:+.2f}% | "
+            f"{r['technical_score']} | **{r['stage']}** | "
+            f"{r['stage_confidence']}% | {r['expected_action']} |"
+        )
+    lines.append(f"\n**整体技术面定性**：{index_technical.get('summary', '-')}")
+    return "\n".join(lines)
+
+
+def _fetch_latest_index_technical(date: str) -> dict | None:
+    """读取最近的 index_technical 数据（盘前用 T-1 数据）。
+
+    从 daily_data 表按 trade_date 倒序找最近一条 index_technical 记录。
+    """
+    from stockhot.storage.database import get_daily_data
+    from datetime import datetime, timedelta
+
+    # 尝试最近 5 天，找到第一条有 index_technical 的
+    base = datetime.strptime(date, "%Y-%m-%d") if isinstance(date, str) else date
+    for offset in range(0, 6):
+        try_date = (base - timedelta(days=offset)).strftime("%Y-%m-%d")
+        data = get_daily_data(try_date)
+        tech = data.get("index_technical")
+        if tech and isinstance(tech, dict) and tech.get("status") == "success":
+            return tech
+    return None
 
 
 def build_section_2(cycles: list[dict]) -> str:
@@ -269,7 +370,7 @@ def generate_template(date: str) -> str:
     ]
 
     sections = [
-        build_section_1(None, [], None),
+        build_section_1(None, [], None, None),
         build_section_2([]),
         build_section_3([]),
         build_section_holdings_monitor([], date),
@@ -294,6 +395,7 @@ def generate_report(date: str) -> str:
     futures = _fetch_futures(date)
     cycles = _fetch_cycle_assessments()
     holdings = _fetch_active_holdings()
+    index_technical = _fetch_latest_index_technical(date)
 
     parts = [
         f"# 盘前SOP报告 | {date} 星期{weekday}",
@@ -301,7 +403,7 @@ def generate_report(date: str) -> str:
     ]
 
     sections = [
-        build_section_1(overseas, events, futures),
+        build_section_1(overseas, events, futures, index_technical),
         build_section_2(cycles),
         build_section_3(holdings),
         build_section_holdings_monitor(holdings, date),

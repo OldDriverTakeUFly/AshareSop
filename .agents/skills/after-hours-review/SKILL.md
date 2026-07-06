@@ -35,6 +35,7 @@ data = get_daily_data(date)
 | `fund_flow_market` | main_net, direction | **大盘资金流方向** |
 | `broken_pool` | name, code | **炸板池** |
 | `limit_down_pool` | name, code | **跌停池** |
+| `index_technical` | indices{ts_code→{name,close,pct_chg,technical_score,technical_state,stage,stage_confidence,reasons,expected_action,ma5/10/20/60,support,resistance}}, summary | **大盘技术面（4 指数 6 阶段趋势识别）** |
 
 **数据缺失处理**：若某个 key 不存在或为空，对应报告节标注"数据不可用"，不停止。若**全部数据为空**，停止并提示用户先跑 daily-market-scan。
 
@@ -110,6 +111,23 @@ macro_md = format_macro_section(snap)  # 直接插入报告
 - 大盘主力**{净流入/净流出} {X}** 亿
 - 市场情绪：{强/中/弱}（涨停>50 且炸板率<30% 为强；涨停<20 为弱）
 - **情绪温度计**：{月份}月历史均值{X}%、胜率{Y}%（{偏热/中性/偏冷}），今日{符合季节性/反季节异常}
+
+### 大盘技术面（由 stockhot.index_technical 生成）
+
+> 数据来源：`get_daily_data(date)['index_technical']`（由 daily-market-scan Wave 2 采集）
+
+**指数技术面一览**（4 大指数 6 阶段趋势识别）：
+
+| 指数 | 收盘 | 涨跌% | 技术评分 | 状态 | **阶段** | 置信度 | 盘前预期 |
+|------|:---:|:---:|:---:|:---:|:---:|:---:|------|
+| 上证指数 | {close} | {pct}% | {score} | {state} | **{stage}** | {conf}% | {expected_action} |
+| 深证成指 | ... | | | | | | |
+| 创业板指 | ... | | | | | | |
+| 科创50 | ... | | | | | | |
+
+**整体技术面定性**：{summary（如"上证高位震荡筑顶/创业板主跌浪/科创50上涨中回调，整体偏弱，盘前不建议重仓"）}
+
+> **核心洞察**：技术面与情绪温度计的交叉印证——若情绪偏热但技术面"高位震荡筑顶/主跌浪"，警惕破位风险；若情绪偏冷但技术面"低位筑底/主升浪"，可能是左侧机会。技术面是情绪的"实证校验"。
 
 ## 二、板块涨幅排名
 

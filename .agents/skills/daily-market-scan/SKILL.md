@@ -129,8 +129,10 @@ Wave 1          Wave 2 (parallel)              Wave 3
 | Wave | Module(s) | Why this order |
 |:----:|-----------|----------------|
 | 1 | `limit_up` | Foundational upstream. Writes `limit_up_pool` to DB. All later modules that need limit-up context depend on this. |
-| 2 | `dragon_tiger` + `fund_flow` (parallel) | Neither reads the other's output. dragon_tiger is the logical downstream of limit_up (same hot stocks, seat-level view). fund_flow is independent. Both write to DB for risk_alert to consume. |
+| 2 | `dragon_tiger` + `fund_flow` + `index_technical` (parallel) | 三者互不依赖。dragon_tiger 是 limit_up 的逻辑下游（同一批热点股的席位层面）；fund_flow 独立；`index_technical` 独立（采集指数 OHLCV + 6 阶段趋势识别，不依赖任何上游）。三者都写 DB 供 risk_alert / 盘后总结 / 盘前报告消费。 |
 | 3 | `risk_alert` | Terminal module. Reads `limit_up_pool`, `dragon_tiger_detail`, and `fund_flow_sector` from DB via `get_daily_data(date)`. Must run after all three upstream modules. |
+
+> **index_technical 说明**：第 5 个模块，2026-07-06 新增。对上证/深证/创业板/科创50 做技术面分析（MA/MACD/RSI/KDJ/布林 + 6 阶段趋势识别：主升/上涨中回调/高位震荡筑顶/主跌/下跌中反弹/低位筑底），输出每阶段的盘前预期行为（避免梭哈）。与 fund_flow 平级，独立无依赖，失败不影响其他模块。详见 `stockhot/index_technical/`。
 
 ### Orchestration code pattern
 
@@ -139,6 +141,7 @@ from stockhot.limit_up import run_limit_up_analysis
 from stockhot.dragon_tiger import run_dragon_tiger_analysis
 from stockhot.fund_flow import run_fund_flow_analysis
 from stockhot.risk_alert import run_risk_alert_analysis
+from stockhot.index_technical import run_index_technical_analysis
 
 results = {}
 
@@ -148,7 +151,7 @@ try:
 except Exception as e:
     results["limit_up"] = {"date": date, "status": "数据不可用", "error": str(e)}
 
-# Wave 2: dragon_tiger + fund_flow in parallel
+# Wave 2: dragon_tiger + fund_flow + index_technical in parallel
 try:
     results["dragon_tiger"] = run_dragon_tiger_analysis(date)
 except Exception as e:
@@ -158,6 +161,14 @@ try:
     results["fund_flow"] = run_fund_flow_analysis(date)
 except Exception as e:
     results["fund_flow"] = {"date": date, "status": "数据不可用", "error": str(e)}
+
+try:
+    results["index_technical"] = run_index_technical_analysis(date)
+    # 持久化到 daily_data 表，供盘后总结/盘前报告读取
+    from stockhot.storage.database import save_daily_data
+    save_daily_data({"date": date, "index_technical": results["index_technical"]})
+except Exception as e:
+    results["index_technical"] = {"date": date, "status": "数据不可用", "error": str(e)}
 
 # Wave 3: risk_alert last (reads all upstream from DB)
 try:
@@ -198,6 +209,7 @@ The four modules hit different AKShare endpoints. Any single endpoint can fail d
 | limit_up | None. dragon_tiger and fund_flow run independently. | `limit_up_pool` is empty. High-position risk detection produces no results. Other detectors still work. |
 | dragon_tiger | None. | `dragon_tiger_detail` is empty. Abnormal volatility detection produces no results. Other detectors still work. |
 | fund_flow | None. | `fund_flow_sector` is empty. Capital flight detection produces no results. Other detectors still work. |
+| index_technical | None. 独立模块，不依赖任何上游。 | `index_technical` 数据缺失。盘后总结的"大盘技术面"章节、盘前报告的 §1.4/§1.5 技术面预期标"数据不可用"。其他模块不受影响。 |
 | risk_alert | None. Waves 1 and 2 already completed and persisted. | risk_alert result is `数据不可用`. Upstream data is still in the database for later use. |
 
 ## 6. Responsibility Boundary
