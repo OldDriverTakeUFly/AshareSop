@@ -35,16 +35,32 @@ ANALYSIS_TYPE: str = "risk_alert"
 
 
 def fetch_st_stocks() -> list[dict]:
-    """Fetch ST stock list via AkShare.
+    """Fetch ST stock list.
+
+    2026-07-07 调整：Tushare ``stock_basic`` 优先（过滤 name 含 ST），AKShare 兜底。
+    Tushare stock_basic 不含实时价，最新价/涨跌幅字段在 Tushare 路径下设为 0。
 
     Returns a list of dicts with keys: 代码, 名称, 最新价, 涨跌幅.
     """
+    # Tushare 优先
+    from stockhot.core.tushare_client_safe import safe_tushare_call
+
+    df_ts = safe_tushare_call("stock_basic", list_status="L", fields="ts_code,name")
+    if df_ts is not None and not df_ts.empty:
+        st_df = df_ts[df_ts["name"].str.contains("ST", na=False)]
+        rows = [{"代码": safe_text(r.get("ts_code")), "名称": safe_text(r.get("name")),
+                 "最新价": 0.0, "涨跌幅": 0.0} for _, r in st_df.iterrows()]
+        logger.info(f"ST stocks (Tushare): 获取 {len(rows)} 只")
+        if rows:
+            return rows
+
+    # AKShare 兜底
     df = safe_akshare_call(ak.stock_zh_a_st_em)
     if df is None or df.empty:
         logger.info("ST stocks: 无数据")
         return []
 
-    rows: list[dict] = []
+    rows = []
     for _, row in df.iterrows():
         rows.append(
             {
@@ -54,12 +70,15 @@ def fetch_st_stocks() -> list[dict]:
                 "涨跌幅": safe_float(row.get("涨跌幅")),
             }
         )
-    logger.info(f"ST stocks: 获取 {len(rows)} 只")
+    logger.info(f"ST stocks (AKShare): 获取 {len(rows)} 只")
     return rows
 
 
 def fetch_suspended_stocks() -> list[dict]:
     """Fetch suspended stock list via AkShare.
+
+    ⚠️ Tushare 无停牌股票池的等价接口，本函数保留 AKShare only。
+    若 AKShare 故障返回空，不影响其他风险检测。
 
     Returns a list of dicts with keys: 代码, 名称.
     """

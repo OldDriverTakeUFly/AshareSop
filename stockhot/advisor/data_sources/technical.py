@@ -23,6 +23,15 @@ from stockhot.technical_analyzer.indicators import (
     support_resistance,
     volume_price_analysis,
 )
+
+
+def _to_ts_code_adv(code: str) -> str:
+    """6 位纯代码 → Tushare ts_code（推断交易所后缀）。"""
+    if code.startswith(("60", "68", "90", "11", "13")):
+        return f"{code}.SH"
+    elif code.startswith(("43", "83", "87", "88")):
+        return f"{code}.BJ"
+    return f"{code}.SZ"
 from stockhot.technical_analyzer.scoring import composite_technical_score
 
 # How many calendar days of OHLCV history to fetch for indicator computation.
@@ -114,6 +123,28 @@ def fetch_technical_signal(code: str, ohlcv_df: pd.DataFrame) -> UnifiedSignal:
 
 
 def fetch_realtime_price(code: str) -> dict:
+    """获取个股最新价。
+
+    2026-07-07 调整：Tushare ``daily_basic`` 优先（最新交易日收盘），AKShare ``stock_zh_a_spot_em`` 兜底。
+    注意：Tushare daily_basic 是收盘数据（非盘中实时），盘后/盘前场景够用；
+    若需盘中实时价，AKShare spot 路径在盘中调用时仍有效。
+    """
+    # Tushare 优先
+    from stockhot.core.tushare_client_safe import safe_tushare_call
+
+    ts_code = code if "." in code else _to_ts_code_adv(code)
+    df_ts = safe_tushare_call("daily_basic", ts_code=ts_code, limit=1)
+    if df_ts is not None and not df_ts.empty:
+        r = df_ts.iloc[0]
+        return {
+            "code": code,
+            "current_price": float(r["close"]) if pd.notna(r.get("close")) else None,
+            "change_pct": float(r.get("pct_chg")) if pd.notna(r.get("pct_chg")) else None,
+            "volume": float(r.get("vol")) if pd.notna(r.get("vol")) else None,
+            "timestamp": str(r.get("trade_date", date.today().isoformat())),
+        }
+
+    # AKShare 兜底
     df = safe_akshare_call(ak.stock_zh_a_spot_em)
 
     if df is None or df.empty:

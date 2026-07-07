@@ -37,22 +37,12 @@ def _fetch_market_fund_flow_tushare(days: int = 30) -> list[dict]:
     date, main_net (亿), main_pct, huge_net, large_net, medium_net, small_net.
     """
     try:
-        import os
         from datetime import datetime, timedelta
-
-        import tushare as ts
-        from dotenv import load_dotenv
-
-        load_dotenv()
-        token = os.environ.get("TUSHARE_TOKEN")
-        if not token:
-            return []
-        ts.set_token(token)
-        pro = ts.pro_api()
+        from stockhot.core.tushare_client_safe import safe_tushare_call
 
         end = datetime.now().strftime("%Y%m%d")
         start = (datetime.now() - timedelta(days=days)).strftime("%Y%m%d")
-        df = pro.moneyflow_mkt_dc(start_date=start, end_date=end)
+        df = safe_tushare_call("moneyflow_mkt_dc", start_date=start, end_date=end)
         if df is None or df.empty:
             logger.info(f"fetch_market_fund_flow (Tushare): no data {start}-{end}")
             return []
@@ -164,11 +154,16 @@ def fetch_market_fund_flow() -> list[dict]:
     Returns a list of dicts with normalised field names.
     """
     df = safe_akshare_call(ak.stock_market_fund_flow)
-    if df is None or df.empty:
-        logger.warning("fetch_market_fund_flow: AkShare empty, trying Tushare fallback")
-        return _fetch_market_fund_flow_tushare()
+    # 2026-07-07 调整：Tushare 优先，AKShare 兜底（反转原顺序）
+    rows = _fetch_market_fund_flow_tushare()
+    if rows:
+        return rows
+    logger.info("fetch_market_fund_flow: Tushare empty, trying AKShare fallback")
 
-    rows: list[dict] = []
+    if df is None or df.empty:
+        return []
+
+    rows = []
     for _, row in df.iterrows():
         raw_date = safe_text(row.get("日期"))
         if not raw_date:
@@ -185,7 +180,7 @@ def fetch_market_fund_flow() -> list[dict]:
                 "small_net": safe_float(row.get("小单净流入-净额")) / 1e8,
             }
         )
-    logger.info(f"fetch_market_fund_flow: {len(rows)} rows")
+    logger.info(f"fetch_market_fund_flow (AKShare fallback): {len(rows)} rows")
     return rows
 
 
@@ -354,6 +349,54 @@ def fetch_sector_fund_flow(
     return _fetch_sector_fund_flow_ths()
 
 
+def _fetch_individual_fund_flow_tushare(stock: str, market: str = "sh") -> list[dict]:
+    """Tushare moneyflow 取个股资金流（主源）。
+
+    moneyflow 字段（单位万元）：trade_date, ts_code, buy_sm_amount/sm_vol_amount(小单买/卖),
+    buy_md_amount/md_vol_amount(中单), buy_lg_amount/lg_vol_amount(大单),
+    buy_elg_amount/elg_vol_amount(超大单), net_mf_amount(主力净流入)。
+    """
+    from datetime import datetime, timedelta
+    from stockhot.core.tushare_client_safe import safe_tushare_call
+
+    # 构造 ts_code
+    ts_code = f"{stock}.{market.upper()}" if "." not in stock else stock
+    end = datetime.now().strftime("%Y%m%d")
+    start = (datetime.now() - timedelta(days=30)).strftime("%Y%m%d")
+    df = safe_tushare_call("moneyflow", ts_code=ts_code, start_date=start, end_date=end)
+    if df is None or df.empty:
+        return []
+
+    rows: list[dict] = []
+    for _, r in df.iterrows():
+        # moneyflow 单位是万元，转亿元
+        buy_elg = safe_float(r.get("buy_elg_amount"))
+        sell_elg = safe_float(r.get("elg_vol_amount"))
+        buy_lg = safe_float(r.get("buy_lg_amount"))
+        sell_lg = safe_float(r.get("lg_vol_amount"))
+        buy_md = safe_float(r.get("buy_md_amount"))
+        sell_md = safe_float(r.get("md_vol_amount"))
+        buy_sm = safe_float(r.get("buy_sm_amount"))
+        sell_sm = safe_float(r.get("sm_vol_amount"))
+        huge_net = (buy_elg - sell_elg) / 1e4 if buy_elg is not None and sell_elg is not None else 0.0
+        large_net = (buy_lg - sell_lg) / 1e4 if buy_lg is not None and sell_lg is not None else 0.0
+        medium_net = (buy_md - sell_md) / 1e4 if buy_md is not None and sell_md is not None else 0.0
+        small_net = (buy_sm - sell_sm) / 1e4 if buy_sm is not None and sell_sm is not None else 0.0
+        rows.append({
+            "date": safe_text(r.get("trade_date")),
+            "close_price": 0.0,  # moneyflow 不含 close，由上层补
+            "change_pct": safe_float(r.get("pct_change")),
+            "main_net": huge_net + large_net,
+            "huge_net": huge_net,
+            "large_net": large_net,
+            "medium_net": medium_net,
+            "small_net": small_net,
+        })
+    rows.sort(key=lambda x: x["date"])
+    logger.info(f"fetch_individual_fund_flow (Tushare, {ts_code}): {len(rows)} rows")
+    return rows
+
+
 def fetch_individual_fund_flow(
     stock: str,
     market: str = "sh",
@@ -371,7 +414,14 @@ def fetch_individual_fund_flow(
     - 大单净流入-净额   → large_net
     - 中单净流入-净额   → medium_net
     - 小单净流入-净额   → small_net
+
+    2026-07-07 调整：Tushare ``moneyflow`` 优先，AKShare 兜底。
     """
+    # Tushare 优先路径
+    ts_rows = _fetch_individual_fund_flow_tushare(stock, market)
+    if ts_rows:
+        return ts_rows
+
     df = safe_akshare_call(
         ak.stock_individual_fund_flow,
         stock=stock,

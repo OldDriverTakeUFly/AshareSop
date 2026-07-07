@@ -60,9 +60,16 @@ Before running this skill, verify the following:
 
 3. **Trade date is confirmed.** The agent needs a date string in `YYYY-MM-DD` format. If the user does not specify, default to today. On non-trading days, modules return `{"status": "no_data"}`.
 
-4. **Rate limiter is active.** AKShare calls go through `stockhot.core.rate_limiter.safe_akshare_call`, which throttles requests. Large date ranges may take time.
+4. **Rate limiter is active.** AKShare calls go through `stockhot.core.rate_limiter.safe_akshare_call`; Tushare calls go through `stockhot.core.tushare_client_safe.safe_tushare_call`. Both throttle requests. Large date ranges may take time.
 
 5. **Python 3.12 or later** is active in the project environment.
+
+6. **数据源策略（2026-07-07 调整）**：所有模块以 **Tushare 为第一数据源，AKShare 为 fallback**。详见 `.agents/skills/data-source-convention.md`。具体映射：
+   - limit_up：`limit_list_d`（U/D/Z 一接口三用）→ AKShare `stock_zt_pool_*_em` 兜底
+   - dragon_tiger：`top_list` + `top_inst` → AKShare `stock_lhb_*_em` 兜底；**活跃营业部 `stock_lhb_hyyyb_em` 保留 AKShare only（Tushare 无等价）**
+   - fund_flow：`moneyflow_mkt_dc`（大盘）/ `moneyflow`（个股）→ AKShare 兜底
+   - risk_alert：ST 股票用 `stock_basic` 过滤；**停牌池 `stock_zh_a_stop_em` 保留 AKShare only（Tushare 无等价）**
+   - index_technical：`index_daily` → AKShare `stock_zh_index_daily` 兜底
 
 ## 3. The Four Modules
 

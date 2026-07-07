@@ -75,7 +75,7 @@ def _fetch_via_tushare(ts_code: str, days: int) -> pd.DataFrame:
 
 
 def fetch_index_ohlcv(ts_code: str, days: int = 120) -> pd.DataFrame:
-    """采集指数 OHLCV，双源 fallback（AKShare → Tushare）。
+    """采集指数 OHLCV，Tushare 优先，AKShare 兜底（2026-07-07 调整）。
 
     参数：
         ts_code: Tushare 格式代码，如 "000001.SH" / "399006.SZ" / "000688.SH"
@@ -84,27 +84,18 @@ def fetch_index_ohlcv(ts_code: str, days: int = 120) -> pd.DataFrame:
     返回：
         DataFrame[index=date, columns=[open, high, low, close, volume]]，
         升序，与 stockhot.technical_analyzer.indicators 完全兼容。
-        数据不可用时返回空 DataFrame。
+        两源都失败返回空 DataFrame。
+
+    优先级：Tushare ``index_daily`` → AKShare ``stock_zh_index_daily``
     """
-    # 主源 AKShare
-    try:
-        df = _fetch_via_akshare(ts_code)
-        if not df.empty:
-            # AKShare 返回全部历史，截取最近 days 行
-            df = df.tail(days)
-            logger.info(f"fetch_index_ohlcv({ts_code}) via AKShare: {len(df)} rows")
-            return df
-    except Exception as e:
-        logger.warning(f"fetch_index_ohlcv({ts_code}) AKShare failed: {type(e).__name__}: {e}")
+    from stockhot.core.datasource import fetch_with_fallback
 
-    # Fallback Tushare
-    try:
-        df = _fetch_via_tushare(ts_code, days)
-        if not df.empty:
-            logger.info(f"fetch_index_ohlcv({ts_code}) via Tushare: {len(df)} rows")
-            return df
-    except Exception as e:
-        logger.warning(f"fetch_index_ohlcv({ts_code}) Tushare failed: {type(e).__name__}: {e}")
+    def _akshare_cropped() -> pd.DataFrame:
+        df_ak = _fetch_via_akshare(ts_code)
+        return df_ak.tail(days) if not df_ak.empty else pd.DataFrame()
 
-    logger.error(f"fetch_index_ohlcv({ts_code}): all sources failed")
-    return pd.DataFrame()
+    return fetch_with_fallback(
+        primary_fn=lambda: _fetch_via_tushare(ts_code, days),
+        fallback_fn=_akshare_cropped,
+        label=f"index_ohlcv({ts_code})",
+    )

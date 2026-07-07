@@ -4,6 +4,8 @@
 
 如果只是要快速跑一个标的的完整四维评分，**直接复制 `davis_analyzer/studies/tianyue_scoring.py` 改 `TS_CODE`**，不要从零拼。本指南适用于需要灵活取数的场景。
 
+> **数据源规范（2026-07-07）**：所有数据以 Tushare 为第一数据源，AKShare 为 fallback。研报场景调 Tushare 底层接口时，优先用 `stockhot.core.tushare_client_safe.safe_tushare_call`（限频+重试+空检查），避免裸调 `pro.xxx()`。详见 `.agents/skills/data-source-convention.md`。davis_analyzer 的 `TushareClient` 已封装新端点，可直接用。
+
 ## 1. 前置：环境与 client
 
 ```python

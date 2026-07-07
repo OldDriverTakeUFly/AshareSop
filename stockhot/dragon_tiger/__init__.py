@@ -23,12 +23,34 @@ _LHB_DETAIL_FIELDS = {
     "上榜日": "list_date",
 }
 
+# Tushare top_list 字段映射（2026-07-07 新增，Tushare 优先）
+_LHB_DETAIL_FIELDS_TUSHARE = {
+    "ts_code": "code",
+    "name": "name",
+    "reason": "reason",
+    "close": "close_price",
+    "pct_change": "change_pct",
+    "net_amount": "net_buy_amount",
+    "l_buy": "buy_amount",
+    "l_sell": "sell_amount",
+    "trade_date": "list_date",
+}
+
 _INST_FIELDS = {
     "代码": "inst_code",
     "名称": "inst_name",
     "机构买入总额": "buy_amount",
     "机构卖出总额": "sell_amount",
     "机构买入净额": "net_amount",
+}
+
+# Tushare top_inst 字段映射（机构席位交易）
+_INST_FIELDS_TUSHARE = {
+    "ts_code": "inst_code",
+    "exile": "inst_name",  # top_inst 中 exile 为机构名称
+    "buy": "buy_amount",
+    "sell": "sell_amount",
+    "net": "net_amount",
 }
 
 _BROKER_FIELDS = {
@@ -79,34 +101,77 @@ def fetch_lhb_detail(start_date: str, end_date: str) -> list[dict]:
 
     Parameters use YYYY-MM-DD format internally and are converted to
     YYYYMMDD for the AkShare API.  Keep date ranges short (1-5 days).
+
+    2026-07-07 调整：Tushare ``top_list`` 优先，AKShare ``stock_lhb_detail_em`` 兜底。
     """
+    # Tushare 优先（top_list 是单日接口，按日期循环取）
+    from stockhot.core.tushare_client_safe import safe_tushare_call
+    from datetime import datetime, timedelta
+
+    start = start_date.replace("-", "")
+    end = end_date.replace("-", "")
+    all_rows: list[dict] = []
+    cur = datetime.strptime(start, "%Y%m%d")
+    end_dt = datetime.strptime(end, "%Y%m%d")
+    while cur <= end_dt:
+        d = cur.strftime("%Y%m%d")
+        df_ts = safe_tushare_call("top_list", trade_date=d)
+        if df_ts is not None and not df_ts.empty:
+            all_rows.extend(_extract_rows(df_ts, _LHB_DETAIL_FIELDS_TUSHARE))
+        cur += timedelta(days=1)
+    if all_rows:
+        logger.info(f"fetch_lhb_detail (Tushare): {len(all_rows)} rows")
+        return all_rows
+
+    # AKShare 兜底
     ak_start = to_akshare_date(start_date)
     ak_end = to_akshare_date(end_date)
-    logger.info(f"fetch_lhb_detail: {ak_start} ~ {ak_end}")
-
+    logger.info(f"fetch_lhb_detail: Tushare empty, AKShare fallback {ak_start} ~ {ak_end}")
     df = safe_akshare_call(
         ak.stock_lhb_detail_em,
         start_date=ak_start,
         end_date=ak_end,
     )
     result = _extract_rows(df, _LHB_DETAIL_FIELDS)
-    logger.info(f"fetch_lhb_detail: {len(result)} rows")
+    logger.info(f"fetch_lhb_detail (AKShare): {len(result)} rows")
     return result
 
 
 def fetch_institutional_trading(start_date: str, end_date: str) -> list[dict]:
-    """Fetch 机构买卖统计 from AkShare."""
+    """Fetch 机构买卖统计.
+
+    2026-07-07 调整：Tushare ``top_inst`` 优先，AKShare ``stock_lhb_jgmmtj_em`` 兜底。
+    """
+    # Tushare 优先
+    from stockhot.core.tushare_client_safe import safe_tushare_call
+    from datetime import datetime, timedelta
+
+    start = start_date.replace("-", "")
+    end = end_date.replace("-", "")
+    all_rows: list[dict] = []
+    cur = datetime.strptime(start, "%Y%m%d")
+    end_dt = datetime.strptime(end, "%Y%m%d")
+    while cur <= end_dt:
+        d = cur.strftime("%Y%m%d")
+        df_ts = safe_tushare_call("top_inst", trade_date=d)
+        if df_ts is not None and not df_ts.empty:
+            all_rows.extend(_extract_rows(df_ts, _INST_FIELDS_TUSHARE))
+        cur += timedelta(days=1)
+    if all_rows:
+        logger.info(f"fetch_institutional_trading (Tushare): {len(all_rows)} rows")
+        return all_rows
+
+    # AKShare 兜底
     ak_start = to_akshare_date(start_date)
     ak_end = to_akshare_date(end_date)
-    logger.info(f"fetch_institutional_trading: {ak_start} ~ {ak_end}")
-
+    logger.info(f"fetch_institutional_trading: Tushare empty, AKShare fallback")
     df = safe_akshare_call(
         ak.stock_lhb_jgmmtj_em,
         start_date=ak_start,
         end_date=ak_end,
     )
     result = _extract_rows(df, _INST_FIELDS)
-    logger.info(f"fetch_institutional_trading: {len(result)} rows")
+    logger.info(f"fetch_institutional_trading (AKShare): {len(result)} rows")
     return result
 
 

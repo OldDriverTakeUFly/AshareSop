@@ -4,6 +4,7 @@ NOTE: ST stocks and 科创板 (STAR Market, 688xxx) are excluded by the 东方�
 """
 
 import akshare as ak
+import pandas as pd
 from stockhot.core.rate_limiter import safe_akshare_call
 from stockhot.core.utils import to_akshare_date, safe_float, safe_text
 from stockhot.storage.database import save_daily_data, save_analysis_result
@@ -65,73 +66,111 @@ def run_limit_up_analysis(date: str) -> dict:
 
 
 def fetch_limit_up_pool(date: str) -> list[dict]:
-    """Fetch today's limit-up pool from AkShare.
-    Uses: ak.stock_zt_pool_em(date) — YYYYMMDD format
+    """Fetch today's limit-up pool.
+
+    数据源（2026-07-07 调整）：Tushare ``limit_list_d`` 优先 → AKShare ``stock_zt_pool_em`` 兜底。
+    Tushare 一次返回 U/D/Z 混合数据，客户端按 limit='U' 字段过滤。
     """
-    ak_date = to_akshare_date(date)
-    df = safe_akshare_call(ak.stock_zt_pool_em, date=ak_date)
-    if df.empty:
+    df = _fetch_pool_via_tushare(date, "U")
+    if df is None:
+        # Tushare 失败，走 AKShare fallback
+        ak_date = to_akshare_date(date)
+        df = safe_akshare_call(ak.stock_zt_pool_em, date=ak_date)
+    if df is None or df.empty:
         return []
 
+    # 字段映射：Tushare 英文字段 / AKShare 中文字段 → 统一 schema
     result = []
     for _, row in df.iterrows():
         result.append(
             {
-                "code": safe_text(row.get("代码")),
-                "name": safe_text(row.get("名称")),
-                "change_pct": safe_float(row.get("涨跌幅")),
-                "seal_amount": safe_float(row.get("封板资金")),
-                "max_board": safe_float(row.get("最高板")),
-                "consecutive_boards": safe_float(row.get("连板数")),
-                "sector": safe_text(row.get("所属行业")),
-                "broken_count": safe_float(row.get("炸板次数")),
-                "first_seal_time": safe_text(row.get("首次封板时间")),
-                "last_seal_time": safe_text(row.get("最后封板时间")),
-                "turnover_rate": safe_float(row.get("换手率")),
+                "code": safe_text(row.get("ts_code") or row.get("代码")),
+                "name": safe_text(row.get("name") or row.get("名称")),
+                "change_pct": safe_float(row.get("pct_chg") or row.get("涨跌幅")),
+                "seal_amount": safe_float(row.get("fd_amount") or row.get("封板资金")),
+                "max_board": safe_float(row.get("limit_times") or row.get("最高板")),
+                "consecutive_boards": safe_float(row.get("limit_times") or row.get("连板数")),
+                "sector": safe_text(row.get("industry") or row.get("所属行业")),
+                "broken_count": safe_float(row.get("open_times") or row.get("炸板次数")),
+                "first_seal_time": safe_text(row.get("first_time") or row.get("首次封板时间")),
+                "last_seal_time": safe_text(row.get("last_time") or row.get("最后封板时间")),
+                "turnover_rate": safe_float(row.get("turnover_ratio") or row.get("换手率")),
             }
         )
     return result
 
 
 def fetch_broken_pool(date: str) -> list[dict]:
-    """Fetch broken-board pool (炸板池). Note: 30-day lookback limit."""
-    ak_date = to_akshare_date(date)
-    df = safe_akshare_call(ak.stock_zt_pool_zbgc_em, date=ak_date)
-    if df.empty:
+    """Fetch broken-board pool (炸板池).
+
+    数据源：Tushare ``limit_list_d(limit='Z')`` 优先 → AKShare ``stock_zt_pool_zbgc_em`` 兜底。
+    """
+    df = _fetch_pool_via_tushare(date, "Z")
+    if df is None:
+        ak_date = to_akshare_date(date)
+        df = safe_akshare_call(ak.stock_zt_pool_zbgc_em, date=ak_date)
+    if df is None or df.empty:
         return []
 
     result = []
     for _, row in df.iterrows():
         result.append(
             {
-                "code": safe_text(row.get("代码")),
-                "name": safe_text(row.get("名称")),
-                "change_pct": safe_float(row.get("涨跌幅")),
-                "broken_count": safe_float(row.get("炸板次数")),
-                "sector": safe_text(row.get("所属行业")),
+                "code": safe_text(row.get("ts_code") or row.get("代码")),
+                "name": safe_text(row.get("name") or row.get("名称")),
+                "change_pct": safe_float(row.get("pct_chg") or row.get("涨跌幅")),
+                "broken_count": safe_float(row.get("open_times") or row.get("炸板次数")),
+                "sector": safe_text(row.get("industry") or row.get("所属行业")),
             }
         )
     return result
 
 
 def fetch_limit_down_pool(date: str) -> list[dict]:
-    """Fetch limit-down pool (跌停池). Note: 30-day lookback limit."""
-    ak_date = to_akshare_date(date)
-    df = safe_akshare_call(ak.stock_zt_pool_dtgc_em, date=ak_date)
-    if df.empty:
+    """Fetch limit-down pool (跌停池).
+
+    数据源：Tushare ``limit_list_d(limit='D')`` 优先 → AKShare ``stock_zt_pool_dtgc_em`` 兜底。
+    """
+    df = _fetch_pool_via_tushare(date, "D")
+    if df is None:
+        ak_date = to_akshare_date(date)
+        df = safe_akshare_call(ak.stock_zt_pool_dtgc_em, date=ak_date)
+    if df is None or df.empty:
         return []
 
     result = []
     for _, row in df.iterrows():
         result.append(
             {
-                "code": safe_text(row.get("代码")),
-                "name": safe_text(row.get("名称")),
-                "change_pct": safe_float(row.get("涨跌幅")),
-                "sector": safe_text(row.get("所属行业")),
+                "code": safe_text(row.get("ts_code") or row.get("代码")),
+                "name": safe_text(row.get("name") or row.get("名称")),
+                "change_pct": safe_float(row.get("pct_chg") or row.get("涨跌幅")),
+                "sector": safe_text(row.get("industry") or row.get("所属行业")),
             }
         )
     return result
+
+
+def _fetch_pool_via_tushare(date: str, limit_type: str):
+    """通过 Tushare limit_list_d 取涨跌停/炸板池。
+
+    limit_type: 'U'=涨停, 'D'=跌停, 'Z'=炸板。
+    注意：limit_list_d 的 limit 参数过滤不生效，返回 U/D/Z 混合数据，
+    需客户端按 'limit' 列自行过滤。
+
+    返回：过滤后的 DataFrame，失败返回 None（触发上层 fallback）。
+    """
+    from stockhot.core.tushare_client_safe import safe_tushare_call
+
+    tushare_date = date.replace("-", "")
+    df = safe_tushare_call("limit_list_d", trade_date=tushare_date)
+    if df is None or df.empty:
+        return None
+    # 客户端过滤
+    if "limit" in df.columns:
+        filtered = df[df["limit"] == limit_type]
+        return filtered if not filtered.empty else pd.DataFrame()
+    return df
 
 
 def analyze_seal_strength(pool: list[dict]) -> list[dict]:
