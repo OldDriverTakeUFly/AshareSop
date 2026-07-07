@@ -80,6 +80,16 @@ def _init_cache_db(db_path: Path) -> None:
                 PRIMARY KEY (ts_code, end_date, endpoint)
             )
             """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS daily_price_cache (
+                ts_code    TEXT NOT NULL,
+                trade_date TEXT NOT NULL,
+                close      REAL,
+                adj_factor REAL,
+                fetched_at REAL NOT NULL,
+                PRIMARY KEY (ts_code, trade_date)
+            )
+            """)
         # Event-style endpoints (forecast / holder-number) are keyed the same
         # way as financials (ts_code + end_date + endpoint), so they reuse the
         # generic incremental-fetch path via _get_financial.
@@ -270,6 +280,79 @@ class TushareClient:
             end_date,
         )
 
+    def get_daily_prices(self, ts_code: str, start_date: str, end_date: str) -> pd.DataFrame:
+        """Return OHLC close + adj_factor for ``ts_code`` with incremental fetch.
+
+        Merges ``daily`` (unadjusted close) with ``adj_factor`` so callers can
+        compute ``adj_close = close * adj_factor`` — the only correct way to
+        derive returns across ex-dividend days (naïve pct_chg compounding is
+        biased on ex-div days). Cached in ``daily_price_cache``.
+
+        Returns columns: ts_code, trade_date, close, adj_factor.
+        """
+        with sqlite3.connect(str(_CACHE_DB)) as conn:
+            row = conn.execute(
+                "SELECT MAX(trade_date), MAX(fetched_at) FROM daily_price_cache WHERE ts_code=?",
+                (ts_code,),
+            ).fetchone()
+
+        max_date = row[0] if row else None
+        latest_fetched = row[1] if row else None
+        fetched_today = (
+            latest_fetched is not None
+            and datetime.fromtimestamp(latest_fetched).date() == date.today()
+        )
+
+        if max_date is not None and max_date >= end_date:
+            return self._daily_prices_from_cache(ts_code, start_date, end_date)
+        if fetched_today:
+            return self._daily_prices_from_cache(ts_code, start_date, end_date)
+
+        fetch_start = _next_date_str(max_date) if max_date else start_date
+        if fetch_start < start_date:
+            fetch_start = start_date
+        if fetch_start <= end_date:
+            logger.info("Incremental daily_price: {} [{} → {}]", ts_code, fetch_start, end_date)
+            daily_df = self._call(
+                "daily",
+                self._pro.daily,
+                {
+                    "ts_code": ts_code,
+                    "start_date": fetch_start,
+                    "end_date": end_date,
+                    "fields": "ts_code,trade_date,close",
+                },
+            )
+            adj_df = self._call(
+                "adj_factor",
+                self._pro.adj_factor,
+                {
+                    "ts_code": ts_code,
+                    "start_date": fetch_start,
+                    "end_date": end_date,
+                    "fields": "ts_code,trade_date,adj_factor",
+                },
+            )
+            self._daily_prices_insert(ts_code, daily_df, adj_df)
+
+        return self._daily_prices_from_cache(ts_code, start_date, end_date)
+
+    def get_dividend(self, ts_code: str, start_date: str, end_date: str) -> pd.DataFrame:
+        """Return 分红送股 (dividend) rows, cached per (ts_code, end_date).
+
+        Fields: ts_code, end_date, ann_date, div_proc, cash_div, stk_div,
+        ex_date. Filter ``div_proc == '实施'`` upstream to count only executed
+        payouts.
+        """
+        return self._get_financial(
+            "dividend",
+            self._pro.dividend,
+            "ts_code,end_date,ann_date,div_proc,cash_div,stk_div,ex_date",
+            ts_code,
+            start_date,
+            end_date,
+        )
+
     def get_forecast(self, ts_code: str, start_date: str, end_date: str) -> pd.DataFrame:
         """Return 业绩预告 (earnings pre-announcement) rows.
 
@@ -369,6 +452,59 @@ class TushareClient:
                 INSERT OR REPLACE INTO daily_basic_cache
                     (ts_code, trade_date, pe_ttm, pb, ps, total_mv, fetched_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                records,
+            )
+            conn.commit()
+
+    @staticmethod
+    def _daily_prices_from_cache(ts_code: str, start_date: str, end_date: str) -> pd.DataFrame:
+        with sqlite3.connect(str(_CACHE_DB)) as conn:
+            rows = conn.execute(
+                """
+                SELECT ts_code, trade_date, close, adj_factor
+                FROM daily_price_cache
+                WHERE ts_code = ? AND trade_date >= ? AND trade_date <= ?
+                ORDER BY trade_date ASC
+                """,
+                (ts_code, start_date, end_date),
+            ).fetchall()
+        return pd.DataFrame(rows, columns=["ts_code", "trade_date", "close", "adj_factor"])
+
+    @staticmethod
+    def _daily_prices_insert(
+        ts_code: str, daily_df: pd.DataFrame, adj_df: pd.DataFrame
+    ) -> None:
+        if daily_df is None or daily_df.empty:
+            return
+        now = time.time()
+        # Build an adj_factor lookup keyed by trade_date.
+        adj_map: dict[str, float] = {}
+        if adj_df is not None and not adj_df.empty:
+            for r in adj_df.to_dict("records"):
+                td = str(r.get("trade_date", ""))
+                af = r.get("adj_factor")
+                if td and af is not None:
+                    adj_map[td] = float(af)
+
+        records = []
+        for r in daily_df.to_dict("records"):
+            td = str(r.get("trade_date", ""))
+            records.append(
+                (
+                    r.get("ts_code", ts_code),
+                    td,
+                    r.get("close"),
+                    adj_map.get(td),
+                    now,
+                )
+            )
+        with sqlite3.connect(str(_CACHE_DB)) as conn:
+            conn.executemany(
+                """
+                INSERT OR REPLACE INTO daily_price_cache
+                    (ts_code, trade_date, close, adj_factor, fetched_at)
+                VALUES (?, ?, ?, ?, ?)
                 """,
                 records,
             )

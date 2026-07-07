@@ -113,3 +113,24 @@ HOLDER_LOOKBACK_PERIODS: int = 4  # reporting periods scored over
 # Fractional holder-count decline over the look-back window needed for a
 # full (100) concentration score.
 HOLDER_CONCENTRATION_FULL_DECLINE: float = 0.15  # -15% holders → 100
+
+# ── Price-momentum / relative-strength (RS) scoring ──
+# Look-back windows (calendar days) for absolute momentum. Multi-window blend
+# is the canonical momentum construction (Jegadeesh-Titman style); 250d ≈ 1y.
+MOMENTUM_WINDOWS_DAYS: tuple[int, ...] = (60, 120, 250)
+# Weight of each window in the blended momentum score (must sum to 1.0).
+MOMENTUM_WINDOW_WEIGHTS: tuple[float, ...] = (0.2, 0.3, 0.5)
+# Minimum number of adjusted trading days required for a window to score.
+MOMENTUM_MIN_PRICES: int = 40
+# Annualised return (%) at which the absolute-momentum sub-score saturates at 100.
+MOMENTUM_FULL_ANNUAL_RETURN: float = 60.0
+
+# ── Dividend (红利) scoring ──
+DIVIDEND_LOOKBACK_YEARS: int = 3  # consecutive-year payout history scored
+# Indicative annual yield (%) above which the yield sub-score saturates at 100.
+DIVIDEND_FULL_YIELD_PCT: float = 5.0
+
+# ── Forecast-revision (一致预期修正) scoring ──
+# Minimum calendar days between two forecasts for the same report period to
+# count as a genuine revision rather than the same announcement re-keyed.
+FORECAST_REVISION_MIN_GAP_DAYS: int = 30

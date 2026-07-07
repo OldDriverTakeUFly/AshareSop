@@ -203,3 +203,55 @@ class HolderConcentration:
     concentration_score: float  # 0–100, higher = more concentrated
     trend: str  # "集中(动能增强)" | "分散(动能减弱)" | "数据不足"
     latest_chg_pct: float | None  # QoQ % change of the most recent period
+
+
+@dataclass
+class MomentumSignal:
+    """Price-momentum + relative-strength (RS) result.
+
+    Absolute momentum is the multi-window blended adjusted return; RS is the
+    stock's return percentile within its industry over the longest window
+    (how strong vs peers, not vs its own past). CANSLIM's "M" and "R" legs.
+    """
+
+    ts_code: str
+    window_returns: dict[int, float]  # window_days → annualised return %
+    absolute_momentum_score: float  # 0–100, blended multi-window
+    rs_percentile: float | None  # 0–100 within industry (None if no peers)
+    momentum_score: float  # 0–100 blend of absolute + RS
+    data_sufficient: bool
+
+
+@dataclass
+class DividendSignal:
+    """红利 (dividend) factor result from payout history.
+
+    Combines consecutive-year payout continuity with current indicated yield
+    (cash_div / price). Supports the 红利型 domain in multi-factor-screening.
+    """
+
+    ts_code: str
+    consecutive_years: int  # consecutive executed-payout years
+    latest_yield_pct: float | None  # cash_div / price × 100, annual
+    dividend_score: float  # 0–100 blend
+    payout_years: list[str]  # report periods (end_date) of executed payouts
+    data_sufficient: bool
+
+
+@dataclass
+class ForecastRevision:
+    """一致预期修正 (analyst/management forecast revision) result.
+
+    Detects the direction and magnitude of revisions to the same report
+    period's earnings pre-announcement — an upward revision is a strong
+    leading alpha signal (SUE-style). Built from two or more forecast rows
+    covering the same end_date.
+    """
+
+    ts_code: str
+    end_date: str  # report period the revisions target
+    initial_mid: float | None  # first announced midpoint (%)
+    revised_mid: float | None  # latest announced midpoint (%)
+    revision_pp: float | None  # revised - initial, percentage points
+    revision_direction: str  # "上调" | "下调" | "无修正" | "数据不足"
+    revision_score: float  # 0–100, 50 = no revision

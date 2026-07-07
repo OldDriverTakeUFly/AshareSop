@@ -11,7 +11,10 @@ from davis_analyzer.forecast import (
     _growth_to_forecast_score,
     _is_stale,
     _pick_most_relevant,
+    _revision_score,
+    _revisions_for_period,
     analyze_forecast,
+    analyze_forecast_revision,
 )
 from davis_analyzer.types import ProsperityScore
 
@@ -213,3 +216,131 @@ class TestAnalyzeForecast:
         # only min bound present
         row = pd.Series({"p_change_min": 40.0, "p_change_max": None})
         assert _forecast_midpoint(row) == 40.0
+
+
+# ── Forecast-revision engine ──────────────────────────────────────────
+
+
+def _fc_row(ann_date: str, end_date: str, lo: float, hi: float, type_: str = "预增") -> dict:
+    return {
+        "ts_code": "x",
+        "ann_date": ann_date,
+        "end_date": end_date,
+        "type": type_,
+        "p_change_min": lo,
+        "p_change_max": hi,
+    }
+
+
+class TestRevisionScore:
+    def test_no_revision_is_neutral(self):
+        assert _revision_score(None) == 50.0
+        assert _revision_score(0.0) == 50.0
+
+    def test_upward_revision_scores_high(self):
+        assert _revision_score(20.0) == 100.0
+
+    def test_downward_revision_scores_low(self):
+        assert _revision_score(-20.0) == 0.0
+
+    def test_symmetric(self):
+        assert _revision_score(10.0) == 75.0
+        assert _revision_score(-10.0) == 25.0
+
+
+class TestRevisionsForPeriod:
+    def test_filters_by_end_date(self):
+        df = pd.DataFrame(
+            [
+                _fc_row("20250131", "20241231", 50, 70),
+                _fc_row("20250131", "20231231", 30, 40),  # different period
+            ]
+        )
+        revs = _revisions_for_period(df, "20241231")
+        assert len(revs) == 1
+        assert revs[0]["end_date"] == "20241231"
+
+    def test_collapses_same_announcement_cycle(self):
+        # Two rows on the same day (different types) → collapsed to one
+        df = pd.DataFrame(
+            [
+                _fc_row("20250131", "20241231", 50, 70, "预增"),
+                _fc_row("20250131", "20241231", 50, 70, "略增"),
+            ]
+        )
+        revs = _revisions_for_period(df, "20241231")
+        assert len(revs) == 1
+
+    def test_keeps_genuine_revisions(self):
+        # Same period, two announcement dates 60 days apart → both kept
+        df = pd.DataFrame(
+            [
+                _fc_row("20250131", "20241231", 50, 70),
+                _fc_row("20250401", "20241231", 80, 100),
+            ]
+        )
+        revs = _revisions_for_period(df, "20241231")
+        assert len(revs) == 2
+
+
+class TestAnalyzeForecastRevision:
+    def test_no_forecast_returns_none(self):
+        c = _client_returning(pd.DataFrame())
+        assert analyze_forecast_revision(c, "x", today=TODAY) is None
+
+    def test_client_error_returns_none(self):
+        c = MagicMock()
+        c.get_forecast.side_effect = RuntimeError("api down")
+        assert analyze_forecast_revision(c, "x", today=TODAY) is None
+
+    def test_single_announcement_no_revision(self):
+        df = pd.DataFrame([_fc_row("20260131", "20251231", 50, 70)])
+        c = _client_returning(df)
+        rev = analyze_forecast_revision(c, "x", today=TODAY)
+        assert rev is not None
+        assert rev.revision_direction == "无修正"
+        assert rev.revision_score == 50.0
+        assert rev.initial_mid == 60.0
+        assert rev.revised_mid == 60.0
+
+    def test_upward_revision_detected(self):
+        df = pd.DataFrame(
+            [
+                _fc_row("20250131", "20241231", 50, 70),  # mid 60
+                _fc_row("20250401", "20241231", 80, 100),  # mid 90, +30pp
+            ]
+        )
+        c = _client_returning(df)
+        rev = analyze_forecast_revision(c, "x", end_date="20241231", today=TODAY)
+        assert rev is not None
+        assert rev.revision_direction == "上调"
+        assert rev.revision_pp == 30.0
+        assert rev.revision_score == 100.0
+
+    def test_downward_revision_detected(self):
+        df = pd.DataFrame(
+            [
+                _fc_row("20250131", "20241231", 50, 70),  # mid 60
+                _fc_row("20250401", "20241231", 20, 40),  # mid 30, -30pp
+            ]
+        )
+        c = _client_returning(df)
+        rev = analyze_forecast_revision(c, "x", end_date="20241231", today=TODAY)
+        assert rev is not None
+        assert rev.revision_direction == "下调"
+        assert rev.revision_pp == -30.0
+        assert rev.revision_score == 0.0
+
+    def test_auto_picks_most_recent_period(self):
+        # Two periods; should resolve to the newest (20251231) without end_date arg
+        df = pd.DataFrame(
+            [
+                _fc_row("20250131", "20241231", 50, 70),
+                _fc_row("20260131", "20251231", 80, 100),
+            ]
+        )
+        c = _client_returning(df)
+        rev = analyze_forecast_revision(c, "x", today=TODAY)
+        assert rev is not None
+        assert rev.end_date == "20251231"
+
