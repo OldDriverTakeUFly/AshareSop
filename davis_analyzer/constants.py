@@ -122,8 +122,16 @@ MOMENTUM_WINDOWS_DAYS: tuple[int, ...] = (60, 120, 250)
 MOMENTUM_WINDOW_WEIGHTS: tuple[float, ...] = (0.2, 0.3, 0.5)
 # Minimum number of adjusted trading days required for a window to score.
 MOMENTUM_MIN_PRICES: int = 40
-# Annualised return (%) at which the absolute-momentum sub-score saturates at 100.
-MOMENTUM_FULL_ANNUAL_RETURN: float = 60.0
+# Per-window raw-return saturation points (%, positive) at which the
+# absolute-momentum sub-score saturates at 100. We score RAW window returns
+# (not annualised) because annualising short-window returns explodes (38% in
+# 60d ≠ 500%/yr). Shorter windows get smaller saturation points since typical
+# A-share volatility scales with horizon.
+MOMENTUM_FULL_RETURN_PCT_BY_WINDOW: dict[int, float] = {
+    60: 30.0,   # +30% in 3 months → 100
+    120: 50.0,  # +50% in 6 months → 100
+    250: 100.0, # +100% in 1 year → 100
+}
 
 # ── Dividend (红利) scoring ──
 DIVIDEND_LOOKBACK_YEARS: int = 3  # consecutive-year payout history scored

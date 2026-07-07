@@ -23,15 +23,14 @@ Two sub-scores (each 0–100):
 
 from __future__ import annotations
 
-import math
-from datetime import date, datetime
+from datetime import date
 from typing import TYPE_CHECKING
 
 import pandas as pd
 from loguru import logger
 
 from davis_analyzer.constants import (
-    MOMENTUM_FULL_ANNUAL_RETURN,
+    MOMENTUM_FULL_RETURN_PCT_BY_WINDOW,
     MOMENTUM_MIN_PRICES,
     MOMENTUM_WINDOW_WEIGHTS,
     MOMENTUM_WINDOWS_DAYS,
@@ -47,30 +46,35 @@ if TYPE_CHECKING:
 _LOOKBACK_DAYS = max(MOMENTUM_WINDOWS_DAYS) + 30
 
 
-def _annualised_return(first_adj: float, last_adj: float, days: int) -> float:
-    """Annualised % return between two adjusted prices over *days* calendar days."""
-    if first_adj <= 0 or days <= 0:
+def _raw_return_pct(first_adj: float, last_adj: float) -> float:
+    """Raw % return between two adjusted prices (NOT annualised).
+
+    Annualising short-window returns produces absurd numbers (38% in 60d does
+    not mean 500%/yr); momentum scoring compares like-for-like raw window
+    returns against per-window saturation points instead.
+    """
+    if first_adj <= 0:
         return 0.0
     total_return = last_adj / first_adj - 1.0
     if total_return <= -1.0:
         return -100.0
-    years = days / 365.0
-    ann = math.pow(1.0 + total_return, 1.0 / years) - 1.0
-    return ann * 100.0
+    return total_return * 100.0
 
 
-def _return_to_score(ann_return_pct: float) -> float:
-    """Map an annualised return (%) to 0–100.
+def _return_to_score(raw_return_pct: float, window: int) -> float:
+    """Map a raw window return (%) to 0–100 using per-window saturation.
 
-    0% annualised → 50; +FULL_ANNUAL_RETURN → 100; -FULL → 0. Symmetric so
-    sharp drawdowns score near 0 and strong rallies near 100.
+    0% return → 50; +FULL (per window) → 100; -FULL → 0. Symmetric so sharp
+    drawdowns score near 0 and strong rallies near 100. Falls back to the 250d
+    saturation point if a window has no configured value.
     """
-    score = 50.0 + (ann_return_pct / MOMENTUM_FULL_ANNUAL_RETURN) * 50.0
+    full = MOMENTUM_FULL_RETURN_PCT_BY_WINDOW.get(window, 100.0)
+    score = 50.0 + (raw_return_pct / full) * 50.0
     return max(0.0, min(100.0, score))
 
 
 def _window_returns(adj_series: pd.Series, dates: pd.Series) -> dict[int, float]:
-    """Compute annualised return for each window in MOMENTUM_WINDOWS_DAYS.
+    """Compute raw % return for each window in MOMENTUM_WINDOWS_DAYS.
 
     ``adj_series`` / ``dates`` are ascending by trade_date. Returns {} when
     fewer than MOMENTUM_MIN_PRICES rows exist (insufficient data).
@@ -91,12 +95,12 @@ def _window_returns(adj_series: pd.Series, dates: pd.Series) -> dict[int, float]
             continue
         first = float(window_frame["adj"].iloc[0])
         last = float(window_frame["adj"].iloc[-1])
-        out[window] = round(_annualised_return(first, last, window), 2)
+        out[window] = round(_raw_return_pct(first, last), 2)
     return out
 
 
 def _absolute_score(window_returns: dict[int, float]) -> float:
-    """Blend per-window annualised returns into a 0–100 score.
+    """Blend per-window raw returns into a 0–100 score.
 
     Falls back to 50.0 (neutral) when no window has data.
     """
@@ -106,7 +110,7 @@ def _absolute_score(window_returns: dict[int, float]) -> float:
     weighted = 0.0
     for window, weight in zip(MOMENTUM_WINDOWS_DAYS, MOMENTUM_WINDOW_WEIGHTS):
         if window in window_returns:
-            weighted += _return_to_score(window_returns[window]) * weight
+            weighted += _return_to_score(window_returns[window], window) * weight
             total_w += weight
     if total_w == 0:
         return 50.0

@@ -9,7 +9,7 @@ import pytest
 
 from davis_analyzer.momentum import (
     _absolute_score,
-    _annualised_return,
+    _raw_return_pct,
     _return_to_score,
     _window_returns,
     analyze_momentum,
@@ -51,39 +51,48 @@ def _si(ts_code: str = "x", industry: str = "电子") -> StockInfo:
     )
 
 
-# ── _annualised_return / _return_to_score ─────────────────────────────
+# ── _raw_return_pct / _return_to_score ────────────────────────────────
 
 
-class TestAnnualisedReturn:
+class TestRawReturnPct:
     def test_positive_growth(self):
-        # 10 → 12.5 over 250 days = +25% over 0.685y → ~38.5% annualised
-        r = _annualised_return(10.0, 12.5, 250)
-        assert r == pytest.approx(38.5, abs=0.5)
+        # 10 → 12.5 = +25% raw
+        assert _raw_return_pct(10.0, 12.5) == pytest.approx(25.0)
 
     def test_zero_when_nonpositive_base(self):
-        assert _annualised_return(0.0, 10.0, 250) == 0.0
-        assert _annualised_return(10.0, 10.0, 0) == 0.0
+        assert _raw_return_pct(0.0, 10.0) == 0.0
 
     def test_total_loss_capped(self):
-        # -100%+ should not blow up
-        r = _annualised_return(10.0, 0.0, 250)
-        assert r == -100.0
+        assert _raw_return_pct(10.0, 0.0) == -100.0
+
+    def test_negative_return(self):
+        # 10 → 8 = -20%
+        assert _raw_return_pct(10.0, 8.0) == pytest.approx(-20.0)
 
 
 class TestReturnToScore:
     def test_zero_return_neutral(self):
-        assert _return_to_score(0.0) == 50.0
+        assert _return_to_score(0.0, 250) == 50.0
 
     def test_high_return_caps_100(self):
-        assert _return_to_score(120.0) == 100.0
+        # +120% in 250d window (saturation 100%) → 100
+        assert _return_to_score(120.0, 250) == 100.0
 
     def test_sharp_drawdown_zero(self):
-        assert _return_to_score(-120.0) == 0.0
+        assert _return_to_score(-120.0, 250) == 0.0
 
-    def test_symmetric(self):
-        # ±FULL gives 100/0
-        assert _return_to_score(60.0) == 100.0
-        assert _return_to_score(-60.0) == 0.0
+    def test_per_window_saturation(self):
+        # 60d window saturates at +30% → 100; 250d at +100% → 100
+        assert _return_to_score(30.0, 60) == 100.0
+        assert _return_to_score(100.0, 250) == 100.0
+        # Same raw return scores differently per window:
+        # +30% in 60d = 100, but +30% in 250d (sat 100) = 65
+        assert _return_to_score(30.0, 250) == pytest.approx(65.0)
+
+    def test_symmetric_per_window(self):
+        # ±saturation gives 100/0 for the 120d window (sat 50)
+        assert _return_to_score(50.0, 120) == 100.0
+        assert _return_to_score(-50.0, 120) == 0.0
 
 
 # ── _window_returns ───────────────────────────────────────────────────

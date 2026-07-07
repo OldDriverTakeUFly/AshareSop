@@ -114,7 +114,9 @@ def _migrate_financial(
 ) -> int:
     if df.empty or "end_date" not in df.columns:
         return 0
-    deduped = df.drop_duplicates(subset=["ts_code", "end_date"], keep="first")
+    from davis_analyzer.tushare_client import _dedupe_financial_rows
+
+    deduped = _dedupe_financial_rows(df, endpoint)
     records = []
     for r in deduped.to_dict("records"):
         records.append(

@@ -30,9 +30,12 @@ from davis_analyzer.constants import TUSHARE_RATE_LIMIT
 _CACHE_DB = CACHE_DIR / "tushare_cache.db"
 
 # Per-table TTL (seconds). Financial data is quarterly and immutable once
-# published, so it is cached permanently (no expiry).
+# published, so it is cached permanently (no expiry). Dividend history is
+# slow-moving (annual payouts) and the endpoint ignores date filters, so we
+# refresh the full history on a 7-day cycle like stock_basic.
 _TTL_STOCK_BASIC = 7 * 24 * 3600
 _TTL_DAILY_BASIC = 24 * 3600
+_TTL_DIVIDEND = 7 * 24 * 3600
 
 
 def _init_cache_db(db_path: Path) -> None:
@@ -100,6 +103,28 @@ def _next_date_str(date_str: str) -> str:
     """Return the calendar day after ``date_str`` (``YYYYMMDD``)."""
     d = datetime.strptime(date_str, "%Y%m%d").date() + timedelta(days=1)
     return d.strftime("%Y%m%d")
+
+
+def _dedupe_financial_rows(df: pd.DataFrame, endpoint: str) -> pd.DataFrame:
+    """Collapse to one row per (ts_code, end_date), endpoint-aware.
+
+    Most financial endpoints already return one row per (ts_code, end_date).
+    The dividend endpoint returns a lifecycle (预案 / 股东大会通过 / 实施) per
+    period — we keep the 实施 (executed) row when present, else the last row,
+    so the cached dividend cash_div reflects the actual payout rather than a
+    zero-value plan.
+    """
+    if df is None or df.empty or "end_date" not in df.columns:
+        return df
+    if endpoint == "dividend" and "div_proc" in df.columns:
+        # Sort so 实施 sorts last within each group, then keep last.
+        proc_rank = {"预案": 0, "董事会预案": 0, "股东大会通过": 1, "实施": 2, "不分配": 1}
+        df = df.copy()
+        df["_rank"] = df["div_proc"].fillna("").map(lambda p: proc_rank.get(p, 1))
+        df = df.sort_values(["ts_code", "end_date", "_rank"])
+        deduped = df.drop_duplicates(subset=["ts_code", "end_date"], keep="last")
+        return deduped.drop(columns=["_rank"])
+    return df.drop_duplicates(subset=["ts_code", "end_date"], keep="first")
 
 
 class TushareClient:
@@ -338,20 +363,47 @@ class TushareClient:
         return self._daily_prices_from_cache(ts_code, start_date, end_date)
 
     def get_dividend(self, ts_code: str, start_date: str, end_date: str) -> pd.DataFrame:
-        """Return 分红送股 (dividend) rows, cached per (ts_code, end_date).
+        """Return 分红送股 (dividend) rows for the requested date range.
+
+        Cached per ``(ts_code, end_date)``. NOTE: Tushare's dividend endpoint
+        silently returns EMPTY results when ``start_date``/``end_date`` are
+        passed (a documented quirk — it only honours ``ts_code``). So we fetch
+        the full history once per stock on a 7-day refresh cycle, then filter
+        to the requested range locally.
 
         Fields: ts_code, end_date, ann_date, div_proc, cash_div, stk_div,
-        ex_date. Filter ``div_proc == '实施'`` upstream to count only executed
-        payouts.
+        ex_date. The cached row per end_date is the 实施 (executed) payout
+        when available (see _dedupe_financial_rows).
         """
-        return self._get_financial(
-            "dividend",
-            self._pro.dividend,
-            "ts_code,end_date,ann_date,div_proc,cash_div,stk_div,ex_date",
-            ts_code,
-            start_date,
-            end_date,
+        # Refresh once per 7 days; dividend history is slow-moving.
+        with sqlite3.connect(str(_CACHE_DB)) as conn:
+            row = conn.execute(
+                "SELECT MAX(fetched_at) FROM financial_cache WHERE ts_code=? AND endpoint='dividend'",
+                (ts_code,),
+            ).fetchone()
+        latest_fetched = row[0] if row else None
+        now = time.time()
+        fresh = (
+            latest_fetched is not None
+            and (now - latest_fetched) < _TTL_DIVIDEND
         )
+
+        if not fresh:
+            # Full-history fetch (NO date params — the endpoint ignores them).
+            logger.info("Refreshing dividend history for {}", ts_code)
+            df = self._call(
+                "dividend",
+                self._pro.dividend,
+                {
+                    "ts_code": ts_code,
+                    "fields": "ts_code,end_date,ann_date,div_proc,cash_div,stk_div,ex_date",
+                },
+            )
+            self._financial_insert("dividend", ts_code, df)
+
+        # Serve from cache, filtered to the requested range locally.
+        df = self._financial_from_cache("dividend", ts_code, start_date, end_date)
+        return df
 
     def get_forecast(self, ts_code: str, start_date: str, end_date: str) -> pd.DataFrame:
         """Return 业绩预告 (earnings pre-announcement) rows.
@@ -563,12 +615,17 @@ class TushareClient:
 
     @staticmethod
     def _financial_insert(endpoint: str, ts_code: str, df: pd.DataFrame) -> None:
-        """Insert financial rows, one JSON payload per (ts_code, end_date)."""
+        """Insert financial rows, one JSON payload per (ts_code, end_date).
+
+        The dividend endpoint returns multiple rows per end_date (预案 / 股东大会
+        通过 / 实施). For dividend specifically we prefer the 实施 (executed)
+        row — plans get cancelled, and only 实施 has the real cash_div. Other
+        endpoints have one row per end_date and dedupe trivially.
+        """
         if df is None or df.empty:
             return
         now = time.time()
-        # Match downstream dedup semantics (one row per ts_code+end_date).
-        deduped = df.drop_duplicates(subset=["ts_code", "end_date"], keep="first")
+        deduped = _dedupe_financial_rows(df, endpoint)
         records = []
         for r in deduped.to_dict("records"):
             records.append(
