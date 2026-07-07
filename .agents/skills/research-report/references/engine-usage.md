@@ -252,11 +252,51 @@ print(f"景气度: composite={pscore.composite_score}, ΔG={pscore.delta_g}, 阶
 
 | Dataclass | 关键字段 |
 |-----------|----------|
-| `FinancialData` | ts_code, report_period, revenue, net_profit, eps, roe, operating_cf, total_debt, total_assets, yoy_revenue_growth, yoy_profit_growth |
+| `FinancialData` | ts_code, report_period, revenue, net_profit, eps, roe, operating_cf, total_debt, total_assets, yoy_revenue_growth, yoy_profit_growth, grossprofit_margin, rd_exp |
 | `ProsperityScore` | composite_score, delta_g, revenue_score, profit_score, slope_score, duration_score, relative_delta_g |
 | `ValuationData` | ts_code, trade_date, pe_ttm, pb, ps, total_mv |
 | `DistressSignal` | total_score, layer1_score, layer2_score, layer3_score, signals_detail |
 | `DavisDoubleScore` | final_score, rank, valuation_score, prosperity_score, distress_score, trend_score |
+| `MomentumSignal` | momentum_score, absolute_momentum_score, rs_percentile, window_returns |
+| `DividendSignal` | dividend_score, consecutive_years, latest_yield_pct, payout_years |
+| `ForecastSignal` | leading_score, p_change_mid, type, is_stale |
+| `ForecastRevision` | revision_direction (上调/下调/无修正), revision_pp, revision_score |
+
+### PipelineResult 的补充因子字段（Step 7.6 自动产出）
+
+`run_screening_pipeline()` 现在在返回的 `PipelineResult` 上额外挂三个补充因子 dict（**不改变 4 维 final_score**，仅作为 side-channel 信号供研报/选股消费）：
+
+```python
+result = run_screening_pipeline(top_n=30)
+
+# 1. 价格动量 + 行业 RS（CANSLIM M+R 腿，真实复权收益，非估值趋势）
+result.momentum_signals  # dict[ts_code, MomentumSignal]
+
+# 2. 红利因子（连续派息年数 + 年化股息率，红利型选股用）
+result.dividend_signals  # dict[ts_code, DividendSignal]  # 永不缺，非派息股地板分 10
+
+# 3. 业绩预告前瞻信号（leading_score，0-100）
+result.forecast_signals  # dict[ts_code, ForecastSignal]  # 无预告的股票不在 dict 里
+```
+
+**单股按需调用**（不跑全 pipeline 时）：
+
+```python
+from davis_analyzer.tushare_client import TushareClient
+from davis_analyzer.momentum import analyze_momentum
+from davis_analyzer.dividend import analyze_dividend
+from davis_analyzer.forecast import analyze_forecast, analyze_forecast_revision
+from davis_analyzer.holder_concentration import analyze_holder_concentration
+from davis_analyzer.profitability import analyze_profitability_quality
+
+client = TushareClient()
+mom = analyze_momentum(client, "603690.SH")        # MomentumSignal | None
+div = analyze_dividend(client, "603690.SH")         # DividendSignal (永不为 None)
+fc = analyze_forecast(client, "603690.SH")          # ForecastSignal | None
+rev = analyze_forecast_revision(client, "603690.SH")  # ForecastRevision | None
+hc = analyze_holder_concentration(client, "603690.SH")  # HolderConcentration | None
+pq = analyze_profitability_quality(fin_list)        # ProfitabilityQuality (纯计算，无需 client)
+```
 
 ## 10. 数据时效性校验（写报告前必做）
 

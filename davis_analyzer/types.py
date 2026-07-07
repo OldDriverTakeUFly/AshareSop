@@ -96,6 +96,13 @@ class PipelineResult:
     distress_signals: dict[str, "DistressSignal"]
     financial_data: dict[str, list["FinancialData"]]
     trend_scores: dict[str, float] = field(default_factory=dict)
+    # Supplementary factor signals (always-on from Step 7.6). All default to
+    # empty so old persisted task files (pre-dating these fields) deserialize
+    # cleanly — persistence.py reconstructs them with **kwargs and falls back
+    # to {} when the key is absent.
+    momentum_signals: dict[str, "MomentumSignal"] = field(default_factory=dict)
+    dividend_signals: dict[str, "DividendSignal"] = field(default_factory=dict)
+    forecast_signals: dict[str, "ForecastSignal"] = field(default_factory=dict)
 
 
 @dataclass
@@ -220,6 +227,14 @@ class MomentumSignal:
     rs_percentile: float | None  # 0–100 within industry (None if no peers)
     momentum_score: float  # 0–100 blend of absolute + RS
     data_sufficient: bool
+
+    def __post_init__(self) -> None:
+        # JSON round-trips coerce int keys to strings; coerce back so engine
+        # consumers always get dict[int, float] regardless of input source.
+        if self.window_returns and not isinstance(
+            next(iter(self.window_returns)), int
+        ):
+            self.window_returns = {int(k): float(v) for k, v in self.window_returns.items()}
 
 
 @dataclass

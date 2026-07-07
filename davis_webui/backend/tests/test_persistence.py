@@ -38,6 +38,43 @@ def test_serialize_deserialize_roundtrip(mock_pipeline_result):
     assert isinstance(deserialized.distress_signals["000001.SZ"].signals_detail, dict)
 
 
+def test_factor_signals_roundtrip(mock_pipeline_result):
+    """Supplementary factor dicts survive serialize → JSON → deserialize."""
+    task_info = _make_task_info("test-factors", mock_pipeline_result)
+    data = serialize_result("test-factors", task_info, mock_pipeline_result)
+    json_str = json.dumps(data, allow_nan=False)
+    deserialized = deserialize_result(json.loads(json_str))
+
+    code = mock_pipeline_result.scores[0].ts_code
+    assert code in deserialized.momentum_signals
+    assert code in deserialized.dividend_signals
+    assert code in deserialized.forecast_signals
+    # Values preserved through the round-trip.
+    assert deserialized.momentum_signals[code].momentum_score == 67.5
+    assert deserialized.dividend_signals[code].latest_yield_pct == 4.2
+    assert deserialized.forecast_signals[code].leading_score == 85.0
+    # window_returns dict (non-trivial value) survives.
+    assert deserialized.momentum_signals[code].window_returns == {60: 12.0}
+
+
+def test_old_task_file_without_factor_keys_deserializes(mock_pipeline_result):
+    """A persisted task file from before the factor fields existed (no
+    momentum_signals/dividend_signals/forecast_signals keys) must deserialize
+    cleanly into empty dicts — backward compatibility."""
+    task_info = _make_task_info("test-old", mock_pipeline_result)
+    data = serialize_result("test-old", task_info, mock_pipeline_result)
+    # Simulate an old file by stripping the factor keys.
+    for key in ("momentum_signals", "dividend_signals", "forecast_signals"):
+        data["result"].pop(key, None)
+
+    deserialized = deserialize_result(data)
+    assert deserialized.momentum_signals == {}
+    assert deserialized.dividend_signals == {}
+    assert deserialized.forecast_signals == {}
+    # Core data still intact.
+    assert len(deserialized.scores) == len(mock_pipeline_result.scores)
+
+
 def test_nan_sanitized(mock_pipeline_result):
     mock_pipeline_result.scores[0].valuation_score = float("nan")
     task_info = _make_task_info("test-nan", mock_pipeline_result)

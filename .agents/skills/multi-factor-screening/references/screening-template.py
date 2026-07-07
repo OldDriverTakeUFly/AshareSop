@@ -97,10 +97,11 @@ DOMAIN_WEIGHTS = {
 
 # 加分层信号加分 (上限为综合分的 10%)
 ENHANCEMENT_BONUS = {
-    "institutional_accumulation": 5.0,  # 机构加仓 +5%
+    "institutional_accumulation": 5.0,  # 机构加仓 / 筹码集中 +5%
     "insider_purchase": 3.0,  # 高管/大股东增持 +3%
     "esg_leadership": 2.0,  # ESG 评级 A 级以上 +2%
     "supply_chain_spread": 2.0,  # 上下游价差信号 +2%
+    "forecast_acceleration": 5.0,  # 业绩预告强指引 (leading_score>=75) +5%
 }
 ENHANCEMENT_CAP_PCT = 10.0  # 加分总额上限为综合分的 10%
 
@@ -265,6 +266,10 @@ def score_stock_universe(
     valuation_data = pipeline_result.valuation_data
     prosperity_scores = pipeline_result.prosperity_scores
     financial_data = pipeline_result.financial_data
+    # Supplementary factor signals from pipeline Step 7.6 (real data, replacing
+    # the former prosperity-proxy stubs in the Technical / dividend domain).
+    momentum_signals = pipeline_result.momentum_signals
+    dividend_signals = pipeline_result.dividend_signals
 
     # Step 1: 收集所有通过股票的原始因子值（用于后续行业内排名）
     raw_factors: dict[str, dict] = {}
@@ -284,6 +289,14 @@ def score_stock_universe(
         pb_pct = val_entry[2] if val_entry else 0.5
         prosp_score = prosp.composite_score if prosp else 50.0
 
+        # Supplementary factors: fall back to neutral (50) when the signal is
+        # missing (engine error, new listing, non-payer) so a single missing
+        # factor never zeroes out a stock.
+        mom_sig = momentum_signals.get(ts_code)
+        momentum_score = mom_sig.momentum_score if mom_sig else 50.0
+        div_sig = dividend_signals.get(ts_code)
+        dividend_score = div_sig.dividend_score if div_sig else 50.0
+
         raw_factors[ts_code] = {
             "roe": roe,
             "revenue_growth": revenue_growth,
@@ -291,6 +304,8 @@ def score_stock_universe(
             "pe_percentile": pe_pct,
             "pb_percentile": pb_pct,
             "prosperity_score": prosp_score,
+            "momentum_score": momentum_score,
+            "dividend_score": dividend_score,
             "industry": stock_infos[ts_code].industry if ts_code in stock_infos else "",
         }
 
@@ -315,6 +330,8 @@ def score_stock_universe(
             "pe_percentile",
             "pb_percentile",
             "prosperity_score",
+            "momentum_score",
+            "dividend_score",
         ]:
             # 获取该因子在该行业的所有值
             values = [(c, raw_factors[c][factor_name]) for c in codes]
@@ -343,17 +360,31 @@ def score_stock_universe(
         weights = DOMAIN_WEIGHTS[domain]
 
         # Growth 桶 = ROE + 收入增长 + 毛利率变化(用 prosperity 近似)
-        growth_tier = (
-            tiers.get("roe", 0) * 0.4
-            + tiers.get("revenue_growth", 0) * 0.3
-            + tiers.get("prosperity_score", 0) * 0.3
-        )
+        # 红利型域: 替入真实 dividend 因子（该域原来无真实红利数据源），
+        # 占 growth_tier 的 30%（替换 prosperity 权重）；其余域保持不变。
+        if domain == "dividend":
+            growth_tier = (
+                tiers.get("roe", 0) * 0.4
+                + tiers.get("revenue_growth", 0) * 0.3
+                + tiers.get("dividend_score", 0) * 0.3
+            )
+        else:
+            growth_tier = (
+                tiers.get("roe", 0) * 0.4
+                + tiers.get("revenue_growth", 0) * 0.3
+                + tiers.get("prosperity_score", 0) * 0.3
+            )
 
         # Valuation 桶 = PE 倒数 + PB 百分位
         valuation_tier = tiers.get("pe_percentile", 0) * 0.6 + tiers.get("pb_percentile", 0) * 0.4
 
-        # Technical 桶 = 使用 prosperity slope 近似（数据受限）
-        technical_tier = tiers.get("prosperity_score", 0) * 0.5
+        # Technical 桶 = 真实价格动量 (momentum_score) 主导，prosperity 作为质量地板
+        # 替换原 prosperity slope 近似（数据受限占位）。momentum 缺失时回退到旧近似。
+        momentum_tier = tiers.get("momentum_score", 0)
+        if "momentum_score" in tiers:
+            technical_tier = momentum_tier * 0.6 + tiers.get("prosperity_score", 0) * 0.4
+        else:
+            technical_tier = tiers.get("prosperity_score", 0) * 0.5
 
         # Sentiment 桶 = 使用 OCF ratio 近似（数据受限）
         sentiment_tier = tiers.get("operating_cf_ratio", 0) * 0.5
@@ -393,27 +424,37 @@ def score_stock_universe(
 
 def apply_enhancement(
     scored_stocks: dict[str, dict],
+    forecast_signals: dict | None = None,
+    holder_signals: dict | None = None,
 ) -> dict[str, dict]:
     """加分层：对稀缺信号加分，上限为综合分的 10%.
 
-    本函数为占位实现——实际加分信号需要外部数据源（基金季报、高管公告、
-    ESG 评级、产业链价格）。用户应在复制此模板后，在对应位置接入实际数据。
+    Replaces the former TODO placeholder with two real leading signals sourced
+    from davis_analyzer:
+      - forecast_acceleration: 业绩预告 leading_score >= 75 (机构级指引)
+      - institutional_accumulation: 股东户数趋势 == "集中(动能增强)" (主力收集)
+
+    Both are add-only (加分层 never penalises a missing signal). The cap
+    (ENHANCEMENT_CAP_PCT = 10% of composite) is respected as before.
     """
+    forecast_signals = forecast_signals or {}
+    holder_signals = holder_signals or {}
+
     for ts_code, entry in scored_stocks.items():
         bonus = 0.0
         bonus_signals = []
 
-        # TODO: 接入实际加分信号数据源
-        # 示例占位逻辑（实际使用时替换）：
-        # if institutional_accumulation_data.get(ts_code):
-        #     bonus += ENHANCEMENT_BONUS["institutional_accumulation"]
-        #     bonus_signals.append("institutional_accumulation")
-        # if insider_purchase_data.get(ts_code):
-        #     bonus += ENHANCEMENT_BONUS["insider_purchase"]
-        #     bonus_signals.append("insider_purchase")
-        # if esg_rating.get(ts_code, "").startswith("A"):
-        #     bonus += ENHANCEMENT_BONUS["esg_leadership"]
-        #     bonus_signals.append("esg_leadership")
+        # 业绩预告强指引（前瞻 alpha 信号）
+        fc_sig = forecast_signals.get(ts_code)
+        if fc_sig is not None and getattr(fc_sig, "leading_score", 0) >= 75.0:
+            bonus += ENHANCEMENT_BONUS["forecast_acceleration"]
+            bonus_signals.append("forecast_acceleration")
+
+        # 筹码集中（主力收集，稀缺信号）
+        hc_sig = holder_signals.get(ts_code)
+        if hc_sig is not None and getattr(hc_sig, "trend", "") == "集中(动能增强)":
+            bonus += ENHANCEMENT_BONUS["institutional_accumulation"]
+            bonus_signals.append("institutional_accumulation")
 
         # 加分上限：综合分的 10%
         cap = entry["composite_score"] * (ENHANCEMENT_CAP_PCT / 100.0)
@@ -483,7 +524,30 @@ def run_multi_factor_screening() -> dict:
 
     # ── Step 4: 加分层 ──
     logger.info("Step 4: 执行加分层 (稀缺信号奖励)...")
-    scored_stocks = apply_enhancement(scored_stocks)
+    # holder-concentration is computed on-demand here (not in the pipeline) for
+    # the hard-filter-passed set only, keeping it off the always-on path.
+    holder_signals: dict = {}
+    try:
+        from davis_analyzer.holder_concentration import analyze_holder_concentration
+        from davis_analyzer.tushare_client import TushareClient
+
+        hc_client = TushareClient()
+        for code in passed_codes:
+            try:
+                hc = analyze_holder_concentration(hc_client, code)
+                if hc is not None:
+                    holder_signals[code] = hc
+            except Exception:
+                pass
+        logger.info("筹码集中度信号: {} 只", len(holder_signals))
+    except Exception:
+        logger.debug("holder_concentration 引擎不可用，跳过该加分信号")
+
+    scored_stocks = apply_enhancement(
+        scored_stocks,
+        forecast_signals=pipeline_result.forecast_signals,
+        holder_signals=holder_signals,
+    )
 
     # ── Step 5: 分域排名 ──
     logger.info("Step 5: 分域排名，每域取前 {}...", TOP_N_PER_DOMAIN)

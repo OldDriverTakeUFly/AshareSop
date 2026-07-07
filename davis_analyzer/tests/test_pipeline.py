@@ -188,6 +188,10 @@ class TestPipelineResultStructure:
         assert hasattr(mock_pipeline_result, "distress_signals")
         assert hasattr(mock_pipeline_result, "financial_data")
         assert hasattr(mock_pipeline_result, "trend_scores")
+        # Supplementary factor fields (Step 7.6).
+        assert hasattr(mock_pipeline_result, "momentum_signals")
+        assert hasattr(mock_pipeline_result, "dividend_signals")
+        assert hasattr(mock_pipeline_result, "forecast_signals")
 
     def test_pipeline_result_scores_are_davis_double(self, mock_pipeline_result):
         for score in mock_pipeline_result.scores:
@@ -212,6 +216,10 @@ class TestPipelineResultStructure:
         )
         assert result.scores == []
         assert result.trend_scores == {}
+        # Factor fields default to empty dicts when not supplied.
+        assert result.momentum_signals == {}
+        assert result.dividend_signals == {}
+        assert result.forecast_signals == {}
 
     def test_pipeline_result_trend_scores_defaults_to_empty(self):
         result = PipelineResult(

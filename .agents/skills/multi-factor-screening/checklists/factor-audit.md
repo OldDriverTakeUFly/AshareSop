@@ -21,8 +21,9 @@
 
 - [ ] Growth 因子（30%）已配置：ROE（TTM）、收入 3 年 CAGR、毛利率同比变化
 - [ ] Quality 因子已折叠进 Growth 桶（不独立计权）：经营现金流比率、应计项目比率、杠杆稳定性
+- [ ] 红利型域 Growth 桶已接入真实 dividend_score（davis_analyzer DividendSignal），替换原 prosperity 近似
 - [ ] Valuation 因子（20%）已配置：PE（TTM）倒数、EV/EBITDA、PB 百分位
-- [ ] Technical 因子（25%）已配置：3-6 月动量、换手率、均线排列
+- [ ] Technical 因子（25%）已配置：真实价格动量（davis_analyzer MomentumSignal.momentum_score，多窗口 60/120/250d + 行业内 RS），momentum 缺失时回退到 prosperity 近似
 - [ ] Capital Sentiment 因子（25%）已配置：北向资金流向、融资余额变化、大宗交易折溢价
 - [ ] 四桶权重合计 = 100%（30% + 20% + 25% + 25%）
 
@@ -55,7 +56,8 @@
 
 ## 第四层：加分层（Enhancement）验证
 
-- [ ] 机构加仓信号（+5%）：来源为基金季报或前十大股东数据
+- [ ] 业绩预告强指引信号（+5%）：来源为 davis_analyzer ForecastSignal.leading_score ≥ 75（机构级前瞻指引）
+- [ ] 机构加仓 / 筹码集中信号（+5%）：来源为 davis_analyzer HolderConcentration.trend == "集中(动能增强)"
 - [ ] 高管/大股东增持信号（+3%）：来源为交易所披露文件
 - [ ] ESG 评级 A 级以上（+2%）：来源为第三方 ESG 评级
 - [ ] 上下游价差信号（+2%）：来源为产业链价格数据

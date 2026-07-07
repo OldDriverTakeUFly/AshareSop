@@ -7,8 +7,11 @@ from davis_webui.backend.main import app
 from davis_webui.backend.tasks import TaskInfo, TaskStatus, task_manager
 from davis_analyzer.types import (
     DavisDoubleScore,
+    DividendSignal,
     DistressSignal,
     FinancialData,
+    ForecastSignal,
+    MomentumSignal,
     PipelineResult,
     ProsperityScore,
     StockInfo,
@@ -106,6 +109,9 @@ def _make_pipeline_result() -> PipelineResult:
     prosperity_scores: dict[str, ProsperityScore] = {}
     distress_signals: dict[str, DistressSignal] = {}
     financial_data: dict[str, list[FinancialData]] = {}
+    momentum_signals: dict[str, MomentumSignal] = {}
+    dividend_signals: dict[str, DividendSignal] = {}
+    forecast_signals: dict[str, ForecastSignal] = {}
 
     for ts_code, name, rank in stocks_data:
         s, info, prop, dist, fin = _make_stock(ts_code, name, rank)
@@ -115,6 +121,34 @@ def _make_pipeline_result() -> PipelineResult:
         prosperity_scores[ts_code] = prop
         distress_signals[ts_code] = dist
         financial_data[ts_code] = [fin]
+        # Supplementary factor signals (one per stock so roundtrip covers them).
+        momentum_signals[ts_code] = MomentumSignal(
+            ts_code=ts_code,
+            window_returns={60: 12.0},
+            absolute_momentum_score=65.0,
+            rs_percentile=70.0,
+            momentum_score=67.5,
+            data_sufficient=True,
+        )
+        dividend_signals[ts_code] = DividendSignal(
+            ts_code=ts_code,
+            consecutive_years=3,
+            latest_yield_pct=4.2,
+            dividend_score=80.0,
+            payout_years=["20221231", "20231231", "20241231"],
+            data_sufficient=True,
+        )
+        forecast_signals[ts_code] = ForecastSignal(
+            ts_code=ts_code,
+            ann_date="20260131",
+            end_date="20251231",
+            type="预增",
+            p_change_min=50.0,
+            p_change_max=70.0,
+            p_change_mid=60.0,
+            leading_score=85.0,
+            is_stale=False,
+        )
 
     return PipelineResult(
         scores=scores,
@@ -124,6 +158,9 @@ def _make_pipeline_result() -> PipelineResult:
         distress_signals=distress_signals,
         financial_data=financial_data,
         trend_scores={s.ts_code: s.trend_score for s in scores},
+        momentum_signals=momentum_signals,
+        dividend_signals=dividend_signals,
+        forecast_signals=forecast_signals,
     )
 
 

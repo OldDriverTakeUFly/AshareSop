@@ -17,7 +17,10 @@ import pandas as pd
 from loguru import logger
 
 from davis_analyzer.distress import calculate_distress_score
+from davis_analyzer.dividend import analyze_dividend
 from davis_analyzer.financial_fetcher import fetch_batch_financial
+from davis_analyzer.forecast import analyze_forecast
+from davis_analyzer.momentum import analyze_momentum_batch
 from davis_analyzer.prosperity import batch_prosperity
 from davis_analyzer.scoring import calculate_davis_double_score, rank_stocks
 from davis_analyzer.stock_universe import build_stock_universe
@@ -25,8 +28,11 @@ from davis_analyzer.trend import batch_trend
 from davis_analyzer.tushare_client import TushareClient
 from davis_analyzer.types import (
     DavisDoubleScore,
+    DividendSignal,
     DistressSignal,
     FinancialData,
+    ForecastSignal,
+    MomentumSignal,
     PipelineResult,
     ProsperityScore,
     StockInfo,
@@ -148,6 +154,41 @@ def run_screening_pipeline(
     trend_scores: dict[str, float] = batch_trend(trend_history_map, stock_infos)
     logger.info("Trend scores calculated for {} stocks", len(trend_scores))
 
+    # ── Step 7.6: Supplementary factors (momentum / dividend / forecast) ──
+    # These run over the filtered set (prosperity_scores.keys(), ~2300 stocks)
+    # and attach as supplementary signals — they never alter the 4-dimension
+    # final_score (see guardrails). Always on; each engine is independently
+    # fault-tolerant so one failing factor doesn't break the pipeline.
+    logger.info(
+        "Step 7.6: Computing supplementary factors for {} stocks...", len(prosperity_scores)
+    )
+    filtered_infos = {code: stock_infos[code] for code in prosperity_scores if code in stock_infos}
+
+    momentum_signals: dict[str, MomentumSignal] = {}
+    try:
+        momentum_signals = analyze_momentum_batch(client, filtered_infos)
+        logger.info("Momentum signals computed for {} stocks", len(momentum_signals))
+    except Exception:
+        logger.exception("Momentum batch failed — continuing without momentum signals")
+
+    dividend_signals: dict[str, DividendSignal] = {}
+    for code in prosperity_scores:
+        try:
+            dividend_signals[code] = analyze_dividend(client, code)
+        except Exception:
+            logger.debug("Dividend analysis failed for {}", code)
+    logger.info("Dividend signals computed for {} stocks", len(dividend_signals))
+
+    forecast_signals: dict[str, ForecastSignal] = {}
+    for code in prosperity_scores:
+        try:
+            sig = analyze_forecast(client, code, prosperity_scores.get(code))
+            if sig is not None:
+                forecast_signals[code] = sig
+        except Exception:
+            logger.debug("Forecast analysis failed for {}", code)
+    logger.info("Forecast signals computed for {} stocks", len(forecast_signals))
+
     scored_stocks: list[DavisDoubleScore] = []
     distress_signals: dict[str, DistressSignal] = {}
 
@@ -221,4 +262,7 @@ def run_screening_pipeline(
         distress_signals=distress_signals,
         financial_data=financial_data,
         trend_scores=trend_scores,
+        momentum_signals=momentum_signals,
+        dividend_signals=dividend_signals,
+        forecast_signals=forecast_signals,
     )

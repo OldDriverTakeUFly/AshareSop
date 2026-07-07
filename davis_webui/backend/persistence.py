@@ -7,10 +7,13 @@ from typing import TYPE_CHECKING, Any
 from davis_analyzer.types import (
     CatalystSignal,
     DavisDoubleScore,
+    DividendSignal,
     DistressSignal,
     FinancialData,
+    ForecastSignal,
     InflectionAnalysis,
     IndustryProsperityScore,
+    MomentumSignal,
     PipelineResult,
     ProsperityScore,
     ProsperitySectorResult,
@@ -51,6 +54,9 @@ def serialize_result(task_id: str, task_info: TaskInfo, result: PipelineResult) 
             "distress_signals": {k: dataclasses.asdict(v) for k, v in result.distress_signals.items()},
             "financial_data": {k: [dataclasses.asdict(f) for f in v] for k, v in result.financial_data.items()},
             "trend_scores": result.trend_scores,
+            "momentum_signals": {k: dataclasses.asdict(v) for k, v in result.momentum_signals.items()},
+            "dividend_signals": {k: dataclasses.asdict(v) for k, v in result.dividend_signals.items()},
+            "forecast_signals": {k: dataclasses.asdict(v) for k, v in result.forecast_signals.items()},
         },
     }
     return _sanitize(raw)
@@ -69,6 +75,15 @@ def deserialize_result(data: dict) -> PipelineResult | ProsperitySectorResult:
         distress_signals={k: DistressSignal(**v) for k, v in r["distress_signals"].items()},
         financial_data={k: [FinancialData(**f) for f in v] for k, v in r["financial_data"].items()},
         trend_scores=r["trend_scores"],
+        momentum_signals={
+            k: MomentumSignal(**v) for k, v in r.get("momentum_signals", {}).items()
+        },
+        dividend_signals={
+            k: DividendSignal(**v) for k, v in r.get("dividend_signals", {}).items()
+        },
+        forecast_signals={
+            k: ForecastSignal(**v) for k, v in r.get("forecast_signals", {}).items()
+        },
     )
 
 
