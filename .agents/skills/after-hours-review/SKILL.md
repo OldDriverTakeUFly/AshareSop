@@ -36,7 +36,8 @@ data = get_daily_data(date)
 | `broken_pool` | name, code | **炸板池** |
 | `limit_down_pool` | name, code | **跌停池** |
 | `index_technical` | indices{ts_code→{name,close,pct_chg,technical_score,technical_state,stage,stage_confidence,reasons,expected_action,ma5/10/20/60,support,resistance}}, summary | **大盘技术面（4 指数 6 阶段趋势识别）** |
-| `volatility` | indices{ts_code→{name,rv20,rv60,rv20_pct,rv60_pct,panic_level}}, market{ivix_current,ivix_pct,ivix_panic_level,vr_ratio,rv50_approx}, summary | **波动率温度（中国版 VIX：RV 分位 + iVIX + V/R 比率）** |
+| `volatility` | indices{ts_code→{name,rv20,rv20_pct,panic_level}}, market{ivix_current,ivix_pct,ivix_panic_level,vr_ratio,rv_sse_approx}, cross_signal{panic_confirmed,overheat_confirmed}, summary | **波动率温度（中国版 VIX：RV 分位 + iVIX + V/R 比率 + 技术面双确认）** |
+| `sector_volatility` | sectors{name→{sector_rv20,sector_rv20_pct,panic_level,member_count}}, cross_section_ranking, summary | **板块情绪温度（31 申万一级成分股等权 RV + 各板块自身历史分位）**。⚠️ 计算量大，独立 CLI/cron 触发（`python -m stockhot.sector_volatility analyze`），不在 daily-market-scan Wave 内，可能未采集 |
 
 **数据缺失处理**：若某个 key 不存在或为空，对应报告节标注"数据不可用"，不停止。若**全部数据为空**，停止并提示用户先跑 daily-market-scan。
 
