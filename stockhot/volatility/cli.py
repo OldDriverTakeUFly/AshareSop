@@ -60,13 +60,26 @@ def _format_analysis(result: dict) -> str:
         rv_sse_str = f"{rv_sse:.1f}%" if rv_sse is not None else "N/A"
         lines.append(f"| 上证 RV20（V/R 分母，50ETF 代理） | {rv_sse_str} |")
 
+    # Layer 3：涨跌停行为代理（联读 limit_up，方法论 §2.3）
+    lb = result.get("limit_behavior", {})
+    if lb.get("status") == "success":
+        lines.append("\n## 涨跌停行为代理（Layer 3，联读 limit_up）\n")
+        lines.append("| 指标 | 数值 |")
+        lines.append("|------|:---:|")
+        lines.append(f"| 涨停 / 炸板 / 跌停 | {lb.get('limit_up', '?')} / {lb.get('broken', '?')} / {lb.get('limit_down', '?')} |")
+        ur = lb.get("up_down_ratio")
+        lines.append(f"| 涨跌停比（>3偏热/<0.5偏冷）| {ur if ur is not None else '∞'} |")
+        lines.append(f"| 炸板率（>30%分歧极端）| {lb.get('broken_rate', '?')}% |")
+        lines.append(f"| 跌停占比（>50%系统性恐慌）| {lb.get('down_ratio', '?')}% |")
+        lines.append(f"| **行为信号** | {lb.get('behavior_signal', '?')} |")
+
     # 波动率 × 技术面双确认（方法论 §7.2）
     cross = result.get("cross_signal", {})
     if cross.get("status") == "success":
         lines.append("\n## 波动率 × 技术面双确认（Layer 1+2 × index_technical）\n")
         lines.append(f"> {cross.get('summary', '')}")
         if cross.get("panic_confirmed"):
-            lines.append("\n**恐慌双确认**（RV≥P90 + 技术面超跌，高概率反弹区）：")
+            lines.append("\n**恐慌双确认**（RV≥P90 + 技术面超跌 → 趋势仍下行，风险更高，非反弹信号）：")
             for e in cross["panic_confirmed"]:
                 lines.append(f"- {e['name']}（RV20 P{e['rv20_pct']:.0f} + 技术面{e['stage']}）")
         if cross.get("overheat_confirmed"):

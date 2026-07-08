@@ -177,6 +177,73 @@ def classify_ivix_level(ivix_value: float) -> str:
     return IVIX_LEVELS[-1][1]
 
 
+# ── Layer 3：涨跌停行为代理（与方法论文档 §2.3 对齐）──────────────────
+
+
+def analyze_limit_behavior(
+    limit_up_count: int,
+    broken_count: int,
+    limit_down_count: int,
+) -> dict[str, Any]:
+    """涨跌停行为代理分析（Layer 3，方法论研报 §2.3）。
+
+    A 股有 ±10%/±20% 涨跌停制度，这是美股没有的特征。涨跌停数据反映
+    散户情绪极端化程度，是 RV（Layer 1）的重要补充——尤其能修正
+     "跌停锁死=低波假象"的 RV 失真。
+
+    方法论文档 §2.3 实证发现：炸板数与 RV20 相关性最强（+0.263），
+    跌停占比几乎无关（+0.026，因跌停锁死后无法交易=流动性冻结=假性低波）。
+
+    参数：
+        limit_up_count: 涨停数
+        broken_count: 炸板数（打开过涨停/跌停的股票）
+        limit_down_count: 跌停数
+
+    返回：
+        {
+            "limit_up", "broken", "limit_down",
+            "up_down_ratio": 涨跌停比（>3 偏热, <0.5 偏冷）,
+            "broken_rate": 炸板率（>30% 多空分歧极端）,
+            "down_ratio": 跌停占比（>50% 系统性恐慌抛售）,
+            "behavior_signal": 行为信号定性,
+        }
+    """
+    total_up_broken = limit_up_count + broken_count
+    total_up_down = limit_up_count + limit_down_count
+
+    up_down_ratio = round(limit_up_count / limit_down_count, 2) if limit_down_count > 0 else float("inf")
+    broken_rate = round(broken_count / total_up_broken * 100, 1) if total_up_broken > 0 else 0.0
+    down_ratio = round(limit_down_count / total_up_down * 100, 1) if total_up_down > 0 else 0.0
+
+    # 行为信号判定（方法论文档 §2.3 阈值）
+    signals: list[str] = []
+    if up_down_ratio < 0.5:
+        signals.append("恐慌性抛售（涨跌停比<0.5）")
+    elif up_down_ratio > 3:
+        signals.append("恐慌性追涨/FOMO（涨跌停比>3）")
+
+    if broken_rate > 30:
+        signals.append(f"多空分歧极端（炸板率{broken_rate:.0f}%>30%）")
+    elif broken_rate < 10 and total_up_broken > 10:
+        signals.append("单边市（炸板率低，倾向一致预期）")
+
+    if down_ratio > 50:
+        signals.append(f"系统性恐慌（跌停占比{down_ratio:.0f}%>50%）")
+
+    if not signals:
+        signals.append("行为指标正常")
+
+    return {
+        "limit_up": limit_up_count,
+        "broken": broken_count,
+        "limit_down": limit_down_count,
+        "up_down_ratio": up_down_ratio if up_down_ratio != float("inf") else None,
+        "broken_rate": broken_rate,
+        "down_ratio": down_ratio,
+        "behavior_signal": "；".join(signals),
+    }
+
+
 # ── 单指数分析（Layer 1+2）───────────────────────────────────────────
 
 
@@ -279,13 +346,18 @@ def analyze_iv_rv_basis(
 # ── Summary 文本生成（纯统计，无 AI）─────────────────────────────────
 
 
-def _build_summary(indices_results: dict[str, dict], market: dict) -> str:
+def _build_summary(
+    indices_results: dict[str, dict],
+    market: dict,
+    limit_behavior: dict | None = None,
+) -> str:
     """生成整体波动率定性摘要（纯事实陈述，不含行动建议）。
 
     2026-07-08 修正：
     1. 修复排序文案错乱（原 coldest/hottest 与"最恐慌/最平静"语义反了）
     2. 去掉"关注左侧机会""分批建仓"等行动建议——数据层只出事实，
        行动建议交由 decision-matrix 在人工判断后输出
+    3. 2026-07-08 新增 Layer 3：涨跌停行为代理（联读 limit_up，§2.3）
     """
     ok = [r for r in indices_results.values() if r.get("status") == "success"]
     if not ok:
@@ -331,7 +403,44 @@ def _build_summary(indices_results: dict[str, dict], market: dict) -> str:
                 f"V/R={vr:.2f}（{'期权偏贵' if vr > 1.1 else '定价合理' if vr > 0.9 else '期权便宜'}）"
             )
 
+    # Layer 3：涨跌停行为代理（联读 limit_up，方法论文档 §2.3）
+    if limit_behavior and limit_behavior.get("status") == "success":
+        parts.append(f"行为面：{limit_behavior.get('behavior_signal', '')}")
+
     return "，".join(parts)
+
+
+def _fetch_and_analyze_limits(date: str) -> dict[str, Any]:
+    """Layer 3：从 DB 读取 limit_up 数据，算涨跌停行为代理指标。
+
+    联读 daily_data 表的 limit_up_pool / broken_pool / limit_down_pool，
+    计算：涨跌停比、炸板率、跌停占比、行为信号（方法论文档 §2.3）。
+
+    返回：
+        {
+            "status": "success" / "数据不可用",
+            "limit_up", "broken", "limit_down",
+            "up_down_ratio", "broken_rate", "down_ratio",
+            "behavior_signal",
+        }
+    """
+    try:
+        from stockhot.storage.database import get_daily_data
+        data = get_daily_data(date)
+        lu = data.get("limit_up_pool") or []
+        bp = data.get("broken_pool") or []
+        ld = data.get("limit_down_pool") or []
+        if not lu and not bp and not ld:
+            return {"status": "数据不可用", "reason": "limit_up 未采集"}
+        result = analyze_limit_behavior(len(lu), len(bp), len(ld))
+        result["status"] = "success"
+        logger.info(
+            f"  Layer3 行为: 涨停{len(lu)}/炸板{len(bp)}/跌停{len(ld)} "
+            f"→ {result['behavior_signal']}"
+        )
+        return result
+    except Exception as e:
+        return {"status": "数据不可用", "reason": f"读取失败: {e}"}
 
 
 # ── 与 index_technical 联动（双确认信号）─────────────────────────────
@@ -346,17 +455,19 @@ _OVERHEAT_TECHNICAL_STAGES = {"主升浪", "高位震荡筑顶"}
 def _cross_check_technical(date: str, indices_results: dict[str, dict]) -> dict[str, Any]:
     """读当日 index_technical 数据，输出波动率 × 技术面双确认信号。
 
-    方法论文档 §7.2 的双确认逻辑：
-    - RV≥P90（情绪极端恐慌）+ 技术面"主跌浪/低位筑底"（价格极端）= 高概率反弹区
-    - RV≤P10（极度自满）+ 技术面"主升浪/高位震荡筑顶"（价格过热）= 见顶风险区
-    - 单独一方极端 = 仅"关注信号"，不构成双确认
+    ⚠️ **2026-07-08 实证修正**：方法论文档 §7.2 原假设"RV≥P90 + 技术面超跌
+    = 高概率反弹区"已被事件研究回测证伪（双确认胜率 54.5% < 单 RV 85.7%）。
+    现语义调整为：双确认 = **趋势仍在下行，风险更高**（非机会信号）。
+
+    正确用法（方法论 §5.3）：RV≥P90 是关注信号，但不要因技术面超跌就加仓；
+    应等待政策底（降准/降息/重要会议）+ RV 见顶回落确认。
 
     返回：
         {
             "status": "success" / "数据不可用",
-            "panic_confirmed": [{"ts_code","name","rv20_pct","stage"}],  # 恐慌双确认
-            "overheat_confirmed": [...],  # 自满双确认
-            "summary": "...",  # 一句话定性
+            "panic_confirmed": [...],   # RV≥P90 + 技术面超跌（风险信号，非机会）
+            "overheat_confirmed": [...], # RV≤P10 + 技术面过热（见顶风险）
+            "summary": "...",
         }
     """
     try:
@@ -396,7 +507,8 @@ def _cross_check_technical(date: str, indices_results: dict[str, dict]) -> dict[
     parts: list[str] = []
     if panic_confirmed:
         names = "、".join(e["name"] for e in panic_confirmed)
-        parts.append(f"恐慌双确认（{names}：RV≥P90 + 技术面超跌）")
+        # 2026-07-08 实证修正：双确认=趋势仍在下行（风险信号），非反弹机会
+        parts.append(f"恐慌双确认（{names}：RV≥P90 + 技术面超跌，趋势仍下行，风险更高）")
     if overheat_confirmed:
         names = "、".join(e["name"] for e in overheat_confirmed)
         parts.append(f"见顶风险双确认（{names}：RV≤P10 + 技术面过热）")
@@ -484,7 +596,10 @@ def run_volatility_analysis(
         market = {"status": "数据不可用", "error": f"{type(e).__name__}: {e}"}
         logger.error(f"  iVIX/V/R 分析失败: {type(e).__name__}: {e}")
 
-    summary = _build_summary(indices_results, market)
+    # Layer 3：涨跌停行为代理（联读 limit_up 数据，方法论 §2.3）
+    limit_behavior = _fetch_and_analyze_limits(date)
+
+    summary = _build_summary(indices_results, market, limit_behavior)
     success_n = sum(1 for r in indices_results.values() if r.get("status") == "success")
 
     # ── 与 index_technical 联动：双确认信号 ──
@@ -497,6 +612,7 @@ def run_volatility_analysis(
         "status": "success" if success_n > 0 else "no_data",
         "indices": indices_results,
         "market": market,
+        "limit_behavior": limit_behavior,
         "cross_signal": cross_signal,
         "summary": summary,
     }
