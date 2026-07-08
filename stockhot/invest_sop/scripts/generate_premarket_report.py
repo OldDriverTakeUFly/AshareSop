@@ -226,6 +226,26 @@ def _fetch_latest_index_technical(date: str) -> dict | None:
     return None
 
 
+def _fetch_latest_volatility(date: str) -> dict | None:
+    """读取最近的 volatility 数据（盘前用 T-1 数据，中国版 VIX 五层体系）。
+
+    从 daily_data 表按 trade_date 倒序找最近一条 volatility 记录，
+    镜像 ``_fetch_latest_index_technical`` 的回溯逻辑。
+    """
+    from datetime import datetime, timedelta
+
+    from stockhot.storage.database import get_daily_data
+
+    base = datetime.strptime(date, "%Y-%m-%d") if isinstance(date, str) else date
+    for offset in range(0, 6):
+        try_date = (base - timedelta(days=offset)).strftime("%Y-%m-%d")
+        data = get_daily_data(try_date)
+        vol = data.get("volatility")
+        if vol and isinstance(vol, dict) and vol.get("status") == "success":
+            return vol
+    return None
+
+
 def build_section_2(cycles: list[dict]) -> str:
     lines = ["", "---", "", "## 二、板块周期评估", ""]
     lines.append("| 板块 | 周期位置 | 拥挤度 | 今日倾向 |")
@@ -325,7 +345,64 @@ def build_section_5() -> str:
     )
 
 
-def build_section_6() -> str:
+def _format_volatility_row(volatility: dict | None) -> tuple[str, str]:
+    """从 volatility 数据推导"市场波动率状态"行的当前值与合规判定。
+
+    返回 (当前值, 是否合规)，对应方法论研报 §8.2 四档行动框架：
+        红色（系统性恐慌）→ ❌ 全局降仓一档
+        橙色/黄色/绿色   → ✅ 正常持仓 / 关注
+        数据不可用        → N/A
+
+    结构性恐慌（仅成长股 P90+）不触发降仓，标 ⚠️ 关注。
+    """
+    NA = "数据不可用"
+    if not volatility or volatility.get("status") != "success":
+        return NA, "N/A"
+
+    indices = volatility.get("indices", {})
+    ok_indices = [
+        r
+        for r in indices.values()
+        if r.get("status") == "success" and r.get("rv20_pct") is not None
+    ]
+    if not ok_indices:
+        return NA, "N/A"
+
+    panic_indices = [r for r in ok_indices if r["rv20_pct"] >= 90]
+    panic_n = len(panic_indices)
+    total_n = len(ok_indices)
+
+    market = volatility.get("market", {})
+    ivix = market.get("ivix_current", "?")
+    vr = market.get("vr_ratio")
+
+    # 找最恐慌指数
+    coldest = max(ok_indices, key=lambda r: r["rv20_pct"])
+    coldest_str = f"{coldest['name']} P{coldest['rv20_pct']:.0f}"
+
+    vr_str = f"，V/R={vr:.2f}" if vr is not None else ""
+
+    # 系统性恐慌判定：宽基指数（上证/深证/沪深300）中 ≥2 个 P90+，
+    # 仅成长股（创业板/科创）P90+ 算结构性恐慌——
+    # 因为成长股天然波动大，单独高位不代表全市场恐慌
+    BROADBAND_CODES = {"000001.SH", "399001.SZ", "000300.SH"}
+    broadband_panic = sum(1 for r in panic_indices if r.get("ts_code") in BROADBAND_CODES)
+    is_systemic = broadband_panic >= 2
+
+    if is_systemic:
+        current = f"⚠️ 系统性恐慌：{panic_n}/{total_n} 指数 RV≥P90（最恐慌 {coldest_str}），iVIX={ivix}{vr_str}"
+        return current, "❌ 全局降仓一档"
+    elif panic_n > 0:
+        names = "+".join(r["name"] for r in panic_indices)
+        current = f"结构性恐慌：{names} RV≥P90（蓝筹正常），iVIX={ivix}{vr_str}"
+        return current, "⚠️ 关注风格切换"
+    else:
+        current = f"正常：无指数 RV≥P90（最恐慌 {coldest_str}），iVIX={ivix}{vr_str}"
+        return current, "✅ 正常持仓"
+
+
+def build_section_6(volatility: dict | None = None) -> str:
+    vol_current, vol_compliance = _format_volatility_row(volatility)
     return "\n".join(
         [
             "---",
@@ -339,6 +416,7 @@ def build_section_6() -> str:
             "| 最大板块集中度 | -%(板块：-) | ≤40% | ✅/❌ |",
             "| 持仓数量 | -只 | ≤8只 | ✅/❌ |",
             "| 最小止损距离 | -(标的：-) | ≥-12% | ✅/❌ |",
+            f"| 市场波动率状态 | {vol_current} | RV≥P90 → 降仓 | {vol_compliance} |",
             "",
         ]
     )
@@ -396,6 +474,7 @@ def generate_report(date: str) -> str:
     cycles = _fetch_cycle_assessments()
     holdings = _fetch_active_holdings()
     index_technical = _fetch_latest_index_technical(date)
+    volatility = _fetch_latest_volatility(date)
 
     parts = [
         f"# 盘前SOP报告 | {date} 星期{weekday}",
@@ -410,7 +489,7 @@ def generate_report(date: str) -> str:
         build_advisor_section(date),
         build_section_4(),
         build_section_5(),
-        build_section_6(),
+        build_section_6(volatility),
         build_section_7(),
     ]
 

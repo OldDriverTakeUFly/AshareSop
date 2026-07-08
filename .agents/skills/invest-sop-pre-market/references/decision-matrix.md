@@ -117,9 +117,21 @@ SOP §7.1 hard limits, used to validate the report's §6 risk-control section:
 | 单板块仓位 | ≤ 40% |
 | 持仓数量 | ≤ 8 只 |
 | 最小止损距离 | ≥ -12%（hard stop） |
+| **市场波动率状态** | **≥3 指数 RV20 P90+ → 全局降仓一档（系统性恐慌）** |
 
 Sector-specific stop-loss/target overrides come from `invest_sector_rules` via `config.get_sector_rule(sector)` (default: stop_loss=-12%, target=+20%).
 
+**市场波动率状态行**（2026-07-06 新增）由 `generate_premarket_report.py` 的 `build_section_6` 自动从 `get_daily_data(date)['volatility']` 填充，非人工填写。判定规则（方法论研报 §8.2 四档行动框架）：
+
+| 信号 | 触发条件 | 行动 |
+|------|---------|------|
+| 绿色（平静） | RV < P50，V/R < 1.1 | 正常持仓 |
+| 黄色（警惕） | RV P50-P75，或风格分化 > 20P | 减仓高波成长 |
+| 橙色（关注） | RV P75-P90，V/R 1.1-1.3 | 启动左侧关注 |
+| 红色（恐慌极值） | **≥3 指数 RV≥P90 + V/R>1.3** | **全局降仓一档**，分批建仓需等政策底 |
+
+结构性恐慌（仅创业板/科创 P90+，蓝筹正常）不触发全局降仓，标注"关注风格切换"。
+
 ## 7. Scope Note
 
-This reference documents the **analytical methodology** the SOP prescribes. It does **not** imply the generator implements it. The generator's §3–§7 sections are scaffold tables; the four-dimension evaluation and Matrix A/B application remain a manual/agent step. Implementing them in code would be a separate change to `generate_premarket_report.py` and is out of scope for this skill's companion files.
+This reference documents the **analytical methodology** the SOP prescribes. The §3 holding four-dimension + Matrix A/B evaluation remains a manual/agent step. The §6 风控检查表的市场波动率状态行**已自动填充**（`build_section_6` 从 `volatility` DB key 读取），其余行仍为占位。

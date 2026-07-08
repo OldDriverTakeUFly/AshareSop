@@ -36,6 +36,7 @@ data = get_daily_data(date)
 | `broken_pool` | name, code | **炸板池** |
 | `limit_down_pool` | name, code | **跌停池** |
 | `index_technical` | indices{ts_code→{name,close,pct_chg,technical_score,technical_state,stage,stage_confidence,reasons,expected_action,ma5/10/20/60,support,resistance}}, summary | **大盘技术面（4 指数 6 阶段趋势识别）** |
+| `volatility` | indices{ts_code→{name,rv20,rv60,rv20_pct,rv60_pct,panic_level}}, market{ivix_current,ivix_pct,ivix_panic_level,vr_ratio,rv50_approx}, summary | **波动率温度（中国版 VIX：RV 分位 + iVIX + V/R 比率）** |
 
 **数据缺失处理**：若某个 key 不存在或为空，对应报告节标注"数据不可用"，不停止。若**全部数据为空**，停止并提示用户先跑 daily-market-scan。
 
@@ -82,6 +83,25 @@ data = get_daily_data(date)
 
 例如：7 月某日大跌 1.5%，但 7 月历史均值 +1.05%（偏热），则标注"⚠️ 反季节异常——7 月本应偏热却大跌，关注突发利空"。反之 1 月大跌（1 月历史 -2.56%，全年最差），则标注"符合季节性偏冷，不必过度恐慌"。
 
+### Step 5b：波动率温度（中国版 VIX 校准）
+
+在写"市场概览"时，**读取 `get_daily_data(date)['volatility']`**，输出波动率层面的恐慌温度。与方法论研报（`docs/方法论/A股波动率观察框架方法论深度研报.md`）的"五层观察体系"对应。
+
+判定逻辑：
+- 读 5 大指数的 RV20 历史分位（rv20_pct）与恐慌等级（panic_level）
+- 找最恐慌（rv20_pct 最高）与最平静（rv20_pct 最低）指数
+- 若 ≥3 个指数 rv20_pct ≥ 90 → "系统性恐慌"；若仅成长股（创业板/科创）高 → "结构性恐慌"
+- 读 iVIX（market.ivix_current）与 V/R 比率（market.vr_ratio）：V/R > 1.3 → "期权极贵，市场过度恐慌"；V/R < 0.9 → "期权便宜，市场低估波动"
+- 与情绪温度计（Step 5）交叉印证：日历效应偏冷 + 波动率 P90+ = 真恐慌；日历效应偏冷但波动率低 = 阴跌未恐慌
+
+报告输出格式（插入市场概览的情绪温度计旁）：
+```
+**波动率温度**：最恐慌 {name} RV20={X}%（P{Y}，{level}），最平静 {name} P{Y}；
+iVIX={X}（{level}），V/R={X}（{期权偏贵/合理/便宜}）
+```
+
+数据缺失时（`volatility` key 不存在或 status=数据不可用）标注"波动率数据不可用"，不停止。
+
 ### Step 6（新增）：采集宏观景气度背景
 
 调用 `stockhot.macro` 模块拉取 Tushare 宏观数据（PMI/CPI/PPI/M2/Shibor/LPR），
@@ -111,6 +131,7 @@ macro_md = format_macro_section(snap)  # 直接插入报告
 - 大盘主力**{净流入/净流出} {X}** 亿
 - 市场情绪：{强/中/弱}（涨停>50 且炸板率<30% 为强；涨停<20 为弱）
 - **情绪温度计**：{月份}月历史均值{X}%、胜率{Y}%（{偏热/中性/偏冷}），今日{符合季节性/反季节异常}
+- **波动率温度**：最恐慌 {name} RV20={X}%（P{Y}，{panic_level}），最平静 {name} P{Y}；iVIX={X}（{level}），V/R={X}（{期权偏贵/合理/便宜}）。{系统性恐慌/结构性恐慌/无恐慌区}
 
 ### 大盘技术面（由 stockhot.index_technical 生成）
 

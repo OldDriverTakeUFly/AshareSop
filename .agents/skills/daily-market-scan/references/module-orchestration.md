@@ -4,7 +4,7 @@ This document provides the detailed orchestration dependency diagram, try/except
 
 ## 1. Orchestration Dependency Diagram
 
-The four modules run in three waves. The dependency is driven by `risk_alert`'s need to read upstream data from the database.
+The four modules run in three waves. The dependency is driven by `risk_alert`'s need to read upstream data from the database. Two additional Wave-2 modules (`index_technical`, `volatility`) extend the scan with technical-trend and volatility/sentiment dimensions; both are independent and do not feed `risk_alert`.
 
 ```
                     ┌─────────────────────────────────┐
@@ -53,12 +53,12 @@ The four modules run in three waves. The dependency is driven by `risk_alert`'s 
 ### Why this order
 
 - **Wave 1 (limit_up):** Foundational. Writes `limit_up_pool` to DB. This data is consumed by risk_alert for high-position risk detection (高位连板). No upstream dependencies.
-- **Wave 2 (dragon_tiger + fund_flow):** Both are logically independent of each other. dragon_tiger is the seat-level view of the same hot stocks that limit_up found at the price-action level. fund_flow is completely independent. Both write to DB for risk_alert to consume.
-- **Wave 3 (risk_alert):** Terminal module. Reads three DB keys via `get_daily_data(date)`. Must run last or it will read empty/stale data.
+- **Wave 2 (dragon_tiger + fund_flow + index_technical + volatility):** All four are logically independent of each other. dragon_tiger is the seat-level view of the same hot stocks that limit_up found at the price-action level. fund_flow is completely independent. `index_technical` (大盘技术面 6 阶段趋势) and `volatility` (RV 分位 + iVIX/V/R 中国版 VIX) are both independent OHLCV/option consumers that do NOT feed risk_alert — they write to DB for 盘后总结/盘前报告 to consume directly.
+- **Wave 3 (risk_alert):** Terminal module. Reads three DB keys via `get_daily_data(date)`: `limit_up_pool`, `dragon_tiger_detail`, `fund_flow_sector`. Must run last or it will read empty/stale data. Note: risk_alert does NOT read index_technical or volatility.
 
 ## 2. Cross-Module Data Flow
 
-The four modules communicate through the SQLite database, not through direct function calls. risk_alert is the only module that reads another module's output.
+The modules communicate through the SQLite database, not through direct function calls. risk_alert is the only module that reads another module's output. index_technical and volatility write their output for direct consumption by downstream skills (盘后总结/盘前报告), bypassing risk_alert entirely.
 
 ### DB keys written and read
 
