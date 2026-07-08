@@ -99,6 +99,12 @@ def fetch_ivix_history(days: int = 1300) -> pd.Series:
     覆盖 iVIX 官方停发（2018.6）后的第三方重建版本——这是 Layer 5 的核心数据源，
     比方法论研报里的 Tushare 期权链 + BS 反算（仅快照可用）更优。
 
+    ⚠️ **数据源缺口**（参考 ``.agents/skills/data-source-convention.md``）：
+    Tushare **无 QVIX/iVIX 等价接口**，本函数为 **AKShare 单源**。
+    数据来自期权论坛（optbbs.com）第三方重建版，非官方发布，算法可能与
+    原 iVIX（Carr-Madan 无模型 IV）有偏差。建议定期与 50ETF 期权 BS 反算
+    IV 交叉校验（方法论文档 §3.3）。
+
     参数：
         days: 取最近 N 个交易日（默认 1300 ≈ 5 年）
 

@@ -139,6 +139,44 @@ def classify_panic_level(percentile: float) -> str:
     return PANIC_LEVELS[-1][1]
 
 
+# iVIX 绝对值恐慌等级（与方法论研报 §1.1 VIX 等级表 7 档对齐，2026-07-08 统一）
+IVIX_LEVELS = [
+    (12, "极度自满"),     # < 12 长期牛市顶部、波动性卖方过度拥挤
+    (18, "平静健康"),     # 12-18 牛市中段、低波慢牛
+    (22, "略有担忧"),     # 18-22 经济数据分歧、临近重大事件
+    (30, "明显恐慌"),     # 22-30 衰退预期升温、地缘冲突升级
+    (40, "高度恐慌"),     # 30-40 熊市、流动性危机初期
+    (60, "极度恐慌"),     # 40-60 金融危机、流行病
+    (101, "系统性崩溃"),  # > 60 2008/2020/2024 级别
+]
+
+
+def classify_ivix_level(ivix_value: float) -> str:
+    """根据 iVIX 绝对值判定恐慌等级（方法论研报 §1.1 VIX 等级表 7 档）。
+
+    与 CBOE VIX 长期统计 + 历史事件校准对齐：
+        < 12      极度自满
+        12-18     平静健康
+        18-22     略有担忧
+        22-30     明显恐慌
+        30-40     高度恐慌
+        40-60     极度恐慌
+        > 60      系统性崩溃
+
+    参数：
+        ivix_value: iVIX 绝对值（年化 %）
+
+    返回：
+        恐慌等级中文标签；ivix_value 为 NaN 返回 "数据不可用"。
+    """
+    if pd.isna(ivix_value):
+        return "数据不可用"
+    for threshold, label in IVIX_LEVELS:
+        if ivix_value < threshold:
+            return label
+    return IVIX_LEVELS[-1][1]
+
+
 # ── 单指数分析（Layer 1+2）───────────────────────────────────────────
 
 
@@ -210,7 +248,7 @@ def analyze_iv_rv_basis(
     返回：
         {
             "ivix_current", "ivix_pct", "ivix_panic_level",
-            "rv50_approx", "vr_ratio",
+            "rv_sse_approx", "vr_ratio",
             "latest_date", "status",
         }
     """
@@ -224,17 +262,8 @@ def analyze_iv_rv_basis(
     ivix_pct = percentile_rank(ivix_current, ivix_series)
     vr = vr_ratio(ivix_current, rv50_current)
 
-    # iVIX 恐慌等级阈值（与方法论研报 §1.1 VIX 等级对齐，绝对值而非分位）
-    if ivix_current < 15:
-        ivix_level = "平静"
-    elif ivix_current < 22:
-        ivix_level = "正常"
-    elif ivix_current < 30:
-        ivix_level = "偏高"
-    elif ivix_current < 40:
-        ivix_level = "明显恐慌"
-    else:
-        ivix_level = "极度恐慌"
+    # iVIX 恐慌等级阈值（与方法论研报 §1.1 VIX 等级表 7 档对齐，2026-07-08 统一）
+    ivix_level = classify_ivix_level(ivix_current)
 
     return {
         "status": "success",
@@ -242,7 +271,7 @@ def analyze_iv_rv_basis(
         "ivix_current": round(ivix_current, 2),
         "ivix_pct": ivix_pct,
         "ivix_panic_level": ivix_level,
-        "rv50_approx": round(rv50_current, 2) if not pd.isna(rv50_current) else None,
+        "rv_sse_approx": round(rv50_current, 2) if not pd.isna(rv50_current) else None,
         "vr_ratio": vr if not pd.isna(vr) else None,
     }
 
@@ -251,12 +280,18 @@ def analyze_iv_rv_basis(
 
 
 def _build_summary(indices_results: dict[str, dict], market: dict) -> str:
-    """生成整体波动率定性摘要（纯统计拼接）。"""
+    """生成整体波动率定性摘要（纯事实陈述，不含行动建议）。
+
+    2026-07-08 修正：
+    1. 修复排序文案错乱（原 coldest/hottest 与"最恐慌/最平静"语义反了）
+    2. 去掉"关注左侧机会""分批建仓"等行动建议——数据层只出事实，
+       行动建议交由 decision-matrix 在人工判断后输出
+    """
     ok = [r for r in indices_results.values() if r.get("status") == "success"]
     if not ok:
         return "波动率数据全部不可用"
 
-    # 找最恐慌与最平静
+    # 按分位升序排序，分位最高 = 最恐慌，分位最低 = 最平静
     by_pct = sorted(
         [r for r in ok if not pd.isna(r.get("rv20_pct"))],
         key=lambda r: r["rv20_pct"],
@@ -264,25 +299,29 @@ def _build_summary(indices_results: dict[str, dict], market: dict) -> str:
     if not by_pct:
         return "波动率分位数据不可用"
 
-    coldest = by_pct[0]
-    hottest = by_pct[-1]
+    least_panic = by_pct[0]   # 分位最低 = 最平静
+    most_panic = by_pct[-1]   # 分位最高 = 最恐慌
     panic_n = sum(1 for r in by_pct if r["rv20_pct"] >= 90)
 
     parts = [
-        f"最恐慌：{coldest['name']} RV20={coldest['rv20']:.1f}%（P{coldest['rv20_pct']:.0f}，{coldest['panic_level']}）",
-        f"最平静：{hottest['name']} RV20={hottest['rv20']:.1f}%（P{hottest['rv20_pct']:.0f}，{hottest['panic_level']}）",
+        f"最平静：{least_panic['name']} P{least_panic['rv20_pct']:.0f}（RV20={least_panic['rv20']:.1f}%，{least_panic['panic_level']}）",
+        f"最恐慌：{most_panic['name']} P{most_panic['rv20_pct']:.0f}（RV20={most_panic['rv20']:.1f}%，{most_panic['panic_level']}）",
     ]
 
     if panic_n > 0:
         parts.append(f"{panic_n}/{len(by_pct)} 指数处于 P90+ 恐慌区")
-        if panic_n >= len(by_pct) - 1:
-            parts.append("系统性恐慌，关注左侧机会")
+        # 只陈述恐慌结构类型（系统性 vs 结构性），不给行动建议
+        # 系统性判定标准：宽基（上证/沪深300）≥1 个 P90+，或 ≥4/5 指数 P90+
+        sse_panic = any(r["name"] == "上证指数" and r.get("rv20_pct", 0) >= 90 for r in by_pct)
+        hs300_panic = any(r["name"] == "沪深300" and r.get("rv20_pct", 0) >= 90 for r in by_pct)
+        if (sse_panic or hs300_panic) or panic_n >= 4:
+            parts.append("属系统性恐慌（宽基承压）")
         else:
-            parts.append("结构性恐慌，关注风格切换")
+            parts.append("属结构性恐慌（恐慌集中在部分指数）")
     else:
-        parts.append("无指数处于恐慌区")
+        parts.append("无指数处于 P90+ 恐慌区")
 
-    # 市场层（iVIX + V/R）
+    # 市场层（iVIX + V/R）——只陈述事实，不附交易含义
     if market.get("status") == "success":
         ivix = market.get("ivix_current")
         vr = market.get("vr_ratio")
@@ -293,6 +332,83 @@ def _build_summary(indices_results: dict[str, dict], market: dict) -> str:
             )
 
     return "，".join(parts)
+
+
+# ── 与 index_technical 联动（双确认信号）─────────────────────────────
+
+
+# 技术面阶段 → 是否算"价格极端"（与波动率 P90+ 叠加才算双确认）
+# 方法论文档 §7.2：RV≥P90（情绪极端）+ 技术面超跌阶段（价格极端）= 高概率反弹区
+_PANIC_TECHNICAL_STAGES = {"主跌浪", "低位筑底", "下跌中反弹"}
+_OVERHEAT_TECHNICAL_STAGES = {"主升浪", "高位震荡筑顶"}
+
+
+def _cross_check_technical(date: str, indices_results: dict[str, dict]) -> dict[str, Any]:
+    """读当日 index_technical 数据，输出波动率 × 技术面双确认信号。
+
+    方法论文档 §7.2 的双确认逻辑：
+    - RV≥P90（情绪极端恐慌）+ 技术面"主跌浪/低位筑底"（价格极端）= 高概率反弹区
+    - RV≤P10（极度自满）+ 技术面"主升浪/高位震荡筑顶"（价格过热）= 见顶风险区
+    - 单独一方极端 = 仅"关注信号"，不构成双确认
+
+    返回：
+        {
+            "status": "success" / "数据不可用",
+            "panic_confirmed": [{"ts_code","name","rv20_pct","stage"}],  # 恐慌双确认
+            "overheat_confirmed": [...],  # 自满双确认
+            "summary": "...",  # 一句话定性
+        }
+    """
+    try:
+        from stockhot.storage.database import get_daily_data
+        tech_data = get_daily_data(date).get("index_technical")
+        if not tech_data or tech_data.get("status") != "success":
+            return {"status": "数据不可用", "reason": "index_technical 未采集"}
+    except Exception as e:
+        return {"status": "数据不可用", "reason": f"读取失败: {e}"}
+
+    tech_indices = tech_data.get("indices", {})
+
+    panic_confirmed: list[dict] = []
+    overheat_confirmed: list[dict] = []
+    for ts_code, vol_r in indices_results.items():
+        if vol_r.get("status") != "success":
+            continue
+        tech_r = tech_indices.get(ts_code, {})
+        if tech_r.get("status") != "success":
+            continue
+        rv_pct = vol_r.get("rv20_pct")
+        stage = tech_r.get("stage", "")
+        entry = {
+            "ts_code": ts_code,
+            "name": vol_r.get("name"),
+            "rv20_pct": rv_pct,
+            "stage": stage,
+            "technical_score": tech_r.get("technical_score"),
+        }
+        # 恐慌双确认：RV≥P90 + 技术面超跌阶段
+        if rv_pct is not None and rv_pct >= 90 and stage in _PANIC_TECHNICAL_STAGES:
+            panic_confirmed.append(entry)
+        # 自满双确认：RV≤P10 + 技术面过热阶段
+        elif rv_pct is not None and rv_pct <= 10 and stage in _OVERHEAT_TECHNICAL_STAGES:
+            overheat_confirmed.append(entry)
+
+    parts: list[str] = []
+    if panic_confirmed:
+        names = "、".join(e["name"] for e in panic_confirmed)
+        parts.append(f"恐慌双确认（{names}：RV≥P90 + 技术面超跌）")
+    if overheat_confirmed:
+        names = "、".join(e["name"] for e in overheat_confirmed)
+        parts.append(f"见顶风险双确认（{names}：RV≤P10 + 技术面过热）")
+    if not parts:
+        parts.append("无双确认信号（波动率与技术面未极端共振）")
+
+    return {
+        "status": "success",
+        "panic_confirmed": panic_confirmed,
+        "overheat_confirmed": overheat_confirmed,
+        "summary": "；".join(parts),
+    }
 
 
 # ── 入口（符合 run_*_analysis(date) -> dict 约定）────────────────────
@@ -348,15 +464,17 @@ def run_volatility_analysis(
             }
             logger.error(f"  {ts_code} 分析失败: {type(e).__name__}: {e}")
 
-    # Layer 5：iVIX + V/R（用上证 50 的 RV 近似——A 股无 50 指数代码，
-    # 用沪深 300 的 RV 作为大盘蓝筹代理）
+    # Layer 5：iVIX + V/R
+    # V/R 分母用上证指数 RV20（最接近上证 50ETF 的免费代理——A 股无上证 50
+    # 指数代码，上证综指以大盘蓝筹为主，比沪深 300 含成长股更贴近 50ETF）。
+    # 2026-07-08 修正：此前用沪深 300 RV20(24.9) 导致 V/R 被压低至 0.82，
+    # 改用上证 RV20(16.9) 后 V/R=1.21，与方法论文档 1.15-1.35 吻合。
     market: dict[str, Any] = {"status": "数据不可用"}
     try:
         ivix_series = fetch_ivix_history(days=days)
-        # 用沪深 300（最贴近上证 50 的可取指数）的 rv20 作 V/R 分母
-        rv300 = indices_results.get("000300.SH", {}).get("rv20")
-        rv300 = rv300 if rv300 and not pd.isna(rv300) else float("nan")
-        market = analyze_iv_rv_basis(ivix_series, rv300, days=days)
+        rv_sse = indices_results.get("000001.SH", {}).get("rv20")
+        rv_sse = rv_sse if rv_sse and not pd.isna(rv_sse) else float("nan")
+        market = analyze_iv_rv_basis(ivix_series, rv_sse, days=days)
         if market.get("status") == "success":
             logger.info(
                 f"  iVIX={market['ivix_current']:.1f} P{market['ivix_pct']:.0f} "
@@ -369,11 +487,17 @@ def run_volatility_analysis(
     summary = _build_summary(indices_results, market)
     success_n = sum(1 for r in indices_results.values() if r.get("status") == "success")
 
+    # ── 与 index_technical 联动：双确认信号 ──
+    # 方法论文档 §7.2：RV≥P90（情绪极端）+ 技术面"主跌浪/低位筑底"（价格极端）
+    # = 高概率反弹区。单独 RV 高不触发信号。
+    cross_signal = _cross_check_technical(date, indices_results)
+
     result: dict[str, Any] = {
         "date": date,
         "status": "success" if success_n > 0 else "no_data",
         "indices": indices_results,
         "market": market,
+        "cross_signal": cross_signal,
         "summary": summary,
     }
 

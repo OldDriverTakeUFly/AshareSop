@@ -56,9 +56,23 @@ def _format_analysis(result: dict) -> str:
         vr = market.get("vr_ratio")
         vr_str = f"{vr:.2f}" if vr is not None else "N/A"
         lines.append(f"| V/R 比率（IV/RV） | {vr_str} |")
-        rv50 = market.get("rv50_approx")
-        rv50_str = f"{rv50:.1f}%" if rv50 is not None else "N/A"
-        lines.append(f"| 沪深300 RV20（V/R 分母） | {rv50_str} |")
+        rv_sse = market.get("rv_sse_approx")
+        rv_sse_str = f"{rv_sse:.1f}%" if rv_sse is not None else "N/A"
+        lines.append(f"| 上证 RV20（V/R 分母，50ETF 代理） | {rv_sse_str} |")
+
+    # 波动率 × 技术面双确认（方法论 §7.2）
+    cross = result.get("cross_signal", {})
+    if cross.get("status") == "success":
+        lines.append("\n## 波动率 × 技术面双确认（Layer 1+2 × index_technical）\n")
+        lines.append(f"> {cross.get('summary', '')}")
+        if cross.get("panic_confirmed"):
+            lines.append("\n**恐慌双确认**（RV≥P90 + 技术面超跌，高概率反弹区）：")
+            for e in cross["panic_confirmed"]:
+                lines.append(f"- {e['name']}（RV20 P{e['rv20_pct']:.0f} + 技术面{e['stage']}）")
+        if cross.get("overheat_confirmed"):
+            lines.append("\n**见顶风险双确认**（RV≤P10 + 技术面过热）：")
+            for e in cross["overheat_confirmed"]:
+                lines.append(f"- {e['name']}（RV20 P{e['rv20_pct']:.0f} + 技术面{e['stage']}）")
 
     lines.append("\n---\n*方法论：`docs/方法论/A股波动率观察框架方法论深度研报.md`*")
     return "\n".join(lines)

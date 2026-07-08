@@ -43,6 +43,7 @@
 |------|--------------|------|---------|
 | **停牌股票池** | `stock_zh_a_stop_em` | risk_alert 模块 | Tushare 无停牌股票池接口 |
 | **活跃营业部龙虎榜** | `stock_lhb_hyyyb_em` | dragon_tiger 模块 | Tushare top_list/top_inst 无营业部维度 |
+| **iVIX/QVIX 波动率指数** | `index_option_50etf_qvix` | volatility 模块 Layer 5 | Tushare 无 QVIX/iVIX 等价接口；数据来自期权论坛（optbbs.com）第三方重建版，2018 年官方 iVIX 停发后持续更新 |
 
 当这两类数据的 AKShare 调用失败时，对应模块功能降级（标"数据不可用"），不影响其他功能。
 
