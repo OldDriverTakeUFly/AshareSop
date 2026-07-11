@@ -1,0 +1,3039 @@
+{
+  "target": "300373.SZ",
+  "target_name": "扬杰科技",
+  "names": {
+    "300373.SZ": "扬杰科技",
+    "600703.SH": "三安光电",
+    "600460.SH": "士兰微",
+    "002371.SZ": "北方华创",
+    "002049.SZ": "紫光国微",
+    "002405.SZ": "四维图新"
+  },
+  "stats": {
+    "total_return_pct": 49.69,
+    "annualized_return_pct": 128.53,
+    "sharpe_ratio": 1.63,
+    "max_drawdown_pct": -29.02,
+    "win_rate_pct": 50.0,
+    "turnover": 0.34,
+    "num_trades": 17,
+    "num_rebalances": 25,
+    "total_cost": 14816.98,
+    "initial_capital": 1000000,
+    "final_equity": 1496906.0167499995
+  },
+  "trades": [
+    {
+      "signal_date": "2026-01-06",
+      "exec_date": "2026-01-06",
+      "ts_code": "300373.SZ",
+      "name": "扬杰科技",
+      "action": "BUY",
+      "price": 69.61,
+      "shares": 14300,
+      "amount": 995423.0,
+      "cost": 248.86
+    },
+    {
+      "signal_date": "2026-04-01",
+      "exec_date": "2026-04-01",
+      "ts_code": "300373.SZ",
+      "name": "扬杰科技",
+      "action": "SELL",
+      "price": 69.3,
+      "shares": 14300,
+      "amount": 990990.0,
+      "cost": 1238.74
+    },
+    {
+      "signal_date": "2026-04-01",
+      "exec_date": "2026-04-01",
+      "ts_code": "002405.SZ",
+      "name": "四维图新",
+      "action": "BUY",
+      "price": 9.47,
+      "shares": 104900,
+      "amount": 993403.0,
+      "cost": 248.35
+    },
+    {
+      "signal_date": "2026-04-09",
+      "exec_date": "2026-04-09",
+      "ts_code": "002405.SZ",
+      "name": "四维图新",
+      "action": "SELL",
+      "price": 9.19,
+      "shares": 104900,
+      "amount": 964031.0,
+      "cost": 1205.04
+    },
+    {
+      "signal_date": "2026-04-09",
+      "exec_date": "2026-04-09",
+      "ts_code": "300373.SZ",
+      "name": "扬杰科技",
+      "action": "BUY",
+      "price": 77.01,
+      "shares": 12500,
+      "amount": 962625.0,
+      "cost": 240.66
+    },
+    {
+      "signal_date": "2026-04-30",
+      "exec_date": "2026-04-30",
+      "ts_code": "300373.SZ",
+      "name": "扬杰科技",
+      "action": "SELL",
+      "price": 77.71,
+      "shares": 12500,
+      "amount": 971375.0,
+      "cost": 1214.22
+    },
+    {
+      "signal_date": "2026-04-30",
+      "exec_date": "2026-04-30",
+      "ts_code": "002371.SZ",
+      "name": "北方华创",
+      "action": "BUY",
+      "price": 519.18,
+      "shares": 1800,
+      "amount": 934524.0,
+      "cost": 233.63
+    },
+    {
+      "signal_date": "2026-05-26",
+      "exec_date": "2026-05-26",
+      "ts_code": "002371.SZ",
+      "name": "北方华创",
+      "action": "SELL",
+      "price": 690.0,
+      "shares": 1800,
+      "amount": 1242000.0,
+      "cost": 1552.5
+    },
+    {
+      "signal_date": "2026-05-26",
+      "exec_date": "2026-05-26",
+      "ts_code": "600703.SH",
+      "name": "三安光电",
+      "action": "BUY",
+      "price": 16.05,
+      "shares": 79400,
+      "amount": 1274370.0,
+      "cost": 318.59
+    },
+    {
+      "signal_date": "2026-06-02",
+      "exec_date": "2026-06-02",
+      "ts_code": "600703.SH",
+      "name": "三安光电",
+      "action": "SELL",
+      "price": 15.2,
+      "shares": 79400,
+      "amount": 1206880.0,
+      "cost": 1508.6
+    },
+    {
+      "signal_date": "2026-06-02",
+      "exec_date": "2026-06-02",
+      "ts_code": "002371.SZ",
+      "name": "北方华创",
+      "action": "BUY",
+      "price": 586.1,
+      "shares": 2000,
+      "amount": 1172200.0,
+      "cost": 293.05
+    },
+    {
+      "signal_date": "2026-06-09",
+      "exec_date": "2026-06-09",
+      "ts_code": "002371.SZ",
+      "name": "北方华创",
+      "action": "SELL",
+      "price": 601.02,
+      "shares": 2000,
+      "amount": 1202040.0,
+      "cost": 1502.55
+    },
+    {
+      "signal_date": "2026-06-09",
+      "exec_date": "2026-06-09",
+      "ts_code": "300373.SZ",
+      "name": "扬杰科技",
+      "action": "BUY",
+      "price": 97.96,
+      "shares": 12600,
+      "amount": 1234296.0,
+      "cost": 308.57
+    },
+    {
+      "signal_date": "2026-06-24",
+      "exec_date": "2026-06-24",
+      "ts_code": "300373.SZ",
+      "name": "扬杰科技",
+      "action": "SELL",
+      "price": 130.0,
+      "shares": 12600,
+      "amount": 1638000.0,
+      "cost": 2047.5
+    },
+    {
+      "signal_date": "2026-06-24",
+      "exec_date": "2026-06-24",
+      "ts_code": "600703.SH",
+      "name": "三安光电",
+      "action": "BUY",
+      "price": 19.3,
+      "shares": 84700,
+      "amount": 1634710.0,
+      "cost": 408.68
+    },
+    {
+      "signal_date": "2026-07-08",
+      "exec_date": "2026-07-08",
+      "ts_code": "600703.SH",
+      "name": "三安光电",
+      "action": "SELL",
+      "price": 17.8,
+      "shares": 84700,
+      "amount": 1507660.0,
+      "cost": 1884.58
+    },
+    {
+      "signal_date": "2026-07-08",
+      "exec_date": "2026-07-08",
+      "ts_code": "002371.SZ",
+      "name": "北方华创",
+      "action": "BUY",
+      "price": 806.39,
+      "shares": 1800,
+      "amount": 1451502.0,
+      "cost": 362.88
+    }
+  ],
+  "factor_history": [
+    {
+      "date": "2026-01-05",
+      "detail": {
+        "300373.SZ": {
+          "name": "扬杰科技",
+          "composite": 65.02,
+          "momentum": 63.69,
+          "valuation": null,
+          "prosperity": 66.12,
+          "distress": null,
+          "delta_g": 0.99
+        },
+        "600703.SH": {
+          "name": "三安光电",
+          "composite": 55.88,
+          "momentum": 54.7,
+          "valuation": null,
+          "prosperity": 56.87,
+          "distress": null,
+          "delta_g": -2.34
+        },
+        "600460.SH": {
+          "name": "士兰微",
+          "composite": 48.59,
+          "momentum": 51.14,
+          "valuation": null,
+          "prosperity": 46.47,
+          "distress": null,
+          "delta_g": -1.36
+        },
+        "002371.SZ": {
+          "name": "北方华创",
+          "composite": 58.42,
+          "momentum": 74.18,
+          "valuation": null,
+          "prosperity": 45.28,
+          "distress": null,
+          "delta_g": -2.96
+        },
+        "002049.SZ": {
+          "name": "紫光国微",
+          "composite": 35.24,
+          "momentum": 50.92,
+          "valuation": null,
+          "prosperity": 22.17,
+          "distress": null,
+          "delta_g": 12.55
+        },
+        "002405.SZ": {
+          "name": "四维图新",
+          "composite": 53.45,
+          "momentum": 57.43,
+          "valuation": null,
+          "prosperity": 50.14,
+          "distress": null,
+          "delta_g": -0.83
+        }
+      },
+      "top": "300373.SZ",
+      "top_name": "扬杰科技",
+      "ranked": [
+        {
+          "code": "300373.SZ",
+          "name": "扬杰科技",
+          "score": 65.02
+        },
+        {
+          "code": "002371.SZ",
+          "name": "北方华创",
+          "score": 58.42
+        },
+        {
+          "code": "600703.SH",
+          "name": "三安光电",
+          "score": 55.88
+        },
+        {
+          "code": "002405.SZ",
+          "name": "四维图新",
+          "score": 53.45
+        },
+        {
+          "code": "600460.SH",
+          "name": "士兰微",
+          "score": 48.59
+        },
+        {
+          "code": "002049.SZ",
+          "name": "紫光国微",
+          "score": 35.24
+        }
+      ]
+    },
+    {
+      "date": "2026-01-12",
+      "detail": {
+        "300373.SZ": {
+          "name": "扬杰科技",
+          "composite": 65.85,
+          "momentum": 65.52,
+          "valuation": null,
+          "prosperity": 66.12,
+          "distress": null,
+          "delta_g": 0.99
+        },
+        "600703.SH": {
+          "name": "三安光电",
+          "composite": 59.81,
+          "momentum": 63.33,
+          "valuation": null,
+          "prosperity": 56.87,
+          "distress": null,
+          "delta_g": -2.34
+        },
+        "600460.SH": {
+          "name": "士兰微",
+          "composite": 50.13,
+          "momentum": 54.53,
+          "valuation": null,
+          "prosperity": 46.47,
+          "distress": null,
+          "delta_g": -1.36
+        },
+        "002371.SZ": {
+          "name": "北方华创",
+          "composite": 60.88,
+          "momentum": 79.6,
+          "valuation": null,
+          "prosperity": 45.28,
+          "distress": null,
+          "delta_g": -2.96
+        },
+        "002049.SZ": {
+          "name": "紫光国微",
+          "composite": 35.24,
+          "momentum": 50.92,
+          "valuation": null,
+          "prosperity": 22.17,
+          "distress": null,
+          "delta_g": 12.55
+        },
+        "002405.SZ": {
+          "name": "四维图新",
+          "composite": 59.63,
+          "momentum": 71.01,
+          "valuation": null,
+          "prosperity": 50.14,
+          "distress": null,
+          "delta_g": -0.83
+        }
+      },
+      "top": "300373.SZ",
+      "top_name": "扬杰科技",
+      "ranked": [
+        {
+          "code": "300373.SZ",
+          "name": "扬杰科技",
+          "score": 65.85
+        },
+        {
+          "code": "002371.SZ",
+          "name": "北方华创",
+          "score": 60.88
+        },
+        {
+          "code": "600703.SH",
+          "name": "三安光电",
+          "score": 59.81
+        },
+        {
+          "code": "002405.SZ",
+          "name": "四维图新",
+          "score": 59.63
+        },
+        {
+          "code": "600460.SH",
+          "name": "士兰微",
+          "score": 50.13
+        },
+        {
+          "code": "002049.SZ",
+          "name": "紫光国微",
+          "score": 35.24
+        }
+      ]
+    },
+    {
+      "date": "2026-01-19",
+      "detail": {
+        "300373.SZ": {
+          "name": "扬杰科技",
+          "composite": 67.28,
+          "momentum": 68.68,
+          "valuation": null,
+          "prosperity": 66.12,
+          "distress": null,
+          "delta_g": 0.99
+        },
+        "600703.SH": {
+          "name": "三安光电",
+          "composite": 59.74,
+          "momentum": 63.18,
+          "valuation": null,
+          "prosperity": 56.87,
+          "distress": null,
+          "delta_g": -2.34
+        },
+        "600460.SH": {
+          "name": "士兰微",
+          "composite": 52.0,
+          "momentum": 58.63,
+          "valuation": null,
+          "prosperity": 46.47,
+          "distress": null,
+          "delta_g": -1.36
+        },
+        "002371.SZ": {
+          "name": "北方华创",
+          "composite": 62.62,
+          "momentum": 83.43,
+          "valuation": null,
+          "prosperity": 45.28,
+          "distress": null,
+          "delta_g": -2.96
+        },
+        "002049.SZ": {
+          "name": "紫光国微",
+          "composite": 40.75,
+          "momentum": 63.05,
+          "valuation": null,
+          "prosperity": 22.17,
+          "distress": null,
+          "delta_g": 12.55
+        },
+        "002405.SZ": {
+          "name": "四维图新",
+          "composite": 58.22,
+          "momentum": 67.91,
+          "valuation": null,
+          "prosperity": 50.14,
+          "distress": null,
+          "delta_g": -0.83
+        }
+      },
+      "top": "300373.SZ",
+      "top_name": "扬杰科技",
+      "ranked": [
+        {
+          "code": "300373.SZ",
+          "name": "扬杰科技",
+          "score": 67.28
+        },
+        {
+          "code": "002371.SZ",
+          "name": "北方华创",
+          "score": 62.62
+        },
+        {
+          "code": "600703.SH",
+          "name": "三安光电",
+          "score": 59.74
+        },
+        {
+          "code": "002405.SZ",
+          "name": "四维图新",
+          "score": 58.22
+        },
+        {
+          "code": "600460.SH",
+          "name": "士兰微",
+          "score": 52.0
+        },
+        {
+          "code": "002049.SZ",
+          "name": "紫光国微",
+          "score": 40.75
+        }
+      ]
+    },
+    {
+      "date": "2026-01-26",
+      "detail": {
+        "300373.SZ": {
+          "name": "扬杰科技",
+          "composite": 69.6,
+          "momentum": 73.77,
+          "valuation": null,
+          "prosperity": 66.12,
+          "distress": null,
+          "delta_g": 0.99
+        },
+        "600703.SH": {
+          "name": "三安光电",
+          "composite": 61.79,
+          "momentum": 67.7,
+          "valuation": null,
+          "prosperity": 56.87,
+          "distress": null,
+          "delta_g": -2.34
+        },
+        "600460.SH": {
+          "name": "士兰微",
+          "composite": 52.34,
+          "momentum": 59.38,
+          "valuation": null,
+          "prosperity": 46.47,
+          "distress": null,
+          "delta_g": -1.36
+        },
+        "002371.SZ": {
+          "name": "北方华创",
+          "composite": 57.7,
+          "momentum": 72.61,
+          "valuation": null,
+          "prosperity": 45.28,
+          "distress": null,
+          "delta_g": -2.96
+        },
+        "002049.SZ": {
+          "name": "紫光国微",
+          "composite": 39.77,
+          "momentum": 60.88,
+          "valuation": null,
+          "prosperity": 22.17,
+          "distress": null,
+          "delta_g": 12.55
+        },
+        "002405.SZ": {
+          "name": "四维图新",
+          "composite": 60.18,
+          "momentum": 72.22,
+          "valuation": null,
+          "prosperity": 50.14,
+          "distress": null,
+          "delta_g": -0.83
+        }
+      },
+      "top": "300373.SZ",
+      "top_name": "扬杰科技",
+      "ranked": [
+        {
+          "code": "300373.SZ",
+          "name": "扬杰科技",
+          "score": 69.6
+        },
+        {
+          "code": "600703.SH",
+          "name": "三安光电",
+          "score": 61.79
+        },
+        {
+          "code": "002405.SZ",
+          "name": "四维图新",
+          "score": 60.18
+        },
+        {
+          "code": "002371.SZ",
+          "name": "北方华创",
+          "score": 57.7
+        },
+        {
+          "code": "600460.SH",
+          "name": "士兰微",
+          "score": 52.34
+        },
+        {
+          "code": "002049.SZ",
+          "name": "紫光国微",
+          "score": 39.77
+        }
+      ]
+    },
+    {
+      "date": "2026-02-02",
+      "detail": {
+        "300373.SZ": {
+          "name": "扬杰科技",
+          "composite": 71.62,
+          "momentum": 78.23,
+          "valuation": null,
+          "prosperity": 66.12,
+          "distress": null,
+          "delta_g": 0.99
+        },
+        "600703.SH": {
+          "name": "三安光电",
+          "composite": 59.11,
+          "momentum": 61.79,
+          "valuation": null,
+          "prosperity": 56.87,
+          "distress": null,
+          "delta_g": -2.34
+        },
+        "600460.SH": {
+          "name": "士兰微",
+          "composite": 52.08,
+          "momentum": 58.81,
+          "valuation": null,
+          "prosperity": 46.47,
+          "distress": null,
+          "delta_g": -1.36
+        },
+        "002371.SZ": {
+          "name": "北方华创",
+          "composite": 53.58,
+          "momentum": 63.53,
+          "valuation": null,
+          "prosperity": 45.28,
+          "distress": null,
+          "delta_g": -2.96
+        },
+        "002049.SZ": {
+          "name": "紫光国微",
+          "composite": 36.56,
+          "momentum": 53.83,
+          "valuation": null,
+          "prosperity": 22.17,
+          "distress": null,
+          "delta_g": 12.55
+        },
+        "002405.SZ": {
+          "name": "四维图新",
+          "composite": 56.4,
+          "momentum": 63.91,
+          "valuation": null,
+          "prosperity": 50.14,
+          "distress": null,
+          "delta_g": -0.83
+        }
+      },
+      "top": "300373.SZ",
+      "top_name": "扬杰科技",
+      "ranked": [
+        {
+          "code": "300373.SZ",
+          "name": "扬杰科技",
+          "score": 71.62
+        },
+        {
+          "code": "600703.SH",
+          "name": "三安光电",
+          "score": 59.11
+        },
+        {
+          "code": "002405.SZ",
+          "name": "四维图新",
+          "score": 56.4
+        },
+        {
+          "code": "002371.SZ",
+          "name": "北方华创",
+          "score": 53.58
+        },
+        {
+          "code": "600460.SH",
+          "name": "士兰微",
+          "score": 52.08
+        },
+        {
+          "code": "002049.SZ",
+          "name": "紫光国微",
+          "score": 36.56
+        }
+      ]
+    },
+    {
+      "date": "2026-02-09",
+      "detail": {
+        "300373.SZ": {
+          "name": "扬杰科技",
+          "composite": 71.74,
+          "momentum": 78.49,
+          "valuation": null,
+          "prosperity": 66.12,
+          "distress": null,
+          "delta_g": 0.99
+        },
+        "600703.SH": {
+          "name": "三安光电",
+          "composite": 60.04,
+          "momentum": 63.84,
+          "valuation": null,
+          "prosperity": 56.87,
+          "distress": null,
+          "delta_g": -2.34
+        },
+        "600460.SH": {
+          "name": "士兰微",
+          "composite": 53.06,
+          "momentum": 60.97,
+          "valuation": null,
+          "prosperity": 46.47,
+          "distress": null,
+          "delta_g": -1.36
+        },
+        "002371.SZ": {
+          "name": "北方华创",
+          "composite": 56.1,
+          "momentum": 69.09,
+          "valuation": null,
+          "prosperity": 45.28,
+          "distress": null,
+          "delta_g": -2.96
+        },
+        "002049.SZ": {
+          "name": "紫光国微",
+          "composite": 36.13,
+          "momentum": 52.88,
+          "valuation": null,
+          "prosperity": 22.17,
+          "distress": null,
+          "delta_g": 12.55
+        },
+        "002405.SZ": {
+          "name": "四维图新",
+          "composite": 59.39,
+          "momentum": 70.49,
+          "valuation": null,
+          "prosperity": 50.14,
+          "distress": null,
+          "delta_g": -0.83
+        }
+      },
+      "top": "300373.SZ",
+      "top_name": "扬杰科技",
+      "ranked": [
+        {
+          "code": "300373.SZ",
+          "name": "扬杰科技",
+          "score": 71.74
+        },
+        {
+          "code": "600703.SH",
+          "name": "三安光电",
+          "score": 60.04
+        },
+        {
+          "code": "002405.SZ",
+          "name": "四维图新",
+          "score": 59.39
+        },
+        {
+          "code": "002371.SZ",
+          "name": "北方华创",
+          "score": 56.1
+        },
+        {
+          "code": "600460.SH",
+          "name": "士兰微",
+          "score": 53.06
+        },
+        {
+          "code": "002049.SZ",
+          "name": "紫光国微",
+          "score": 36.13
+        }
+      ]
+    },
+    {
+      "date": "2026-02-24",
+      "detail": {
+        "300373.SZ": {
+          "name": "扬杰科技",
+          "composite": 73.81,
+          "momentum": 83.03,
+          "valuation": null,
+          "prosperity": 66.12,
+          "distress": null,
+          "delta_g": 0.99
+        },
+        "600703.SH": {
+          "name": "三安光电",
+          "composite": 60.09,
+          "momentum": 63.95,
+          "valuation": null,
+          "prosperity": 56.87,
+          "distress": null,
+          "delta_g": -2.34
+        },
+        "600460.SH": {
+          "name": "士兰微",
+          "composite": 53.94,
+          "momentum": 62.9,
+          "valuation": null,
+          "prosperity": 46.47,
+          "distress": null,
+          "delta_g": -1.36
+        },
+        "002371.SZ": {
+          "name": "北方华创",
+          "composite": 56.54,
+          "momentum": 70.05,
+          "valuation": null,
+          "prosperity": 45.28,
+          "distress": null,
+          "delta_g": -2.96
+        },
+        "002049.SZ": {
+          "name": "紫光国微",
+          "composite": 36.7,
+          "momentum": 54.13,
+          "valuation": null,
+          "prosperity": 22.17,
+          "distress": null,
+          "delta_g": 12.55
+        },
+        "002405.SZ": {
+          "name": "四维图新",
+          "composite": 59.16,
+          "momentum": 69.99,
+          "valuation": null,
+          "prosperity": 50.14,
+          "distress": null,
+          "delta_g": -0.83
+        }
+      },
+      "top": "300373.SZ",
+      "top_name": "扬杰科技",
+      "ranked": [
+        {
+          "code": "300373.SZ",
+          "name": "扬杰科技",
+          "score": 73.81
+        },
+        {
+          "code": "600703.SH",
+          "name": "三安光电",
+          "score": 60.09
+        },
+        {
+          "code": "002405.SZ",
+          "name": "四维图新",
+          "score": 59.16
+        },
+        {
+          "code": "002371.SZ",
+          "name": "北方华创",
+          "score": 56.54
+        },
+        {
+          "code": "600460.SH",
+          "name": "士兰微",
+          "score": 53.94
+        },
+        {
+          "code": "002049.SZ",
+          "name": "紫光国微",
+          "score": 36.7
+        }
+      ]
+    },
+    {
+      "date": "2026-03-03",
+      "detail": {
+        "300373.SZ": {
+          "name": "扬杰科技",
+          "composite": 69.19,
+          "momentum": 72.87,
+          "valuation": null,
+          "prosperity": 66.12,
+          "distress": null,
+          "delta_g": 0.99
+        },
+        "600703.SH": {
+          "name": "三安光电",
+          "composite": 57.38,
+          "momentum": 57.99,
+          "valuation": null,
+          "prosperity": 56.87,
+          "distress": null,
+          "delta_g": -2.34
+        },
+        "600460.SH": {
+          "name": "士兰微",
+          "composite": 48.9,
+          "momentum": 51.81,
+          "valuation": null,
+          "prosperity": 46.47,
+          "distress": null,
+          "delta_g": -1.36
+        },
+        "002371.SZ": {
+          "name": "北方华创",
+          "composite": 52.36,
+          "momentum": 60.86,
+          "valuation": null,
+          "prosperity": 45.28,
+          "distress": null,
+          "delta_g": -2.96
+        },
+        "002049.SZ": {
+          "name": "紫光国微",
+          "composite": 33.47,
+          "momentum": 47.04,
+          "valuation": null,
+          "prosperity": 22.17,
+          "distress": null,
+          "delta_g": 12.55
+        },
+        "002405.SZ": {
+          "name": "四维图新",
+          "composite": 54.83,
+          "momentum": 60.45,
+          "valuation": null,
+          "prosperity": 50.14,
+          "distress": null,
+          "delta_g": -0.83
+        }
+      },
+      "top": "300373.SZ",
+      "top_name": "扬杰科技",
+      "ranked": [
+        {
+          "code": "300373.SZ",
+          "name": "扬杰科技",
+          "score": 69.19
+        },
+        {
+          "code": "600703.SH",
+          "name": "三安光电",
+          "score": 57.38
+        },
+        {
+          "code": "002405.SZ",
+          "name": "四维图新",
+          "score": 54.83
+        },
+        {
+          "code": "002371.SZ",
+          "name": "北方华创",
+          "score": 52.36
+        },
+        {
+          "code": "600460.SH",
+          "name": "士兰微",
+          "score": 48.9
+        },
+        {
+          "code": "002049.SZ",
+          "name": "紫光国微",
+          "score": 33.47
+        }
+      ]
+    },
+    {
+      "date": "2026-03-10",
+      "detail": {
+        "300373.SZ": {
+          "name": "扬杰科技",
+          "composite": 69.59,
+          "momentum": 73.75,
+          "valuation": null,
+          "prosperity": 66.12,
+          "distress": null,
+          "delta_g": 0.99
+        },
+        "600703.SH": {
+          "name": "三安光电",
+          "composite": 60.18,
+          "momentum": 64.15,
+          "valuation": null,
+          "prosperity": 56.87,
+          "distress": null,
+          "delta_g": -2.34
+        },
+        "600460.SH": {
+          "name": "士兰微",
+          "composite": 49.75,
+          "momentum": 53.69,
+          "valuation": null,
+          "prosperity": 46.47,
+          "distress": null,
+          "delta_g": -1.36
+        },
+        "002371.SZ": {
+          "name": "北方华创",
+          "composite": 52.01,
+          "momentum": 60.08,
+          "valuation": null,
+          "prosperity": 45.28,
+          "distress": null,
+          "delta_g": -2.96
+        },
+        "002049.SZ": {
+          "name": "紫光国微",
+          "composite": 34.06,
+          "momentum": 48.32,
+          "valuation": null,
+          "prosperity": 22.17,
+          "distress": null,
+          "delta_g": 12.55
+        },
+        "002405.SZ": {
+          "name": "四维图新",
+          "composite": 57.23,
+          "momentum": 65.74,
+          "valuation": null,
+          "prosperity": 50.14,
+          "distress": null,
+          "delta_g": -0.83
+        }
+      },
+      "top": "300373.SZ",
+      "top_name": "扬杰科技",
+      "ranked": [
+        {
+          "code": "300373.SZ",
+          "name": "扬杰科技",
+          "score": 69.59
+        },
+        {
+          "code": "600703.SH",
+          "name": "三安光电",
+          "score": 60.18
+        },
+        {
+          "code": "002405.SZ",
+          "name": "四维图新",
+          "score": 57.23
+        },
+        {
+          "code": "002371.SZ",
+          "name": "北方华创",
+          "score": 52.01
+        },
+        {
+          "code": "600460.SH",
+          "name": "士兰微",
+          "score": 49.75
+        },
+        {
+          "code": "002049.SZ",
+          "name": "紫光国微",
+          "score": 34.06
+        }
+      ]
+    },
+    {
+      "date": "2026-03-17",
+      "detail": {
+        "300373.SZ": {
+          "name": "扬杰科技",
+          "composite": 67.25,
+          "momentum": 68.6,
+          "valuation": null,
+          "prosperity": 66.12,
+          "distress": null,
+          "delta_g": 0.99
+        },
+        "600703.SH": {
+          "name": "三安光电",
+          "composite": 60.97,
+          "momentum": 65.9,
+          "valuation": null,
+          "prosperity": 56.87,
+          "distress": null,
+          "delta_g": -2.34
+        },
+        "600460.SH": {
+          "name": "士兰微",
+          "composite": 48.27,
+          "momentum": 50.43,
+          "valuation": null,
+          "prosperity": 46.47,
+          "distress": null,
+          "delta_g": -1.36
+        },
+        "002371.SZ": {
+          "name": "北方华创",
+          "composite": 51.11,
+          "momentum": 58.1,
+          "valuation": null,
+          "prosperity": 45.28,
+          "distress": null,
+          "delta_g": -2.96
+        },
+        "002049.SZ": {
+          "name": "紫光国微",
+          "composite": 33.14,
+          "momentum": 46.31,
+          "valuation": null,
+          "prosperity": 22.17,
+          "distress": null,
+          "delta_g": 12.55
+        },
+        "002405.SZ": {
+          "name": "四维图新",
+          "composite": 56.99,
+          "momentum": 65.21,
+          "valuation": null,
+          "prosperity": 50.14,
+          "distress": null,
+          "delta_g": -0.83
+        }
+      },
+      "top": "300373.SZ",
+      "top_name": "扬杰科技",
+      "ranked": [
+        {
+          "code": "300373.SZ",
+          "name": "扬杰科技",
+          "score": 67.25
+        },
+        {
+          "code": "600703.SH",
+          "name": "三安光电",
+          "score": 60.97
+        },
+        {
+          "code": "002405.SZ",
+          "name": "四维图新",
+          "score": 56.99
+        },
+        {
+          "code": "002371.SZ",
+          "name": "北方华创",
+          "score": 51.11
+        },
+        {
+          "code": "600460.SH",
+          "name": "士兰微",
+          "score": 48.27
+        },
+        {
+          "code": "002049.SZ",
+          "name": "紫光国微",
+          "score": 33.14
+        }
+      ]
+    },
+    {
+      "date": "2026-03-24",
+      "detail": {
+        "300373.SZ": {
+          "name": "扬杰科技",
+          "composite": 62.92,
+          "momentum": 59.08,
+          "valuation": null,
+          "prosperity": 66.12,
+          "distress": null,
+          "delta_g": 0.99
+        },
+        "600703.SH": {
+          "name": "三安光电",
+          "composite": 53.61,
+          "momentum": 49.7,
+          "valuation": null,
+          "prosperity": 56.87,
+          "distress": null,
+          "delta_g": -2.34
+        },
+        "600460.SH": {
+          "name": "士兰微",
+          "composite": 45.28,
+          "momentum": 43.85,
+          "valuation": null,
+          "prosperity": 46.47,
+          "distress": null,
+          "delta_g": -1.36
+        },
+        "002371.SZ": {
+          "name": "北方华创",
+          "composite": 50.84,
+          "momentum": 57.51,
+          "valuation": null,
+          "prosperity": 45.28,
+          "distress": null,
+          "delta_g": -2.96
+        },
+        "002049.SZ": {
+          "name": "紫光国微",
+          "composite": 30.13,
+          "momentum": 39.69,
+          "valuation": null,
+          "prosperity": 22.17,
+          "distress": null,
+          "delta_g": 12.55
+        },
+        "002405.SZ": {
+          "name": "四维图新",
+          "composite": 53.53,
+          "momentum": 57.59,
+          "valuation": null,
+          "prosperity": 50.14,
+          "distress": null,
+          "delta_g": -0.83
+        }
+      },
+      "top": "300373.SZ",
+      "top_name": "扬杰科技",
+      "ranked": [
+        {
+          "code": "300373.SZ",
+          "name": "扬杰科技",
+          "score": 62.92
+        },
+        {
+          "code": "600703.SH",
+          "name": "三安光电",
+          "score": 53.61
+        },
+        {
+          "code": "002405.SZ",
+          "name": "四维图新",
+          "score": 53.53
+        },
+        {
+          "code": "002371.SZ",
+          "name": "北方华创",
+          "score": 50.84
+        },
+        {
+          "code": "600460.SH",
+          "name": "士兰微",
+          "score": 45.28
+        },
+        {
+          "code": "002049.SZ",
+          "name": "紫光国微",
+          "score": 30.13
+        }
+      ]
+    },
+    {
+      "date": "2026-03-31",
+      "detail": {
+        "300373.SZ": {
+          "name": "扬杰科技",
+          "composite": 48.7,
+          "momentum": 50.7,
+          "valuation": null,
+          "prosperity": 47.04,
+          "distress": null,
+          "delta_g": -1.2
+        },
+        "600703.SH": {
+          "name": "三安光电",
+          "composite": 46.91,
+          "momentum": 34.95,
+          "valuation": null,
+          "prosperity": 56.87,
+          "distress": null,
+          "delta_g": -2.34
+        },
+        "600460.SH": {
+          "name": "士兰微",
+          "composite": 42.97,
+          "momentum": 38.77,
+          "valuation": null,
+          "prosperity": 46.47,
+          "distress": null,
+          "delta_g": -1.36
+        },
+        "002371.SZ": {
+          "name": "北方华创",
+          "composite": 50.18,
+          "momentum": 56.05,
+          "valuation": null,
+          "prosperity": 45.28,
+          "distress": null,
+          "delta_g": -2.96
+        },
+        "002049.SZ": {
+          "name": "紫光国微",
+          "composite": 29.2,
+          "momentum": 37.63,
+          "valuation": null,
+          "prosperity": 22.17,
+          "distress": null,
+          "delta_g": 12.55
+        },
+        "002405.SZ": {
+          "name": "四维图新",
+          "composite": 50.35,
+          "momentum": 50.61,
+          "valuation": null,
+          "prosperity": 50.14,
+          "distress": null,
+          "delta_g": -0.83
+        }
+      },
+      "top": "002405.SZ",
+      "top_name": "四维图新",
+      "ranked": [
+        {
+          "code": "002405.SZ",
+          "name": "四维图新",
+          "score": 50.35
+        },
+        {
+          "code": "002371.SZ",
+          "name": "北方华创",
+          "score": 50.18
+        },
+        {
+          "code": "300373.SZ",
+          "name": "扬杰科技",
+          "score": 48.7
+        },
+        {
+          "code": "600703.SH",
+          "name": "三安光电",
+          "score": 46.91
+        },
+        {
+          "code": "600460.SH",
+          "name": "士兰微",
+          "score": 42.97
+        },
+        {
+          "code": "002049.SZ",
+          "name": "紫光国微",
+          "score": 29.2
+        }
+      ]
+    },
+    {
+      "date": "2026-04-08",
+      "detail": {
+        "300373.SZ": {
+          "name": "扬杰科技",
+          "composite": 54.68,
+          "momentum": 64.96,
+          "valuation": null,
+          "prosperity": 46.11,
+          "distress": null,
+          "delta_g": -1.2
+        },
+        "600703.SH": {
+          "name": "三安光电",
+          "composite": 41.01,
+          "momentum": 38.64,
+          "valuation": null,
+          "prosperity": 42.98,
+          "distress": null,
+          "delta_g": -0.48
+        },
+        "600460.SH": {
+          "name": "士兰微",
+          "composite": 41.62,
+          "momentum": 42.67,
+          "valuation": null,
+          "prosperity": 40.74,
+          "distress": null,
+          "delta_g": -1.15
+        },
+        "002371.SZ": {
+          "name": "北方华创",
+          "composite": 48.87,
+          "momentum": 59.22,
+          "valuation": null,
+          "prosperity": 40.25,
+          "distress": null,
+          "delta_g": 3.28
+        },
+        "002049.SZ": {
+          "name": "紫光国微",
+          "composite": 39.95,
+          "momentum": 41.95,
+          "valuation": null,
+          "prosperity": 38.28,
+          "distress": null,
+          "delta_g": 8.98
+        },
+        "002405.SZ": {
+          "name": "四维图新",
+          "composite": 48.43,
+          "momentum": 51.58,
+          "valuation": null,
+          "prosperity": 45.8,
+          "distress": null,
+          "delta_g": -0.41
+        }
+      },
+      "top": "300373.SZ",
+      "top_name": "扬杰科技",
+      "ranked": [
+        {
+          "code": "300373.SZ",
+          "name": "扬杰科技",
+          "score": 54.68
+        },
+        {
+          "code": "002371.SZ",
+          "name": "北方华创",
+          "score": 48.87
+        },
+        {
+          "code": "002405.SZ",
+          "name": "四维图新",
+          "score": 48.43
+        },
+        {
+          "code": "600460.SH",
+          "name": "士兰微",
+          "score": 41.62
+        },
+        {
+          "code": "600703.SH",
+          "name": "三安光电",
+          "score": 41.01
+        },
+        {
+          "code": "002049.SZ",
+          "name": "紫光国微",
+          "score": 39.95
+        }
+      ]
+    },
+    {
+      "date": "2026-04-15",
+      "detail": {
+        "300373.SZ": {
+          "name": "扬杰科技",
+          "composite": 52.66,
+          "momentum": 60.52,
+          "valuation": null,
+          "prosperity": 46.11,
+          "distress": null,
+          "delta_g": -1.2
+        },
+        "600703.SH": {
+          "name": "三安光电",
+          "composite": 41.46,
+          "momentum": 39.63,
+          "valuation": null,
+          "prosperity": 42.98,
+          "distress": null,
+          "delta_g": -0.48
+        },
+        "600460.SH": {
+          "name": "士兰微",
+          "composite": 41.97,
+          "momentum": 43.44,
+          "valuation": null,
+          "prosperity": 40.74,
+          "distress": null,
+          "delta_g": -1.15
+        },
+        "002371.SZ": {
+          "name": "北方华创",
+          "composite": 50.33,
+          "momentum": 62.42,
+          "valuation": null,
+          "prosperity": 40.25,
+          "distress": null,
+          "delta_g": 3.28
+        },
+        "002049.SZ": {
+          "name": "紫光国微",
+          "composite": 40.39,
+          "momentum": 42.93,
+          "valuation": null,
+          "prosperity": 38.28,
+          "distress": null,
+          "delta_g": 8.98
+        },
+        "002405.SZ": {
+          "name": "四维图新",
+          "composite": 46.47,
+          "momentum": 47.27,
+          "valuation": null,
+          "prosperity": 45.8,
+          "distress": null,
+          "delta_g": -0.41
+        }
+      },
+      "top": "300373.SZ",
+      "top_name": "扬杰科技",
+      "ranked": [
+        {
+          "code": "300373.SZ",
+          "name": "扬杰科技",
+          "score": 52.66
+        },
+        {
+          "code": "002371.SZ",
+          "name": "北方华创",
+          "score": 50.33
+        },
+        {
+          "code": "002405.SZ",
+          "name": "四维图新",
+          "score": 46.47
+        },
+        {
+          "code": "600460.SH",
+          "name": "士兰微",
+          "score": 41.97
+        },
+        {
+          "code": "600703.SH",
+          "name": "三安光电",
+          "score": 41.46
+        },
+        {
+          "code": "002049.SZ",
+          "name": "紫光国微",
+          "score": 40.39
+        }
+      ]
+    },
+    {
+      "date": "2026-04-22",
+      "detail": {
+        "300373.SZ": {
+          "name": "扬杰科技",
+          "composite": 54.86,
+          "momentum": 67.32,
+          "valuation": null,
+          "prosperity": 44.48,
+          "distress": null,
+          "delta_g": 6.99
+        },
+        "600703.SH": {
+          "name": "三安光电",
+          "composite": 49.03,
+          "momentum": 56.29,
+          "valuation": null,
+          "prosperity": 42.98,
+          "distress": null,
+          "delta_g": -0.48
+        },
+        "600460.SH": {
+          "name": "士兰微",
+          "composite": 42.72,
+          "momentum": 45.1,
+          "valuation": null,
+          "prosperity": 40.74,
+          "distress": null,
+          "delta_g": -1.15
+        },
+        "002371.SZ": {
+          "name": "北方华创",
+          "composite": 54.12,
+          "momentum": 59.08,
+          "valuation": null,
+          "prosperity": 49.98,
+          "distress": null,
+          "delta_g": 0.51
+        },
+        "002049.SZ": {
+          "name": "紫光国微",
+          "composite": 38.6,
+          "momentum": 44.08,
+          "valuation": null,
+          "prosperity": 34.03,
+          "distress": null,
+          "delta_g": 2.72
+        },
+        "002405.SZ": {
+          "name": "四维图新",
+          "composite": 46.73,
+          "momentum": 47.85,
+          "valuation": null,
+          "prosperity": 45.8,
+          "distress": null,
+          "delta_g": -0.41
+        }
+      },
+      "top": "300373.SZ",
+      "top_name": "扬杰科技",
+      "ranked": [
+        {
+          "code": "300373.SZ",
+          "name": "扬杰科技",
+          "score": 54.86
+        },
+        {
+          "code": "002371.SZ",
+          "name": "北方华创",
+          "score": 54.12
+        },
+        {
+          "code": "600703.SH",
+          "name": "三安光电",
+          "score": 49.03
+        },
+        {
+          "code": "002405.SZ",
+          "name": "四维图新",
+          "score": 46.73
+        },
+        {
+          "code": "600460.SH",
+          "name": "士兰微",
+          "score": 42.72
+        },
+        {
+          "code": "002049.SZ",
+          "name": "紫光国微",
+          "score": 38.6
+        }
+      ]
+    },
+    {
+      "date": "2026-04-29",
+      "detail": {
+        "300373.SZ": {
+          "name": "扬杰科技",
+          "composite": 50.41,
+          "momentum": 57.53,
+          "valuation": null,
+          "prosperity": 44.48,
+          "distress": null,
+          "delta_g": 6.99
+        },
+        "600703.SH": {
+          "name": "三安光电",
+          "composite": 39.56,
+          "momentum": 43.5,
+          "valuation": null,
+          "prosperity": 36.28,
+          "distress": null,
+          "delta_g": -24.57
+        },
+        "600460.SH": {
+          "name": "士兰微",
+          "composite": 45.65,
+          "momentum": 44.79,
+          "valuation": null,
+          "prosperity": 46.37,
+          "distress": null,
+          "delta_g": -1.91
+        },
+        "002371.SZ": {
+          "name": "北方华创",
+          "composite": 56.76,
+          "momentum": 64.9,
+          "valuation": null,
+          "prosperity": 49.98,
+          "distress": null,
+          "delta_g": 0.51
+        },
+        "002049.SZ": {
+          "name": "紫光国微",
+          "composite": 38.86,
+          "momentum": 42.51,
+          "valuation": null,
+          "prosperity": 35.82,
+          "distress": null,
+          "delta_g": 15.53
+        },
+        "002405.SZ": {
+          "name": "四维图新",
+          "composite": 43.43,
+          "momentum": 43.77,
+          "valuation": null,
+          "prosperity": 43.14,
+          "distress": null,
+          "delta_g": 4.08
+        }
+      },
+      "top": "002371.SZ",
+      "top_name": "北方华创",
+      "ranked": [
+        {
+          "code": "002371.SZ",
+          "name": "北方华创",
+          "score": 56.76
+        },
+        {
+          "code": "300373.SZ",
+          "name": "扬杰科技",
+          "score": 50.41
+        },
+        {
+          "code": "600460.SH",
+          "name": "士兰微",
+          "score": 45.65
+        },
+        {
+          "code": "002405.SZ",
+          "name": "四维图新",
+          "score": 43.43
+        },
+        {
+          "code": "600703.SH",
+          "name": "三安光电",
+          "score": 39.56
+        },
+        {
+          "code": "002049.SZ",
+          "name": "紫光国微",
+          "score": 38.86
+        }
+      ]
+    },
+    {
+      "date": "2026-05-11",
+      "detail": {
+        "300373.SZ": {
+          "name": "扬杰科技",
+          "composite": 51.1,
+          "momentum": 59.05,
+          "valuation": null,
+          "prosperity": 44.48,
+          "distress": null,
+          "delta_g": 6.99
+        },
+        "600703.SH": {
+          "name": "三安光电",
+          "composite": 41.94,
+          "momentum": 48.73,
+          "valuation": null,
+          "prosperity": 36.28,
+          "distress": null,
+          "delta_g": -24.57
+        },
+        "600460.SH": {
+          "name": "士兰微",
+          "composite": 49.97,
+          "momentum": 52.84,
+          "valuation": null,
+          "prosperity": 47.58,
+          "distress": null,
+          "delta_g": -0.84
+        },
+        "002371.SZ": {
+          "name": "北方华创",
+          "composite": 63.14,
+          "momentum": 76.02,
+          "valuation": null,
+          "prosperity": 52.41,
+          "distress": null,
+          "delta_g": -4.17
+        },
+        "002049.SZ": {
+          "name": "紫光国微",
+          "composite": 43.79,
+          "momentum": 53.35,
+          "valuation": null,
+          "prosperity": 35.82,
+          "distress": null,
+          "delta_g": 15.53
+        },
+        "002405.SZ": {
+          "name": "四维图新",
+          "composite": 42.84,
+          "momentum": 42.47,
+          "valuation": null,
+          "prosperity": 43.14,
+          "distress": null,
+          "delta_g": 4.08
+        }
+      },
+      "top": "002371.SZ",
+      "top_name": "北方华创",
+      "ranked": [
+        {
+          "code": "002371.SZ",
+          "name": "北方华创",
+          "score": 63.14
+        },
+        {
+          "code": "300373.SZ",
+          "name": "扬杰科技",
+          "score": 51.1
+        },
+        {
+          "code": "600460.SH",
+          "name": "士兰微",
+          "score": 49.97
+        },
+        {
+          "code": "002049.SZ",
+          "name": "紫光国微",
+          "score": 43.79
+        },
+        {
+          "code": "002405.SZ",
+          "name": "四维图新",
+          "score": 42.84
+        },
+        {
+          "code": "600703.SH",
+          "name": "三安光电",
+          "score": 41.94
+        }
+      ]
+    },
+    {
+      "date": "2026-05-18",
+      "detail": {
+        "300373.SZ": {
+          "name": "扬杰科技",
+          "composite": 54.05,
+          "momentum": 65.54,
+          "valuation": null,
+          "prosperity": 44.48,
+          "distress": null,
+          "delta_g": 6.99
+        },
+        "600703.SH": {
+          "name": "三安光电",
+          "composite": 43.7,
+          "momentum": 52.6,
+          "valuation": null,
+          "prosperity": 36.28,
+          "distress": null,
+          "delta_g": -24.57
+        },
+        "600460.SH": {
+          "name": "士兰微",
+          "composite": 51.46,
+          "momentum": 56.11,
+          "valuation": null,
+          "prosperity": 47.58,
+          "distress": null,
+          "delta_g": -0.84
+        },
+        "002371.SZ": {
+          "name": "北方华创",
+          "composite": 64.81,
+          "momentum": 79.69,
+          "valuation": null,
+          "prosperity": 52.41,
+          "distress": null,
+          "delta_g": -4.17
+        },
+        "002049.SZ": {
+          "name": "紫光国微",
+          "composite": 42.93,
+          "momentum": 51.47,
+          "valuation": null,
+          "prosperity": 35.82,
+          "distress": null,
+          "delta_g": 15.53
+        },
+        "002405.SZ": {
+          "name": "四维图新",
+          "composite": 41.37,
+          "momentum": 39.24,
+          "valuation": null,
+          "prosperity": 43.14,
+          "distress": null,
+          "delta_g": 4.08
+        }
+      },
+      "top": "002371.SZ",
+      "top_name": "北方华创",
+      "ranked": [
+        {
+          "code": "002371.SZ",
+          "name": "北方华创",
+          "score": 64.81
+        },
+        {
+          "code": "300373.SZ",
+          "name": "扬杰科技",
+          "score": 54.05
+        },
+        {
+          "code": "600460.SH",
+          "name": "士兰微",
+          "score": 51.46
+        },
+        {
+          "code": "600703.SH",
+          "name": "三安光电",
+          "score": 43.7
+        },
+        {
+          "code": "002049.SZ",
+          "name": "紫光国微",
+          "score": 42.93
+        },
+        {
+          "code": "002405.SZ",
+          "name": "四维图新",
+          "score": 41.37
+        }
+      ]
+    },
+    {
+      "date": "2026-05-25",
+      "detail": {
+        "300373.SZ": {
+          "name": "扬杰科技",
+          "composite": 38.63,
+          "momentum": 78.29,
+          "valuation": null,
+          "prosperity": 44.48,
+          "distress": 28.55,
+          "delta_g": 6.99
+        },
+        "600703.SH": {
+          "name": "三安光电",
+          "composite": 46.83,
+          "momentum": 59.48,
+          "valuation": null,
+          "prosperity": 36.28,
+          "distress": null,
+          "delta_g": -24.57
+        },
+        "600460.SH": {
+          "name": "士兰微",
+          "composite": 34.96,
+          "momentum": 66.75,
+          "valuation": null,
+          "prosperity": 47.58,
+          "distress": 19.97,
+          "delta_g": -0.84
+        },
+        "002371.SZ": {
+          "name": "北方华创",
+          "composite": 41.74,
+          "momentum": 92.03,
+          "valuation": null,
+          "prosperity": 52.41,
+          "distress": 15.03,
+          "delta_g": -4.17
+        },
+        "002049.SZ": {
+          "name": "紫光国微",
+          "composite": 31.95,
+          "momentum": 61.14,
+          "valuation": null,
+          "prosperity": 35.82,
+          "distress": 29.62,
+          "delta_g": 15.53
+        },
+        "002405.SZ": {
+          "name": "四维图新",
+          "composite": 29.07,
+          "momentum": 46.47,
+          "valuation": null,
+          "prosperity": 43.14,
+          "distress": 22.55,
+          "delta_g": 4.08
+        }
+      },
+      "top": "600703.SH",
+      "top_name": "三安光电",
+      "ranked": [
+        {
+          "code": "600703.SH",
+          "name": "三安光电",
+          "score": 46.83
+        },
+        {
+          "code": "002371.SZ",
+          "name": "北方华创",
+          "score": 41.74
+        },
+        {
+          "code": "300373.SZ",
+          "name": "扬杰科技",
+          "score": 38.63
+        },
+        {
+          "code": "600460.SH",
+          "name": "士兰微",
+          "score": 34.96
+        },
+        {
+          "code": "002049.SZ",
+          "name": "紫光国微",
+          "score": 31.95
+        },
+        {
+          "code": "002405.SZ",
+          "name": "四维图新",
+          "score": 29.07
+        }
+      ]
+    },
+    {
+      "date": "2026-06-01",
+      "detail": {
+        "300373.SZ": {
+          "name": "扬杰科技",
+          "composite": 51.96,
+          "momentum": 77.62,
+          "valuation": 50.0,
+          "prosperity": 44.48,
+          "distress": 33.55,
+          "delta_g": 6.99
+        },
+        "600703.SH": {
+          "name": "三安光电",
+          "composite": 46.22,
+          "momentum": 58.15,
+          "valuation": null,
+          "prosperity": 36.28,
+          "distress": null,
+          "delta_g": -24.57
+        },
+        "600460.SH": {
+          "name": "士兰微",
+          "composite": 56.55,
+          "momentum": 63.13,
+          "valuation": 83.33,
+          "prosperity": 47.58,
+          "distress": 28.3,
+          "delta_g": -0.84
+        },
+        "002371.SZ": {
+          "name": "北方华创",
+          "composite": 60.07,
+          "momentum": 75.35,
+          "valuation": 83.33,
+          "prosperity": 52.41,
+          "distress": 23.37,
+          "delta_g": -4.17
+        },
+        "002049.SZ": {
+          "name": "紫光国微",
+          "composite": 52.3,
+          "momentum": 52.52,
+          "valuation": 83.33,
+          "prosperity": 35.82,
+          "distress": 37.95,
+          "delta_g": 15.53
+        },
+        "002405.SZ": {
+          "name": "四维图新",
+          "composite": 50.6,
+          "momentum": 42.61,
+          "valuation": 83.33,
+          "prosperity": 43.14,
+          "distress": 30.88,
+          "delta_g": 4.08
+        }
+      },
+      "top": "002371.SZ",
+      "top_name": "北方华创",
+      "ranked": [
+        {
+          "code": "002371.SZ",
+          "name": "北方华创",
+          "score": 60.07
+        },
+        {
+          "code": "600460.SH",
+          "name": "士兰微",
+          "score": 56.55
+        },
+        {
+          "code": "002049.SZ",
+          "name": "紫光国微",
+          "score": 52.3
+        },
+        {
+          "code": "300373.SZ",
+          "name": "扬杰科技",
+          "score": 51.96
+        },
+        {
+          "code": "002405.SZ",
+          "name": "四维图新",
+          "score": 50.6
+        },
+        {
+          "code": "600703.SH",
+          "name": "三安光电",
+          "score": 46.22
+        }
+      ]
+    },
+    {
+      "date": "2026-06-08",
+      "detail": {
+        "300373.SZ": {
+          "name": "扬杰科技",
+          "composite": 61.35,
+          "momentum": 71.02,
+          "valuation": 90.91,
+          "prosperity": 44.48,
+          "distress": 37.64,
+          "delta_g": 6.99
+        },
+        "600703.SH": {
+          "name": "三安光电",
+          "composite": 47.64,
+          "momentum": 61.28,
+          "valuation": null,
+          "prosperity": 36.28,
+          "distress": null,
+          "delta_g": -24.57
+        },
+        "600460.SH": {
+          "name": "士兰微",
+          "composite": 57.23,
+          "momentum": 57.67,
+          "valuation": 90.91,
+          "prosperity": 47.58,
+          "distress": 29.06,
+          "delta_g": -0.84
+        },
+        "002371.SZ": {
+          "name": "北方华创",
+          "composite": 61.08,
+          "momentum": 71.24,
+          "valuation": 90.91,
+          "prosperity": 52.41,
+          "distress": 24.12,
+          "delta_g": -4.17
+        },
+        "002049.SZ": {
+          "name": "紫光国微",
+          "composite": 51.59,
+          "momentum": 41.5,
+          "valuation": 90.91,
+          "prosperity": 35.82,
+          "distress": 38.71,
+          "delta_g": 15.53
+        },
+        "002405.SZ": {
+          "name": "四维图新",
+          "composite": 49.59,
+          "momentum": 30.36,
+          "valuation": 90.91,
+          "prosperity": 43.14,
+          "distress": 31.64,
+          "delta_g": 4.08
+        }
+      },
+      "top": "300373.SZ",
+      "top_name": "扬杰科技",
+      "ranked": [
+        {
+          "code": "300373.SZ",
+          "name": "扬杰科技",
+          "score": 61.35
+        },
+        {
+          "code": "002371.SZ",
+          "name": "北方华创",
+          "score": 61.08
+        },
+        {
+          "code": "600460.SH",
+          "name": "士兰微",
+          "score": 57.23
+        },
+        {
+          "code": "002049.SZ",
+          "name": "紫光国微",
+          "score": 51.59
+        },
+        {
+          "code": "002405.SZ",
+          "name": "四维图新",
+          "score": 49.59
+        },
+        {
+          "code": "600703.SH",
+          "name": "三安光电",
+          "score": 47.64
+        }
+      ]
+    },
+    {
+      "date": "2026-06-15",
+      "detail": {
+        "300373.SZ": {
+          "name": "扬杰科技",
+          "composite": 49.62,
+          "momentum": 79.02,
+          "valuation": 40.0,
+          "prosperity": 44.48,
+          "distress": 32.61,
+          "delta_g": 6.99
+        },
+        "600703.SH": {
+          "name": "三安光电",
+          "composite": 45.52,
+          "momentum": 56.6,
+          "valuation": null,
+          "prosperity": 36.28,
+          "distress": null,
+          "delta_g": -24.57
+        },
+        "600460.SH": {
+          "name": "士兰微",
+          "composite": 37.97,
+          "momentum": 65.31,
+          "valuation": 12.5,
+          "prosperity": 47.58,
+          "distress": 21.22,
+          "delta_g": -0.84
+        },
+        "002371.SZ": {
+          "name": "北方华创",
+          "composite": 41.48,
+          "momentum": 84.23,
+          "valuation": 6.25,
+          "prosperity": 52.41,
+          "distress": 15.66,
+          "delta_g": -4.17
+        },
+        "002049.SZ": {
+          "name": "紫光国微",
+          "composite": 44.89,
+          "momentum": 45.37,
+          "valuation": 62.5,
+          "prosperity": 35.82,
+          "distress": 35.87,
+          "delta_g": 15.53
+        },
+        "002405.SZ": {
+          "name": "四维图新",
+          "composite": 46.6,
+          "momentum": 28.83,
+          "valuation": 81.25,
+          "prosperity": 43.14,
+          "distress": 30.67,
+          "delta_g": 4.08
+        }
+      },
+      "top": "300373.SZ",
+      "top_name": "扬杰科技",
+      "ranked": [
+        {
+          "code": "300373.SZ",
+          "name": "扬杰科技",
+          "score": 49.62
+        },
+        {
+          "code": "002405.SZ",
+          "name": "四维图新",
+          "score": 46.6
+        },
+        {
+          "code": "600703.SH",
+          "name": "三安光电",
+          "score": 45.52
+        },
+        {
+          "code": "002049.SZ",
+          "name": "紫光国微",
+          "score": 44.89
+        },
+        {
+          "code": "002371.SZ",
+          "name": "北方华创",
+          "score": 41.48
+        },
+        {
+          "code": "600460.SH",
+          "name": "士兰微",
+          "score": 37.97
+        }
+      ]
+    },
+    {
+      "date": "2026-06-23",
+      "detail": {
+        "300373.SZ": {
+          "name": "扬杰科技",
+          "composite": 42.21,
+          "momentum": 92.64,
+          "valuation": null,
+          "prosperity": 44.48,
+          "distress": 28.55,
+          "delta_g": 6.99
+        },
+        "600703.SH": {
+          "name": "三安光电",
+          "composite": 54.71,
+          "momentum": 76.83,
+          "valuation": null,
+          "prosperity": 36.28,
+          "distress": null,
+          "delta_g": -24.57
+        },
+        "600460.SH": {
+          "name": "士兰微",
+          "composite": 39.83,
+          "momentum": 86.25,
+          "valuation": null,
+          "prosperity": 47.58,
+          "distress": 19.97,
+          "delta_g": -0.84
+        },
+        "002371.SZ": {
+          "name": "北方华创",
+          "composite": 42.6,
+          "momentum": 95.5,
+          "valuation": null,
+          "prosperity": 52.41,
+          "distress": 15.03,
+          "delta_g": -4.17
+        },
+        "002049.SZ": {
+          "name": "紫光国微",
+          "composite": 36.99,
+          "momentum": 55.56,
+          "valuation": 23.81,
+          "prosperity": 35.82,
+          "distress": 32.0,
+          "delta_g": 15.53
+        },
+        "002405.SZ": {
+          "name": "四维图新",
+          "composite": 49.49,
+          "momentum": 25.28,
+          "valuation": 95.24,
+          "prosperity": 43.14,
+          "distress": 32.07,
+          "delta_g": 4.08
+        }
+      },
+      "top": "600703.SH",
+      "top_name": "三安光电",
+      "ranked": [
+        {
+          "code": "600703.SH",
+          "name": "三安光电",
+          "score": 54.71
+        },
+        {
+          "code": "002405.SZ",
+          "name": "四维图新",
+          "score": 49.49
+        },
+        {
+          "code": "002371.SZ",
+          "name": "北方华创",
+          "score": 42.6
+        },
+        {
+          "code": "300373.SZ",
+          "name": "扬杰科技",
+          "score": 42.21
+        },
+        {
+          "code": "600460.SH",
+          "name": "士兰微",
+          "score": 39.83
+        },
+        {
+          "code": "002049.SZ",
+          "name": "紫光国微",
+          "score": 36.99
+        }
+      ]
+    },
+    {
+      "date": "2026-06-30",
+      "detail": {
+        "300373.SZ": {
+          "name": "扬杰科技",
+          "composite": 44.05,
+          "momentum": 100.0,
+          "valuation": null,
+          "prosperity": 44.48,
+          "distress": 28.55,
+          "delta_g": 6.99
+        },
+        "600703.SH": {
+          "name": "三安光电",
+          "composite": 56.82,
+          "momentum": 81.46,
+          "valuation": null,
+          "prosperity": 36.28,
+          "distress": null,
+          "delta_g": -24.57
+        },
+        "600460.SH": {
+          "name": "士兰微",
+          "composite": 42.06,
+          "momentum": 95.17,
+          "valuation": null,
+          "prosperity": 47.58,
+          "distress": 19.97,
+          "delta_g": -0.84
+        },
+        "002371.SZ": {
+          "name": "北方华创",
+          "composite": 43.73,
+          "momentum": 100.0,
+          "valuation": null,
+          "prosperity": 52.41,
+          "distress": 15.03,
+          "delta_g": -4.17
+        },
+        "002049.SZ": {
+          "name": "紫光国微",
+          "composite": 31.81,
+          "momentum": 60.58,
+          "valuation": null,
+          "prosperity": 35.82,
+          "distress": 29.62,
+          "delta_g": 15.53
+        },
+        "002405.SZ": {
+          "name": "四维图新",
+          "composite": 47.48,
+          "momentum": 20.42,
+          "valuation": 92.31,
+          "prosperity": 43.14,
+          "distress": 31.78,
+          "delta_g": 4.08
+        }
+      },
+      "top": "600703.SH",
+      "top_name": "三安光电",
+      "ranked": [
+        {
+          "code": "600703.SH",
+          "name": "三安光电",
+          "score": 56.82
+        },
+        {
+          "code": "002405.SZ",
+          "name": "四维图新",
+          "score": 47.48
+        },
+        {
+          "code": "300373.SZ",
+          "name": "扬杰科技",
+          "score": 44.05
+        },
+        {
+          "code": "002371.SZ",
+          "name": "北方华创",
+          "score": 43.73
+        },
+        {
+          "code": "600460.SH",
+          "name": "士兰微",
+          "score": 42.06
+        },
+        {
+          "code": "002049.SZ",
+          "name": "紫光国微",
+          "score": 31.81
+        }
+      ]
+    },
+    {
+      "date": "2026-07-07",
+      "detail": {
+        "300373.SZ": {
+          "name": "扬杰科技",
+          "composite": 47.42,
+          "momentum": 97.28,
+          "valuation": 19.35,
+          "prosperity": 40.53,
+          "distress": 30.49,
+          "delta_g": 6.99
+        },
+        "600703.SH": {
+          "name": "三安光电",
+          "composite": 48.53,
+          "momentum": 64.95,
+          "valuation": null,
+          "prosperity": 34.84,
+          "distress": null,
+          "delta_g": -24.57
+        },
+        "600460.SH": {
+          "name": "士兰微",
+          "composite": 38.89,
+          "momentum": 86.08,
+          "valuation": null,
+          "prosperity": 44.59,
+          "distress": 19.97,
+          "delta_g": -0.84
+        },
+        "002371.SZ": {
+          "name": "北方华创",
+          "composite": 48.69,
+          "momentum": 98.56,
+          "valuation": 19.35,
+          "prosperity": 52.74,
+          "distress": 16.97,
+          "delta_g": -4.17
+        },
+        "002049.SZ": {
+          "name": "紫光国微",
+          "composite": 30.09,
+          "momentum": 54.74,
+          "valuation": null,
+          "prosperity": 34.93,
+          "distress": 29.62,
+          "delta_g": 15.53
+        },
+        "002405.SZ": {
+          "name": "四维图新",
+          "composite": 47.13,
+          "momentum": 20.36,
+          "valuation": 92.31,
+          "prosperity": 42.02,
+          "distress": 31.78,
+          "delta_g": 4.08
+        }
+      },
+      "top": "002371.SZ",
+      "top_name": "北方华创",
+      "ranked": [
+        {
+          "code": "002371.SZ",
+          "name": "北方华创",
+          "score": 48.69
+        },
+        {
+          "code": "600703.SH",
+          "name": "三安光电",
+          "score": 48.53
+        },
+        {
+          "code": "300373.SZ",
+          "name": "扬杰科技",
+          "score": 47.42
+        },
+        {
+          "code": "002405.SZ",
+          "name": "四维图新",
+          "score": 47.13
+        },
+        {
+          "code": "600460.SH",
+          "name": "士兰微",
+          "score": 38.89
+        },
+        {
+          "code": "002049.SZ",
+          "name": "紫光国微",
+          "score": 30.09
+        }
+      ]
+    }
+  ],
+  "equity_curve": [
+    {
+      "date": "2026-01-05",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-01-06",
+      "equity": 1005328.14
+    },
+    {
+      "date": "2026-01-07",
+      "equity": 1026921.14
+    },
+    {
+      "date": "2026-01-08",
+      "equity": 1010047.14
+    },
+    {
+      "date": "2026-01-09",
+      "equity": 1005471.14
+    },
+    {
+      "date": "2026-01-12",
+      "equity": 1009761.14
+    },
+    {
+      "date": "2026-01-13",
+      "equity": 977586.14
+    },
+    {
+      "date": "2026-01-14",
+      "equity": 969292.14
+    },
+    {
+      "date": "2026-01-15",
+      "equity": 996605.14
+    },
+    {
+      "date": "2026-01-16",
+      "equity": 1022774.14
+    },
+    {
+      "date": "2026-01-19",
+      "equity": 1026778.14
+    },
+    {
+      "date": "2026-01-20",
+      "equity": 1037646.14
+    },
+    {
+      "date": "2026-01-21",
+      "equity": 1050802.14
+    },
+    {
+      "date": "2026-01-22",
+      "equity": 1099565.14
+    },
+    {
+      "date": "2026-01-23",
+      "equity": 1114294.14
+    },
+    {
+      "date": "2026-01-26",
+      "equity": 1095418.14
+    },
+    {
+      "date": "2026-01-27",
+      "equity": 1152761.14
+    },
+    {
+      "date": "2026-01-28",
+      "equity": 1291328.14
+    },
+    {
+      "date": "2026-01-29",
+      "equity": 1241993.14
+    },
+    {
+      "date": "2026-01-30",
+      "equity": 1245568.14
+    },
+    {
+      "date": "2026-02-02",
+      "equity": 1133456.14
+    },
+    {
+      "date": "2026-02-03",
+      "equity": 1151903.14
+    },
+    {
+      "date": "2026-02-04",
+      "equity": 1126878.14
+    },
+    {
+      "date": "2026-02-05",
+      "equity": 1219828.14
+    },
+    {
+      "date": "2026-02-06",
+      "equity": 1176928.14
+    },
+    {
+      "date": "2026-02-09",
+      "equity": 1181361.14
+    },
+    {
+      "date": "2026-02-10",
+      "equity": 1151760.14
+    },
+    {
+      "date": "2026-02-11",
+      "equity": 1172781.14
+    },
+    {
+      "date": "2026-02-12",
+      "equity": 1257294.14
+    },
+    {
+      "date": "2026-02-13",
+      "equity": 1229266.14
+    },
+    {
+      "date": "2026-02-24",
+      "equity": 1255149.14
+    },
+    {
+      "date": "2026-02-25",
+      "equity": 1291328.14
+    },
+    {
+      "date": "2026-02-26",
+      "equity": 1314351.14
+    },
+    {
+      "date": "2026-02-27",
+      "equity": 1254148.14
+    },
+    {
+      "date": "2026-03-02",
+      "equity": 1228551.14
+    },
+    {
+      "date": "2026-03-03",
+      "equity": 1134028.14
+    },
+    {
+      "date": "2026-03-04",
+      "equity": 1159625.14
+    },
+    {
+      "date": "2026-03-05",
+      "equity": 1154191.14
+    },
+    {
+      "date": "2026-03-06",
+      "equity": 1144753.14
+    },
+    {
+      "date": "2026-03-09",
+      "equity": 1121158.14
+    },
+    {
+      "date": "2026-03-10",
+      "equity": 1143180.14
+    },
+    {
+      "date": "2026-03-11",
+      "equity": 1135601.14
+    },
+    {
+      "date": "2026-03-12",
+      "equity": 1131740.14
+    },
+    {
+      "date": "2026-03-13",
+      "equity": 1108288.14
+    },
+    {
+      "date": "2026-03-16",
+      "equity": 1112721.14
+    },
+    {
+      "date": "2026-03-17",
+      "equity": 1075684.14
+    },
+    {
+      "date": "2026-03-18",
+      "equity": 1096848.14
+    },
+    {
+      "date": "2026-03-19",
+      "equity": 1063386.14
+    },
+    {
+      "date": "2026-03-20",
+      "equity": 1055378.14
+    },
+    {
+      "date": "2026-03-23",
+      "equity": 985308.14
+    },
+    {
+      "date": "2026-03-24",
+      "equity": 998178.14
+    },
+    {
+      "date": "2026-03-25",
+      "equity": 1035644.14
+    },
+    {
+      "date": "2026-03-26",
+      "equity": 1025634.14
+    },
+    {
+      "date": "2026-03-27",
+      "equity": 1056808.14
+    },
+    {
+      "date": "2026-03-30",
+      "equity": 1045082.14
+    },
+    {
+      "date": "2026-03-31",
+      "equity": 969149.14
+    },
+    {
+      "date": "2026-04-01",
+      "equity": 988586.06
+    },
+    {
+      "date": "2026-04-02",
+      "equity": 948724.06
+    },
+    {
+      "date": "2026-04-03",
+      "equity": 935087.06
+    },
+    {
+      "date": "2026-04-07",
+      "equity": 932989.06
+    },
+    {
+      "date": "2026-04-08",
+      "equity": 979145.06
+    },
+    {
+      "date": "2026-04-09",
+      "equity": 970638.36
+    },
+    {
+      "date": "2026-04-10",
+      "equity": 974763.36
+    },
+    {
+      "date": "2026-04-13",
+      "equity": 968888.36
+    },
+    {
+      "date": "2026-04-14",
+      "equity": 980138.36
+    },
+    {
+      "date": "2026-04-15",
+      "equity": 957138.36
+    },
+    {
+      "date": "2026-04-16",
+      "equity": 972388.36
+    },
+    {
+      "date": "2026-04-17",
+      "equity": 984013.36
+    },
+    {
+      "date": "2026-04-20",
+      "equity": 1022638.36
+    },
+    {
+      "date": "2026-04-21",
+      "equity": 1017763.36
+    },
+    {
+      "date": "2026-04-22",
+      "equity": 1037888.36
+    },
+    {
+      "date": "2026-04-23",
+      "equity": 1027388.36
+    },
+    {
+      "date": "2026-04-24",
+      "equity": 1036013.36
+    },
+    {
+      "date": "2026-04-27",
+      "equity": 989513.36
+    },
+    {
+      "date": "2026-04-28",
+      "equity": 972763.36
+    },
+    {
+      "date": "2026-04-29",
+      "equity": 974013.36
+    },
+    {
+      "date": "2026-04-30",
+      "equity": 1002373.51
+    },
+    {
+      "date": "2026-05-06",
+      "equity": 1017421.51
+    },
+    {
+      "date": "2026-05-07",
+      "equity": 1029643.51
+    },
+    {
+      "date": "2026-05-08",
+      "equity": 1009213.51
+    },
+    {
+      "date": "2026-05-11",
+      "equity": 1067533.51
+    },
+    {
+      "date": "2026-05-12",
+      "equity": 1082401.51
+    },
+    {
+      "date": "2026-05-13",
+      "equity": 1081591.51
+    },
+    {
+      "date": "2026-05-14",
+      "equity": 1051711.51
+    },
+    {
+      "date": "2026-05-15",
+      "equity": 1101391.51
+    },
+    {
+      "date": "2026-05-18",
+      "equity": 1112137.51
+    },
+    {
+      "date": "2026-05-19",
+      "equity": 1151251.51
+    },
+    {
+      "date": "2026-05-20",
+      "equity": 1216591.51
+    },
+    {
+      "date": "2026-05-21",
+      "equity": 1229173.51
+    },
+    {
+      "date": "2026-05-22",
+      "equity": 1239991.51
+    },
+    {
+      "date": "2026-05-25",
+      "equity": 1292533.51
+    },
+    {
+      "date": "2026-05-26",
+      "equity": 1260040.42
+    },
+    {
+      "date": "2026-05-27",
+      "equity": 1320384.42
+    },
+    {
+      "date": "2026-05-28",
+      "equity": 1339440.42
+    },
+    {
+      "date": "2026-05-29",
+      "equity": 1243366.42
+    },
+    {
+      "date": "2026-06-01",
+      "equity": 1205254.42
+    },
+    {
+      "date": "2026-06-02",
+      "equity": 1240028.77
+    },
+    {
+      "date": "2026-06-03",
+      "equity": 1264108.77
+    },
+    {
+      "date": "2026-06-04",
+      "equity": 1288428.77
+    },
+    {
+      "date": "2026-06-05",
+      "equity": 1241148.77
+    },
+    {
+      "date": "2026-06-08",
+      "equity": 1205908.77
+    },
+    {
+      "date": "2026-06-09",
+      "equity": 1359649.64
+    },
+    {
+      "date": "2026-06-10",
+      "equity": 1265401.64
+    },
+    {
+      "date": "2026-06-11",
+      "equity": 1262755.64
+    },
+    {
+      "date": "2026-06-12",
+      "equity": 1218529.64
+    },
+    {
+      "date": "2026-06-15",
+      "equity": 1325251.64
+    },
+    {
+      "date": "2026-06-16",
+      "equity": 1371241.64
+    },
+    {
+      "date": "2026-06-17",
+      "equity": 1438021.64
+    },
+    {
+      "date": "2026-06-18",
+      "equity": 1551799.64
+    },
+    {
+      "date": "2026-06-22",
+      "equity": 1614547.64
+    },
+    {
+      "date": "2026-06-23",
+      "equity": 1675657.64
+    },
+    {
+      "date": "2026-06-24",
+      "equity": 1848502.47
+    },
+    {
+      "date": "2026-06-25",
+      "equity": 1836644.47
+    },
+    {
+      "date": "2026-06-26",
+      "equity": 1841726.47
+    },
+    {
+      "date": "2026-06-29",
+      "equity": 1784977.47
+    },
+    {
+      "date": "2026-06-30",
+      "equity": 1798529.47
+    },
+    {
+      "date": "2026-07-01",
+      "equity": 1681643.47
+    },
+    {
+      "date": "2026-07-02",
+      "equity": 1613883.47
+    },
+    {
+      "date": "2026-07-03",
+      "equity": 1545276.47
+    },
+    {
+      "date": "2026-07-06",
+      "equity": 1470740.47
+    },
+    {
+      "date": "2026-07-07",
+      "equity": 1507161.47
+    },
+    {
+      "date": "2026-07-08",
+      "equity": 1499282.02
+    },
+    {
+      "date": "2026-07-09",
+      "equity": 1636280.02
+    },
+    {
+      "date": "2026-07-10",
+      "equity": 1496906.02
+    }
+  ]
+}

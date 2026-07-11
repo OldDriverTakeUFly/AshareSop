@@ -1,0 +1,3061 @@
+{
+  "target": "300274.SZ",
+  "target_name": "阳光电源",
+  "names": {
+    "300274.SZ": "阳光电源",
+    "300750.SZ": "宁德时代",
+    "002129.SZ": "TCL中环",
+    "002709.SZ": "天赐材料",
+    "601012.SH": "隆基绿能",
+    "301511.SZ": "德福科技"
+  },
+  "stats": {
+    "total_return_pct": 20.8,
+    "annualized_return_pct": 47.28,
+    "sharpe_ratio": 0.883,
+    "max_drawdown_pct": -35.46,
+    "win_rate_pct": 33.3,
+    "turnover": 0.38,
+    "num_trades": 19,
+    "num_rebalances": 25,
+    "total_cost": 13188.1,
+    "initial_capital": 1000000,
+    "final_equity": 1208007.8994999998
+  },
+  "trades": [
+    {
+      "signal_date": "2026-01-06",
+      "exec_date": "2026-01-06",
+      "ts_code": "002709.SZ",
+      "name": "天赐材料",
+      "action": "BUY",
+      "price": 47.5,
+      "shares": 21000,
+      "amount": 997500.0,
+      "cost": 249.38
+    },
+    {
+      "signal_date": "2026-01-13",
+      "exec_date": "2026-01-13",
+      "ts_code": "002709.SZ",
+      "name": "天赐材料",
+      "action": "SELL",
+      "price": 43.91,
+      "shares": 21000,
+      "amount": 922110.0,
+      "cost": 1152.64
+    },
+    {
+      "signal_date": "2026-01-13",
+      "exec_date": "2026-01-13",
+      "ts_code": "300274.SZ",
+      "name": "阳光电源",
+      "action": "BUY",
+      "price": 163.18,
+      "shares": 5600,
+      "amount": 913808.0,
+      "cost": 228.45
+    },
+    {
+      "signal_date": "2026-01-27",
+      "exec_date": "2026-01-27",
+      "ts_code": "300274.SZ",
+      "name": "阳光电源",
+      "action": "SELL",
+      "price": 160.0,
+      "shares": 5600,
+      "amount": 896000.0,
+      "cost": 1120.0
+    },
+    {
+      "signal_date": "2026-01-27",
+      "exec_date": "2026-01-27",
+      "ts_code": "002709.SZ",
+      "name": "天赐材料",
+      "action": "BUY",
+      "price": 43.17,
+      "shares": 20900,
+      "amount": 902253.0,
+      "cost": 225.56
+    },
+    {
+      "signal_date": "2026-02-03",
+      "exec_date": "2026-02-03",
+      "ts_code": "002709.SZ",
+      "name": "天赐材料",
+      "action": "SELL",
+      "price": 40.5,
+      "shares": 20900,
+      "amount": 846450.0,
+      "cost": 1058.06
+    },
+    {
+      "signal_date": "2026-02-03",
+      "exec_date": "2026-02-03",
+      "ts_code": "300274.SZ",
+      "name": "阳光电源",
+      "action": "BUY",
+      "price": 151.0,
+      "shares": 5600,
+      "amount": 845600.0,
+      "cost": 211.4
+    },
+    {
+      "signal_date": "2026-02-25",
+      "exec_date": "2026-02-25",
+      "ts_code": "300274.SZ",
+      "name": "阳光电源",
+      "action": "SELL",
+      "price": 149.6,
+      "shares": 5600,
+      "amount": 837760.0,
+      "cost": 1047.2
+    },
+    {
+      "signal_date": "2026-02-25",
+      "exec_date": "2026-02-25",
+      "ts_code": "002709.SZ",
+      "name": "天赐材料",
+      "action": "BUY",
+      "price": 43.37,
+      "shares": 19300,
+      "amount": 837041.0,
+      "cost": 209.26
+    },
+    {
+      "signal_date": "2026-03-04",
+      "exec_date": "2026-03-04",
+      "ts_code": "002709.SZ",
+      "name": "天赐材料",
+      "action": "SELL",
+      "price": 40.36,
+      "shares": 19300,
+      "amount": 778948.0,
+      "cost": 973.68
+    },
+    {
+      "signal_date": "2026-03-04",
+      "exec_date": "2026-03-04",
+      "ts_code": "300274.SZ",
+      "name": "阳光电源",
+      "action": "BUY",
+      "price": 147.86,
+      "shares": 5200,
+      "amount": 768872.0,
+      "cost": 192.22
+    },
+    {
+      "signal_date": "2026-04-09",
+      "exec_date": "2026-04-09",
+      "ts_code": "300274.SZ",
+      "name": "阳光电源",
+      "action": "SELL",
+      "price": 125.34,
+      "shares": 5200,
+      "amount": 651768.0,
+      "cost": 814.71
+    },
+    {
+      "signal_date": "2026-04-09",
+      "exec_date": "2026-04-09",
+      "ts_code": "002709.SZ",
+      "name": "天赐材料",
+      "action": "BUY",
+      "price": 44.81,
+      "shares": 14700,
+      "amount": 658707.0,
+      "cost": 164.68
+    },
+    {
+      "signal_date": "2026-04-23",
+      "exec_date": "2026-04-23",
+      "ts_code": "002709.SZ",
+      "name": "天赐材料",
+      "action": "SELL",
+      "price": 52.09,
+      "shares": 14700,
+      "amount": 765723.0,
+      "cost": 957.15
+    },
+    {
+      "signal_date": "2026-04-23",
+      "exec_date": "2026-04-23",
+      "ts_code": "301511.SZ",
+      "name": "德福科技",
+      "action": "BUY",
+      "price": 65.56,
+      "shares": 11600,
+      "amount": 760496.0,
+      "cost": 190.12
+    },
+    {
+      "signal_date": "2026-06-02",
+      "exec_date": "2026-06-02",
+      "ts_code": "301511.SZ",
+      "name": "德福科技",
+      "action": "SELL",
+      "price": 125.0,
+      "shares": 11600,
+      "amount": 1450000.0,
+      "cost": 1812.5
+    },
+    {
+      "signal_date": "2026-06-02",
+      "exec_date": "2026-06-02",
+      "ts_code": "002709.SZ",
+      "name": "天赐材料",
+      "action": "BUY",
+      "price": 52.99,
+      "shares": 27400,
+      "amount": 1451926.0,
+      "cost": 362.98
+    },
+    {
+      "signal_date": "2026-06-24",
+      "exec_date": "2026-06-24",
+      "ts_code": "002709.SZ",
+      "name": "天赐材料",
+      "action": "SELL",
+      "price": 54.02,
+      "shares": 27400,
+      "amount": 1480148.0,
+      "cost": 1850.18
+    },
+    {
+      "signal_date": "2026-06-24",
+      "exec_date": "2026-06-24",
+      "ts_code": "301511.SZ",
+      "name": "德福科技",
+      "action": "BUY",
+      "price": 142.88,
+      "shares": 10300,
+      "amount": 1471664.0,
+      "cost": 367.92
+    }
+  ],
+  "factor_history": [
+    {
+      "date": "2026-01-05",
+      "detail": {
+        "300274.SZ": {
+          "name": "阳光电源",
+          "composite": 77.68,
+          "momentum": 77.43,
+          "valuation": null,
+          "prosperity": 77.88,
+          "distress": null,
+          "delta_g": -8.99
+        },
+        "300750.SZ": {
+          "name": "宁德时代",
+          "composite": 59.68,
+          "momentum": 69.27,
+          "valuation": null,
+          "prosperity": 51.68,
+          "distress": null,
+          "delta_g": 1.55
+        },
+        "002129.SZ": {
+          "name": "TCL中环",
+          "composite": 34.81,
+          "momentum": 49.41,
+          "valuation": null,
+          "prosperity": 22.64,
+          "distress": null,
+          "delta_g": 17.05
+        },
+        "002709.SZ": {
+          "name": "天赐材料",
+          "composite": 82.32,
+          "momentum": 96.71,
+          "valuation": null,
+          "prosperity": 70.32,
+          "distress": null,
+          "delta_g": -9.65
+        },
+        "601012.SH": {
+          "name": "隆基绿能",
+          "composite": 27.98,
+          "momentum": 52.26,
+          "valuation": null,
+          "prosperity": 7.74,
+          "distress": null,
+          "delta_g": 4.82
+        },
+        "301511.SZ": {
+          "name": "德福科技",
+          "composite": 71.06,
+          "momentum": 81.63,
+          "valuation": null,
+          "prosperity": 62.25,
+          "distress": null,
+          "delta_g": -25.45
+        }
+      },
+      "top": "002709.SZ",
+      "top_name": "天赐材料",
+      "ranked": [
+        {
+          "code": "002709.SZ",
+          "name": "天赐材料",
+          "score": 82.32
+        },
+        {
+          "code": "300274.SZ",
+          "name": "阳光电源",
+          "score": 77.68
+        },
+        {
+          "code": "301511.SZ",
+          "name": "德福科技",
+          "score": 71.06
+        },
+        {
+          "code": "300750.SZ",
+          "name": "宁德时代",
+          "score": 59.68
+        },
+        {
+          "code": "002129.SZ",
+          "name": "TCL中环",
+          "score": 34.81
+        },
+        {
+          "code": "601012.SH",
+          "name": "隆基绿能",
+          "score": 27.98
+        }
+      ]
+    },
+    {
+      "date": "2026-01-12",
+      "detail": {
+        "300274.SZ": {
+          "name": "阳光电源",
+          "composite": 77.2,
+          "momentum": 76.38,
+          "valuation": null,
+          "prosperity": 77.88,
+          "distress": null,
+          "delta_g": -8.99
+        },
+        "300750.SZ": {
+          "name": "宁德时代",
+          "composite": 55.14,
+          "momentum": 59.3,
+          "valuation": null,
+          "prosperity": 51.68,
+          "distress": null,
+          "delta_g": 1.55
+        },
+        "002129.SZ": {
+          "name": "TCL中环",
+          "composite": 36.08,
+          "momentum": 52.2,
+          "valuation": null,
+          "prosperity": 22.64,
+          "distress": null,
+          "delta_g": 17.05
+        },
+        "002709.SZ": {
+          "name": "天赐材料",
+          "composite": 77.19,
+          "momentum": 85.44,
+          "valuation": null,
+          "prosperity": 70.32,
+          "distress": null,
+          "delta_g": -9.65
+        },
+        "601012.SH": {
+          "name": "隆基绿能",
+          "composite": 30.23,
+          "momentum": 57.22,
+          "valuation": null,
+          "prosperity": 7.74,
+          "distress": null,
+          "delta_g": 4.82
+        },
+        "301511.SZ": {
+          "name": "德福科技",
+          "composite": 66.08,
+          "momentum": 70.68,
+          "valuation": null,
+          "prosperity": 62.25,
+          "distress": null,
+          "delta_g": -25.45
+        }
+      },
+      "top": "300274.SZ",
+      "top_name": "阳光电源",
+      "ranked": [
+        {
+          "code": "300274.SZ",
+          "name": "阳光电源",
+          "score": 77.2
+        },
+        {
+          "code": "002709.SZ",
+          "name": "天赐材料",
+          "score": 77.19
+        },
+        {
+          "code": "301511.SZ",
+          "name": "德福科技",
+          "score": 66.08
+        },
+        {
+          "code": "300750.SZ",
+          "name": "宁德时代",
+          "score": 55.14
+        },
+        {
+          "code": "002129.SZ",
+          "name": "TCL中环",
+          "score": 36.08
+        },
+        {
+          "code": "601012.SH",
+          "name": "隆基绿能",
+          "score": 30.23
+        }
+      ]
+    },
+    {
+      "date": "2026-01-19",
+      "detail": {
+        "300274.SZ": {
+          "name": "阳光电源",
+          "composite": 79.8,
+          "momentum": 82.11,
+          "valuation": null,
+          "prosperity": 77.88,
+          "distress": null,
+          "delta_g": -8.99
+        },
+        "300750.SZ": {
+          "name": "宁德时代",
+          "composite": 52.71,
+          "momentum": 53.94,
+          "valuation": null,
+          "prosperity": 51.68,
+          "distress": null,
+          "delta_g": 1.55
+        },
+        "002129.SZ": {
+          "name": "TCL中环",
+          "composite": 36.49,
+          "momentum": 53.12,
+          "valuation": null,
+          "prosperity": 22.64,
+          "distress": null,
+          "delta_g": 17.05
+        },
+        "002709.SZ": {
+          "name": "天赐材料",
+          "composite": 78.32,
+          "momentum": 87.93,
+          "valuation": null,
+          "prosperity": 70.32,
+          "distress": null,
+          "delta_g": -9.65
+        },
+        "601012.SH": {
+          "name": "隆基绿能",
+          "composite": 29.06,
+          "momentum": 54.65,
+          "valuation": null,
+          "prosperity": 7.74,
+          "distress": null,
+          "delta_g": 4.82
+        },
+        "301511.SZ": {
+          "name": "德福科技",
+          "composite": 65.48,
+          "momentum": 69.36,
+          "valuation": null,
+          "prosperity": 62.25,
+          "distress": null,
+          "delta_g": -25.45
+        }
+      },
+      "top": "300274.SZ",
+      "top_name": "阳光电源",
+      "ranked": [
+        {
+          "code": "300274.SZ",
+          "name": "阳光电源",
+          "score": 79.8
+        },
+        {
+          "code": "002709.SZ",
+          "name": "天赐材料",
+          "score": 78.32
+        },
+        {
+          "code": "301511.SZ",
+          "name": "德福科技",
+          "score": 65.48
+        },
+        {
+          "code": "300750.SZ",
+          "name": "宁德时代",
+          "score": 52.71
+        },
+        {
+          "code": "002129.SZ",
+          "name": "TCL中环",
+          "score": 36.49
+        },
+        {
+          "code": "601012.SH",
+          "name": "隆基绿能",
+          "score": 29.06
+        }
+      ]
+    },
+    {
+      "date": "2026-01-26",
+      "detail": {
+        "300274.SZ": {
+          "name": "阳光电源",
+          "composite": 74.43,
+          "momentum": 70.3,
+          "valuation": null,
+          "prosperity": 77.88,
+          "distress": null,
+          "delta_g": -8.99
+        },
+        "300750.SZ": {
+          "name": "宁德时代",
+          "composite": 50.7,
+          "momentum": 49.52,
+          "valuation": null,
+          "prosperity": 51.68,
+          "distress": null,
+          "delta_g": 1.55
+        },
+        "002129.SZ": {
+          "name": "TCL中环",
+          "composite": 37.58,
+          "momentum": 55.51,
+          "valuation": null,
+          "prosperity": 22.64,
+          "distress": null,
+          "delta_g": 17.05
+        },
+        "002709.SZ": {
+          "name": "天赐材料",
+          "composite": 75.63,
+          "momentum": 82.0,
+          "valuation": null,
+          "prosperity": 70.32,
+          "distress": null,
+          "delta_g": -9.65
+        },
+        "601012.SH": {
+          "name": "隆基绿能",
+          "composite": 31.51,
+          "momentum": 60.03,
+          "valuation": null,
+          "prosperity": 7.74,
+          "distress": null,
+          "delta_g": 4.82
+        },
+        "301511.SZ": {
+          "name": "德福科技",
+          "composite": 63.62,
+          "momentum": 65.26,
+          "valuation": null,
+          "prosperity": 62.25,
+          "distress": null,
+          "delta_g": -25.45
+        }
+      },
+      "top": "002709.SZ",
+      "top_name": "天赐材料",
+      "ranked": [
+        {
+          "code": "002709.SZ",
+          "name": "天赐材料",
+          "score": 75.63
+        },
+        {
+          "code": "300274.SZ",
+          "name": "阳光电源",
+          "score": 74.43
+        },
+        {
+          "code": "301511.SZ",
+          "name": "德福科技",
+          "score": 63.62
+        },
+        {
+          "code": "300750.SZ",
+          "name": "宁德时代",
+          "score": 50.7
+        },
+        {
+          "code": "002129.SZ",
+          "name": "TCL中环",
+          "score": 37.58
+        },
+        {
+          "code": "601012.SH",
+          "name": "隆基绿能",
+          "score": 31.51
+        }
+      ]
+    },
+    {
+      "date": "2026-02-02",
+      "detail": {
+        "300274.SZ": {
+          "name": "阳光电源",
+          "composite": 73.37,
+          "momentum": 67.96,
+          "valuation": null,
+          "prosperity": 77.88,
+          "distress": null,
+          "delta_g": -8.99
+        },
+        "300750.SZ": {
+          "name": "宁德时代",
+          "composite": 51.86,
+          "momentum": 52.08,
+          "valuation": null,
+          "prosperity": 51.68,
+          "distress": null,
+          "delta_g": 1.55
+        },
+        "002129.SZ": {
+          "name": "TCL中环",
+          "composite": 38.12,
+          "momentum": 56.69,
+          "valuation": null,
+          "prosperity": 22.64,
+          "distress": null,
+          "delta_g": 17.05
+        },
+        "002709.SZ": {
+          "name": "天赐材料",
+          "composite": 73.22,
+          "momentum": 76.71,
+          "valuation": null,
+          "prosperity": 70.32,
+          "distress": null,
+          "delta_g": -9.65
+        },
+        "601012.SH": {
+          "name": "隆基绿能",
+          "composite": 28.43,
+          "momentum": 53.26,
+          "valuation": null,
+          "prosperity": 7.74,
+          "distress": null,
+          "delta_g": 4.82
+        },
+        "301511.SZ": {
+          "name": "德福科技",
+          "composite": 61.38,
+          "momentum": 60.33,
+          "valuation": null,
+          "prosperity": 62.25,
+          "distress": null,
+          "delta_g": -25.45
+        }
+      },
+      "top": "300274.SZ",
+      "top_name": "阳光电源",
+      "ranked": [
+        {
+          "code": "300274.SZ",
+          "name": "阳光电源",
+          "score": 73.37
+        },
+        {
+          "code": "002709.SZ",
+          "name": "天赐材料",
+          "score": 73.22
+        },
+        {
+          "code": "301511.SZ",
+          "name": "德福科技",
+          "score": 61.38
+        },
+        {
+          "code": "300750.SZ",
+          "name": "宁德时代",
+          "score": 51.86
+        },
+        {
+          "code": "002129.SZ",
+          "name": "TCL中环",
+          "score": 38.12
+        },
+        {
+          "code": "601012.SH",
+          "name": "隆基绿能",
+          "score": 28.43
+        }
+      ]
+    },
+    {
+      "date": "2026-02-09",
+      "detail": {
+        "300274.SZ": {
+          "name": "阳光电源",
+          "composite": 76.03,
+          "momentum": 73.81,
+          "valuation": null,
+          "prosperity": 77.88,
+          "distress": null,
+          "delta_g": -8.99
+        },
+        "300750.SZ": {
+          "name": "宁德时代",
+          "composite": 55.31,
+          "momentum": 59.67,
+          "valuation": null,
+          "prosperity": 51.68,
+          "distress": null,
+          "delta_g": 1.55
+        },
+        "002129.SZ": {
+          "name": "TCL中环",
+          "composite": 49.86,
+          "momentum": 82.52,
+          "valuation": null,
+          "prosperity": 22.64,
+          "distress": null,
+          "delta_g": 17.05
+        },
+        "002709.SZ": {
+          "name": "天赐材料",
+          "composite": 74.6,
+          "momentum": 79.73,
+          "valuation": null,
+          "prosperity": 70.32,
+          "distress": null,
+          "delta_g": -9.65
+        },
+        "601012.SH": {
+          "name": "隆基绿能",
+          "composite": 32.53,
+          "momentum": 62.28,
+          "valuation": null,
+          "prosperity": 7.74,
+          "distress": null,
+          "delta_g": 4.82
+        },
+        "301511.SZ": {
+          "name": "德福科技",
+          "composite": 62.5,
+          "momentum": 62.8,
+          "valuation": null,
+          "prosperity": 62.25,
+          "distress": null,
+          "delta_g": -25.45
+        }
+      },
+      "top": "300274.SZ",
+      "top_name": "阳光电源",
+      "ranked": [
+        {
+          "code": "300274.SZ",
+          "name": "阳光电源",
+          "score": 76.03
+        },
+        {
+          "code": "002709.SZ",
+          "name": "天赐材料",
+          "score": 74.6
+        },
+        {
+          "code": "301511.SZ",
+          "name": "德福科技",
+          "score": 62.5
+        },
+        {
+          "code": "300750.SZ",
+          "name": "宁德时代",
+          "score": 55.31
+        },
+        {
+          "code": "002129.SZ",
+          "name": "TCL中环",
+          "score": 49.86
+        },
+        {
+          "code": "601012.SH",
+          "name": "隆基绿能",
+          "score": 32.53
+        }
+      ]
+    },
+    {
+      "date": "2026-02-24",
+      "detail": {
+        "300274.SZ": {
+          "name": "阳光电源",
+          "composite": 72.68,
+          "momentum": 66.45,
+          "valuation": null,
+          "prosperity": 77.88,
+          "distress": null,
+          "delta_g": -8.99
+        },
+        "300750.SZ": {
+          "name": "宁德时代",
+          "composite": 55.24,
+          "momentum": 59.52,
+          "valuation": null,
+          "prosperity": 51.68,
+          "distress": null,
+          "delta_g": 1.55
+        },
+        "002129.SZ": {
+          "name": "TCL中环",
+          "composite": 45.14,
+          "momentum": 72.14,
+          "valuation": null,
+          "prosperity": 22.64,
+          "distress": null,
+          "delta_g": 17.05
+        },
+        "002709.SZ": {
+          "name": "天赐材料",
+          "composite": 74.84,
+          "momentum": 80.27,
+          "valuation": null,
+          "prosperity": 70.32,
+          "distress": null,
+          "delta_g": -9.65
+        },
+        "601012.SH": {
+          "name": "隆基绿能",
+          "composite": 28.94,
+          "momentum": 54.37,
+          "valuation": null,
+          "prosperity": 7.74,
+          "distress": null,
+          "delta_g": 4.82
+        },
+        "301511.SZ": {
+          "name": "德福科技",
+          "composite": 65.04,
+          "momentum": 68.38,
+          "valuation": null,
+          "prosperity": 62.25,
+          "distress": null,
+          "delta_g": -25.45
+        }
+      },
+      "top": "002709.SZ",
+      "top_name": "天赐材料",
+      "ranked": [
+        {
+          "code": "002709.SZ",
+          "name": "天赐材料",
+          "score": 74.84
+        },
+        {
+          "code": "300274.SZ",
+          "name": "阳光电源",
+          "score": 72.68
+        },
+        {
+          "code": "301511.SZ",
+          "name": "德福科技",
+          "score": 65.04
+        },
+        {
+          "code": "300750.SZ",
+          "name": "宁德时代",
+          "score": 55.24
+        },
+        {
+          "code": "002129.SZ",
+          "name": "TCL中环",
+          "score": 45.14
+        },
+        {
+          "code": "601012.SH",
+          "name": "隆基绿能",
+          "score": 28.94
+        }
+      ]
+    },
+    {
+      "date": "2026-03-03",
+      "detail": {
+        "300274.SZ": {
+          "name": "阳光电源",
+          "composite": 71.34,
+          "momentum": 63.49,
+          "valuation": null,
+          "prosperity": 77.88,
+          "distress": null,
+          "delta_g": -8.99
+        },
+        "300750.SZ": {
+          "name": "宁德时代",
+          "composite": 52.23,
+          "momentum": 52.88,
+          "valuation": null,
+          "prosperity": 51.68,
+          "distress": null,
+          "delta_g": 1.55
+        },
+        "002129.SZ": {
+          "name": "TCL中环",
+          "composite": 41.05,
+          "momentum": 63.15,
+          "valuation": null,
+          "prosperity": 22.64,
+          "distress": null,
+          "delta_g": 17.05
+        },
+        "002709.SZ": {
+          "name": "天赐材料",
+          "composite": 70.24,
+          "momentum": 70.15,
+          "valuation": null,
+          "prosperity": 70.32,
+          "distress": null,
+          "delta_g": -9.65
+        },
+        "601012.SH": {
+          "name": "隆基绿能",
+          "composite": 26.94,
+          "momentum": 49.98,
+          "valuation": null,
+          "prosperity": 7.74,
+          "distress": null,
+          "delta_g": 4.82
+        },
+        "301511.SZ": {
+          "name": "德福科技",
+          "composite": 68.83,
+          "momentum": 76.73,
+          "valuation": null,
+          "prosperity": 62.25,
+          "distress": null,
+          "delta_g": -25.45
+        }
+      },
+      "top": "300274.SZ",
+      "top_name": "阳光电源",
+      "ranked": [
+        {
+          "code": "300274.SZ",
+          "name": "阳光电源",
+          "score": 71.34
+        },
+        {
+          "code": "002709.SZ",
+          "name": "天赐材料",
+          "score": 70.24
+        },
+        {
+          "code": "301511.SZ",
+          "name": "德福科技",
+          "score": 68.83
+        },
+        {
+          "code": "300750.SZ",
+          "name": "宁德时代",
+          "score": 52.23
+        },
+        {
+          "code": "002129.SZ",
+          "name": "TCL中环",
+          "score": 41.05
+        },
+        {
+          "code": "601012.SH",
+          "name": "隆基绿能",
+          "score": 26.94
+        }
+      ]
+    },
+    {
+      "date": "2026-03-10",
+      "detail": {
+        "300274.SZ": {
+          "name": "阳光电源",
+          "composite": 72.74,
+          "momentum": 66.58,
+          "valuation": null,
+          "prosperity": 77.88,
+          "distress": null,
+          "delta_g": -8.99
+        },
+        "300750.SZ": {
+          "name": "宁德时代",
+          "composite": 46.78,
+          "momentum": 60.95,
+          "valuation": null,
+          "prosperity": 34.97,
+          "distress": null,
+          "delta_g": 4.89
+        },
+        "002129.SZ": {
+          "name": "TCL中环",
+          "composite": 39.58,
+          "momentum": 59.91,
+          "valuation": null,
+          "prosperity": 22.64,
+          "distress": null,
+          "delta_g": 17.05
+        },
+        "002709.SZ": {
+          "name": "天赐材料",
+          "composite": 63.47,
+          "momentum": 75.71,
+          "valuation": null,
+          "prosperity": 53.27,
+          "distress": null,
+          "delta_g": 2.02
+        },
+        "601012.SH": {
+          "name": "隆基绿能",
+          "composite": 26.76,
+          "momentum": 49.58,
+          "valuation": null,
+          "prosperity": 7.74,
+          "distress": null,
+          "delta_g": 4.82
+        },
+        "301511.SZ": {
+          "name": "德福科技",
+          "composite": 63.58,
+          "momentum": 65.18,
+          "valuation": null,
+          "prosperity": 62.25,
+          "distress": null,
+          "delta_g": -25.45
+        }
+      },
+      "top": "300274.SZ",
+      "top_name": "阳光电源",
+      "ranked": [
+        {
+          "code": "300274.SZ",
+          "name": "阳光电源",
+          "score": 72.74
+        },
+        {
+          "code": "301511.SZ",
+          "name": "德福科技",
+          "score": 63.58
+        },
+        {
+          "code": "002709.SZ",
+          "name": "天赐材料",
+          "score": 63.47
+        },
+        {
+          "code": "300750.SZ",
+          "name": "宁德时代",
+          "score": 46.78
+        },
+        {
+          "code": "002129.SZ",
+          "name": "TCL中环",
+          "score": 39.58
+        },
+        {
+          "code": "601012.SH",
+          "name": "隆基绿能",
+          "score": 26.76
+        }
+      ]
+    },
+    {
+      "date": "2026-03-17",
+      "detail": {
+        "300274.SZ": {
+          "name": "阳光电源",
+          "composite": 74.88,
+          "momentum": 71.29,
+          "valuation": null,
+          "prosperity": 77.88,
+          "distress": null,
+          "delta_g": -8.99
+        },
+        "300750.SZ": {
+          "name": "宁德时代",
+          "composite": 50.18,
+          "momentum": 68.43,
+          "valuation": null,
+          "prosperity": 34.97,
+          "distress": null,
+          "delta_g": 4.89
+        },
+        "002129.SZ": {
+          "name": "TCL中环",
+          "composite": 37.54,
+          "momentum": 55.42,
+          "valuation": null,
+          "prosperity": 22.64,
+          "distress": null,
+          "delta_g": 17.05
+        },
+        "002709.SZ": {
+          "name": "天赐材料",
+          "composite": 63.18,
+          "momentum": 75.07,
+          "valuation": null,
+          "prosperity": 53.27,
+          "distress": null,
+          "delta_g": 2.02
+        },
+        "601012.SH": {
+          "name": "隆基绿能",
+          "composite": 26.79,
+          "momentum": 49.64,
+          "valuation": null,
+          "prosperity": 7.74,
+          "distress": null,
+          "delta_g": 4.82
+        },
+        "301511.SZ": {
+          "name": "德福科技",
+          "composite": 69.17,
+          "momentum": 77.48,
+          "valuation": null,
+          "prosperity": 62.25,
+          "distress": null,
+          "delta_g": -25.45
+        }
+      },
+      "top": "300274.SZ",
+      "top_name": "阳光电源",
+      "ranked": [
+        {
+          "code": "300274.SZ",
+          "name": "阳光电源",
+          "score": 74.88
+        },
+        {
+          "code": "301511.SZ",
+          "name": "德福科技",
+          "score": 69.17
+        },
+        {
+          "code": "002709.SZ",
+          "name": "天赐材料",
+          "score": 63.18
+        },
+        {
+          "code": "300750.SZ",
+          "name": "宁德时代",
+          "score": 50.18
+        },
+        {
+          "code": "002129.SZ",
+          "name": "TCL中环",
+          "score": 37.54
+        },
+        {
+          "code": "601012.SH",
+          "name": "隆基绿能",
+          "score": 26.79
+        }
+      ]
+    },
+    {
+      "date": "2026-03-24",
+      "detail": {
+        "300274.SZ": {
+          "name": "阳光电源",
+          "composite": 76.5,
+          "momentum": 74.84,
+          "valuation": null,
+          "prosperity": 77.88,
+          "distress": null,
+          "delta_g": -8.99
+        },
+        "300750.SZ": {
+          "name": "宁德时代",
+          "composite": 50.65,
+          "momentum": 69.46,
+          "valuation": null,
+          "prosperity": 34.97,
+          "distress": null,
+          "delta_g": 4.89
+        },
+        "002129.SZ": {
+          "name": "TCL中环",
+          "composite": 37.31,
+          "momentum": 54.92,
+          "valuation": null,
+          "prosperity": 22.64,
+          "distress": null,
+          "delta_g": 17.05
+        },
+        "002709.SZ": {
+          "name": "天赐材料",
+          "composite": 64.65,
+          "momentum": 78.31,
+          "valuation": null,
+          "prosperity": 53.27,
+          "distress": null,
+          "delta_g": 2.02
+        },
+        "601012.SH": {
+          "name": "隆基绿能",
+          "composite": 28.89,
+          "momentum": 54.28,
+          "valuation": null,
+          "prosperity": 7.74,
+          "distress": null,
+          "delta_g": 4.82
+        },
+        "301511.SZ": {
+          "name": "德福科技",
+          "composite": 67.12,
+          "momentum": 72.96,
+          "valuation": null,
+          "prosperity": 62.25,
+          "distress": null,
+          "delta_g": -25.45
+        }
+      },
+      "top": "300274.SZ",
+      "top_name": "阳光电源",
+      "ranked": [
+        {
+          "code": "300274.SZ",
+          "name": "阳光电源",
+          "score": 76.5
+        },
+        {
+          "code": "301511.SZ",
+          "name": "德福科技",
+          "score": 67.12
+        },
+        {
+          "code": "002709.SZ",
+          "name": "天赐材料",
+          "score": 64.65
+        },
+        {
+          "code": "300750.SZ",
+          "name": "宁德时代",
+          "score": 50.65
+        },
+        {
+          "code": "002129.SZ",
+          "name": "TCL中环",
+          "score": 37.31
+        },
+        {
+          "code": "601012.SH",
+          "name": "隆基绿能",
+          "score": 28.89
+        }
+      ]
+    },
+    {
+      "date": "2026-03-31",
+      "detail": {
+        "300274.SZ": {
+          "name": "阳光电源",
+          "composite": 74.21,
+          "momentum": 69.8,
+          "valuation": null,
+          "prosperity": 77.88,
+          "distress": null,
+          "delta_g": -8.99
+        },
+        "300750.SZ": {
+          "name": "宁德时代",
+          "composite": 49.41,
+          "momentum": 66.73,
+          "valuation": null,
+          "prosperity": 34.97,
+          "distress": null,
+          "delta_g": 4.89
+        },
+        "002129.SZ": {
+          "name": "TCL中环",
+          "composite": 33.76,
+          "momentum": 46.07,
+          "valuation": null,
+          "prosperity": 23.5,
+          "distress": null,
+          "delta_g": 9.79
+        },
+        "002709.SZ": {
+          "name": "天赐材料",
+          "composite": 66.29,
+          "momentum": 81.92,
+          "valuation": null,
+          "prosperity": 53.27,
+          "distress": null,
+          "delta_g": 2.02
+        },
+        "601012.SH": {
+          "name": "隆基绿能",
+          "composite": 26.23,
+          "momentum": 48.41,
+          "valuation": null,
+          "prosperity": 7.74,
+          "distress": null,
+          "delta_g": 4.82
+        },
+        "301511.SZ": {
+          "name": "德福科技",
+          "composite": 67.65,
+          "momentum": 74.12,
+          "valuation": null,
+          "prosperity": 62.25,
+          "distress": null,
+          "delta_g": -25.45
+        }
+      },
+      "top": "300274.SZ",
+      "top_name": "阳光电源",
+      "ranked": [
+        {
+          "code": "300274.SZ",
+          "name": "阳光电源",
+          "score": 74.21
+        },
+        {
+          "code": "301511.SZ",
+          "name": "德福科技",
+          "score": 67.65
+        },
+        {
+          "code": "002709.SZ",
+          "name": "天赐材料",
+          "score": 66.29
+        },
+        {
+          "code": "300750.SZ",
+          "name": "宁德时代",
+          "score": 49.41
+        },
+        {
+          "code": "002129.SZ",
+          "name": "TCL中环",
+          "score": 33.76
+        },
+        {
+          "code": "601012.SH",
+          "name": "隆基绿能",
+          "score": 26.23
+        }
+      ]
+    },
+    {
+      "date": "2026-04-08",
+      "detail": {
+        "300274.SZ": {
+          "name": "阳光电源",
+          "composite": 54.4,
+          "momentum": 52.19,
+          "valuation": null,
+          "prosperity": 56.25,
+          "distress": null,
+          "delta_g": -12.9
+        },
+        "300750.SZ": {
+          "name": "宁德时代",
+          "composite": 46.5,
+          "momentum": 64.64,
+          "valuation": null,
+          "prosperity": 31.39,
+          "distress": null,
+          "delta_g": 4.89
+        },
+        "002129.SZ": {
+          "name": "TCL中环",
+          "composite": 29.97,
+          "momentum": 41.15,
+          "valuation": null,
+          "prosperity": 20.66,
+          "distress": null,
+          "delta_g": 9.79
+        },
+        "002709.SZ": {
+          "name": "天赐材料",
+          "composite": 62.75,
+          "momentum": 81.73,
+          "valuation": null,
+          "prosperity": 46.93,
+          "distress": null,
+          "delta_g": 2.02
+        },
+        "601012.SH": {
+          "name": "隆基绿能",
+          "composite": 29.67,
+          "momentum": 47.51,
+          "valuation": null,
+          "prosperity": 14.8,
+          "distress": null,
+          "delta_g": 1.73
+        },
+        "301511.SZ": {
+          "name": "德福科技",
+          "composite": 59.1,
+          "momentum": 69.38,
+          "valuation": null,
+          "prosperity": 50.54,
+          "distress": null,
+          "delta_g": -7.67
+        }
+      },
+      "top": "002709.SZ",
+      "top_name": "天赐材料",
+      "ranked": [
+        {
+          "code": "002709.SZ",
+          "name": "天赐材料",
+          "score": 62.75
+        },
+        {
+          "code": "301511.SZ",
+          "name": "德福科技",
+          "score": 59.1
+        },
+        {
+          "code": "300274.SZ",
+          "name": "阳光电源",
+          "score": 54.4
+        },
+        {
+          "code": "300750.SZ",
+          "name": "宁德时代",
+          "score": 46.5
+        },
+        {
+          "code": "002129.SZ",
+          "name": "TCL中环",
+          "score": 29.97
+        },
+        {
+          "code": "601012.SH",
+          "name": "隆基绿能",
+          "score": 29.67
+        }
+      ]
+    },
+    {
+      "date": "2026-04-15",
+      "detail": {
+        "300274.SZ": {
+          "name": "阳光电源",
+          "composite": 56.63,
+          "momentum": 57.09,
+          "valuation": null,
+          "prosperity": 56.25,
+          "distress": null,
+          "delta_g": -12.9
+        },
+        "300750.SZ": {
+          "name": "宁德时代",
+          "composite": 51.93,
+          "momentum": 76.57,
+          "valuation": null,
+          "prosperity": 31.39,
+          "distress": null,
+          "delta_g": 4.89
+        },
+        "002129.SZ": {
+          "name": "TCL中环",
+          "composite": 33.04,
+          "momentum": 47.89,
+          "valuation": null,
+          "prosperity": 20.66,
+          "distress": null,
+          "delta_g": 9.79
+        },
+        "002709.SZ": {
+          "name": "天赐材料",
+          "composite": 65.26,
+          "momentum": 87.25,
+          "valuation": null,
+          "prosperity": 46.93,
+          "distress": null,
+          "delta_g": 2.02
+        },
+        "601012.SH": {
+          "name": "隆基绿能",
+          "composite": 31.11,
+          "momentum": 50.69,
+          "valuation": null,
+          "prosperity": 14.8,
+          "distress": null,
+          "delta_g": 1.73
+        },
+        "301511.SZ": {
+          "name": "德福科技",
+          "composite": 64.54,
+          "momentum": 81.33,
+          "valuation": null,
+          "prosperity": 50.54,
+          "distress": null,
+          "delta_g": -7.67
+        }
+      },
+      "top": "002709.SZ",
+      "top_name": "天赐材料",
+      "ranked": [
+        {
+          "code": "002709.SZ",
+          "name": "天赐材料",
+          "score": 65.26
+        },
+        {
+          "code": "301511.SZ",
+          "name": "德福科技",
+          "score": 64.54
+        },
+        {
+          "code": "300274.SZ",
+          "name": "阳光电源",
+          "score": 56.63
+        },
+        {
+          "code": "300750.SZ",
+          "name": "宁德时代",
+          "score": 51.93
+        },
+        {
+          "code": "002129.SZ",
+          "name": "TCL中环",
+          "score": 33.04
+        },
+        {
+          "code": "601012.SH",
+          "name": "隆基绿能",
+          "score": 31.11
+        }
+      ]
+    },
+    {
+      "date": "2026-04-22",
+      "detail": {
+        "300274.SZ": {
+          "name": "阳光电源",
+          "composite": 54.75,
+          "momentum": 52.96,
+          "valuation": null,
+          "prosperity": 56.25,
+          "distress": null,
+          "delta_g": -12.9
+        },
+        "300750.SZ": {
+          "name": "宁德时代",
+          "composite": 54.6,
+          "momentum": 77.27,
+          "valuation": null,
+          "prosperity": 35.71,
+          "distress": null,
+          "delta_g": 21.59
+        },
+        "002129.SZ": {
+          "name": "TCL中环",
+          "composite": 32.73,
+          "momentum": 47.22,
+          "valuation": null,
+          "prosperity": 20.66,
+          "distress": null,
+          "delta_g": 9.79
+        },
+        "002709.SZ": {
+          "name": "天赐材料",
+          "composite": 65.85,
+          "momentum": 88.55,
+          "valuation": null,
+          "prosperity": 46.93,
+          "distress": null,
+          "delta_g": 2.02
+        },
+        "601012.SH": {
+          "name": "隆基绿能",
+          "composite": 30.82,
+          "momentum": 50.04,
+          "valuation": null,
+          "prosperity": 14.8,
+          "distress": null,
+          "delta_g": 1.73
+        },
+        "301511.SZ": {
+          "name": "德福科技",
+          "composite": 68.22,
+          "momentum": 89.43,
+          "valuation": null,
+          "prosperity": 50.54,
+          "distress": null,
+          "delta_g": -7.67
+        }
+      },
+      "top": "301511.SZ",
+      "top_name": "德福科技",
+      "ranked": [
+        {
+          "code": "301511.SZ",
+          "name": "德福科技",
+          "score": 68.22
+        },
+        {
+          "code": "002709.SZ",
+          "name": "天赐材料",
+          "score": 65.85
+        },
+        {
+          "code": "300274.SZ",
+          "name": "阳光电源",
+          "score": 54.75
+        },
+        {
+          "code": "300750.SZ",
+          "name": "宁德时代",
+          "score": 54.6
+        },
+        {
+          "code": "002129.SZ",
+          "name": "TCL中环",
+          "score": 32.73
+        },
+        {
+          "code": "601012.SH",
+          "name": "隆基绿能",
+          "score": 30.82
+        }
+      ]
+    },
+    {
+      "date": "2026-04-29",
+      "detail": {
+        "300274.SZ": {
+          "name": "阳光电源",
+          "composite": 44.58,
+          "momentum": 51.11,
+          "valuation": null,
+          "prosperity": 39.13,
+          "distress": null,
+          "delta_g": -25.6
+        },
+        "300750.SZ": {
+          "name": "宁德时代",
+          "composite": 56.33,
+          "momentum": 81.07,
+          "valuation": null,
+          "prosperity": 35.71,
+          "distress": null,
+          "delta_g": 21.59
+        },
+        "002129.SZ": {
+          "name": "TCL中环",
+          "composite": 33.56,
+          "momentum": 45.73,
+          "valuation": null,
+          "prosperity": 23.41,
+          "distress": null,
+          "delta_g": 5.91
+        },
+        "002709.SZ": {
+          "name": "天赐材料",
+          "composite": 66.72,
+          "momentum": 94.5,
+          "valuation": null,
+          "prosperity": 43.57,
+          "distress": null,
+          "delta_g": 34.48
+        },
+        "601012.SH": {
+          "name": "隆基绿能",
+          "composite": 32.49,
+          "momentum": 44.08,
+          "valuation": null,
+          "prosperity": 22.83,
+          "distress": null,
+          "delta_g": -2.46
+        },
+        "301511.SZ": {
+          "name": "德福科技",
+          "composite": 72.73,
+          "momentum": 95.51,
+          "valuation": null,
+          "prosperity": 53.75,
+          "distress": null,
+          "delta_g": 7.17
+        }
+      },
+      "top": "301511.SZ",
+      "top_name": "德福科技",
+      "ranked": [
+        {
+          "code": "301511.SZ",
+          "name": "德福科技",
+          "score": 72.73
+        },
+        {
+          "code": "002709.SZ",
+          "name": "天赐材料",
+          "score": 66.72
+        },
+        {
+          "code": "300750.SZ",
+          "name": "宁德时代",
+          "score": 56.33
+        },
+        {
+          "code": "300274.SZ",
+          "name": "阳光电源",
+          "score": 44.58
+        },
+        {
+          "code": "002129.SZ",
+          "name": "TCL中环",
+          "score": 33.56
+        },
+        {
+          "code": "601012.SH",
+          "name": "隆基绿能",
+          "score": 32.49
+        }
+      ]
+    },
+    {
+      "date": "2026-05-11",
+      "detail": {
+        "300274.SZ": {
+          "name": "阳光电源",
+          "composite": 42.88,
+          "momentum": 47.38,
+          "valuation": null,
+          "prosperity": 39.13,
+          "distress": null,
+          "delta_g": -25.6
+        },
+        "300750.SZ": {
+          "name": "宁德时代",
+          "composite": 53.16,
+          "momentum": 74.1,
+          "valuation": null,
+          "prosperity": 35.71,
+          "distress": null,
+          "delta_g": 21.59
+        },
+        "002129.SZ": {
+          "name": "TCL中环",
+          "composite": 35.05,
+          "momentum": 49.02,
+          "valuation": null,
+          "prosperity": 23.41,
+          "distress": null,
+          "delta_g": 5.91
+        },
+        "002709.SZ": {
+          "name": "天赐材料",
+          "composite": 66.34,
+          "momentum": 93.66,
+          "valuation": null,
+          "prosperity": 43.57,
+          "distress": null,
+          "delta_g": 34.48
+        },
+        "601012.SH": {
+          "name": "隆基绿能",
+          "composite": 31.08,
+          "momentum": 40.98,
+          "valuation": null,
+          "prosperity": 22.83,
+          "distress": null,
+          "delta_g": -2.46
+        },
+        "301511.SZ": {
+          "name": "德福科技",
+          "composite": 74.77,
+          "momentum": 100.0,
+          "valuation": null,
+          "prosperity": 53.75,
+          "distress": null,
+          "delta_g": 7.17
+        }
+      },
+      "top": "301511.SZ",
+      "top_name": "德福科技",
+      "ranked": [
+        {
+          "code": "301511.SZ",
+          "name": "德福科技",
+          "score": 74.77
+        },
+        {
+          "code": "002709.SZ",
+          "name": "天赐材料",
+          "score": 66.34
+        },
+        {
+          "code": "300750.SZ",
+          "name": "宁德时代",
+          "score": 53.16
+        },
+        {
+          "code": "300274.SZ",
+          "name": "阳光电源",
+          "score": 42.88
+        },
+        {
+          "code": "002129.SZ",
+          "name": "TCL中环",
+          "score": 35.05
+        },
+        {
+          "code": "601012.SH",
+          "name": "隆基绿能",
+          "score": 31.08
+        }
+      ]
+    },
+    {
+      "date": "2026-05-18",
+      "detail": {
+        "300274.SZ": {
+          "name": "阳光电源",
+          "composite": 43.68,
+          "momentum": 49.14,
+          "valuation": null,
+          "prosperity": 39.13,
+          "distress": null,
+          "delta_g": -25.6
+        },
+        "300750.SZ": {
+          "name": "宁德时代",
+          "composite": 49.89,
+          "momentum": 66.9,
+          "valuation": null,
+          "prosperity": 35.71,
+          "distress": null,
+          "delta_g": 21.59
+        },
+        "002129.SZ": {
+          "name": "TCL中环",
+          "composite": 36.84,
+          "momentum": 52.96,
+          "valuation": null,
+          "prosperity": 23.41,
+          "distress": null,
+          "delta_g": 5.91
+        },
+        "002709.SZ": {
+          "name": "天赐材料",
+          "composite": 66.34,
+          "momentum": 93.66,
+          "valuation": null,
+          "prosperity": 43.57,
+          "distress": null,
+          "delta_g": 34.48
+        },
+        "601012.SH": {
+          "name": "隆基绿能",
+          "composite": 28.68,
+          "momentum": 35.71,
+          "valuation": null,
+          "prosperity": 22.83,
+          "distress": null,
+          "delta_g": -2.46
+        },
+        "301511.SZ": {
+          "name": "德福科技",
+          "composite": 74.77,
+          "momentum": 100.0,
+          "valuation": null,
+          "prosperity": 53.75,
+          "distress": null,
+          "delta_g": 7.17
+        }
+      },
+      "top": "301511.SZ",
+      "top_name": "德福科技",
+      "ranked": [
+        {
+          "code": "301511.SZ",
+          "name": "德福科技",
+          "score": 74.77
+        },
+        {
+          "code": "002709.SZ",
+          "name": "天赐材料",
+          "score": 66.34
+        },
+        {
+          "code": "300750.SZ",
+          "name": "宁德时代",
+          "score": 49.89
+        },
+        {
+          "code": "300274.SZ",
+          "name": "阳光电源",
+          "score": 43.68
+        },
+        {
+          "code": "002129.SZ",
+          "name": "TCL中环",
+          "score": 36.84
+        },
+        {
+          "code": "601012.SH",
+          "name": "隆基绿能",
+          "score": 28.68
+        }
+      ]
+    },
+    {
+      "date": "2026-05-25",
+      "detail": {
+        "300274.SZ": {
+          "name": "阳光电源",
+          "composite": 28.98,
+          "momentum": 56.98,
+          "valuation": null,
+          "prosperity": 39.13,
+          "distress": 15.0,
+          "delta_g": -25.6
+        },
+        "300750.SZ": {
+          "name": "宁德时代",
+          "composite": 31.08,
+          "momentum": 58.57,
+          "valuation": null,
+          "prosperity": 35.71,
+          "distress": 28.64,
+          "delta_g": 21.59
+        },
+        "002129.SZ": {
+          "name": "TCL中环",
+          "composite": 36.41,
+          "momentum": 52.01,
+          "valuation": null,
+          "prosperity": 23.41,
+          "distress": null,
+          "delta_g": 5.91
+        },
+        "002709.SZ": {
+          "name": "天赐材料",
+          "composite": 40.81,
+          "momentum": 83.53,
+          "valuation": null,
+          "prosperity": 43.57,
+          "distress": 34.3,
+          "delta_g": 34.48
+        },
+        "601012.SH": {
+          "name": "隆基绿能",
+          "composite": 27.64,
+          "momentum": 33.41,
+          "valuation": null,
+          "prosperity": 22.83,
+          "distress": null,
+          "delta_g": -2.46
+        },
+        "301511.SZ": {
+          "name": "德福科技",
+          "composite": 47.76,
+          "momentum": 100.0,
+          "valuation": null,
+          "prosperity": 53.75,
+          "distress": 33.17,
+          "delta_g": 7.17
+        }
+      },
+      "top": "301511.SZ",
+      "top_name": "德福科技",
+      "ranked": [
+        {
+          "code": "301511.SZ",
+          "name": "德福科技",
+          "score": 47.76
+        },
+        {
+          "code": "002709.SZ",
+          "name": "天赐材料",
+          "score": 40.81
+        },
+        {
+          "code": "002129.SZ",
+          "name": "TCL中环",
+          "score": 36.41
+        },
+        {
+          "code": "300750.SZ",
+          "name": "宁德时代",
+          "score": 31.08
+        },
+        {
+          "code": "300274.SZ",
+          "name": "阳光电源",
+          "score": 28.98
+        },
+        {
+          "code": "601012.SH",
+          "name": "隆基绿能",
+          "score": 27.64
+        }
+      ]
+    },
+    {
+      "date": "2026-06-01",
+      "detail": {
+        "300274.SZ": {
+          "name": "阳光电源",
+          "composite": 49.92,
+          "momentum": 68.73,
+          "valuation": 66.67,
+          "prosperity": 39.13,
+          "distress": 21.67,
+          "delta_g": -25.6
+        },
+        "300750.SZ": {
+          "name": "宁德时代",
+          "composite": 36.41,
+          "momentum": 61.88,
+          "valuation": 16.67,
+          "prosperity": 35.71,
+          "distress": 30.31,
+          "delta_g": 21.59
+        },
+        "002129.SZ": {
+          "name": "TCL中环",
+          "composite": 39.02,
+          "momentum": 57.75,
+          "valuation": null,
+          "prosperity": 23.41,
+          "distress": null,
+          "delta_g": 5.91
+        },
+        "002709.SZ": {
+          "name": "天赐材料",
+          "composite": 62.02,
+          "momentum": 78.37,
+          "valuation": 83.33,
+          "prosperity": 43.57,
+          "distress": 42.63,
+          "delta_g": 34.48
+        },
+        "601012.SH": {
+          "name": "隆基绿能",
+          "composite": 26.48,
+          "momentum": 30.85,
+          "valuation": null,
+          "prosperity": 22.83,
+          "distress": null,
+          "delta_g": -2.46
+        },
+        "301511.SZ": {
+          "name": "德福科技",
+          "composite": 47.76,
+          "momentum": 100.0,
+          "valuation": null,
+          "prosperity": 53.75,
+          "distress": 33.17,
+          "delta_g": 7.17
+        }
+      },
+      "top": "002709.SZ",
+      "top_name": "天赐材料",
+      "ranked": [
+        {
+          "code": "002709.SZ",
+          "name": "天赐材料",
+          "score": 62.02
+        },
+        {
+          "code": "300274.SZ",
+          "name": "阳光电源",
+          "score": 49.92
+        },
+        {
+          "code": "301511.SZ",
+          "name": "德福科技",
+          "score": 47.76
+        },
+        {
+          "code": "002129.SZ",
+          "name": "TCL中环",
+          "score": 39.02
+        },
+        {
+          "code": "300750.SZ",
+          "name": "宁德时代",
+          "score": 36.41
+        },
+        {
+          "code": "601012.SH",
+          "name": "隆基绿能",
+          "score": 26.48
+        }
+      ]
+    },
+    {
+      "date": "2026-06-08",
+      "detail": {
+        "300274.SZ": {
+          "name": "阳光电源",
+          "composite": 52.69,
+          "momentum": 53.61,
+          "valuation": 90.91,
+          "prosperity": 39.13,
+          "distress": 24.09,
+          "delta_g": -25.6
+        },
+        "300750.SZ": {
+          "name": "宁德时代",
+          "composite": 54.14,
+          "momentum": 52.6,
+          "valuation": 90.91,
+          "prosperity": 35.71,
+          "distress": 37.73,
+          "delta_g": 21.59
+        },
+        "002129.SZ": {
+          "name": "TCL中环",
+          "composite": 32.44,
+          "momentum": 43.27,
+          "valuation": null,
+          "prosperity": 23.41,
+          "distress": null,
+          "delta_g": 5.91
+        },
+        "002709.SZ": {
+          "name": "天赐材料",
+          "composite": 60.01,
+          "momentum": 62.15,
+          "valuation": 90.91,
+          "prosperity": 43.57,
+          "distress": 43.39,
+          "delta_g": 34.48
+        },
+        "601012.SH": {
+          "name": "隆基绿能",
+          "composite": 22.5,
+          "momentum": 22.1,
+          "valuation": null,
+          "prosperity": 22.83,
+          "distress": null,
+          "delta_g": -2.46
+        },
+        "301511.SZ": {
+          "name": "德福科技",
+          "composite": 57.58,
+          "momentum": 100.0,
+          "valuation": 36.36,
+          "prosperity": 53.75,
+          "distress": 36.8,
+          "delta_g": 7.17
+        }
+      },
+      "top": "002709.SZ",
+      "top_name": "天赐材料",
+      "ranked": [
+        {
+          "code": "002709.SZ",
+          "name": "天赐材料",
+          "score": 60.01
+        },
+        {
+          "code": "301511.SZ",
+          "name": "德福科技",
+          "score": 57.58
+        },
+        {
+          "code": "300750.SZ",
+          "name": "宁德时代",
+          "score": 54.14
+        },
+        {
+          "code": "300274.SZ",
+          "name": "阳光电源",
+          "score": 52.69
+        },
+        {
+          "code": "002129.SZ",
+          "name": "TCL中环",
+          "score": 32.44
+        },
+        {
+          "code": "601012.SH",
+          "name": "隆基绿能",
+          "score": 22.5
+        }
+      ]
+    },
+    {
+      "date": "2026-06-15",
+      "detail": {
+        "300274.SZ": {
+          "name": "阳光电源",
+          "composite": 47.81,
+          "momentum": 52.53,
+          "valuation": 73.75,
+          "prosperity": 39.13,
+          "distress": 22.5,
+          "delta_g": -25.6
+        },
+        "300750.SZ": {
+          "name": "宁德时代",
+          "composite": 46.7,
+          "momentum": 49.53,
+          "valuation": 66.25,
+          "prosperity": 35.71,
+          "distress": 35.2,
+          "delta_g": 21.59
+        },
+        "002129.SZ": {
+          "name": "TCL中环",
+          "composite": 38.86,
+          "momentum": 57.39,
+          "valuation": null,
+          "prosperity": 23.41,
+          "distress": null,
+          "delta_g": 5.91
+        },
+        "002709.SZ": {
+          "name": "天赐材料",
+          "composite": 54.12,
+          "momentum": 60.99,
+          "valuation": 70.0,
+          "prosperity": 43.57,
+          "distress": 41.49,
+          "delta_g": 34.48
+        },
+        "601012.SH": {
+          "name": "隆基绿能",
+          "composite": 24.64,
+          "momentum": 26.81,
+          "valuation": null,
+          "prosperity": 22.83,
+          "distress": null,
+          "delta_g": -2.46
+        },
+        "301511.SZ": {
+          "name": "德福科技",
+          "composite": 47.76,
+          "momentum": 100.0,
+          "valuation": null,
+          "prosperity": 53.75,
+          "distress": 33.17,
+          "delta_g": 7.17
+        }
+      },
+      "top": "002709.SZ",
+      "top_name": "天赐材料",
+      "ranked": [
+        {
+          "code": "002709.SZ",
+          "name": "天赐材料",
+          "score": 54.12
+        },
+        {
+          "code": "300274.SZ",
+          "name": "阳光电源",
+          "score": 47.81
+        },
+        {
+          "code": "301511.SZ",
+          "name": "德福科技",
+          "score": 47.76
+        },
+        {
+          "code": "300750.SZ",
+          "name": "宁德时代",
+          "score": 46.7
+        },
+        {
+          "code": "002129.SZ",
+          "name": "TCL中环",
+          "score": 38.86
+        },
+        {
+          "code": "601012.SH",
+          "name": "隆基绿能",
+          "score": 24.64
+        }
+      ]
+    },
+    {
+      "date": "2026-06-23",
+      "detail": {
+        "300274.SZ": {
+          "name": "阳光电源",
+          "composite": 44.88,
+          "momentum": 53.72,
+          "valuation": 61.9,
+          "prosperity": 39.13,
+          "distress": 21.19,
+          "delta_g": -25.6
+        },
+        "300750.SZ": {
+          "name": "宁德时代",
+          "composite": 50.56,
+          "momentum": 51.16,
+          "valuation": 79.05,
+          "prosperity": 35.71,
+          "distress": 36.5,
+          "delta_g": 21.59
+        },
+        "002129.SZ": {
+          "name": "TCL中环",
+          "composite": 37.39,
+          "momentum": 54.17,
+          "valuation": null,
+          "prosperity": 23.41,
+          "distress": null,
+          "delta_g": 5.91
+        },
+        "002709.SZ": {
+          "name": "天赐材料",
+          "composite": 40.26,
+          "momentum": 71.99,
+          "valuation": 8.57,
+          "prosperity": 43.57,
+          "distress": 35.25,
+          "delta_g": 34.48
+        },
+        "601012.SH": {
+          "name": "隆基绿能",
+          "composite": 22.5,
+          "momentum": 22.1,
+          "valuation": null,
+          "prosperity": 22.83,
+          "distress": null,
+          "delta_g": -2.46
+        },
+        "301511.SZ": {
+          "name": "德福科技",
+          "composite": 54.19,
+          "momentum": 100.0,
+          "valuation": 23.81,
+          "prosperity": 53.75,
+          "distress": 35.55,
+          "delta_g": 7.17
+        }
+      },
+      "top": "301511.SZ",
+      "top_name": "德福科技",
+      "ranked": [
+        {
+          "code": "301511.SZ",
+          "name": "德福科技",
+          "score": 54.19
+        },
+        {
+          "code": "300750.SZ",
+          "name": "宁德时代",
+          "score": 50.56
+        },
+        {
+          "code": "300274.SZ",
+          "name": "阳光电源",
+          "score": 44.88
+        },
+        {
+          "code": "002709.SZ",
+          "name": "天赐材料",
+          "score": 40.26
+        },
+        {
+          "code": "002129.SZ",
+          "name": "TCL中环",
+          "score": 37.39
+        },
+        {
+          "code": "601012.SH",
+          "name": "隆基绿能",
+          "score": 22.5
+        }
+      ]
+    },
+    {
+      "date": "2026-06-30",
+      "detail": {
+        "300274.SZ": {
+          "name": "阳光电源",
+          "composite": 39.54,
+          "momentum": 57.68,
+          "valuation": 38.46,
+          "prosperity": 39.13,
+          "distress": 18.85,
+          "delta_g": -25.6
+        },
+        "300750.SZ": {
+          "name": "宁德时代",
+          "composite": 48.71,
+          "momentum": 51.86,
+          "valuation": 71.54,
+          "prosperity": 35.71,
+          "distress": 35.76,
+          "delta_g": 21.59
+        },
+        "002129.SZ": {
+          "name": "TCL中环",
+          "composite": 46.96,
+          "momentum": 75.21,
+          "valuation": null,
+          "prosperity": 23.41,
+          "distress": null,
+          "delta_g": 5.91
+        },
+        "002709.SZ": {
+          "name": "天赐材料",
+          "composite": 50.99,
+          "momentum": 64.39,
+          "valuation": 55.38,
+          "prosperity": 43.57,
+          "distress": 39.88,
+          "delta_g": 34.48
+        },
+        "601012.SH": {
+          "name": "隆基绿能",
+          "composite": 24.74,
+          "momentum": 27.04,
+          "valuation": null,
+          "prosperity": 22.83,
+          "distress": null,
+          "delta_g": -2.46
+        },
+        "301511.SZ": {
+          "name": "德福科技",
+          "composite": 56.07,
+          "momentum": 100.0,
+          "valuation": 30.77,
+          "prosperity": 53.75,
+          "distress": 36.24,
+          "delta_g": 7.17
+        }
+      },
+      "top": "301511.SZ",
+      "top_name": "德福科技",
+      "ranked": [
+        {
+          "code": "301511.SZ",
+          "name": "德福科技",
+          "score": 56.07
+        },
+        {
+          "code": "002709.SZ",
+          "name": "天赐材料",
+          "score": 50.99
+        },
+        {
+          "code": "300750.SZ",
+          "name": "宁德时代",
+          "score": 48.71
+        },
+        {
+          "code": "002129.SZ",
+          "name": "TCL中环",
+          "score": 46.96
+        },
+        {
+          "code": "300274.SZ",
+          "name": "阳光电源",
+          "score": 39.54
+        },
+        {
+          "code": "601012.SH",
+          "name": "隆基绿能",
+          "score": 24.74
+        }
+      ]
+    },
+    {
+      "date": "2026-07-07",
+      "detail": {
+        "300274.SZ": {
+          "name": "阳光电源",
+          "composite": 32.89,
+          "momentum": 33.34,
+          "valuation": 38.46,
+          "prosperity": 37.22,
+          "distress": 18.85,
+          "delta_g": -25.6
+        },
+        "300750.SZ": {
+          "name": "宁德时代",
+          "composite": 53.6,
+          "momentum": 45.58,
+          "valuation": 96.77,
+          "prosperity": 34.49,
+          "distress": 38.32,
+          "delta_g": 21.59
+        },
+        "002129.SZ": {
+          "name": "TCL中环",
+          "composite": 41.03,
+          "momentum": 64.6,
+          "valuation": null,
+          "prosperity": 21.38,
+          "distress": null,
+          "delta_g": 5.91
+        },
+        "002709.SZ": {
+          "name": "天赐材料",
+          "composite": 48.03,
+          "momentum": 54.86,
+          "valuation": 55.38,
+          "prosperity": 41.65,
+          "distress": 39.88,
+          "delta_g": 34.48
+        },
+        "601012.SH": {
+          "name": "隆基绿能",
+          "composite": 23.7,
+          "momentum": 20.65,
+          "valuation": null,
+          "prosperity": 26.24,
+          "distress": null,
+          "delta_g": -2.46
+        },
+        "301511.SZ": {
+          "name": "德福科技",
+          "composite": 55.47,
+          "momentum": 100.0,
+          "valuation": 30.77,
+          "prosperity": 51.75,
+          "distress": 36.24,
+          "delta_g": 7.17
+        }
+      },
+      "top": "301511.SZ",
+      "top_name": "德福科技",
+      "ranked": [
+        {
+          "code": "301511.SZ",
+          "name": "德福科技",
+          "score": 55.47
+        },
+        {
+          "code": "300750.SZ",
+          "name": "宁德时代",
+          "score": 53.6
+        },
+        {
+          "code": "002709.SZ",
+          "name": "天赐材料",
+          "score": 48.03
+        },
+        {
+          "code": "002129.SZ",
+          "name": "TCL中环",
+          "score": 41.03
+        },
+        {
+          "code": "300274.SZ",
+          "name": "阳光电源",
+          "score": 32.89
+        },
+        {
+          "code": "601012.SH",
+          "name": "隆基绿能",
+          "score": 23.7
+        }
+      ]
+    }
+  ],
+  "equity_curve": [
+    {
+      "date": "2026-01-05",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-01-06",
+      "equity": 998490.62
+    },
+    {
+      "date": "2026-01-07",
+      "equity": 957540.62
+    },
+    {
+      "date": "2026-01-08",
+      "equity": 934650.62
+    },
+    {
+      "date": "2026-01-09",
+      "equity": 935490.62
+    },
+    {
+      "date": "2026-01-12",
+      "equity": 923940.62
+    },
+    {
+      "date": "2026-01-13",
+      "equity": 907859.54
+    },
+    {
+      "date": "2026-01-14",
+      "equity": 936923.54
+    },
+    {
+      "date": "2026-01-15",
+      "equity": 935747.54
+    },
+    {
+      "date": "2026-01-16",
+      "equity": 966715.54
+    },
+    {
+      "date": "2026-01-19",
+      "equity": 976179.54
+    },
+    {
+      "date": "2026-01-20",
+      "equity": 922027.54
+    },
+    {
+      "date": "2026-01-21",
+      "equity": 916819.54
+    },
+    {
+      "date": "2026-01-22",
+      "equity": 907299.54
+    },
+    {
+      "date": "2026-01-23",
+      "equity": 922195.54
+    },
+    {
+      "date": "2026-01-26",
+      "equity": 903323.54
+    },
+    {
+      "date": "2026-01-27",
+      "equity": 871012.97
+    },
+    {
+      "date": "2026-01-28",
+      "equity": 875819.97
+    },
+    {
+      "date": "2026-01-29",
+      "equity": 861607.97
+    },
+    {
+      "date": "2026-01-30",
+      "equity": 852411.97
+    },
+    {
+      "date": "2026-02-02",
+      "equity": 838408.97
+    },
+    {
+      "date": "2026-02-03",
+      "equity": 840481.51
+    },
+    {
+      "date": "2026-02-04",
+      "equity": 853865.51
+    },
+    {
+      "date": "2026-02-05",
+      "equity": 818753.51
+    },
+    {
+      "date": "2026-02-06",
+      "equity": 810353.51
+    },
+    {
+      "date": "2026-02-09",
+      "equity": 859689.51
+    },
+    {
+      "date": "2026-02-10",
+      "equity": 871897.51
+    },
+    {
+      "date": "2026-02-11",
+      "equity": 853473.51
+    },
+    {
+      "date": "2026-02-12",
+      "equity": 877833.51
+    },
+    {
+      "date": "2026-02-13",
+      "equity": 836449.51
+    },
+    {
+      "date": "2026-02-24",
+      "equity": 844569.51
+    },
+    {
+      "date": "2026-02-25",
+      "equity": 849816.05
+    },
+    {
+      "date": "2026-02-26",
+      "equity": 818743.05
+    },
+    {
+      "date": "2026-02-27",
+      "equity": 816620.05
+    },
+    {
+      "date": "2026-03-02",
+      "equity": 799443.05
+    },
+    {
+      "date": "2026-03-03",
+      "equity": 784582.05
+    },
+    {
+      "date": "2026-03-04",
+      "equity": 782818.15
+    },
+    {
+      "date": "2026-03-05",
+      "equity": 781518.15
+    },
+    {
+      "date": "2026-03-06",
+      "equity": 788486.15
+    },
+    {
+      "date": "2026-03-09",
+      "equity": 819686.15
+    },
+    {
+      "date": "2026-03-10",
+      "equity": 821246.15
+    },
+    {
+      "date": "2026-03-11",
+      "equity": 898310.15
+    },
+    {
+      "date": "2026-03-12",
+      "equity": 909646.15
+    },
+    {
+      "date": "2026-03-13",
+      "equity": 921554.15
+    },
+    {
+      "date": "2026-03-16",
+      "equity": 909126.15
+    },
+    {
+      "date": "2026-03-17",
+      "equity": 875222.15
+    },
+    {
+      "date": "2026-03-18",
+      "equity": 875794.15
+    },
+    {
+      "date": "2026-03-19",
+      "equity": 868046.15
+    },
+    {
+      "date": "2026-03-20",
+      "equity": 912246.15
+    },
+    {
+      "date": "2026-03-23",
+      "equity": 885934.15
+    },
+    {
+      "date": "2026-03-24",
+      "equity": 865862.15
+    },
+    {
+      "date": "2026-03-25",
+      "equity": 878342.15
+    },
+    {
+      "date": "2026-03-26",
+      "equity": 872726.15
+    },
+    {
+      "date": "2026-03-27",
+      "equity": 858946.15
+    },
+    {
+      "date": "2026-03-30",
+      "equity": 826446.15
+    },
+    {
+      "date": "2026-03-31",
+      "equity": 793478.15
+    },
+    {
+      "date": "2026-04-01",
+      "equity": 708666.15
+    },
+    {
+      "date": "2026-04-02",
+      "equity": 671226.15
+    },
+    {
+      "date": "2026-04-03",
+      "equity": 650790.15
+    },
+    {
+      "date": "2026-04-07",
+      "equity": 645382.15
+    },
+    {
+      "date": "2026-04-08",
+      "equity": 669874.15
+    },
+    {
+      "date": "2026-04-09",
+      "equity": 646790.76
+    },
+    {
+      "date": "2026-04-10",
+      "equity": 688391.76
+    },
+    {
+      "date": "2026-04-13",
+      "equity": 688244.76
+    },
+    {
+      "date": "2026-04-14",
+      "equity": 727052.76
+    },
+    {
+      "date": "2026-04-15",
+      "equity": 707207.76
+    },
+    {
+      "date": "2026-04-16",
+      "equity": 724259.76
+    },
+    {
+      "date": "2026-04-17",
+      "equity": 718820.76
+    },
+    {
+      "date": "2026-04-20",
+      "equity": 731462.76
+    },
+    {
+      "date": "2026-04-21",
+      "equity": 777620.76
+    },
+    {
+      "date": "2026-04-22",
+      "equity": 767477.76
+    },
+    {
+      "date": "2026-04-23",
+      "equity": 740895.48
+    },
+    {
+      "date": "2026-04-24",
+      "equity": 704703.48
+    },
+    {
+      "date": "2026-04-27",
+      "equity": 788687.48
+    },
+    {
+      "date": "2026-04-28",
+      "equity": 790891.48
+    },
+    {
+      "date": "2026-04-29",
+      "equity": 840887.48
+    },
+    {
+      "date": "2026-04-30",
+      "equity": 878007.48
+    },
+    {
+      "date": "2026-05-06",
+      "equity": 1052471.48
+    },
+    {
+      "date": "2026-05-07",
+      "equity": 1081471.48
+    },
+    {
+      "date": "2026-05-08",
+      "equity": 1103047.48
+    },
+    {
+      "date": "2026-05-11",
+      "equity": 1082979.48
+    },
+    {
+      "date": "2026-05-12",
+      "equity": 1094695.48
+    },
+    {
+      "date": "2026-05-13",
+      "equity": 1190743.48
+    },
+    {
+      "date": "2026-05-14",
+      "equity": 1094695.48
+    },
+    {
+      "date": "2026-05-15",
+      "equity": 1069523.48
+    },
+    {
+      "date": "2026-05-18",
+      "equity": 1128683.48
+    },
+    {
+      "date": "2026-05-19",
+      "equity": 1170211.48
+    },
+    {
+      "date": "2026-05-20",
+      "equity": 1277047.48
+    },
+    {
+      "date": "2026-05-21",
+      "equity": 1145387.48
+    },
+    {
+      "date": "2026-05-22",
+      "equity": 1264287.48
+    },
+    {
+      "date": "2026-05-25",
+      "equity": 1261735.48
+    },
+    {
+      "date": "2026-05-26",
+      "equity": 1250599.48
+    },
+    {
+      "date": "2026-05-27",
+      "equity": 1227167.48
+    },
+    {
+      "date": "2026-05-28",
+      "equity": 1392119.48
+    },
+    {
+      "date": "2026-05-29",
+      "equity": 1462879.48
+    },
+    {
+      "date": "2026-06-01",
+      "equity": 1496635.48
+    },
+    {
+      "date": "2026-06-02",
+      "equity": 1429400.0
+    },
+    {
+      "date": "2026-06-03",
+      "equity": 1407206.0
+    },
+    {
+      "date": "2026-06-04",
+      "equity": 1355146.0
+    },
+    {
+      "date": "2026-06-05",
+      "equity": 1333774.0
+    },
+    {
+      "date": "2026-06-08",
+      "equity": 1286920.0
+    },
+    {
+      "date": "2026-06-09",
+      "equity": 1315964.0
+    },
+    {
+      "date": "2026-06-10",
+      "equity": 1286646.0
+    },
+    {
+      "date": "2026-06-11",
+      "equity": 1329390.0
+    },
+    {
+      "date": "2026-06-12",
+      "equity": 1361722.0
+    },
+    {
+      "date": "2026-06-15",
+      "equity": 1344734.0
+    },
+    {
+      "date": "2026-06-16",
+      "equity": 1434058.0
+    },
+    {
+      "date": "2026-06-17",
+      "equity": 1449676.0
+    },
+    {
+      "date": "2026-06-18",
+      "equity": 1415700.0
+    },
+    {
+      "date": "2026-06-22",
+      "equity": 1533794.0
+    },
+    {
+      "date": "2026-06-23",
+      "equity": 1482282.0
+    },
+    {
+      "date": "2026-06-24",
+      "equity": 1491051.9
+    },
+    {
+      "date": "2026-06-25",
+      "equity": 1579116.9
+    },
+    {
+      "date": "2026-06-26",
+      "equity": 1607441.9
+    },
+    {
+      "date": "2026-06-29",
+      "equity": 1444186.9
+    },
+    {
+      "date": "2026-06-30",
+      "equity": 1489506.9
+    },
+    {
+      "date": "2026-07-01",
+      "equity": 1604557.9
+    },
+    {
+      "date": "2026-07-02",
+      "equity": 1507634.9
+    },
+    {
+      "date": "2026-07-03",
+      "equity": 1584781.9
+    },
+    {
+      "date": "2026-07-06",
+      "equity": 1370541.9
+    },
+    {
+      "date": "2026-07-07",
+      "equity": 1309771.9
+    },
+    {
+      "date": "2026-07-08",
+      "equity": 1225002.9
+    },
+    {
+      "date": "2026-07-09",
+      "equity": 1254048.9
+    },
+    {
+      "date": "2026-07-10",
+      "equity": 1208007.9
+    }
+  ]
+}

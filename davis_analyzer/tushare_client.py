@@ -87,12 +87,22 @@ def _init_cache_db(db_path: Path) -> None:
             CREATE TABLE IF NOT EXISTS daily_price_cache (
                 ts_code    TEXT NOT NULL,
                 trade_date TEXT NOT NULL,
+                open       REAL,
                 close      REAL,
                 adj_factor REAL,
                 fetched_at REAL NOT NULL,
                 PRIMARY KEY (ts_code, trade_date)
             )
             """)
+        # ── Backward-compatible schema migration ──
+        # Pre-existing caches created the table without an ``open`` column
+        # (the backtest engine needs it for open-price execution).  ``ALTER
+        # TABLE … ADD COLUMN`` is idempotent via the PRAGMA check — existing
+        # rows keep open=NULL until refreshed by a new incremental fetch.
+        cols = {row[1] for row in conn.execute("PRAGMA table_info(daily_price_cache)")}
+        if "open" not in cols:
+            conn.execute("ALTER TABLE daily_price_cache ADD COLUMN open REAL")
+            logger.info("Migrated daily_price_cache: added 'open' column")
         # Event-style endpoints (forecast / holder-number) are keyed the same
         # way as financials (ts_code + end_date + endpoint), so they reuse the
         # generic incremental-fetch path via _get_financial.
@@ -269,7 +279,7 @@ class TushareClient:
         return self._get_financial(
             "income",
             self._pro.income,
-            "ts_code,end_date,total_revenue,n_income,n_income_attr_p",
+            "ts_code,end_date,ann_date,total_revenue,n_income,n_income_attr_p",
             ts_code,
             start_date,
             end_date,
@@ -279,7 +289,7 @@ class TushareClient:
         return self._get_financial(
             "balancesheet",
             self._pro.balancesheet,
-            "ts_code,end_date,total_assets,total_liab",
+            "ts_code,end_date,ann_date,total_assets,total_liab",
             ts_code,
             start_date,
             end_date,
@@ -289,7 +299,7 @@ class TushareClient:
         return self._get_financial(
             "cashflow",
             self._pro.cashflow,
-            "ts_code,end_date,n_cashflow_act",
+            "ts_code,end_date,ann_date,n_cashflow_act",
             ts_code,
             start_date,
             end_date,
@@ -299,21 +309,24 @@ class TushareClient:
         return self._get_financial(
             "fina_indicator",
             self._pro.fina_indicator,
-            "ts_code,end_date,roe,eps,dt_eps,revenue_ps,grossprofit_margin,rd_exp",
+            "ts_code,end_date,ann_date,roe,eps,dt_eps,revenue_ps,grossprofit_margin,rd_exp",
             ts_code,
             start_date,
             end_date,
         )
 
     def get_daily_prices(self, ts_code: str, start_date: str, end_date: str) -> pd.DataFrame:
-        """Return OHLC close + adj_factor for ``ts_code`` with incremental fetch.
+        """Return OHLC (open + close) + adj_factor for ``ts_code`` with incremental fetch.
 
-        Merges ``daily`` (unadjusted close) with ``adj_factor`` so callers can
+        Merges ``daily`` (unadjusted open/close) with ``adj_factor`` so callers can
         compute ``adj_close = close * adj_factor`` — the only correct way to
         derive returns across ex-dividend days (naïve pct_chg compounding is
         biased on ex-div days). Cached in ``daily_price_cache``.
 
-        Returns columns: ts_code, trade_date, close, adj_factor.
+        Returns columns: ts_code, trade_date, open, close, adj_factor.
+
+        Note: rows cached before the ``open`` column was added have
+        ``open=None``; they are back-filled on the next incremental refresh.
         """
         with sqlite3.connect(str(_CACHE_DB)) as conn:
             row = conn.execute(
@@ -345,7 +358,7 @@ class TushareClient:
                     "ts_code": ts_code,
                     "start_date": fetch_start,
                     "end_date": end_date,
-                    "fields": "ts_code,trade_date,close",
+                    "fields": "ts_code,trade_date,open,close",
                 },
             )
             adj_df = self._call(
@@ -514,14 +527,16 @@ class TushareClient:
         with sqlite3.connect(str(_CACHE_DB)) as conn:
             rows = conn.execute(
                 """
-                SELECT ts_code, trade_date, close, adj_factor
+                SELECT ts_code, trade_date, open, close, adj_factor
                 FROM daily_price_cache
                 WHERE ts_code = ? AND trade_date >= ? AND trade_date <= ?
                 ORDER BY trade_date ASC
                 """,
                 (ts_code, start_date, end_date),
             ).fetchall()
-        return pd.DataFrame(rows, columns=["ts_code", "trade_date", "close", "adj_factor"])
+        return pd.DataFrame(
+            rows, columns=["ts_code", "trade_date", "open", "close", "adj_factor"]
+        )
 
     @staticmethod
     def _daily_prices_insert(
@@ -546,6 +561,7 @@ class TushareClient:
                 (
                     r.get("ts_code", ts_code),
                     td,
+                    r.get("open"),
                     r.get("close"),
                     adj_map.get(td),
                     now,
@@ -555,8 +571,8 @@ class TushareClient:
             conn.executemany(
                 """
                 INSERT OR REPLACE INTO daily_price_cache
-                    (ts_code, trade_date, close, adj_factor, fetched_at)
-                VALUES (?, ?, ?, ?, ?)
+                    (ts_code, trade_date, open, close, adj_factor, fetched_at)
+                VALUES (?, ?, ?, ?, ?, ?)
                 """,
                 records,
             )

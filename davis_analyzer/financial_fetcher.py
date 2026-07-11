@@ -1,6 +1,6 @@
 """Financial data fetching and parsing for Davis Double Play analysis."""
 
-from datetime import datetime
+from datetime import date
 
 import numpy as np
 import pandas as pd
@@ -13,10 +13,16 @@ from davis_analyzer.types import FinancialData
 _MERGE_KEY = "end_date"
 
 
-def _compute_date_range(periods: int) -> tuple[str, str]:
-    today = datetime.now()
-    start = today - relativedelta(months=periods * 3)
-    return start.strftime("%Y%m%d"), today.strftime("%Y%m%d")
+def _compute_date_range(periods: int, as_of: date | None = None) -> tuple[str, str]:
+    """Return the ``(start, end)`` date window for *periods* quarters.
+
+    When *as_of* is None (the live pipeline), the window is anchored to today.
+    When *as_of* is a historical date (the backtest engine), the window is
+    anchored to that date so the fetch is point-in-time correct.
+    """
+    ref = as_of if as_of is not None else date.today()
+    start = ref - relativedelta(months=periods * 3)
+    return start.strftime("%Y%m%d"), ref.strftime("%Y%m%d")
 
 
 def _safe_float(value) -> float | None:
@@ -74,6 +80,12 @@ def _merge_financial_dfs(
         if right.empty:
             return left
         right = right.drop_duplicates(subset=merge_on)
+        # ``ann_date`` is returned by every financial endpoint but is not a
+        # merge key.  Drop the right-side copy before merging so pandas does
+        # not raise on duplicate columns (ann_date_x / ann_date_y).  The
+        # left-side value is authoritative and identical for the same end_date.
+        if "ann_date" in right.columns and "ann_date" in left.columns:
+            right = right.drop(columns=["ann_date"])
         if left.empty:
             return right
         return pd.merge(left, right, on=merge_on, how="outer")
@@ -93,6 +105,7 @@ def fetch_financial_data(
     client: TushareClient,
     ts_code: str,
     periods: int = 8,
+    as_of: date | None = None,
 ) -> list[FinancialData]:
     """Fetch and merge financial data for a single stock.
 
@@ -100,11 +113,18 @@ def fetch_financial_data(
         client: TushareClient instance.
         ts_code: Stock code, e.g. '000001.SZ'.
         periods: Number of quarters to fetch.
+        as_of: Anchor date for the look-back window **and** the point-in-time
+            disclosure filter.  When ``None`` (the live pipeline) today is used
+            and no disclosure filtering is applied.  When a historical date is
+            passed (the backtest engine), only rows whose ``ann_date <= as_of``
+            survive — this prevents the look-ahead bias of using a report that
+            was filed but not yet disclosed as of the backtest date.
 
     Returns:
-        List of FinancialData sorted by report_period descending.
+        List of FinancialData sorted by (ann_date, report_period) descending,
+        so ``result[0]`` is the most recently *disclosed* quarter as of *as_of*.
     """
-    start_date, end_date = _compute_date_range(periods)
+    start_date, end_date = _compute_date_range(periods, as_of)
 
     income_df = client.get_income(ts_code, start_date, end_date)
     balance_df = client.get_balancesheet(ts_code, start_date, end_date)
@@ -119,6 +139,19 @@ def fetch_financial_data(
 
     merged = merged.rename(columns={_MERGE_KEY: "report_period"})
 
+    # ── Point-in-time disclosure filter ──
+    # Keep only rows whose disclosure date (ann_date) is on or before *as_of*.
+    # Rows with no ann_date (older cached payloads) are retained — the live
+    # path passes as_of=None and skips this block entirely.
+    if as_of is not None and "ann_date" in merged.columns:
+        as_of_str = as_of.strftime("%Y%m%d")
+        ann = merged["ann_date"]
+        merged = merged[ann.isna() | (ann.astype(str).str.slice(0, 8) <= as_of_str)]
+
+    if merged.empty:
+        logger.debug("No disclosed financial data for {} as of {}", ts_code, as_of)
+        return []
+
     merged["yoy_revenue_growth"] = _calculate_yoy_growth(merged, "total_revenue")
     merged["yoy_profit_growth"] = _calculate_yoy_growth(merged, "n_income")
 
@@ -131,6 +164,9 @@ def fetch_financial_data(
         gross_profit = None
         if gross_margin is not None and revenue_val:
             gross_profit = gross_margin / 100.0 * revenue_val
+        # ann_date may be missing from legacy cached payloads; default None.
+        ann_raw = row.get("ann_date")
+        ann_date = str(ann_raw)[:8] if ann_raw is not None and str(ann_raw) != "nan" else None
         fd = FinancialData(
             ts_code=ts_code,
             report_period=str(row.get("report_period", "")),
@@ -146,10 +182,15 @@ def fetch_financial_data(
             gross_profit=gross_profit,
             grossprofit_margin=gross_margin,
             rd_exp=rd_exp,
+            ann_date=ann_date,
         )
         results.append(fd)
 
-    results.sort(key=lambda x: x.report_period, reverse=True)
+    # Sort by (ann_date, report_period) descending so result[0] is the most
+    # recently *disclosed* quarter.  ann_date is a more accurate "as of when
+    # was this public" signal than report_period; the two usually agree, but
+    # amended/supplementary filings can make report_period misleading.
+    results.sort(key=lambda x: (x.ann_date or "", x.report_period), reverse=True)
     return results
 
 
@@ -157,6 +198,7 @@ def fetch_batch_financial(
     client: TushareClient,
     ts_codes: list[str],
     periods: int = 8,
+    as_of: date | None = None,
 ) -> dict[str, list[FinancialData]]:
     """Fetch financial data for multiple stocks.
 
@@ -164,6 +206,7 @@ def fetch_batch_financial(
         client: TushareClient instance.
         ts_codes: List of stock codes.
         periods: Number of quarters per stock.
+        as_of: Point-in-time anchor (see :func:`fetch_financial_data`).
 
     Returns:
         Dict mapping ts_code -> list of FinancialData. Failed stocks are skipped.
@@ -172,7 +215,7 @@ def fetch_batch_financial(
 
     for code in ts_codes:
         try:
-            data = fetch_financial_data(client, code, periods)
+            data = fetch_financial_data(client, code, periods, as_of=as_of)
             batch[code] = data
         except Exception as exc:
             logger.error("Failed to fetch financial data for {}: {}", code, exc)

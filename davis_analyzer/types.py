@@ -42,6 +42,11 @@ class FinancialData:
     gross_profit: float | None = None
     grossprofit_margin: float | None = None
     rd_exp: float | None = None
+    # Disclosure date (公告日, YYYYMMDD) from Tushare.  Populated by
+    # ``fetch_financial_data`` when the API returns it; older cached payloads
+    # that predate the ann_date fields addition will leave this None.  The
+    # backtest engine uses it for point-in-time filtering (``ann_date <= as_of``).
+    ann_date: str | None = None
 
 
 @dataclass
@@ -103,6 +108,10 @@ class PipelineResult:
     momentum_signals: dict[str, "MomentumSignal"] = field(default_factory=dict)
     dividend_signals: dict[str, "DividendSignal"] = field(default_factory=dict)
     forecast_signals: dict[str, "ForecastSignal"] = field(default_factory=dict)
+    # Forward overlay + PS cross-check (Step 7.7). Parallel signals that adjust
+    # the backward-looking percentile — never alter the 4-dimension final_score.
+    forward_overlays: dict[str, "ForwardOverlay"] = field(default_factory=dict)
+    ps_crosschecks: dict[str, "PsCrossCheck"] = field(default_factory=dict)
 
 
 @dataclass
@@ -270,3 +279,46 @@ class ForecastRevision:
     revision_pp: float | None  # revised - initial, percentage points
     revision_direction: str  # "上调" | "下调" | "无修正" | "数据不足"
     revision_score: float  # 0–100, 50 = no revision
+
+
+@dataclass
+class ForwardOverlay:
+    """Bounded forward-looking adjustment to the backward-looking percentile.
+
+    Combines three sub-signals (cycle-stage base, forecast confirmation,
+    secondary ignition) into a single clipped adjustment applied to the
+    historical PE percentile. Asymmetric: +15 / −20 because the two growth
+    forces cancel on the upside but reinforce on the downside.
+
+    The overlay is a *parallel* signal — it never alters valuation_score or
+    final_score. Callers see both the raw historical percentile and the
+    "effective" percentile so they can judge how much of the cheapness is
+    forward-earnings relief.
+    """
+
+    base_adjustment: float  # sub-signal 1 (cycle stage)
+    forecast_adjustment: float  # sub-signal 2 (forecast + revision)
+    ignition_adjustment: float  # sub-signal 3
+    raw_overlay: float  # summed, pre-correction
+    final_overlay: float  # post-correction, clipped to [+15, −20]
+    effective_percentile: float  # historical_pe_pct×100 − final_overlay, clipped [0, 100]
+    adjustments_applied: list[str]  # correction-rule tags that fired
+    data_sufficient: bool  # ΔG has ≥ FORWARD_DELTA_G_MIN_QUARTERS quarters
+    confidence_note: str  # qualitative note (高/中/低 + reason)
+
+
+@dataclass
+class PsCrossCheck:
+    """PS-vs-PE percentile divergence flag.
+
+    PS is fetched but unused by the backward-looking valuation_score. This
+    surfaces it as a *cross-check*: a wide PS-PE divergence means the trailing
+    PE is lying about the cost (either margins are temporarily compressed, or
+    revenue is inflating without profit). The flag is qualitative — it does
+    not feed the overlay numerically.
+    """
+
+    ps_percentile: float  # 0.0–1.0
+    pe_percentile: float  # 0.0–1.0
+    divergence_flag: str  # PS_DISCOUNT | PS_PREMIUM | CONSISTENT
+    divergence_pp: float  # (ps_pct − pe_pct) × 100, percentage points

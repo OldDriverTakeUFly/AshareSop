@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import Sequence
 
 import numpy as np
@@ -38,12 +38,19 @@ def fetch_valuation_history(
     client: TushareClient,
     ts_code: str,
     days: int = PERCENTILE_DAYS,
+    as_of: date | None = None,
 ) -> list[ValuationData]:
     """Fetch *days* calendar-days of daily_basic data and parse into ValuationData list.
 
     Rows with NaN PE or PB are skipped.
+
+    Args:
+        as_of: Anchor date for the look-back window.  When ``None`` (default)
+            the current date is used, preserving the original behaviour for the
+            live pipeline.  Backtests pass the rebalance date so the valuation
+            window is point-in-time correct.
     """
-    end_date = datetime.now()
+    end_date = as_of if as_of is not None else date.today()
     start_date = end_date - timedelta(days=days)
 
     end_str = end_date.strftime("%Y%m%d")
