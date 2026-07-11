@@ -19,9 +19,14 @@ from loguru import logger
 from davis_analyzer.distress import calculate_distress_score
 from davis_analyzer.dividend import analyze_dividend
 from davis_analyzer.financial_fetcher import fetch_batch_financial
-from davis_analyzer.forecast import analyze_forecast
+from davis_analyzer.forecast import analyze_forecast, analyze_forecast_revision
 from davis_analyzer.momentum import analyze_momentum_batch
 from davis_analyzer.prosperity import batch_prosperity
+from davis_analyzer.prosperity_sector import (
+    classify_stock_stage,
+    compute_relative_delta_g,
+    screen_g_delta_g_ignition,
+)
 from davis_analyzer.scoring import calculate_davis_double_score, rank_stocks
 from davis_analyzer.stock_universe import build_stock_universe
 from davis_analyzer.trend import batch_trend
@@ -32,12 +37,19 @@ from davis_analyzer.types import (
     DistressSignal,
     FinancialData,
     ForecastSignal,
+    ForwardOverlay,
     MomentumSignal,
     PipelineResult,
     ProsperityScore,
+    PsCrossCheck,
     StockInfo,
+    ValuationData,
 )
 from davis_analyzer.valuation import batch_valuation, fetch_valuation_history
+from davis_analyzer.valuation_forward import (
+    calculate_forward_overlay,
+    calculate_ps_crosscheck,
+)
 
 # Pre-filter threshold: only process stocks with valuation_score above this
 _VALUATION_PRE_FILTER = 50.0
@@ -139,11 +151,13 @@ def run_screening_pipeline(
     # ── Step 7.5: Fetch daily PE/PB series and calculate trend scores ──
     logger.info("Step 7.5: Calculating PE/PB trend scores for {} stocks...", len(prosperity_scores))
     trend_history_map: dict[str, tuple[pd.Series, pd.Series]] = {}
+    valuation_history_map: dict[str, list[ValuationData]] = {}
     for ts_code in prosperity_scores:
         try:
             history = fetch_valuation_history(client, ts_code)
             if not history:
                 continue
+            valuation_history_map[ts_code] = history
             dates = pd.to_datetime([v.trade_date for v in history], format="%Y%m%d")
             pe_series = pd.Series([v.pe_ttm for v in history], index=dates)
             pb_series = pd.Series([v.pb for v in history], index=dates)
@@ -188,6 +202,78 @@ def run_screening_pipeline(
         except Exception:
             logger.debug("Forecast analysis failed for {}", code)
     logger.info("Forecast signals computed for {} stocks", len(forecast_signals))
+
+    # ── Step 7.7: Forward overlay (前景估值调整) ──
+    # Parallel signal — never alters the 4-dimension final_score. Adjusts the
+    # backward-looking PE percentile by a bounded [+15, −20] amount using cycle
+    # stage, forecast, revision, ΔG, and ignition. Also computes the PS-PE
+    # divergence cross-check from the same valuation history.
+    logger.info("Step 7.7: Computing forward overlays for {} stocks...", len(prosperity_scores))
+
+    # 7.7a: fill relative_delta_g (industry-relative acceleration) — the main
+    # pipeline never calls compute_relative_delta_g, so without this the
+    # transition-zone logic in classify_stock_stage sees only 0.0.
+    compute_relative_delta_g(prosperity_scores, stock_infos)
+
+    # 7.7b: ignition set (二次点火) — computed once, reused per-stock.
+    ignition_set: set[str] = set()
+    try:
+        ignition_set = screen_g_delta_g_ignition(
+            prosperity_scores, stock_infos, financial_data
+        )
+    except Exception:
+        logger.exception("Ignition screen failed — continuing without ignition flags")
+
+    forward_overlays: dict[str, ForwardOverlay] = {}
+    ps_crosschecks: dict[str, PsCrossCheck] = {}
+    for ts_code in prosperity_scores:
+        try:
+            prosp = prosperity_scores[ts_code]
+            stage = classify_stock_stage(prosp)
+
+            # Forecast revision reuses the cached get_forecast payload (no
+            # extra API call beyond what analyze_forecast already issued).
+            revision = None
+            try:
+                revision = analyze_forecast_revision(client, ts_code)
+            except Exception:
+                logger.debug("Forecast revision failed for {}", ts_code)
+
+            fin_list = financial_data.get(ts_code, [])
+            # Latest non-None profit growth for the 30% threshold rule.
+            profit_growth = next(
+                (fd.yoy_profit_growth for fd in fin_list if fd.yoy_profit_growth is not None),
+                None,
+            )
+
+            # pe_percentile from valuation_data (0.0–1.0).
+            _, pe_pct, _ = valuation_data.get(ts_code, (50.0, 0.5, 0.5))
+
+            overlay = calculate_forward_overlay(
+                stage=stage,
+                relative_delta_g=prosp.relative_delta_g,
+                forecast=forecast_signals.get(ts_code),
+                revision=revision,
+                is_ignition=ts_code in ignition_set,
+                delta_g_quarters=len(fin_list),
+                profit_growth=profit_growth,
+                historical_pe_percentile=pe_pct,
+            )
+            forward_overlays[ts_code] = overlay
+
+            # PS cross-check from the valuation history captured in Step 7.5.
+            history = valuation_history_map.get(ts_code)
+            if history:
+                ps_check = calculate_ps_crosscheck(history)
+                if ps_check is not None:
+                    ps_crosschecks[ts_code] = ps_check
+        except Exception:
+            logger.debug("Forward overlay failed for {}", ts_code)
+    logger.info(
+        "Forward overlays computed for {} stocks, PS cross-checks for {}",
+        len(forward_overlays),
+        len(ps_crosschecks),
+    )
 
     scored_stocks: list[DavisDoubleScore] = []
     distress_signals: dict[str, DistressSignal] = {}
@@ -265,4 +351,6 @@ def run_screening_pipeline(
         momentum_signals=momentum_signals,
         dividend_signals=dividend_signals,
         forecast_signals=forecast_signals,
+        forward_overlays=forward_overlays,
+        ps_crosschecks=ps_crosschecks,
     )

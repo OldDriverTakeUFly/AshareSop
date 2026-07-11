@@ -142,3 +142,52 @@ DIVIDEND_FULL_YIELD_PCT: float = 5.0
 # Minimum calendar days between two forecasts for the same report period to
 # count as a genuine revision rather than the same announcement re-keyed.
 FORECAST_REVISION_MIN_GAP_DAYS: int = 30
+
+# ── Forward overlay (前景估值调整) ──
+# Forward-looking signals (cycle stage / earnings pre-announcement / ΔG /
+# secondary ignition) adjust the backward-looking PE/PB percentile by a
+# *bounded* amount. Asymmetric: downside room (-20) exceeds upside (+15)
+# because the two growth forces (forward-E relief vs growth premium) cancel
+# on the upside but reinforce on the downside. See valuation_forward.py.
+FORWARD_OVERLAY_MAX: float = 15.0  # 上调上限
+FORWARD_OVERLAY_MIN: float = -20.0  # 下调下限
+
+# Profit-growth red line: when net-profit growth falls below this, upside
+# adjustments are killed (min(overlay, 0)) because excess returns decay. The
+# downside channel stays open so value-trap detection is preserved.
+FORWARD_PROFIT_GROWTH_THRESHOLD: float = 30.0
+
+# Minimum quarters of data for a reliable ΔG. Below this the overlay is zeroed
+# (no adjustment) and flagged "ΔG 不可靠".
+FORWARD_DELTA_G_MIN_QUARTERS: int = 2
+
+# Price-in risk: an accelerating stock already at a high PE percentile likely
+# has the growth priced in, so the upside cap is halved.
+FORWARD_PRICEIN_PE_PERCENTILE: float = 0.80
+FORWARD_PRICEIN_HALF_CAP: float = 7.0  # halved upside cap
+
+# PS-PE divergence flag threshold (percentage points).
+PS_DIVERGENCE_THRESHOLD_PP: float = 20.0
+
+# Forecast leading-score bands for the forward overlay confirmation signal.
+FORWARD_FORECAST_LEADING_HIGH: float = 50.0
+FORWARD_FORECAST_LEADING_LOW: float = 30.0
+
+# ── Forward overlay rule-table values (all hardcoded) ──
+# Sub-signal 1: cycle-stage base adjustment (range −15 … +8).
+BASE_ACCELERATING_AHEAD: float = 8.0      # 加速期 + relative_delta_g > 0
+BASE_ACCELERATING_DECEL: float = -6.0     # 加速期 + relative_delta_g ≤ 0 (高位减速)
+BASE_TURNING_UP: float = 7.0              # 上升拐点 + relative_delta_g > 0
+BASE_TURNING_UNCONFIRMED: float = -4.0    # 上升拐点 + relative_delta_g ≤ 0
+BASE_DECELERATING: float = -12.0          # 减速期
+BASE_DECLINING: float = -15.0             # 下降拐点
+
+# Sub-signal 2: forecast confirmation (stackable with revision).
+FCST_RESONANCE: float = 7.0    # leading_score > HIGH 且 delta_g > 0 (前后向共振)
+FCST_WEAK_CONFIRM: float = 3.0  # leading_score in (LOW, HIGH]
+FCST_WEAKENING: float = -3.0   # leading_score ≤ LOW
+REV_DOWNGRADE: float = -8.0    # revision_score == 0 (管理层下调,叠加)
+REV_UPGRADE: float = 4.0       # revision_score == 100 (管理层上调,叠加)
+
+# Sub-signal 3: secondary-ignition bonus.
+IGNITION_BONUS: float = 3.0
