@@ -448,6 +448,220 @@ def run_backtest(
     return result
 
 
+# ──────────────────────────── single-stock mode ────────────────────────────
+
+
+@dataclass
+class SingleStockConfig:
+    """Configuration for single-stock threshold-signal backtesting.
+
+    Unlike :class:`BacktestConfig` (multi-stock competitive ranking), this
+    mode trades **one stock only**.  Each rebalance day the factor composite
+    score is evaluated against two thresholds:
+
+    * score ≥ ``buy_threshold``  →  go long (full capital)
+    * score ≤ ``sell_threshold`` →  exit to cash
+
+    Between the two thresholds the position is held unchanged (dead-zone).
+    This avoids whipsawing when the score oscillates near a single cut-off.
+    """
+
+    ts_code: str
+    start_date: date
+    end_date: date
+    frequency: int = 5
+    execution_price: str = "open"
+    initial_capital: float = 1_000_000.0
+    commission_bps: float = 2.5
+    stamp_tax_bps: float = 10.0
+    buy_threshold: float = 60.0
+    sell_threshold: float = 45.0
+    factor_config: FactorConfig = field(default_factory=FactorConfig)
+
+
+def run_single_stock_backtest(
+    config: SingleStockConfig, client: TushareClient
+) -> BacktestResult:
+    """Backtest a single stock using factor-score threshold signals.
+
+    Each rebalance day:
+      1. Compute the four-factor composite score for *config.ts_code* at
+         ``as_of = today`` (point-in-time correct).
+      2. If score ≥ buy_threshold and not currently held → buy next day open.
+      3. If score ≤ sell_threshold and currently held → sell next day open.
+      4. Between thresholds → hold (dead-zone, no action).
+
+    This is the "honest" single-stock backtest: every trade is in the target
+    stock, and the return reflects *that stock's* factor-driven timing only.
+    """
+    code = config.ts_code
+    logger.info(
+        "Single-stock backtest: {} [{} → {}], freq={}d, buy≥{}, sell≤{}, exec={}",
+        code,
+        config.start_date,
+        config.end_date,
+        config.frequency,
+        config.buy_threshold,
+        config.sell_threshold,
+        config.execution_price,
+    )
+
+    # ── 1. Trading calendar (use the stock itself as anchor) ──
+    start_str = config.start_date.strftime("%Y%m%d")
+    end_str = config.end_date.strftime("%Y%m%d")
+    cal_df = client.get_daily_prices(code, start_str, end_str)
+    if cal_df is None or cal_df.empty:
+        logger.error("No price data for {} — aborting", code)
+        return BacktestResult(
+            config=BacktestConfig(
+                start_date=config.start_date, end_date=config.end_date
+            )
+        )
+    calendar = sorted(
+        pd.to_datetime(cal_df["trade_date"], format="%Y%m%d").dt.date.unique()
+    )
+    logger.info("Trading calendar: {} days", len(calendar))
+
+    # ── 2. StockInfo for factor scoring ──
+    stock_infos = _build_stock_infos(client, [code])
+
+    # ── 3. Rebalance schedule ──
+    rebalance_dates = calendar[:: config.frequency]
+    cal_index = {d: i for i, d in enumerate(calendar)}
+
+    result = BacktestResult(
+        config=BacktestConfig(
+            start_date=config.start_date,
+            end_date=config.end_date,
+            universe=[code],
+            frequency=config.frequency,
+            top_n=1,
+            execution_price=config.execution_price,
+            initial_capital=config.initial_capital,
+        ),
+        rebalance_dates=rebalance_dates,
+    )
+    portfolio = Portfolio(config.initial_capital)
+
+    # Track signals: (exec_date, action, score) — action is "BUY" or "SELL".
+    pending_signals: list[tuple[date, str, float]] = []
+
+    for today in calendar:
+        # ── Execute pending signal ──
+        today_sigs = [s for s in pending_signals if s[0] == today]
+        pending_signals = [s for s in pending_signals if s[0] != today]
+
+        for _sig_date, action, _score in today_sigs:
+            exec_prices = _exec_prices_for_date(
+                client, [code], today, config.execution_price
+            )
+            px = exec_prices.get(code)
+            if px is None or px <= 0:
+                continue  # suspended — skip
+
+            if action == "BUY" and code not in portfolio.positions:
+                shares = int(portfolio.cash / px // 100) * 100
+                if shares <= 0:
+                    continue
+                gross = shares * px
+                cost = _trade_cost(
+                    gross, config.commission_bps, config.stamp_tax_bps, is_sell=False
+                )
+                portfolio.cash -= gross + cost
+                portfolio.positions[code] = Position(
+                    shares=shares, cost_basis=gross / shares
+                )
+                result.trades.append(
+                    Trade(
+                        signal_date=_sig_date,
+                        exec_date=today,
+                        ts_code=code,
+                        action="BUY",
+                        price=px,
+                        shares=shares,
+                        amount=gross,
+                        cost=cost,
+                    )
+                )
+            elif action == "SELL" and code in portfolio.positions:
+                pos = portfolio.positions[code]
+                gross = pos.shares * px
+                cost = _trade_cost(
+                    gross,
+                    config.commission_bps,
+                    config.stamp_tax_bps,
+                    is_sell=True,
+                )
+                portfolio.cash += gross - cost
+                result.trades.append(
+                    Trade(
+                        signal_date=_sig_date,
+                        exec_date=today,
+                        ts_code=code,
+                        action="SELL",
+                        price=px,
+                        shares=pos.shares,
+                        amount=gross,
+                        cost=cost,
+                    )
+                )
+                del portfolio.positions[code]
+
+        # ── Generate signal on rebalance days ──
+        if today in rebalance_dates:
+            scores = score_universe_at(
+                client, today, stock_infos, config.factor_config
+            )
+            score = scores.get(code)
+            if score is not None:
+                idx = cal_index[today]
+                exec_day = calendar[idx + 1] if idx + 1 < len(calendar) else today
+
+                is_held = code in portfolio.positions
+                if score >= config.buy_threshold and not is_held:
+                    pending_signals.append((exec_day, "BUY", score))
+                    logger.info(
+                        "{} signal BUY {} score={:.1f} ≥ {}, exec {}",
+                        today,
+                        code,
+                        score,
+                        config.buy_threshold,
+                        exec_day,
+                    )
+                elif score <= config.sell_threshold and is_held:
+                    pending_signals.append((exec_day, "SELL", score))
+                    logger.info(
+                        "{} signal SELL {} score={:.1f} ≤ {}, exec {}",
+                        today,
+                        code,
+                        score,
+                        config.sell_threshold,
+                        exec_day,
+                    )
+
+        # ── Mark-to-market ──
+        held = list(portfolio.positions.keys())
+        mtm = _mtm_prices_for_date(client, held, today)
+        equity = portfolio.market_value(mtm)
+        result.equity_curve.append(
+            EquitySnapshot(
+                date=today,
+                equity=equity,
+                cash=portfolio.cash,
+                positions_value=equity - portfolio.cash,
+            )
+        )
+
+    result.final_cash = portfolio.cash
+    result.final_positions = portfolio.positions
+    logger.info(
+        "Single-stock backtest complete: {} trades, final equity ≈ {:.0f}",
+        len(result.trades),
+        result.equity_curve[-1].equity if result.equity_curve else config.initial_capital,
+    )
+    return result
+
+
 # ──────────────────────────── helpers ────────────────────────────
 
 

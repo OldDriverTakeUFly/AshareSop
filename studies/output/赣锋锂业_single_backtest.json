@@ -1,0 +1,824 @@
+{
+  "target": "002460.SZ",
+  "target_name": "赣锋锂业",
+  "stats": {
+    "total_return_pct": 0.0,
+    "annualized_return_pct": 0.0,
+    "sharpe_ratio": 0.0,
+    "max_drawdown_pct": 0.0,
+    "win_rate_pct": 0.0,
+    "turnover": 0.0,
+    "num_trades": 0,
+    "num_rebalances": 25,
+    "total_cost": 0,
+    "initial_capital": 1000000,
+    "final_equity": 1000000
+  },
+  "trades": [],
+  "factor_history": [
+    {
+      "date": "2026-01-05",
+      "detail": {
+        "composite": 42.77,
+        "momentum": 81.98,
+        "valuation": null,
+        "prosperity": 10.09,
+        "distress": null,
+        "delta_g": 15.23
+      },
+      "signal": "SELL"
+    },
+    {
+      "date": "2026-01-12",
+      "detail": {
+        "composite": 44.08,
+        "momentum": 84.87,
+        "valuation": null,
+        "prosperity": 10.09,
+        "distress": null,
+        "delta_g": 15.23
+      },
+      "signal": "SELL"
+    },
+    {
+      "date": "2026-01-19",
+      "detail": {
+        "composite": 42.85,
+        "momentum": 82.16,
+        "valuation": null,
+        "prosperity": 10.09,
+        "distress": null,
+        "delta_g": 15.23
+      },
+      "signal": "SELL"
+    },
+    {
+      "date": "2026-01-26",
+      "detail": {
+        "composite": 46.18,
+        "momentum": 89.49,
+        "valuation": null,
+        "prosperity": 10.09,
+        "distress": null,
+        "delta_g": 15.23
+      },
+      "signal": "HOLD"
+    },
+    {
+      "date": "2026-02-02",
+      "detail": {
+        "composite": 40.93,
+        "momentum": 77.94,
+        "valuation": null,
+        "prosperity": 10.09,
+        "distress": null,
+        "delta_g": 15.23
+      },
+      "signal": "SELL"
+    },
+    {
+      "date": "2026-02-09",
+      "detail": {
+        "composite": 39.22,
+        "momentum": 74.18,
+        "valuation": null,
+        "prosperity": 10.09,
+        "distress": null,
+        "delta_g": 15.23
+      },
+      "signal": "SELL"
+    },
+    {
+      "date": "2026-02-24",
+      "detail": {
+        "composite": 40.84,
+        "momentum": 77.73,
+        "valuation": null,
+        "prosperity": 10.09,
+        "distress": null,
+        "delta_g": 15.23
+      },
+      "signal": "SELL"
+    },
+    {
+      "date": "2026-03-03",
+      "detail": {
+        "composite": 40.07,
+        "momentum": 76.05,
+        "valuation": null,
+        "prosperity": 10.09,
+        "distress": null,
+        "delta_g": 15.23
+      },
+      "signal": "SELL"
+    },
+    {
+      "date": "2026-03-10",
+      "detail": {
+        "composite": 40.07,
+        "momentum": 76.05,
+        "valuation": null,
+        "prosperity": 10.09,
+        "distress": null,
+        "delta_g": 15.23
+      },
+      "signal": "SELL"
+    },
+    {
+      "date": "2026-03-17",
+      "detail": {
+        "composite": 38.26,
+        "momentum": 72.07,
+        "valuation": null,
+        "prosperity": 10.09,
+        "distress": null,
+        "delta_g": 15.23
+      },
+      "signal": "SELL"
+    },
+    {
+      "date": "2026-03-24",
+      "detail": {
+        "composite": 40.86,
+        "momentum": 77.79,
+        "valuation": null,
+        "prosperity": 10.09,
+        "distress": null,
+        "delta_g": 15.23
+      },
+      "signal": "SELL"
+    },
+    {
+      "date": "2026-03-31",
+      "detail": {
+        "composite": 49.99,
+        "momentum": 87.08,
+        "valuation": null,
+        "prosperity": 19.09,
+        "distress": null,
+        "delta_g": 17.37
+      },
+      "signal": "HOLD"
+    },
+    {
+      "date": "2026-04-08",
+      "detail": {
+        "composite": 53.89,
+        "momentum": 92.98,
+        "valuation": null,
+        "prosperity": 21.31,
+        "distress": null,
+        "delta_g": 17.37
+      },
+      "signal": "HOLD"
+    },
+    {
+      "date": "2026-04-15",
+      "detail": {
+        "composite": 53.39,
+        "momentum": 91.89,
+        "valuation": null,
+        "prosperity": 21.31,
+        "distress": null,
+        "delta_g": 17.37
+      },
+      "signal": "HOLD"
+    },
+    {
+      "date": "2026-04-22",
+      "detail": {
+        "composite": 51.62,
+        "momentum": 87.99,
+        "valuation": null,
+        "prosperity": 21.31,
+        "distress": null,
+        "delta_g": 17.37
+      },
+      "signal": "HOLD"
+    },
+    {
+      "date": "2026-04-29",
+      "detail": {
+        "composite": 53.7,
+        "momentum": 92.57,
+        "valuation": null,
+        "prosperity": 21.31,
+        "distress": null,
+        "delta_g": 17.37
+      },
+      "signal": "HOLD"
+    },
+    {
+      "date": "2026-05-11",
+      "detail": {
+        "composite": 59.4,
+        "momentum": 90.12,
+        "valuation": null,
+        "prosperity": 33.8,
+        "distress": null,
+        "delta_g": 69.39
+      },
+      "signal": "HOLD"
+    },
+    {
+      "date": "2026-05-18",
+      "detail": {
+        "composite": 55.09,
+        "momentum": 80.64,
+        "valuation": null,
+        "prosperity": 33.8,
+        "distress": null,
+        "delta_g": 69.39
+      },
+      "signal": "HOLD"
+    },
+    {
+      "date": "2026-05-25",
+      "detail": {
+        "composite": 30.41,
+        "momentum": 64.41,
+        "valuation": null,
+        "prosperity": 33.8,
+        "distress": 20.86,
+        "delta_g": 69.39
+      },
+      "signal": "SELL"
+    },
+    {
+      "date": "2026-06-01",
+      "detail": {
+        "composite": 50.41,
+        "momentum": 54.39,
+        "valuation": 83.33,
+        "prosperity": 33.8,
+        "distress": 29.19,
+        "delta_g": 69.39
+      },
+      "signal": "HOLD"
+    },
+    {
+      "date": "2026-06-08",
+      "detail": {
+        "composite": 48.81,
+        "momentum": 39.81,
+        "valuation": 90.91,
+        "prosperity": 33.8,
+        "distress": 29.95,
+        "delta_g": 69.39
+      },
+      "signal": "HOLD"
+    },
+    {
+      "date": "2026-06-15",
+      "detail": {
+        "composite": 34.41,
+        "momentum": 46.63,
+        "valuation": 31.25,
+        "prosperity": 33.8,
+        "distress": 23.98,
+        "delta_g": 69.39
+      },
+      "signal": "SELL"
+    },
+    {
+      "date": "2026-06-23",
+      "detail": {
+        "composite": 44.51,
+        "momentum": 43.65,
+        "valuation": 71.43,
+        "prosperity": 33.8,
+        "distress": 28.0,
+        "delta_g": 69.39
+      },
+      "signal": "SELL"
+    },
+    {
+      "date": "2026-06-30",
+      "detail": {
+        "composite": 46.72,
+        "momentum": 38.26,
+        "valuation": 84.62,
+        "prosperity": 33.8,
+        "distress": 29.32,
+        "delta_g": 69.39
+      },
+      "signal": "HOLD"
+    },
+    {
+      "date": "2026-07-07",
+      "detail": {
+        "composite": 50.0,
+        "momentum": 34.25,
+        "valuation": 96.77,
+        "prosperity": 37.14,
+        "distress": 30.53,
+        "delta_g": 69.39
+      },
+      "signal": "HOLD"
+    }
+  ],
+  "equity_curve": [
+    {
+      "date": "2026-01-05",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-01-06",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-01-07",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-01-08",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-01-09",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-01-12",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-01-13",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-01-14",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-01-15",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-01-16",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-01-19",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-01-20",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-01-21",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-01-22",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-01-23",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-01-26",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-01-27",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-01-28",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-01-29",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-01-30",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-02-02",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-02-03",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-02-04",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-02-05",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-02-06",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-02-09",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-02-10",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-02-11",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-02-12",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-02-13",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-02-24",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-02-25",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-02-26",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-02-27",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-03-02",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-03-03",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-03-04",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-03-05",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-03-06",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-03-09",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-03-10",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-03-11",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-03-12",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-03-13",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-03-16",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-03-17",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-03-18",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-03-19",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-03-20",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-03-23",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-03-24",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-03-25",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-03-26",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-03-27",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-03-30",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-03-31",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-04-01",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-04-02",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-04-03",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-04-07",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-04-08",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-04-09",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-04-10",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-04-13",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-04-14",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-04-15",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-04-16",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-04-17",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-04-20",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-04-21",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-04-22",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-04-23",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-04-24",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-04-27",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-04-28",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-04-29",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-04-30",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-05-06",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-05-07",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-05-08",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-05-11",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-05-12",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-05-13",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-05-14",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-05-15",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-05-18",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-05-19",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-05-20",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-05-21",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-05-22",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-05-25",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-05-26",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-05-27",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-05-28",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-05-29",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-06-01",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-06-02",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-06-03",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-06-04",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-06-05",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-06-08",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-06-09",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-06-10",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-06-11",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-06-12",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-06-15",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-06-16",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-06-17",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-06-18",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-06-22",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-06-23",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-06-24",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-06-25",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-06-26",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-06-29",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-06-30",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-07-01",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-07-02",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-07-03",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-07-06",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-07-07",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-07-08",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-07-09",
+      "equity": 1000000
+    },
+    {
+      "date": "2026-07-10",
+      "equity": 1000000
+    }
+  ],
+  "config": {
+    "buy_threshold": 60.0,
+    "sell_threshold": 45.0,
+    "frequency": 5,
+    "execution": "open"
+  }
+}
