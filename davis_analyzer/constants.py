@@ -42,7 +42,7 @@ CYCLICAL_INDUSTRIES: list[str] = [
 EPS_NEAR_ZERO_THRESHOLD: float = 0.01
 
 # ── API limits ──
-TUSHARE_RATE_LIMIT: int = 500  # upgraded Tushare API tier
+TUSHARE_RATE_LIMIT: int = 400  # headroom below Tushare's 500/min hard cap
 
 # ── Report generation ──
 REPORT_MAX_WORDS: int = 1500
