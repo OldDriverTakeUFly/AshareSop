@@ -82,7 +82,7 @@ cli.py → pipeline.py → [stock_universe.py, tushare_client.py]
 
 | 模块 | 职责 |
 |------|------|
-| `tushare_client.py` | Tushare Pro API 客户端，内置频率限制（500次/分钟）和 SQLite 缓存 |
+| `tushare_client.py` | Tushare Pro API 客户端，内置频率限制（400次/分钟）和 SQLite 缓存 |
 | `stock_universe.py` | A股股票宇宙构建，排除 ST/停牌/退市股 |
 | `financial_fetcher.py` | 财务数据获取，合并利润表/资产负债表/现金流量表/财务指标 |
 | `valuation.py` | 估值引擎，PE/PB 3年历史百分位，周期股 PB 替代 PE |

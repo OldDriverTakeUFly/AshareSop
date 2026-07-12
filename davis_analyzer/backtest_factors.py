@@ -34,6 +34,12 @@ from datetime import date
 
 from loguru import logger
 
+from davis_analyzer.constants import (
+    CYCLICAL_FACTOR_WEIGHTS,
+    SUPER_CYCLE_INDUSTRIES,
+    SUPER_CYCLE_MIN_POSITIVE_QUARTERS,
+    SUPER_CYCLE_PERSISTENCE_BONUS,
+)
 from davis_analyzer.distress import calculate_distress_score
 from davis_analyzer.financial_fetcher import fetch_financial_data
 from davis_analyzer.momentum import analyze_momentum
@@ -85,30 +91,96 @@ def _blend(
     prosperity: float | None,
     distress: float | None,
     cfg: FactorConfig,
+    is_cyclical: bool = False,
 ) -> float:
     """Weighted-normalised blend of the four sub-scores.
 
     Only available sub-scores participate; the normaliser divides by the sum
     of weights whose sub-score is present, so a missing factor does not
     silently drag the composite to zero.
+
+    When *is_cyclical* is True (classical cyclical stock), the weights from
+    ``CYCLICAL_FACTOR_WEIGHTS`` override *cfg* — valuation gets 0.40 (PB is
+    the reliable anchor), prosperity drops to 0.15 (ΔG is mean-reverting).
     """
+    if is_cyclical:
+        w_mom = CYCLICAL_FACTOR_WEIGHTS["momentum"]
+        w_val = CYCLICAL_FACTOR_WEIGHTS["valuation"]
+        w_pros = CYCLICAL_FACTOR_WEIGHTS["prosperity"]
+        w_dist = CYCLICAL_FACTOR_WEIGHTS["distress"]
+    else:
+        w_mom = cfg.momentum_weight
+        w_val = cfg.valuation_weight
+        w_pros = cfg.prosperity_weight
+        w_dist = cfg.distress_weight
+
     total_w = 0.0
     acc = 0.0
     if momentum is not None:
-        acc += momentum * cfg.momentum_weight
-        total_w += cfg.momentum_weight
+        acc += momentum * w_mom
+        total_w += w_mom
     if valuation is not None:
-        acc += valuation * cfg.valuation_weight
-        total_w += cfg.valuation_weight
+        acc += valuation * w_val
+        total_w += w_val
     if prosperity is not None:
-        acc += prosperity * cfg.prosperity_weight
-        total_w += cfg.prosperity_weight
+        acc += prosperity * w_pros
+        total_w += w_pros
     if distress is not None:
-        acc += distress * cfg.distress_weight
-        total_w += cfg.distress_weight
+        acc += distress * w_dist
+        total_w += w_dist
     if total_w == 0:
         return 0.0
     return acc / total_w
+
+
+def classify_stock(industry: str) -> str:
+    """Classify a stock into one of three domain categories.
+
+    Returns ``"classic_cyclical"``, ``"super_cycle"``, or ``"normal"``.
+
+    * **classic_cyclical** — CYCLICAL_INDUSTRIES (steel/coal/chemicals/…):
+      ΔG is mean-reverting → clamp + tilt to valuation weight.
+    * **super_cycle** — SUPER_CYCLE_INDUSTRIES (AI hardware / semi equipment):
+      ΔG is structurally persistent → no clamp, persistence bonus.
+    * **normal** — everything else: default weights, no clamp.
+    """
+    if detect_cyclical(industry):
+        return "classic_cyclical"
+    if industry in SUPER_CYCLE_INDUSTRIES:
+        return "super_cycle"
+    return "normal"
+
+
+def _count_consecutive_positive_delta_g(fin_data: list) -> int:
+    """Count how many recent quarters have ΔG > 0 (consecutive, most-recent-first).
+
+    Used for the super-cycle persistence bonus: a structural growth stock
+    with ≥ N consecutive quarters of positive ΔG earns a bounded bonus.
+    """
+    # Build the YoY growth series (most-recent-first), same logic as prosperity.
+    sorted_data = sorted(fin_data, key=lambda d: d.report_period)
+    rev_growths = [
+        d.yoy_revenue_growth * 100
+        for d in sorted_data
+        if d.yoy_revenue_growth is not None
+    ]
+    rev_growths = list(reversed(rev_growths))  # most-recent-first
+    if len(rev_growths) < 2:
+        return 0
+
+    # Compute per-quarter ΔG (current - previous).
+    delta_gs = []
+    for i in range(len(rev_growths) - 1):
+        delta_gs.append(rev_growths[i] - rev_growths[i + 1])
+
+    # Count consecutive positive ΔG from the most recent.
+    count = 0
+    for dg in delta_gs:
+        if dg > 0:
+            count += 1
+        else:
+            break
+    return count
 
 
 def score_universe_at(
@@ -131,6 +203,11 @@ def score_universe_at(
 
     for ts_code, info in stock_infos.items():
         try:
+            # ── Classify stock into domain (classic_cyclical / super_cycle / normal) ──
+            domain = classify_stock(info.industry)
+            is_cyclical = domain == "classic_cyclical"
+            is_super_cycle = domain == "super_cycle"
+
             # ── Momentum (point-in-time via today=as_of) ──
             mom_signal = analyze_momentum(client, ts_code, today=as_of)
             momentum_score: float | None = None
@@ -145,17 +222,18 @@ def score_universe_at(
             pe_pct = 0.5
             pb_pct = 0.5
             if history:
-                is_cyc = detect_cyclical(info.industry)
-                valuation_score, pe_pct, pb_pct = calculate_valuation_score(history, is_cyc)
+                valuation_score, pe_pct, pb_pct = calculate_valuation_score(history, is_cyclical)
 
             # ── Prosperity + Distress (point-in-time via as_of on fetcher) ──
             # fetch_financial_data filters by ann_date <= as_of, so the list
             # only contains quarters that were publicly disclosed as of as_of.
+            # For classical cyclicals, is_cyclical=True triggers ΔG clamping
+            # inside calculate_prosperity_score.
             prosperity_score: float | None = None
             distress_score: float | None = None
             fin_data = fetch_financial_data(client, ts_code, as_of=as_of)
             if len(fin_data) >= cfg.min_quarters_for_financial:
-                prosp = calculate_prosperity_score(fin_data)
+                prosp = calculate_prosperity_score(fin_data, is_cyclical=is_cyclical)
                 prosperity_score = prosp.composite_score
 
                 # Distress needs the valuation percentiles + latest balance sheet.
@@ -190,8 +268,20 @@ def score_universe_at(
                     distress_score = distress.total_score
 
             composite = _blend(
-                momentum_score, valuation_score, prosperity_score, distress_score, cfg
+                momentum_score, valuation_score, prosperity_score, distress_score, cfg,
+                is_cyclical=is_cyclical,
             )
+
+            # ── Super-cycle persistence bonus ──
+            # Structural-growth stocks with ≥ N consecutive quarters of
+            # positive ΔG earn a bounded bonus.  This rewards genuine
+            # multi-quarter acceleration (AI demand ramp, semi capex cycle)
+            # that classical cyclicals cannot sustain.
+            if is_super_cycle and fin_data and len(fin_data) >= cfg.min_quarters_for_financial:
+                consecutive_pos = _count_consecutive_positive_delta_g(fin_data)
+                if consecutive_pos >= SUPER_CYCLE_MIN_POSITIVE_QUARTERS:
+                    composite += SUPER_CYCLE_PERSISTENCE_BONUS
+
             if all(
                 s is None
                 for s in (momentum_score, valuation_score, prosperity_score, distress_score)

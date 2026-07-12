@@ -33,8 +33,20 @@ from loguru import logger
 logger.remove()
 logger.add(sys.stderr, level="WARNING")
 
-from davis_analyzer.backtest_factors import FactorConfig, _blend, score_universe_at
-from davis_analyzer.constants import CYCLICAL_INDUSTRIES
+from davis_analyzer.backtest_factors import (
+    FactorConfig,
+    _blend,
+    _count_consecutive_positive_delta_g,
+    classify_stock,
+    score_universe_at,
+)
+from davis_analyzer.constants import (
+    CYCLICAL_FACTOR_WEIGHTS,
+    CYCLICAL_INDUSTRIES,
+    SUPER_CYCLE_INDUSTRIES,
+    SUPER_CYCLE_MIN_POSITIVE_QUARTERS,
+    SUPER_CYCLE_PERSISTENCE_BONUS,
+)
 from davis_analyzer.distress import calculate_distress_score
 from davis_analyzer.financial_fetcher import fetch_financial_data
 from davis_analyzer.momentum import analyze_momentum
@@ -44,7 +56,6 @@ from davis_analyzer.tushare_client import TushareClient
 from davis_analyzer.types import StockInfo
 from davis_analyzer.valuation import (
     calculate_valuation_score,
-    detect_cyclical,
     fetch_valuation_history,
 )
 
@@ -76,7 +87,7 @@ def main() -> None:
             history = fetch_valuation_history(client, s.ts_code, as_of=AS_OF)
             if not history:
                 continue
-            is_cyc = detect_cyclical(s.industry)
+            is_cyc = s.is_cyclical
             score, _, _ = calculate_valuation_score(history, is_cyc)
             if score > VALUATION_PREFILTER:
                 survivors.append(s.ts_code)
@@ -109,6 +120,11 @@ def main() -> None:
     processed = 0
     for code, info in survivor_infos.items():
         try:
+            # ── Classify stock into domain ──
+            domain = classify_stock(info.industry)
+            is_cyclical = domain == "classic_cyclical"
+            is_super_cycle = domain == "super_cycle"
+
             # Momentum
             mom = analyze_momentum(client, code, today=AS_OF)
             momentum_score = None
@@ -119,14 +135,14 @@ def main() -> None:
             history = fetch_valuation_history(client, code, as_of=AS_OF)
             valuation_score = pe_pct = pb_pct = None
             if history:
-                is_cyc = detect_cyclical(info.industry)
-                valuation_score, pe_pct, pb_pct = calculate_valuation_score(history, is_cyc)
+                valuation_score, pe_pct, pb_pct = calculate_valuation_score(history, is_cyclical)
 
             # Prosperity + Distress
+            # For classical cyclicals, is_cyclical=True triggers ΔG clamping.
             prosperity_score = distress_score = delta_g = None
             fin = fetch_financial_data(client, code, as_of=AS_OF)
             if len(fin) >= 2:
-                ps = calculate_prosperity_score(fin)
+                ps = calculate_prosperity_score(fin, is_cyclical=is_cyclical)
                 prosperity_score = ps.composite_score
                 delta_g = ps.delta_g
                 if valuation_score is not None:
@@ -146,7 +162,19 @@ def main() -> None:
                     )
                     distress_score = ds.total_score
 
-            composite = _blend(momentum_score, valuation_score, prosperity_score, distress_score, cfg)
+            composite = _blend(
+                momentum_score, valuation_score, prosperity_score, distress_score, cfg,
+                is_cyclical=is_cyclical,
+            )
+
+            # ── Super-cycle persistence bonus ──
+            persistence_bonus = 0.0
+            if is_super_cycle and fin and len(fin) >= 2:
+                consecutive_pos = _count_consecutive_positive_delta_g(fin)
+                if consecutive_pos >= SUPER_CYCLE_MIN_POSITIVE_QUARTERS:
+                    persistence_bonus = SUPER_CYCLE_PERSISTENCE_BONUS
+                    composite += persistence_bonus
+
             if all(s is None for s in (momentum_score, valuation_score, prosperity_score, distress_score)):
                 continue
 
@@ -154,12 +182,14 @@ def main() -> None:
                 "ts_code": code,
                 "name": info.name,
                 "industry": info.industry,
+                "domain": domain,
                 "composite": round(composite, 2),
                 "momentum": round(momentum_score, 2) if momentum_score else None,
                 "valuation": round(valuation_score, 2) if valuation_score else None,
                 "prosperity": round(prosperity_score, 2) if prosperity_score else None,
                 "distress": round(distress_score, 2) if distress_score else None,
                 "delta_g": round(delta_g, 2) if delta_g else None,
+                "persistence_bonus": persistence_bonus,
             })
         except Exception:
             pass
@@ -183,14 +213,14 @@ def main() -> None:
     top20 = results[:TOP_N]
 
     print(f"\n[4/4] Top-{TOP_N} selected:")
-    print(f"{'Rank':<5}{'Code':<12}{'Name':<10}{'Comp':>6}{'Mom':>6}{'Val':>6}{'Prosp':>6}{'Dist':>6}{'ΔG':>7}{'Industry':<12}")
-    print("-" * 85)
+    print(f"{'Rank':<5}{'Code':<12}{'Name':<10}{'Comp':>6}{'Mom':>6}{'Val':>6}{'Prosp':>6}{'Dist':>6}{'ΔG':>7}{'Domain':<18}{'Industry':<10}")
+    print("-" * 100)
     for i, r in enumerate(top20, 1):
         print(
             f"{i:<5}{r['ts_code']:<12}{r['name']:<10}{r['composite']:>6.1f}"
             f"{(r['momentum'] or 0):>6.0f}{(r['valuation'] or 0):>6.0f}"
             f"{(r['prosperity'] or 0):>6.0f}{(r['distress'] or 0):>6.0f}"
-            f"{(r['delta_g'] or 0):>+7.1f}{r['industry']:<12}"
+            f"{(r['delta_g'] or 0):>+7.1f}{r.get('domain',''):>18}{r['industry']:<10}"
         )
 
     # ── Save JSON ──

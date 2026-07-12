@@ -38,6 +38,41 @@ CYCLICAL_INDUSTRIES: list[str] = [
     "造纸",
 ]
 
+# ── Super-cycle industries (结构性成长/超级周期) ──
+# These sectors ride multi-year structural demand waves (AI hardware,
+# semiconductor capex, cloud infrastructure) rather than commodity price
+# mean-reversion.  Their ΔG should be *preserved* (not clamped) because
+# persistent acceleration signals genuine structural growth, not cyclical noise.
+SUPER_CYCLE_INDUSTRIES: list[str] = [
+    "通信设备",    # 光模块（中际旭创/新易盛/天孚通信/长飞光纤）
+    "元器件",      # PCB/覆铜板（沪电股份/生益科技/胜宏科技）
+    "半导体",      # 设计/制造/存储（兆易创新/北京君正/北方华创）
+    "IT设备",      # AI服务器/算力硬件
+    "软件服务",    # EDA/半导体软件
+    "专用机械",    # 半导体设备（北方华创/拓荆/微导）
+]
+
+# ── Classic-cyclical factor-blend weights ──
+# Classical cyclicals (steel/coal/chemicals) have mean-reverting ΔG: a +50pp
+# spike usually reverses within 1-2 quarters.  We clamp ΔG to suppress this
+# amplitude and tilt the blend toward valuation (PB is the reliable anchor)
+# away from prosperity (ΔG is unreliable).
+CYCLICAL_DELTA_G_CLAMP: float = 25.0  # cap |ΔG| at ±25 percentage points
+
+CYCLICAL_FACTOR_WEIGHTS: dict[str, float] = {
+    "momentum": 0.20,
+    "valuation": 0.40,
+    "prosperity": 0.15,
+    "distress": 0.25,
+}
+
+# ── Super-cycle persistence bonus ──
+# When a super-cycle stock shows ΔG > 0 for >= N consecutive quarters, the
+# trend is structural (not a one-off price spike).  We add a bounded bonus to
+# reward this persistence, separate from the raw ΔG value.
+SUPER_CYCLE_PERSISTENCE_BONUS: float = 10.0  # max bonus points
+SUPER_CYCLE_MIN_POSITIVE_QUARTERS: int = 4   # consecutive ΔG>0 quarters needed
+
 # ── Financial thresholds ──
 EPS_NEAR_ZERO_THRESHOLD: float = 0.01
 

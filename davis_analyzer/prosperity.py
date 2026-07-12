@@ -5,6 +5,7 @@ from __future__ import annotations
 import math
 
 from davis_analyzer.constants import (
+    CYCLICAL_DELTA_G_CLAMP,
     DURATION_BASE_PER_QUARTER,
     DURATION_BONUS_GROWTH_FACTOR,
     DURATION_BONUS_MAX,
@@ -174,10 +175,18 @@ def dupont_decomposition(
 
 def calculate_prosperity_score(
     financial_data_list: list[FinancialData],
+    is_cyclical: bool = False,
 ) -> ProsperityScore:
     """Build a ProsperityScore from at least 4 quarters of FinancialData.
 
     Uses the four sub-scores and the exact weights from PROSPERITY_WEIGHTS.
+
+    Args:
+        is_cyclical: When True (classical cyclical stock), the computed ΔG is
+            clamped to ±``CYCLICAL_DELTA_G_CLAMP`` percentage points.  This
+            suppresses the mean-reverting amplitude of commodity-driven ΔG
+            swings (e.g. a lithium price spike producing ΔG=+70pp that will
+            reverse).  Super-cycle and normal stocks leave ΔG unclamped.
     """
     if not financial_data_list:
         raise ValueError("Need at least one FinancialData record")
@@ -213,6 +222,14 @@ def calculate_prosperity_score(
         delta_g = rev_hist[0]
     else:
         delta_g = 0.0
+
+    # Classical-cyclical ΔG clamp: commodity-driven ΔG mean-reverts violently
+    # (e.g. +70pp one quarter, -50pp the next).  Clamping to ±25pp suppresses
+    # this amplitude so the distress / overlay engines don't overreact.
+    # Super-cycle stocks (AI hardware, semi equipment) are NOT clamped — their
+    # persistent acceleration is structural, not cyclical noise.
+    if is_cyclical and CYCLICAL_DELTA_G_CLAMP > 0:
+        delta_g = max(-CYCLICAL_DELTA_G_CLAMP, min(CYCLICAL_DELTA_G_CLAMP, delta_g))
 
     w = PROSPERITY_WEIGHTS
 
