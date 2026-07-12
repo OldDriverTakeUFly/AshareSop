@@ -343,7 +343,10 @@ def detect_super_cycle_early_signal(
         trigger = "none"
 
     # ── Pattern C whitelist boost: upgrade none→emerging only ──
-    if is_whitelist and level == "none" and latest_g is not None and latest_g > 0:
+    # Tightened in V2.1: whitelist industries need at least G>15% to get the
+    # boost.  This was G>0 in V2, which let in 363 stocks with negligible
+    # growth — just because they happened to be in a super-cycle industry.
+    if is_whitelist and level == "none" and latest_g is not None and latest_g >= 15.0:
         level = "emerging"
         trigger = "whitelist_boost"
 
