@@ -73,6 +73,16 @@ CYCLICAL_FACTOR_WEIGHTS: dict[str, float] = {
 SUPER_CYCLE_PERSISTENCE_BONUS: float = 10.0  # max bonus points
 SUPER_CYCLE_MIN_POSITIVE_QUARTERS: int = 4   # consecutive ΔG>0 quarters needed
 
+# ── Super-cycle early-detection thresholds (V2 tightened) ──
+# Pattern A: high G requires momentum confirmation to avoid false positives
+# (financial data looks great but stock goes nowhere = unsustainable/fraud).
+SUPER_CYCLE_HIGH_G_THRESHOLD: float = 50.0       # G > this = high growth
+SUPER_CYCLE_HIGH_G_MOMENTUM: float = 60.0        # ...requires momentum > this
+SUPER_CYCLE_MID_G_LOW: float = 20.0              # mid-G band lower bound
+SUPER_CYCLE_MID_G_DG_REQUIRED: float = 15.0      # mid-G requires ΔG > this
+SUPER_CYCLE_NOISE_G_CAP: float = 500.0           # G > this = low-base noise, excluded
+SUPER_CYCLE_SUSPECT_G_CAP: float = 200.0         # G in [200,500] = suspect, capped at emerging
+
 # ── Financial thresholds ──
 EPS_NEAR_ZERO_THRESHOLD: float = 0.01
 

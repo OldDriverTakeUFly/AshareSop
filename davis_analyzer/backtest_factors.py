@@ -186,14 +186,18 @@ def _count_consecutive_positive_delta_g(fin_data: list) -> int:
 # ─────────────────── Super-cycle early detection ───────────────────
 #
 # The core question: can we identify a structural super-cycle *before*
-# the main price rally?  The answer lies in ΔG trend persistence —
-# a stock whose revenue-growth *acceleration* (ΔG) stays positive for
-# multiple consecutive quarters is experiencing a structural demand
-# shift, not a one-off price spike.
+# the main price rally?
 #
-# Three signal levels:
-#   - **confirmed**: ΔG>0 for >=3 consecutive quarters AND latest G>15%
-#   - **emerging**:  ΔG>0 for >=2 consecutive quarters AND latest G>10%
+# V2 (tightened): fixes 6 issues from the V1 audit:
+#   1. Pattern A requires momentum confirmation (G>50% AND mom>60)
+#   2. Pattern C (whitelist) is a tiebreaker, never a standalone trigger
+#   3. Negative filters: G>500% (low-base noise) is excluded
+#   4. G>200% is capped at "emerging" (suspect low-base until confirmed)
+#   5. hit-rate target: ~10-15% of universe (was 42%)
+#
+# Signal levels:
+#   - **confirmed**: G>50%+momentum OR persistent ΔG acceleration
+#   - **emerging**:  mid-G + high-ΔG, OR high-G without momentum
 #   - **none**:      everything else
 
 
@@ -206,48 +210,60 @@ class SuperCycleSignal:
     latest_g: float | None  # latest YoY revenue growth (%)
     latest_dg: float | None  # latest ΔG (pp)
     dg_trend: list[float]  # ΔG per quarter, most-recent-first
+    trigger: str  # which pattern triggered: "high_g" / "mid_g_accel" / "persistent_dg" / "whitelist_boost" / "none"
 
 
 def detect_super_cycle_early_signal(
     fin_data: list,
     industry: str = "",
+    momentum_score: float | None = None,
     min_consecutive_confirmed: int = 3,
-    min_consecutive_emerging: int = 2,
     min_g_confirmed: float = 15.0,
-    min_g_emerging: float = 10.0,
+    high_g_threshold: float = 50.0,
+    high_g_momentum_required: float = 60.0,
+    mid_g_low: float = 20.0,
+    mid_g_high: float = 50.0,
+    mid_g_dg_required: float = 15.0,
+    noise_g_cap: float = 500.0,
+    suspect_g_cap: float = 200.0,
 ) -> SuperCycleSignal:
     """Detect structural super-cycle acceleration before the price rally.
 
-    Backtested against 10 stocks that rallied >100% in H1 2026, three
-    pre-rally patterns emerged (each catches ~30-40% of winners):
+    V2 (tightened after audit):
 
-    * **Pattern A — high G**: Latest revenue growth > 50%, even if ΔG is
-      negative.  50%+ growth itself is super-cycle evidence; the market
-      hasn't priced it in yet.
+    * **Pattern A — high G + momentum**: G > 50% AND momentum > 60.
+      High growth alone isn't enough — the market must be confirming it
+      via price action.  This cuts false positives where financial data
+      looks great but the stock goes nowhere (fraud, unsustainable, etc).
     * **Pattern B — mid G + high ΔG**: G in [20%, 50%] with ΔG > 15pp.
       The cycle just started accelerating from a moderate base.
-    * **Pattern C — industry whitelist**: Industry in
-      ``SUPER_CYCLE_INDUSTRIES`` catches stocks where financial data
-      lags the structural shift (e.g. new IPO, capacity ramp).
+    * **Pattern D — persistent ΔG**: ΔG > 0 for >= 3 consecutive quarters
+      with G >= 15%.  Genuine structural ramp, not a one-off spike.
+    * **Pattern C — whitelist boost** (NOT standalone): adds a one-level
+      upgrade (none→emerging, emerging stays emerging) but never triggers
+      a signal on its own.
 
-    The original "ΔG consecutive positive" logic is kept as a fourth,
-    weaker signal — it caught only 10% of winners by itself.
+    Negative filters:
+    * G > 500%: excluded entirely (micro-cap low-base effect)
+    * G > 200%: capped at "emerging" (suspect until proven otherwise)
 
     Args:
         fin_data: FinancialData list (point-in-time filtered by caller).
-        industry: Industry string for whitelist check (Pattern C).
+        industry: Industry string for whitelist boost (Pattern C).
+        momentum_score: Current momentum factor score (0-100).  Required
+            for Pattern A confirmation.  None = no momentum data.
 
     Returns:
-        SuperCycleSignal with level, persistence count, and ΔG trend.
+        SuperCycleSignal with level, trigger pattern, and ΔG trend.
     """
-    # ── Pattern C: industry whitelist (works even with no financial data) ──
     is_whitelist = industry in SUPER_CYCLE_INDUSTRIES
+    has_momentum = momentum_score is not None and momentum_score > 0
 
     if not fin_data or len(fin_data) < 2:
         return SuperCycleSignal(
-            level="confirmed" if is_whitelist else "none",
-            consecutive_positive_dg=0,
+            level="none", consecutive_positive_dg=0,
             latest_g=None, latest_dg=None, dg_trend=[],
+            trigger="none",
         )
 
     # Build YoY growth series (most-recent-first).
@@ -261,10 +277,9 @@ def detect_super_cycle_early_signal(
 
     if len(rev_growths) < 2:
         return SuperCycleSignal(
-            level="confirmed" if is_whitelist else "none",
-            consecutive_positive_dg=0,
+            level="none", consecutive_positive_dg=0,
             latest_g=rev_growths[0] if rev_growths else None,
-            latest_dg=None, dg_trend=[],
+            latest_dg=None, dg_trend=[], trigger="none",
         )
 
     # Per-quarter ΔG (current - previous), most-recent-first.
@@ -281,22 +296,56 @@ def detect_super_cycle_early_signal(
     latest_g = rev_growths[0]
     latest_dg = dg_trend[0] if dg_trend else None
 
-    # ── Classify signal level (any pattern triggers) ──
-    pattern_a = latest_g is not None and latest_g > 50.0          # high G
-    pattern_b = (latest_g is not None and 20.0 <= latest_g <= 50.0
-                 and latest_dg is not None and latest_dg > 15.0)   # mid G + high ΔG
-    pattern_d = (consecutive >= min_consecutive_confirmed          # persistent ΔG
-                 and latest_g is not None and latest_g >= min_g_confirmed)
+    # ── Negative filter: extreme low-base noise ──
+    if latest_g > noise_g_cap:
+        return SuperCycleSignal(
+            level="none", consecutive_positive_dg=consecutive,
+            latest_g=round(latest_g, 1), latest_dg=round(latest_dg, 1) if latest_dg else None,
+            dg_trend=[round(d, 1) for d in dg_trend], trigger="none",
+        )
 
+    # ── Determine base level from financial patterns ──
+    suspect_high_g = latest_g > suspect_g_cap  # 200-500%: suspect low-base
+
+    # Pattern A: high G + momentum confirmation
+    pattern_a = (latest_g > high_g_threshold and not suspect_high_g
+                 and has_momentum and momentum_score >= high_g_momentum_required)
+
+    # Pattern A-suspect: high G but no momentum (downgrade to emerging)
+    pattern_a_suspect = (latest_g > high_g_threshold and not suspect_high_g
+                         and (not has_momentum or momentum_score < high_g_momentum_required))
+
+    # Pattern B: mid G + high ΔG
+    pattern_b = (mid_g_low <= latest_g <= mid_g_high
+                 and latest_dg is not None and latest_dg > mid_g_dg_required)
+
+    # Pattern D: persistent ΔG
+    pattern_d = (consecutive >= min_consecutive_confirmed
+                 and latest_g >= min_g_confirmed)
+
+    # Pattern C (suspect): G in 200-500% range
+    pattern_c_suspect = suspect_high_g
+
+    # ── Classify ──
     if pattern_a or pattern_d:
         level = "confirmed"
-    elif pattern_b or is_whitelist:
+        trigger = "high_g_momentum" if pattern_a else "persistent_dg"
+    elif pattern_b or pattern_a_suspect or pattern_c_suspect:
         level = "emerging"
-    elif (consecutive >= min_consecutive_emerging
-          and latest_g is not None and latest_g >= min_g_emerging):
-        level = "emerging"
+        if pattern_b:
+            trigger = "mid_g_accel"
+        elif pattern_a_suspect:
+            trigger = "high_g_no_momentum"
+        else:
+            trigger = "suspect_high_g"
     else:
         level = "none"
+        trigger = "none"
+
+    # ── Pattern C whitelist boost: upgrade none→emerging only ──
+    if is_whitelist and level == "none" and latest_g is not None and latest_g > 0:
+        level = "emerging"
+        trigger = "whitelist_boost"
 
     return SuperCycleSignal(
         level=level,
@@ -304,6 +353,7 @@ def detect_super_cycle_early_signal(
         latest_g=round(latest_g, 1) if latest_g is not None else None,
         latest_dg=round(latest_dg, 1) if latest_dg is not None else None,
         dg_trend=[round(d, 1) for d in dg_trend],
+        trigger=trigger,
     )
 
 
