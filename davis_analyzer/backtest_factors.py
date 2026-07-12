@@ -203,14 +203,24 @@ def _count_consecutive_positive_delta_g(fin_data: list) -> int:
 
 @dataclass
 class SuperCycleSignal:
-    """Result of super-cycle early-signal detection for one stock."""
+    """Result of super-cycle early-signal detection for one stock.
 
-    level: str  # "confirmed" | "emerging" | "none"
+    Levels (V3):
+        - ``confirmed``: high G + early momentum, or persistent ΔG acceleration.
+        - ``emerging``: mid-G + high ΔG, or whitelist + G>15%.
+        - ``potential``: high G but price suppressed (momentum <30).
+          These are *compressed springs*: real growth the market hasn't
+          priced in yet.  When the suppression lifts, the rally can be
+          explosive.  Distinct from "none" — these deserve a watchlist.
+        - ``none``: no signal.
+    """
+
+    level: str  # "confirmed" | "emerging" | "potential" | "none"
     consecutive_positive_dg: int  # quarters of ΔG > 0
     latest_g: float | None  # latest YoY revenue growth (%)
     latest_dg: float | None  # latest ΔG (pp)
     dg_trend: list[float]  # ΔG per quarter, most-recent-first
-    trigger: str  # which pattern triggered: "high_g" / "mid_g_accel" / "persistent_dg" / "whitelist_boost" / "none"
+    trigger: str  # which pattern triggered
 
 
 def detect_super_cycle_early_signal(
@@ -220,7 +230,8 @@ def detect_super_cycle_early_signal(
     min_consecutive_confirmed: int = 3,
     min_g_confirmed: float = 15.0,
     high_g_threshold: float = 50.0,
-    high_g_momentum_required: float = 60.0,
+    high_g_momentum_confirmed: float = 30.0,
+    high_g_momentum_potential: float = 30.0,
     mid_g_low: float = 20.0,
     mid_g_high: float = 50.0,
     mid_g_dg_required: float = 15.0,
@@ -229,32 +240,25 @@ def detect_super_cycle_early_signal(
 ) -> SuperCycleSignal:
     """Detect structural super-cycle acceleration before the price rally.
 
-    V2 (tightened after audit):
+    V3 changes (after V2.1 precision validation):
 
-    * **Pattern A — high G + momentum**: G > 50% AND momentum > 60.
-      High growth alone isn't enough — the market must be confirming it
-      via price action.  This cuts false positives where financial data
-      looks great but the stock goes nowhere (fraud, unsustainable, etc).
-    * **Pattern B — mid G + high ΔG**: G in [20%, 50%] with ΔG > 15pp.
-      The cycle just started accelerating from a moderate base.
-    * **Pattern D — persistent ΔG**: ΔG > 0 for >= 3 consecutive quarters
-      with G >= 15%.  Genuine structural ramp, not a one-off spike.
-    * **Pattern C — whitelist boost** (NOT standalone): adds a one-level
-      upgrade (none→emerging, emerging stays emerging) but never triggers
-      a signal on its own.
+    * **Lowered momentum threshold for Pattern A** from 60→30: V2.1 showed
+      that momentum>60 catches stocks *after* they've already rallied.
+      Lowering to 30 captures the earliest stage of price confirmation —
+      the stock has just started moving, but hasn't run away yet.
 
-    Negative filters:
-    * G > 500%: excluded entirely (micro-cap low-base effect)
-    * G > 200%: capped at "emerging" (suspect until proven otherwise)
+    * **New "potential" level for suppressed high-G stocks**: G>50% with
+      momentum <30 used to be "emerging" (V2) but had the worst precision
+      (12.3%, same as random).  Rather than discarding them, V3 reclassifies
+      them as "potential" — a distinct watchlist category.  The hypothesis:
+      these are compressed springs (real growth, price suppressed by some
+      factor) that may explode when the suppression lifts.
 
-    Args:
-        fin_data: FinancialData list (point-in-time filtered by caller).
-        industry: Industry string for whitelist boost (Pattern C).
-        momentum_score: Current momentum factor score (0-100).  Required
-            for Pattern A confirmation.  None = no momentum data.
-
-    Returns:
-        SuperCycleSignal with level, trigger pattern, and ΔG trend.
+    Signal levels (V3):
+      - ``confirmed``: G>50% + momentum>=30, OR persistent ΔG>=3 quarters
+      - ``emerging``: mid-G + high-ΔG, OR whitelist + G>=15%, OR suspect G
+      - ``potential``: G>50% but momentum<30 (suppressed — watchlist)
+      - ``none``: no signal
     """
     is_whitelist = industry in SUPER_CYCLE_INDUSTRIES
     has_momentum = momentum_score is not None and momentum_score > 0
@@ -266,7 +270,6 @@ def detect_super_cycle_early_signal(
             trigger="none",
         )
 
-    # Build YoY growth series (most-recent-first).
     sorted_data = sorted(fin_data, key=lambda d: d.report_period)
     rev_growths = [
         d.yoy_revenue_growth * 100
@@ -282,10 +285,8 @@ def detect_super_cycle_early_signal(
             latest_dg=None, dg_trend=[], trigger="none",
         )
 
-    # Per-quarter ΔG (current - previous), most-recent-first.
     dg_trend = [rev_growths[i] - rev_growths[i + 1] for i in range(len(rev_growths) - 1)]
 
-    # Count consecutive positive ΔG from most recent.
     consecutive = 0
     for dg in dg_trend:
         if dg > 0:
@@ -304,16 +305,17 @@ def detect_super_cycle_early_signal(
             dg_trend=[round(d, 1) for d in dg_trend], trigger="none",
         )
 
-    # ── Determine base level from financial patterns ──
-    suspect_high_g = latest_g > suspect_g_cap  # 200-500%: suspect low-base
+    suspect_high_g = latest_g > suspect_g_cap
 
-    # Pattern A: high G + momentum confirmation
+    # ── Pattern A: high G + early momentum confirmation ──
+    # V3: threshold lowered from 60→30 to catch earlier signals
     pattern_a = (latest_g > high_g_threshold and not suspect_high_g
-                 and has_momentum and momentum_score >= high_g_momentum_required)
+                 and has_momentum and momentum_score >= high_g_momentum_confirmed)
 
-    # Pattern A-suspect: high G but no momentum (downgrade to emerging)
-    pattern_a_suspect = (latest_g > high_g_threshold and not suspect_high_g
-                         and (not has_momentum or momentum_score < high_g_momentum_required))
+    # ── Pattern A-suppressed: high G but no/low momentum → "potential" ──
+    # V3: reclassified from "emerging" to the new "potential" level
+    pattern_a_suppressed = (latest_g > high_g_threshold and not suspect_high_g
+                            and (not has_momentum or momentum_score < high_g_momentum_potential))
 
     # Pattern B: mid G + high ΔG
     pattern_b = (mid_g_low <= latest_g <= mid_g_high
@@ -329,23 +331,18 @@ def detect_super_cycle_early_signal(
     # ── Classify ──
     if pattern_a or pattern_d:
         level = "confirmed"
-        trigger = "high_g_momentum" if pattern_a else "persistent_dg"
-    elif pattern_b or pattern_a_suspect or pattern_c_suspect:
+        trigger = "high_g_early_momentum" if pattern_a else "persistent_dg"
+    elif pattern_a_suppressed:
+        level = "potential"
+        trigger = "high_g_suppressed"
+    elif pattern_b or pattern_c_suspect:
         level = "emerging"
-        if pattern_b:
-            trigger = "mid_g_accel"
-        elif pattern_a_suspect:
-            trigger = "high_g_no_momentum"
-        else:
-            trigger = "suspect_high_g"
+        trigger = "mid_g_accel" if pattern_b else "suspect_high_g"
     else:
         level = "none"
         trigger = "none"
 
     # ── Pattern C whitelist boost: upgrade none→emerging only ──
-    # Tightened in V2.1: whitelist industries need at least G>15% to get the
-    # boost.  This was G>0 in V2, which let in 363 stocks with negligible
-    # growth — just because they happened to be in a super-cycle industry.
     if is_whitelist and level == "none" and latest_g is not None and latest_g >= 15.0:
         level = "emerging"
         trigger = "whitelist_boost"
