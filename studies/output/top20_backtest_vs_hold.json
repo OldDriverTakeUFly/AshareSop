@@ -1,0 +1,429 @@
+{
+  "as_of": "2026-07-10",
+  "results": [
+    {
+      "rank": 76.54,
+      "ts_code": "688700.SH",
+      "name": "东威科技",
+      "industry": "专用机械",
+      "domain": "super_cycle",
+      "strategy_return": 40.56,
+      "buy_hold_return": 103.43,
+      "excess_return": -62.87,
+      "sharpe": 1.373,
+      "max_drawdown": -28.61,
+      "num_trades": 1,
+      "trades": [],
+      "last_open_trade": {
+        "buy_date": "2026-03-18",
+        "buy_price": 51.5,
+        "shares": 19400
+      },
+      "final_equity": 1405598.225
+    },
+    {
+      "rank": 75.39,
+      "ts_code": "300308.SZ",
+      "name": "中际旭创",
+      "industry": "通信设备",
+      "domain": "super_cycle",
+      "strategy_return": 78.05,
+      "buy_hold_return": 76.14,
+      "excess_return": 1.91,
+      "sharpe": 2.261,
+      "max_drawdown": -20.58,
+      "num_trades": 1,
+      "trades": [],
+      "last_open_trade": {
+        "buy_date": "2026-01-06",
+        "buy_price": 606.0,
+        "shares": 1600
+      },
+      "final_equity": 1780525.6
+    },
+    {
+      "rank": 73.4,
+      "ts_code": "688127.SH",
+      "name": "蓝特光学",
+      "industry": "元器件",
+      "domain": "super_cycle",
+      "strategy_return": 103.39,
+      "buy_hold_return": 103.13,
+      "excess_return": 0.26,
+      "sharpe": 2.474,
+      "max_drawdown": -25.08,
+      "num_trades": 1,
+      "trades": [],
+      "last_open_trade": {
+        "buy_date": "2026-01-06",
+        "buy_price": 38.86,
+        "shares": 25700
+      },
+      "final_equity": 2033918.3244999996
+    },
+    {
+      "rank": 73.13,
+      "ts_code": "002645.SZ",
+      "name": "华宏科技",
+      "industry": "专用机械",
+      "domain": "super_cycle",
+      "strategy_return": -25.1,
+      "buy_hold_return": 50.75,
+      "excess_return": -75.85,
+      "sharpe": -0.908,
+      "max_drawdown": -38.54,
+      "num_trades": 1,
+      "trades": [],
+      "last_open_trade": {
+        "buy_date": "2026-05-12",
+        "buy_price": 29.6,
+        "shares": 33700
+      },
+      "final_equity": 749022.62
+    },
+    {
+      "rank": 72.87,
+      "ts_code": "603629.SH",
+      "name": "利通电子",
+      "industry": "元器件",
+      "domain": "super_cycle",
+      "strategy_return": 321.01,
+      "buy_hold_return": 337.52,
+      "excess_return": -16.51,
+      "sharpe": 3.285,
+      "max_drawdown": -53.86,
+      "num_trades": 1,
+      "trades": [],
+      "last_open_trade": {
+        "buy_date": "2026-01-06",
+        "buy_price": 27.67,
+        "shares": 36100
+      },
+      "final_equity": 4210123.2782499995
+    },
+    {
+      "rank": 72.6,
+      "ts_code": "001389.SZ",
+      "name": "广合科技",
+      "industry": "元器件",
+      "domain": "super_cycle",
+      "strategy_return": 112.17,
+      "buy_hold_return": 114.18,
+      "excess_return": -2.01,
+      "sharpe": 2.45,
+      "max_drawdown": -26.12,
+      "num_trades": 1,
+      "trades": [],
+      "last_open_trade": {
+        "buy_date": "2026-01-06",
+        "buy_price": 82.54,
+        "shares": 12100
+      },
+      "final_equity": 2121662.3164999997
+    },
+    {
+      "rank": 72.51,
+      "ts_code": "301666.SZ",
+      "name": "大普微",
+      "industry": "IT设备",
+      "domain": "super_cycle",
+      "strategy_return": 88.28,
+      "buy_hold_return": 171.34,
+      "excess_return": -83.06,
+      "sharpe": 3.607,
+      "max_drawdown": -25.99,
+      "num_trades": 3,
+      "trades": [
+        {
+          "buy_date": "2026-05-06",
+          "sell_date": "2026-06-01",
+          "buy_price": 351.11,
+          "sell_price": 771.0,
+          "return_pct": 119.59
+        }
+      ],
+      "last_open_trade": {
+        "buy_date": "2026-06-30",
+        "buy_price": 650.0,
+        "shares": 3300
+      },
+      "final_equity": 1882801.473
+    },
+    {
+      "rank": 71.5,
+      "ts_code": "001259.SZ",
+      "name": "利仁科技",
+      "industry": "家用电器",
+      "domain": "normal",
+      "strategy_return": 35.42,
+      "buy_hold_return": 99.3,
+      "excess_return": -63.88,
+      "sharpe": 1.521,
+      "max_drawdown": -30.05,
+      "num_trades": 3,
+      "trades": [
+        {
+          "buy_date": "2026-05-12",
+          "sell_date": "2026-05-26",
+          "buy_price": 45.45,
+          "sell_price": 71.88,
+          "return_pct": 58.15
+        }
+      ],
+      "last_open_trade": {
+        "buy_date": "2026-06-09",
+        "buy_price": 69.75,
+        "shares": 22600
+      },
+      "final_equity": 1354195.2375
+    },
+    {
+      "rank": 70.75,
+      "ts_code": "688668.SH",
+      "name": "鼎通科技",
+      "industry": "通信设备",
+      "domain": "super_cycle",
+      "strategy_return": 173.46,
+      "buy_hold_return": 166.07,
+      "excess_return": 7.39,
+      "sharpe": 2.784,
+      "max_drawdown": -28.23,
+      "num_trades": 1,
+      "trades": [],
+      "last_open_trade": {
+        "buy_date": "2026-01-06",
+        "buy_price": 121.04,
+        "shares": 8200
+      },
+      "final_equity": 2734625.868
+    },
+    {
+      "rank": 69.92,
+      "ts_code": "002245.SZ",
+      "name": "蔚蓝锂芯",
+      "industry": "电气设备",
+      "domain": "normal",
+      "strategy_return": 2.38,
+      "buy_hold_return": 8.01,
+      "excess_return": -5.63,
+      "sharpe": 0.463,
+      "max_drawdown": -33.91,
+      "num_trades": 1,
+      "trades": [],
+      "last_open_trade": {
+        "buy_date": "2026-01-27",
+        "buy_price": 18.69,
+        "shares": 53500
+      },
+      "final_equity": 1023825.0212499999
+    },
+    {
+      "rank": 68.9,
+      "ts_code": "002463.SZ",
+      "name": "沪电股份",
+      "industry": "元器件",
+      "domain": "super_cycle",
+      "strategy_return": 72.38,
+      "buy_hold_return": 75.39,
+      "excess_return": -3.01,
+      "sharpe": 2.007,
+      "max_drawdown": -17.27,
+      "num_trades": 1,
+      "trades": [],
+      "last_open_trade": {
+        "buy_date": "2026-01-06",
+        "buy_price": 75.0,
+        "shares": 13300
+      },
+      "final_equity": 1723802.625
+    },
+    {
+      "rank": 68.7,
+      "ts_code": "688069.SH",
+      "name": "德林海",
+      "industry": "环境保护",
+      "domain": "normal",
+      "strategy_return": -31.29,
+      "buy_hold_return": 58.49,
+      "excess_return": -89.78,
+      "sharpe": -1.184,
+      "max_drawdown": -44.52,
+      "num_trades": 3,
+      "trades": [
+        {
+          "buy_date": "2026-05-12",
+          "sell_date": "2026-05-26",
+          "buy_price": 54.67,
+          "sell_price": 59.0,
+          "return_pct": 7.92
+        }
+      ],
+      "last_open_trade": {
+        "buy_date": "2026-06-09",
+        "buy_price": 55.19,
+        "shares": 19500
+      },
+      "final_equity": 687140.95025
+    },
+    {
+      "rank": 68.57,
+      "ts_code": "300548.SZ",
+      "name": "长芯博创",
+      "industry": "通信设备",
+      "domain": "super_cycle",
+      "strategy_return": 60.95,
+      "buy_hold_return": 56.18,
+      "excess_return": 4.77,
+      "sharpe": 1.554,
+      "max_drawdown": -29.09,
+      "num_trades": 1,
+      "trades": [],
+      "last_open_trade": {
+        "buy_date": "2026-01-06",
+        "buy_price": 137.1,
+        "shares": 7200
+      },
+      "final_equity": 1609521.22
+    },
+    {
+      "rank": 68.54,
+      "ts_code": "688507.SH",
+      "name": "索辰科技",
+      "industry": "软件服务",
+      "domain": "super_cycle",
+      "strategy_return": 46.67,
+      "buy_hold_return": 107.61,
+      "excess_return": -60.94,
+      "sharpe": 1.403,
+      "max_drawdown": -30.31,
+      "num_trades": 1,
+      "trades": [],
+      "last_open_trade": {
+        "buy_date": "2026-05-19",
+        "buy_price": 141.3,
+        "shares": 7000
+      },
+      "final_equity": 1466652.7249999999
+    },
+    {
+      "rank": 68.12,
+      "ts_code": "002975.SZ",
+      "name": "博杰股份",
+      "industry": "专用机械",
+      "domain": "super_cycle",
+      "strategy_return": 46.73,
+      "buy_hold_return": 55.97,
+      "excess_return": -9.24,
+      "sharpe": 1.41,
+      "max_drawdown": -29.28,
+      "num_trades": 1,
+      "trades": [],
+      "last_open_trade": {
+        "buy_date": "2026-01-06",
+        "buy_price": 82.16,
+        "shares": 12100
+      },
+      "final_equity": 1467295.466
+    },
+    {
+      "rank": 67.82,
+      "ts_code": "688183.SH",
+      "name": "生益电子",
+      "industry": "元器件",
+      "domain": "super_cycle",
+      "strategy_return": 25.44,
+      "buy_hold_return": 27.21,
+      "excess_return": -1.77,
+      "sharpe": 0.986,
+      "max_drawdown": -22.46,
+      "num_trades": 1,
+      "trades": [],
+      "last_open_trade": {
+        "buy_date": "2026-01-06",
+        "buy_price": 98.03,
+        "shares": 10200
+      },
+      "final_equity": 1254444.0235000001
+    },
+    {
+      "rank": 67.43,
+      "ts_code": "688677.SH",
+      "name": "海泰新光",
+      "industry": "医疗保健",
+      "domain": "normal",
+      "strategy_return": 53.49,
+      "buy_hold_return": 101.06,
+      "excess_return": -47.57,
+      "sharpe": 1.584,
+      "max_drawdown": -44.72,
+      "num_trades": 1,
+      "trades": [],
+      "last_open_trade": {
+        "buy_date": "2026-04-01",
+        "buy_price": 57.0,
+        "shares": 17500
+      },
+      "final_equity": 1534900.625
+    },
+    {
+      "rank": 67.38,
+      "ts_code": "601869.SH",
+      "name": "长飞光纤",
+      "industry": "通信设备",
+      "domain": "super_cycle",
+      "strategy_return": 261.51,
+      "buy_hold_return": 251.72,
+      "excess_return": 9.79,
+      "sharpe": 3.683,
+      "max_drawdown": -29.28,
+      "num_trades": 1,
+      "trades": [],
+      "last_open_trade": {
+        "buy_date": "2026-01-06",
+        "buy_price": 114.41,
+        "shares": 8700
+      },
+      "final_equity": 3615145.1582499994
+    },
+    {
+      "rank": 67.23,
+      "ts_code": "002957.SZ",
+      "name": "科瑞技术",
+      "industry": "专用机械",
+      "domain": "super_cycle",
+      "strategy_return": 51.57,
+      "buy_hold_return": 105.56,
+      "excess_return": -53.99,
+      "sharpe": 1.563,
+      "max_drawdown": -33.65,
+      "num_trades": 1,
+      "trades": [],
+      "last_open_trade": {
+        "buy_date": "2026-02-10",
+        "buy_price": 29.49,
+        "shares": 33900
+      },
+      "final_equity": 1515708.07225
+    },
+    {
+      "rank": 67.03,
+      "ts_code": "300394.SZ",
+      "name": "天孚通信",
+      "industry": "通信设备",
+      "domain": "super_cycle",
+      "strategy_return": 34.81,
+      "buy_hold_return": 30.99,
+      "excess_return": 3.82,
+      "sharpe": 1.136,
+      "max_drawdown": -51.93,
+      "num_trades": 1,
+      "trades": [],
+      "last_open_trade": {
+        "buy_date": "2026-01-06",
+        "buy_price": 200.03,
+        "shares": 4900
+      },
+      "final_equity": 1348095.96325
+    }
+  ]
+}
