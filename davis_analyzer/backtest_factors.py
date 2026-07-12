@@ -219,6 +219,7 @@ class SuperCycleSignal:
     consecutive_positive_dg: int  # quarters of ΔG > 0
     latest_g: float | None  # latest YoY revenue growth (%)
     latest_dg: float | None  # latest ΔG (pp)
+    latest_profit_g: float | None  # latest YoY profit growth (%) — V4
     dg_trend: list[float]  # ΔG per quarter, most-recent-first
     trigger: str  # which pattern triggered
 
@@ -240,25 +241,24 @@ def detect_super_cycle_early_signal(
 ) -> SuperCycleSignal:
     """Detect structural super-cycle acceleration before the price rally.
 
-    V3 changes (after V2.1 precision validation):
+    V4 changes (after anomaly analysis):
 
-    * **Lowered momentum threshold for Pattern A** from 60→30: V2.1 showed
-      that momentum>60 catches stocks *after* they've already rallied.
-      Lowering to 30 captures the earliest stage of price confirmation —
-      the stock has just started moving, but hasn't run away yet.
+    * **Profit-direction filter**: Revenue growth alone is insufficient —
+      87% of "high-G low-momentum" stocks are *revenue-up-profit-down*
+      (price wars, low-base effects, unsustainable expansion).  V4
+      requires the latest profit growth to be positive AND in the same
+      direction as revenue growth.  This single filter is expected to
+      eliminate the bulk of false positives that plagued V3.
 
-    * **New "potential" level for suppressed high-G stocks**: G>50% with
-      momentum <30 used to be "emerging" (V2) but had the worst precision
-      (12.3%, same as random).  Rather than discarding them, V3 reclassifies
-      them as "potential" — a distinct watchlist category.  The hypothesis:
-      these are compressed springs (real growth, price suppressed by some
-      factor) that may explode when the suppression lifts.
+    * The "potential" level (suppressed high-G) is retained but now also
+      requires positive profit growth — a stock with G>50% but profit
+      declining is no longer even "potential"; it's "none".
 
-    Signal levels (V3):
-      - ``confirmed``: G>50% + momentum>=30, OR persistent ΔG>=3 quarters
-      - ``emerging``: mid-G + high-ΔG, OR whitelist + G>=15%, OR suspect G
-      - ``potential``: G>50% but momentum<30 (suppressed — watchlist)
-      - ``none``: no signal
+    Signal levels (V4):
+      - ``confirmed``: G>50% + momentum>=30 + profit>0, OR persistent ΔG
+      - ``emerging``: mid-G + high-ΔG + profit>0, OR whitelist + G>=15% + profit>0
+      - ``potential``: G>50% + momentum<30 + profit>0 (suppressed but profitable)
+      - ``none``: everything else (including all revenue-up-profit-down stocks)
     """
     is_whitelist = industry in SUPER_CYCLE_INDUSTRIES
     has_momentum = momentum_score is not None and momentum_score > 0
@@ -266,8 +266,8 @@ def detect_super_cycle_early_signal(
     if not fin_data or len(fin_data) < 2:
         return SuperCycleSignal(
             level="none", consecutive_positive_dg=0,
-            latest_g=None, latest_dg=None, dg_trend=[],
-            trigger="none",
+            latest_g=None, latest_dg=None, latest_profit_g=None,
+            dg_trend=[], trigger="none",
         )
 
     sorted_data = sorted(fin_data, key=lambda d: d.report_period)
@@ -278,11 +278,20 @@ def detect_super_cycle_early_signal(
     ]
     rev_growths = list(reversed(rev_growths))
 
+    # ── V4: Extract latest profit growth ──
+    profit_growths = [
+        d.yoy_profit_growth * 100
+        for d in sorted_data
+        if d.yoy_profit_growth is not None
+    ]
+    latest_profit_g = profit_growths[-1] if profit_growths else None  # ASC order, last = newest
+
     if len(rev_growths) < 2:
         return SuperCycleSignal(
             level="none", consecutive_positive_dg=0,
             latest_g=rev_growths[0] if rev_growths else None,
-            latest_dg=None, dg_trend=[], trigger="none",
+            latest_dg=None, latest_profit_g=latest_profit_g,
+            dg_trend=[], trigger="none",
         )
 
     dg_trend = [rev_growths[i] - rev_growths[i + 1] for i in range(len(rev_growths) - 1)]
@@ -302,31 +311,43 @@ def detect_super_cycle_early_signal(
         return SuperCycleSignal(
             level="none", consecutive_positive_dg=consecutive,
             latest_g=round(latest_g, 1), latest_dg=round(latest_dg, 1) if latest_dg else None,
+            latest_profit_g=round(latest_profit_g, 1) if latest_profit_g is not None else None,
             dg_trend=[round(d, 1) for d in dg_trend], trigger="none",
         )
 
+    # ── V4: Profit-direction filter ──
+    # Revenue growth without profit growth = price war / unsustainable / low-base.
+    # These are NOT super-cycle candidates — they are exactly the "anomaly" stocks
+    # where 92.4% declined in H1 2026.  Hard-exclude them.
+    profit_healthy = (
+        latest_profit_g is not None
+        and latest_profit_g > 0  # profit must be growing
+    )
+
     suspect_high_g = latest_g > suspect_g_cap
 
-    # ── Pattern A: high G + early momentum confirmation ──
-    # V3: threshold lowered from 60→30 to catch earlier signals
+    # ── Pattern A: high G + early momentum + profit confirmed ──
     pattern_a = (latest_g > high_g_threshold and not suspect_high_g
-                 and has_momentum and momentum_score >= high_g_momentum_confirmed)
+                 and has_momentum and momentum_score >= high_g_momentum_confirmed
+                 and profit_healthy)
 
-    # ── Pattern A-suppressed: high G but no/low momentum → "potential" ──
-    # V3: reclassified from "emerging" to the new "potential" level
+    # ── Pattern A-suppressed: high G + profit healthy, but momentum low ──
     pattern_a_suppressed = (latest_g > high_g_threshold and not suspect_high_g
+                            and profit_healthy
                             and (not has_momentum or momentum_score < high_g_momentum_potential))
 
-    # Pattern B: mid G + high ΔG
+    # Pattern B: mid G + high ΔG + profit healthy
     pattern_b = (mid_g_low <= latest_g <= mid_g_high
-                 and latest_dg is not None and latest_dg > mid_g_dg_required)
+                 and latest_dg is not None and latest_dg > mid_g_dg_required
+                 and profit_healthy)
 
-    # Pattern D: persistent ΔG
+    # Pattern D: persistent ΔG + profit healthy
     pattern_d = (consecutive >= min_consecutive_confirmed
-                 and latest_g >= min_g_confirmed)
+                 and latest_g >= min_g_confirmed
+                 and profit_healthy)
 
-    # Pattern C (suspect): G in 200-500% range
-    pattern_c_suspect = suspect_high_g
+    # Pattern C (suspect): G in 200-500% range — still require profit positive
+    pattern_c_suspect = suspect_high_g and profit_healthy
 
     # ── Classify ──
     if pattern_a or pattern_d:
@@ -343,7 +364,9 @@ def detect_super_cycle_early_signal(
         trigger = "none"
 
     # ── Pattern C whitelist boost: upgrade none→emerging only ──
-    if is_whitelist and level == "none" and latest_g is not None and latest_g >= 15.0:
+    # V4: also require profit healthy for whitelist boost
+    if (is_whitelist and level == "none" and latest_g is not None
+            and latest_g >= 15.0 and profit_healthy):
         level = "emerging"
         trigger = "whitelist_boost"
 
@@ -352,6 +375,7 @@ def detect_super_cycle_early_signal(
         consecutive_positive_dg=consecutive,
         latest_g=round(latest_g, 1) if latest_g is not None else None,
         latest_dg=round(latest_dg, 1) if latest_dg is not None else None,
+        latest_profit_g=round(latest_profit_g, 1) if latest_profit_g is not None else None,
         dg_trend=[round(d, 1) for d in dg_trend],
         trigger=trigger,
     )
