@@ -35,7 +35,14 @@ from datetime import date
 from loguru import logger
 
 from davis_analyzer.constants import (
+    ABSOLUTE_PE_CAP,
+    ABSOLUTE_PE_PENALTY,
     CYCLICAL_FACTOR_WEIGHTS,
+    PROFIT_GROWTH_PENALTY_THRESHOLD,
+    PROSPERITY_REVENUE_PROFIT_PENALTY,
+    SHORT_TERM_MOMENTUM_FLOOR_PCT,
+    SHORT_TERM_MOMENTUM_PENALTY,
+    SHORT_TERM_MOMENTUM_WINDOW,
     SUPER_CYCLE_INDUSTRIES,
     SUPER_CYCLE_MIN_POSITIVE_QUARTERS,
     SUPER_CYCLE_PERSISTENCE_BONUS,
@@ -560,6 +567,20 @@ def score_universe_at(
             elif mom_signal is not None and not cfg.require_momentum_data:
                 momentum_score = mom_signal.momentum_score
 
+            # ── Defect 1 fix: short-term momentum guard ──
+            # 250-day momentum can stay high (e.g. +255%) even when the stock
+            # is collapsing -31% in the short term.  We check the 60-day
+            # window: if it drops below the floor, we penalise the momentum
+            # score so the long-term window alone can't keep it artificially high.
+            if mom_signal is not None and mom_signal.window_returns:
+                short_ret = mom_signal.window_returns.get(SHORT_TERM_MOMENTUM_WINDOW)
+                if short_ret is not None and short_ret < SHORT_TERM_MOMENTUM_FLOOR_PCT:
+                    # Linear penalty proportional to how far below the floor.
+                    overshoot = abs(short_ret - SHORT_TERM_MOMENTUM_FLOOR_PCT)
+                    penalty = min(SHORT_TERM_MOMENTUM_PENALTY, overshoot * 0.8)
+                    if momentum_score is not None:
+                        momentum_score = max(0.0, momentum_score - penalty)
+
             # ── Valuation (point-in-time via as_of) ──
             history = fetch_valuation_history(client, ts_code, as_of=as_of)
             valuation_score: float | None = None
@@ -568,17 +589,34 @@ def score_universe_at(
             if history:
                 valuation_score, pe_pct, pb_pct = calculate_valuation_score(history, is_cyclical)
 
+                # ── Defect 2 fix: absolute PE cap ──
+                # A low PE percentile (0.12) doesn't mean cheap if absolute
+                # PE is 300+.  Penalise valuation score when PE exceeds the cap.
+                latest_pe = history[0].pe_ttm if history else None
+                if latest_pe is not None and latest_pe > ABSOLUTE_PE_CAP:
+                    overshoot_ratio = min(1.0, (latest_pe - ABSOLUTE_PE_CAP) / ABSOLUTE_PE_CAP)
+                    penalty = ABSOLUTE_PE_PENALTY * overshoot_ratio
+                    valuation_score = max(0.0, valuation_score - penalty)
+
             # ── Prosperity + Distress (point-in-time via as_of on fetcher) ──
-            # fetch_financial_data filters by ann_date <= as_of, so the list
-            # only contains quarters that were publicly disclosed as of as_of.
-            # For classical cyclicals, is_cyclical=True triggers ΔG clamping
-            # inside calculate_prosperity_score.
             prosperity_score: float | None = None
             distress_score: float | None = None
             fin_data = fetch_financial_data(client, ts_code, as_of=as_of)
             if len(fin_data) >= cfg.min_quarters_for_financial:
                 prosp = calculate_prosperity_score(fin_data, is_cyclical=is_cyclical)
                 prosperity_score = prosp.composite_score
+
+                # ── Defect 3 fix: profit-direction check ──
+                # If revenue is growing but profit is declining (增收不增利),
+                # penalise the prosperity score.  This is the anomaly pattern
+                # where 92% of stocks declined in H1 2026.
+                latest_fin = fin_data[0]
+                rev_g = latest_fin.yoy_revenue_growth
+                prof_g = latest_fin.yoy_profit_growth
+                if (rev_g is not None and rev_g > 0.2  # revenue growing >20%
+                        and prof_g is not None
+                        and prof_g < PROFIT_GROWTH_PENALTY_THRESHOLD):
+                    prosperity_score = max(0.0, prosperity_score - PROSPERITY_REVENUE_PROFIT_PENALTY)
 
                 # Distress needs the valuation percentiles + latest balance sheet.
                 if valuation_score is not None:

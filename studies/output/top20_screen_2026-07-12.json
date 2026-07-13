@@ -18,19 +18,6 @@
       "persistence_bonus": 0.0
     },
     {
-      "ts_code": "301511.SZ",
-      "name": "德福科技",
-      "industry": "电气设备",
-      "domain": "normal",
-      "composite": 70.03,
-      "momentum": 98.53,
-      "valuation": 88.24,
-      "prosperity": 51.75,
-      "distress": 38.22,
-      "delta_g": 7.17,
-      "persistence_bonus": 0.0
-    },
-    {
       "ts_code": "300308.SZ",
       "name": "中际旭创",
       "industry": "通信设备",
@@ -54,19 +41,6 @@
       "prosperity": 47.65,
       "distress": 31.44,
       "delta_g": 6.94,
-      "persistence_bonus": 0.0
-    },
-    {
-      "ts_code": "688507.SH",
-      "name": "索辰科技",
-      "industry": "软件服务",
-      "domain": "super_cycle",
-      "composite": 67.84,
-      "momentum": 99.69,
-      "valuation": 61.76,
-      "prosperity": 74.83,
-      "distress": 21.83,
-      "delta_g": -13.09,
       "persistence_bonus": 0.0
     },
     {
@@ -109,19 +83,6 @@
       "persistence_bonus": 0.0
     },
     {
-      "ts_code": "301235.SZ",
-      "name": "华康洁净",
-      "industry": "医疗保健",
-      "domain": "normal",
-      "composite": 66.51,
-      "momentum": 70.66,
-      "valuation": 91.18,
-      "prosperity": 66.01,
-      "distress": 28.9,
-      "delta_g": 2.37,
-      "persistence_bonus": 0.0
-    },
-    {
       "ts_code": "300201.SZ",
       "name": "海伦哲",
       "industry": "工程机械",
@@ -132,19 +93,6 @@
       "prosperity": 39.17,
       "distress": 29.52,
       "delta_g": 10.86,
-      "persistence_bonus": 0.0
-    },
-    {
-      "ts_code": "688313.SH",
-      "name": "仕佳光子",
-      "industry": "通信设备",
-      "domain": "super_cycle",
-      "composite": 65.91,
-      "momentum": 84.27,
-      "valuation": 88.24,
-      "prosperity": 64.61,
-      "distress": 13.82,
-      "delta_g": -40.89,
       "persistence_bonus": 0.0
     },
     {
@@ -161,16 +109,16 @@
       "persistence_bonus": 0.0
     },
     {
-      "ts_code": "001259.SZ",
-      "name": "利仁科技",
-      "industry": "家用电器",
-      "domain": "normal",
-      "composite": 65.41,
-      "momentum": 100.0,
-      "valuation": 97.06,
-      "prosperity": 33.69,
-      "distress": 29.96,
-      "delta_g": 12.62,
+      "ts_code": "688313.SH",
+      "name": "仕佳光子",
+      "industry": "通信设备",
+      "domain": "super_cycle",
+      "composite": 65.47,
+      "momentum": 82.53,
+      "valuation": 88.24,
+      "prosperity": 64.61,
+      "distress": 13.82,
+      "delta_g": -40.89,
       "persistence_bonus": 0.0
     },
     {
@@ -184,19 +132,6 @@
       "prosperity": 47.69,
       "distress": 28.0,
       "delta_g": 14.14,
-      "persistence_bonus": 0.0
-    },
-    {
-      "ts_code": "301666.SZ",
-      "name": "大普微",
-      "industry": "IT设备",
-      "domain": "super_cycle",
-      "composite": 65.25,
-      "momentum": 94.07,
-      "valuation": 77.65,
-      "prosperity": 50.0,
-      "distress": 35.69,
-      "delta_g": 137.87,
       "persistence_bonus": 0.0
     },
     {
@@ -226,16 +161,16 @@
       "persistence_bonus": 0.0
     },
     {
-      "ts_code": "688143.SH",
-      "name": "长盈通",
-      "industry": "通信设备",
-      "domain": "super_cycle",
-      "composite": 64.9,
-      "momentum": 100.0,
-      "valuation": 74.19,
-      "prosperity": 55.14,
-      "distress": 22.0,
-      "delta_g": -8.62,
+      "ts_code": "301511.SZ",
+      "name": "德福科技",
+      "industry": "电气设备",
+      "domain": "normal",
+      "composite": 64.83,
+      "momentum": 98.53,
+      "valuation": 67.42,
+      "prosperity": 51.75,
+      "distress": 38.22,
+      "delta_g": 7.17,
       "persistence_bonus": 0.0
     },
     {
@@ -252,16 +187,81 @@
       "persistence_bonus": 0.0
     },
     {
-      "ts_code": "002975.SZ",
-      "name": "博杰股份",
-      "industry": "专用机械",
+      "ts_code": "603629.SH",
+      "name": "利通电子",
+      "industry": "元器件",
       "domain": "super_cycle",
-      "composite": 64.55,
-      "momentum": 94.86,
-      "valuation": 82.35,
-      "prosperity": 43.85,
-      "distress": 34.9,
-      "delta_g": 45.8,
+      "composite": 64.19,
+      "momentum": 90.11,
+      "valuation": 76.47,
+      "prosperity": 58.55,
+      "distress": 22.65,
+      "delta_g": -11.78,
+      "persistence_bonus": 0.0
+    },
+    {
+      "ts_code": "301349.SZ",
+      "name": "信德新材",
+      "industry": "化工原料",
+      "domain": "normal",
+      "composite": 63.93,
+      "momentum": 77.64,
+      "valuation": 97.06,
+      "prosperity": 52.79,
+      "distress": 20.07,
+      "delta_g": -0.12,
+      "persistence_bonus": 0.0
+    },
+    {
+      "ts_code": "688127.SH",
+      "name": "蓝特光学",
+      "industry": "元器件",
+      "domain": "super_cycle",
+      "composite": 63.11,
+      "momentum": 78.41,
+      "valuation": 91.18,
+      "prosperity": 45.36,
+      "distress": 34.87,
+      "delta_g": 21.44,
+      "persistence_bonus": 0.0
+    },
+    {
+      "ts_code": "301666.SZ",
+      "name": "大普微",
+      "industry": "IT设备",
+      "domain": "super_cycle",
+      "composite": 62.98,
+      "momentum": 94.07,
+      "valuation": 37.65,
+      "prosperity": 74.26,
+      "distress": 36.49,
+      "delta_g": 137.87,
+      "persistence_bonus": 0.0
+    },
+    {
+      "ts_code": "301362.SZ",
+      "name": "民爆光电",
+      "industry": "电气设备",
+      "domain": "normal",
+      "composite": 62.86,
+      "momentum": 95.28,
+      "valuation": 97.06,
+      "prosperity": 32.46,
+      "distress": 24.71,
+      "delta_g": -1.52,
+      "persistence_bonus": 0.0
+    },
+    {
+      "ts_code": "300502.SZ",
+      "name": "新易盛",
+      "industry": "通信设备",
+      "domain": "super_cycle",
+      "composite": 62.81,
+      "momentum": 100.0,
+      "valuation": 61.76,
+      "prosperity": 64.86,
+      "distress": 11.18,
+      "delta_g": -57.97,
       "persistence_bonus": 0.0
     }
   ],

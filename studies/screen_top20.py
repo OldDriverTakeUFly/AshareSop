@@ -131,20 +131,48 @@ def main() -> None:
             if mom is not None and mom.data_sufficient:
                 momentum_score = mom.momentum_score
 
+            # ── Defect 1 fix: short-term momentum guard ──
+            if mom is not None and mom.window_returns:
+                from davis_analyzer.constants import SHORT_TERM_MOMENTUM_WINDOW, SHORT_TERM_MOMENTUM_FLOOR_PCT, SHORT_TERM_MOMENTUM_PENALTY
+                short_ret = mom.window_returns.get(SHORT_TERM_MOMENTUM_WINDOW)
+                if short_ret is not None and short_ret < SHORT_TERM_MOMENTUM_FLOOR_PCT:
+                    overshoot = abs(short_ret - SHORT_TERM_MOMENTUM_FLOOR_PCT)
+                    penalty = min(SHORT_TERM_MOMENTUM_PENALTY, overshoot * 0.8)
+                    if momentum_score is not None:
+                        momentum_score = max(0.0, momentum_score - penalty)
+
             # Valuation
             history = fetch_valuation_history(client, code, as_of=AS_OF)
             valuation_score = pe_pct = pb_pct = None
             if history:
                 valuation_score, pe_pct, pb_pct = calculate_valuation_score(history, is_cyclical)
 
+                # ── Defect 2 fix: absolute PE cap ──
+                from davis_analyzer.constants import ABSOLUTE_PE_CAP, ABSOLUTE_PE_PENALTY
+                latest_pe = history[0].pe_ttm if history else None
+                if latest_pe is not None and latest_pe > ABSOLUTE_PE_CAP:
+                    overshoot_ratio = min(1.0, (latest_pe - ABSOLUTE_PE_CAP) / ABSOLUTE_PE_CAP)
+                    penalty = ABSOLUTE_PE_PENALTY * overshoot_ratio
+                    valuation_score = max(0.0, valuation_score - penalty)
+
             # Prosperity + Distress
-            # For classical cyclicals, is_cyclical=True triggers ΔG clamping.
             prosperity_score = distress_score = delta_g = None
             fin = fetch_financial_data(client, code, as_of=AS_OF)
             if len(fin) >= 2:
                 ps = calculate_prosperity_score(fin, is_cyclical=is_cyclical)
                 prosperity_score = ps.composite_score
                 delta_g = ps.delta_g
+
+                # ── Defect 3 fix: profit-direction check ──
+                from davis_analyzer.constants import PROFIT_GROWTH_PENALTY_THRESHOLD, PROSPERITY_REVENUE_PROFIT_PENALTY
+                latest_fin = fin[0]
+                rev_g = latest_fin.yoy_revenue_growth
+                prof_g = latest_fin.yoy_profit_growth
+                if (rev_g is not None and rev_g > 0.2
+                        and prof_g is not None
+                        and prof_g < PROFIT_GROWTH_PENALTY_THRESHOLD):
+                    prosperity_score = max(0.0, prosperity_score - PROSPERITY_REVENUE_PROFIT_PENALTY)
+
                 if valuation_score is not None:
                     eps_hist = [fd.eps for fd in fin]
                     roe_hist = [fd.roe for fd in fin]

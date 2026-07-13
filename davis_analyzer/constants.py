@@ -95,6 +95,28 @@ REPORT_MAX_WORDS: int = 1500
 # ── Stock name patterns to exclude ──
 EXCLUSION_PATTERNS: list[str] = ["ST", "*ST"]
 
+# ── Short-term momentum guard (fixes Defect 1) ──
+# When the 60-day window return drops below this, the momentum score is
+# penalised — long-term (250d) momentum alone cannot keep the score high
+# if the stock is collapsing in the short term.
+SHORT_TERM_MOMENTUM_WINDOW: int = 60
+SHORT_TERM_MOMENTUM_FLOOR_PCT: float = -15.0   # 60d return below -15% triggers penalty
+SHORT_TERM_MOMENTUM_PENALTY: float = 30.0       # subtract up to 30 points
+
+# ── Absolute PE cap (fixes Defect 2) ──
+# Even if the PE *percentile* is low (0.12), an absolute PE above this
+# cap means the stock is objectively expensive in absolute terms.
+# The valuation score is penalised when PE exceeds this threshold.
+ABSOLUTE_PE_CAP: float = 200.0
+ABSOLUTE_PE_PENALTY: float = 40.0              # subtract up to 40 points from valuation
+
+# ── Profit-direction check in composite scoring (fixes Defect 3) ──
+# When revenue is growing but profit is declining (增收不增利), the
+# prosperity score is penalised — this is the anomaly pattern where 92%
+# of stocks declined in H1 2026.
+PROFIT_GROWTH_PENALTY_THRESHOLD: float = 0.0   # profit growth below this = penalty
+PROSPERITY_REVENUE_PROFIT_PENALTY: float = 25.0  # subtract up to 25 points
+
 # ── Prosperity sector thresholds ──
 SECTOR_MIN_STOCKS: int = 5
 PE_PERCENTILE_HIGH: float = 0.80
