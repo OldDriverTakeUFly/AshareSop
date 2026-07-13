@@ -449,6 +449,153 @@ class TushareClient:
             end_date,
         )
 
+    def get_hk_hold(self, ts_code: str, start_date: str, end_date: str) -> pd.DataFrame:
+        """Return northbound (HK Stock Connect) holding data for ``ts_code``.
+
+        Uses Tushare ``hk_hold`` — returns vol (shares held), ratio (% of float),
+        and amount.  Cached per (ts_code, trade_date) in ``hk_hold_cache``.
+
+        Fields: ts_code, trade_date, name, vol, ratio.
+        """
+        with sqlite3.connect(str(_CACHE_DB)) as conn:
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS hk_hold_cache (
+                    ts_code    TEXT NOT NULL,
+                    trade_date TEXT NOT NULL,
+                    vol        REAL,
+                    ratio      REAL,
+                    fetched_at REAL NOT NULL,
+                    PRIMARY KEY (ts_code, trade_date)
+                )
+            """)
+            # Check cache coverage
+            row = conn.execute(
+                "SELECT MAX(trade_date), MAX(fetched_at) FROM hk_hold_cache WHERE ts_code=?",
+                (ts_code,),
+            ).fetchone()
+            max_date = row[0] if row else None
+            latest_fetched = row[1] if row else None
+            fetched_today = (
+                latest_fetched is not None
+                and datetime.fromtimestamp(latest_fetched).date() == date.today()
+            )
+
+            if max_date is not None and max_date >= end_date:
+                rows = conn.execute(
+                    """SELECT ts_code, trade_date, vol, ratio FROM hk_hold_cache
+                       WHERE ts_code=? AND trade_date>=? AND trade_date<=? ORDER BY trade_date""",
+                    (ts_code, start_date, end_date),
+                ).fetchall()
+                return pd.DataFrame(rows, columns=["ts_code", "trade_date", "vol", "ratio"])
+            if fetched_today:
+                rows = conn.execute(
+                    """SELECT ts_code, trade_date, vol, ratio FROM hk_hold_cache
+                       WHERE ts_code=? AND trade_date>=? AND trade_date<=? ORDER BY trade_date""",
+                    (ts_code, start_date, end_date),
+                ).fetchall()
+                return pd.DataFrame(rows, columns=["ts_code", "trade_date", "vol", "ratio"])
+
+        # Fetch from API
+        fetch_start = _next_date_str(max_date) if max_date else start_date
+        if fetch_start < start_date:
+            fetch_start = start_date
+        if fetch_start <= end_date:
+            df = self._call(
+                "hk_hold",
+                self._pro.hk_hold,
+                {
+                    "ts_code": ts_code,
+                    "start_date": fetch_start,
+                    "end_date": end_date,
+                    "fields": "ts_code,trade_date,vol,ratio",
+                },
+            )
+            if df is not None and not df.empty:
+                now = time.time()
+                records = [
+                    (r.get("ts_code", ts_code), str(r.get("trade_date", "")),
+                     r.get("vol"), r.get("ratio"), now)
+                    for r in df.to_dict("records")
+                ]
+                with sqlite3.connect(str(_CACHE_DB)) as conn:
+                    conn.executemany(
+                        """INSERT OR REPLACE INTO hk_hold_cache
+                           (ts_code, trade_date, vol, ratio, fetched_at) VALUES (?,?,?,?,?)""",
+                        records,
+                    )
+                    conn.commit()
+
+        with sqlite3.connect(str(_CACHE_DB)) as conn:
+            rows = conn.execute(
+                """SELECT ts_code, trade_date, vol, ratio FROM hk_hold_cache
+                   WHERE ts_code=? AND trade_date>=? AND trade_date<=? ORDER BY trade_date""",
+                (ts_code, start_date, end_date),
+            ).fetchall()
+        return pd.DataFrame(rows, columns=["ts_code", "trade_date", "vol", "ratio"])
+
+    def get_research_reports(self, ts_code: str, start_date: str, end_date: str) -> pd.DataFrame:
+        """Return analyst research reports for ``ts_code``.
+
+        Uses Tushare ``report_rc`` — returns report_date, rating, target_price,
+        org_name, author_name.  **Rate-limited to 10 calls/hour by Tushare.**
+
+        Cached per (ts_code, report_date) in ``research_cache``.
+        """
+        with sqlite3.connect(str(_CACHE_DB)) as conn:
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS research_cache (
+                    ts_code      TEXT NOT NULL,
+                    report_date  TEXT NOT NULL,
+                    rating       TEXT,
+                    target_price REAL,
+                    org_name     TEXT,
+                    fetched_at   REAL NOT NULL,
+                    PRIMARY KEY (ts_code, report_date, org_name)
+                )
+            """)
+            # Check if we already have data for this range
+            row = conn.execute(
+                "SELECT COUNT(*) FROM research_cache WHERE ts_code=? AND report_date>=? AND report_date<=?",
+                (ts_code, start_date, end_date),
+            ).fetchone()
+            cached_count = row[0] if row else 0
+
+            if cached_count > 0:
+                rows = conn.execute(
+                    """SELECT ts_code, report_date, rating, target_price, org_name FROM research_cache
+                       WHERE ts_code=? AND report_date>=? AND report_date<=? ORDER BY report_date""",
+                    (ts_code, start_date, end_date),
+                ).fetchall()
+                return pd.DataFrame(rows, columns=["ts_code", "report_date", "rating", "target_price", "org_name"])
+
+        # Fetch from API (caller must respect 10/hour rate limit)
+        df = self._call(
+            "report_rc",
+            self._pro.report_rc,
+            {
+                "ts_code": ts_code,
+                "start_date": start_date,
+                "end_date": end_date,
+                "fields": "ts_code,report_date,rating,tp,org_name",
+            },
+        )
+        if df is not None and not df.empty:
+            now = time.time()
+            records = [
+                (r.get("ts_code", ts_code), str(r.get("report_date", "")),
+                 r.get("rating"), r.get("tp"), r.get("org_name", ""), now)
+                for r in df.to_dict("records")
+            ]
+            with sqlite3.connect(str(_CACHE_DB)) as conn:
+                conn.executemany(
+                    """INSERT OR REPLACE INTO research_cache
+                       (ts_code, report_date, rating, target_price, org_name, fetched_at) VALUES (?,?,?,?,?,?)""",
+                    records,
+                )
+                conn.commit()
+
+        return df if df is not None else pd.DataFrame()
+
     # ── structured-cache read/write helpers ──
 
     @staticmethod

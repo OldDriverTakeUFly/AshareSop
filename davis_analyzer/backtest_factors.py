@@ -63,14 +63,19 @@ class FactorConfig:
     momentum standing in for the trend leg.
     """
 
-    momentum_weight: float = 0.25
-    valuation_weight: float = 0.25
-    prosperity_weight: float = 0.30
-    distress_weight: float = 0.20
+    momentum_weight: float = 0.20
+    valuation_weight: float = 0.20
+    prosperity_weight: float = 0.25
+    distress_weight: float = 0.15
+    northbound_weight: float = 0.10
+    research_weight: float = 0.10
     # Skip stocks whose momentum engine returns data_sufficient=False.
     require_momentum_data: bool = True
     # Minimum quarters of disclosed financial data to attempt prosperity/distress.
     min_quarters_for_financial: int = 2
+    # Enable/disable supplementary factors (off by default for full-universe speed)
+    enable_northbound: bool = False
+    enable_research: bool = False
 
 
 @dataclass
@@ -83,6 +88,71 @@ class FactorScore:
     valuation_score: float | None = None
     prosperity_score: float | None = None
     distress_score: float | None = None
+    northbound_score: float | None = None
+    research_score: float | None = None
+
+
+def calculate_northbound_score(
+    client: "TushareClient", ts_code: str, as_of: date
+) -> float | None:
+    """Score 0-100 based on northbound (HK Stock Connect) holding change.
+
+    Compares latest northbound holding ratio vs ~90 days ago.
+    +2pp change = 100, -2pp = 0, 0 = 50.
+    """
+    from datetime import timedelta as _td
+    as_of_str = as_of.strftime("%Y%m%d")
+    lookback = (as_of - _td(days=120)).strftime("%Y%m%d")
+    try:
+        df = client.get_hk_hold(ts_code, lookback, as_of_str)
+        if df is None or df.empty or len(df) < 2:
+            return None
+        df = df.sort_values("trade_date")
+        ratios = df["ratio"].dropna()
+        if len(ratios) < 2:
+            return None
+        change = float(ratios.iloc[-1]) - float(ratios.iloc[0])
+        score = 50.0 + change * 25.0
+        return round(max(0.0, min(100.0, score)), 2)
+    except Exception:
+        return None
+
+
+def calculate_research_score(
+    client: "TushareClient", ts_code: str, as_of: date
+) -> float | None:
+    """Score 0-100 based on research-report density change.
+
+    New coverage (0→some) = 70 (bullish).
+    Dense coverage (>50% increase) = 30 (bearish, attention peaking).
+    Stable/fading = 50-60 (neutral).
+    """
+    from datetime import timedelta as _td
+    as_of_str = as_of.strftime("%Y%m%d")
+    prior_start = (as_of - _td(days=60)).strftime("%Y%m%d")
+    try:
+        df = client.get_research_reports(ts_code, prior_start, as_of_str)
+        if df is None or df.empty:
+            return None
+        df = df.copy()
+        df["report_date"] = pd.to_datetime(df["report_date"], format="%Y%m%d")
+        as_of_dt = pd.Timestamp(as_of)
+        recent = len(df[df["report_date"] > as_of_dt - pd.Timedelta(days=30)])
+        prior = len(df[
+            (df["report_date"] <= as_of_dt - pd.Timedelta(days=30))
+            & (df["report_date"] > as_of_dt - pd.Timedelta(days=60))
+        ])
+        if prior == 0 and recent > 0:
+            return 70.0
+        if prior > 0:
+            rate = (recent - prior) / prior
+            if rate > 0.5:
+                return 30.0
+            elif rate < -0.3:
+                return 60.0
+        return 50.0
+    except Exception:
+        return None
 
 
 def _blend(
@@ -92,8 +162,10 @@ def _blend(
     distress: float | None,
     cfg: FactorConfig,
     is_cyclical: bool = False,
+    northbound: float | None = None,
+    research: float | None = None,
 ) -> float:
-    """Weighted-normalised blend of the four sub-scores.
+    """Weighted-normalised blend of the sub-scores.
 
     Only available sub-scores participate; the normaliser divides by the sum
     of weights whose sub-score is present, so a missing factor does not
@@ -102,6 +174,8 @@ def _blend(
     When *is_cyclical* is True (classical cyclical stock), the weights from
     ``CYCLICAL_FACTOR_WEIGHTS`` override *cfg* — valuation gets 0.40 (PB is
     the reliable anchor), prosperity drops to 0.15 (ΔG is mean-reverting).
+    Northbound and research scores use the cfg weights for cyclical too
+    (they are external signals, not financial-statement-based).
     """
     if is_cyclical:
         w_mom = CYCLICAL_FACTOR_WEIGHTS["momentum"]
@@ -113,6 +187,8 @@ def _blend(
         w_val = cfg.valuation_weight
         w_pros = cfg.prosperity_weight
         w_dist = cfg.distress_weight
+    w_nb = cfg.northbound_weight
+    w_res = cfg.research_weight
 
     total_w = 0.0
     acc = 0.0
@@ -128,6 +204,12 @@ def _blend(
     if distress is not None:
         acc += distress * w_dist
         total_w += w_dist
+    if northbound is not None:
+        acc += northbound * w_nb
+        total_w += w_nb
+    if research is not None:
+        acc += research * w_res
+        total_w += w_res
     if total_w == 0:
         return 0.0
     return acc / total_w
@@ -529,16 +611,22 @@ def score_universe_at(
                     )
                     distress_score = distress.total_score
 
+            # ── Supplementary factors (optional, off by default for speed) ──
+            northbound_score: float | None = None
+            research_score: float | None = None
+            if cfg.enable_northbound:
+                northbound_score = calculate_northbound_score(client, ts_code, as_of)
+            if cfg.enable_research:
+                research_score = calculate_research_score(client, ts_code, as_of)
+
             composite = _blend(
                 momentum_score, valuation_score, prosperity_score, distress_score, cfg,
                 is_cyclical=is_cyclical,
+                northbound=northbound_score,
+                research=research_score,
             )
 
             # ── Super-cycle persistence bonus ──
-            # Structural-growth stocks with ≥ N consecutive quarters of
-            # positive ΔG earn a bounded bonus.  This rewards genuine
-            # multi-quarter acceleration (AI demand ramp, semi capex cycle)
-            # that classical cyclicals cannot sustain.
             if is_super_cycle and fin_data and len(fin_data) >= cfg.min_quarters_for_financial:
                 consecutive_pos = _count_consecutive_positive_delta_g(fin_data)
                 if consecutive_pos >= SUPER_CYCLE_MIN_POSITIVE_QUARTERS:
@@ -546,7 +634,8 @@ def score_universe_at(
 
             if all(
                 s is None
-                for s in (momentum_score, valuation_score, prosperity_score, distress_score)
+                for s in (momentum_score, valuation_score, prosperity_score, distress_score,
+                          northbound_score, research_score)
             ):
                 continue  # no usable signal — skip
 
