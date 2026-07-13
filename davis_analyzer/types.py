@@ -47,6 +47,12 @@ class FinancialData:
     # that predate the ann_date fields addition will leave this None.  The
     # backtest engine uses it for point-in-time filtering (``ann_date <= as_of``).
     ann_date: str | None = None
+    # V5: Balance-sheet demand/supply signals for super-cycle detection.
+    # contract_liab = 合同负债 (advance from customers — demand先行指标).
+    # capex = 购建固定资产等支付现金 (capital expenditure — supply扩张信号).
+    # Both default None; older cached payloads lack these columns.
+    contract_liab: float | None = None
+    capex: float | None = None
 
 
 @dataclass

@@ -219,7 +219,11 @@ class SuperCycleSignal:
     consecutive_positive_dg: int  # quarters of ΔG > 0
     latest_g: float | None  # latest YoY revenue growth (%)
     latest_dg: float | None  # latest ΔG (pp)
-    latest_profit_g: float | None  # latest YoY profit growth (%) — V4
+    latest_profit_g: float | None  # latest YoY profit growth (%)
+    latest_contract_liab: float | None  # latest 合同负债 (元) — V5
+    contract_liab_yoy: float | None  # contract-liab YoY growth (%) — V5
+    latest_capex: float | None  # latest capex (元) — V5
+    capex_yoy: float | None  # capex YoY growth (%) — V5
     dg_trend: list[float]  # ΔG per quarter, most-recent-first
     trigger: str  # which pattern triggered
 
@@ -267,6 +271,8 @@ def detect_super_cycle_early_signal(
         return SuperCycleSignal(
             level="none", consecutive_positive_dg=0,
             latest_g=None, latest_dg=None, latest_profit_g=None,
+            latest_contract_liab=None, contract_liab_yoy=None,
+            latest_capex=None, capex_yoy=None,
             dg_trend=[], trigger="none",
         )
 
@@ -291,6 +297,8 @@ def detect_super_cycle_early_signal(
             level="none", consecutive_positive_dg=0,
             latest_g=rev_growths[0] if rev_growths else None,
             latest_dg=None, latest_profit_g=latest_profit_g,
+            latest_contract_liab=None, contract_liab_yoy=None,
+            latest_capex=None, capex_yoy=None,
             dg_trend=[], trigger="none",
         )
 
@@ -312,6 +320,8 @@ def detect_super_cycle_early_signal(
             level="none", consecutive_positive_dg=consecutive,
             latest_g=round(latest_g, 1), latest_dg=round(latest_dg, 1) if latest_dg else None,
             latest_profit_g=round(latest_profit_g, 1) if latest_profit_g is not None else None,
+            latest_contract_liab=None, contract_liab_yoy=None,
+            latest_capex=None, capex_yoy=None,
             dg_trend=[round(d, 1) for d in dg_trend], trigger="none",
         )
 
@@ -322,6 +332,42 @@ def detect_super_cycle_early_signal(
     profit_healthy = (
         latest_profit_g is not None
         and latest_profit_g > 0  # profit must be growing
+    )
+
+    # ── V5: Balance-sheet demand/supply signals ──
+    # contract_liab (合同负债) = customer prepayments — a leading indicator of
+    #   future revenue.  If it's growing faster than revenue, demand is building
+    #   faster than what's already been recognised → structural demand shift.
+    # capex (购建固定资产等支付现金) = capital expenditure — a leading indicator
+    #   of supply expansion.  In a super-cycle, companies invest ahead of demand.
+    #   Growing capex confirms the company itself believes the cycle is real.
+    contract_liab_series = [d.contract_liab for d in sorted_data if d.contract_liab is not None and d.contract_liab > 0]
+    capex_series = [d.capex for d in sorted_data if d.capex is not None and d.capex > 0]
+
+    latest_contract_liab = contract_liab_series[-1] if contract_liab_series else None
+    latest_capex = capex_series[-1] if capex_series else None
+
+    # YoY growth (shift by 4 quarters = same period last year)
+    contract_liab_yoy = None
+    if len(contract_liab_series) >= 5:  # need 5 to have current + 4 quarters back
+        prev = contract_liab_series[-5]
+        if prev > 0:
+            contract_liab_yoy = (contract_liab_series[-1] / prev - 1) * 100
+
+    capex_yoy = None
+    if len(capex_series) >= 5:
+        prev = capex_series[-5]
+        if prev > 0:
+            capex_yoy = (capex_series[-1] / prev - 1) * 100
+
+    # V5 boost: if both contract_liab and capex are growing >20% YoY,
+    # the company is seeing demand build-up AND investing in capacity —
+    # a strong structural confirmation.  Upgrade one level (none→emerging,
+    # emerging→confirmed) but only if profit is healthy.
+    bs_confirmed = (
+        profit_healthy
+        and contract_liab_yoy is not None and contract_liab_yoy > 20
+        and capex_yoy is not None and capex_yoy > 20
     )
 
     suspect_high_g = latest_g > suspect_g_cap
@@ -370,12 +416,30 @@ def detect_super_cycle_early_signal(
         level = "emerging"
         trigger = "whitelist_boost"
 
+    # ── V5: Balance-sheet confirmation upgrade ──
+    # DISABLED: V5 precision validation showed BS-confirmed (contract_liab +
+    # capex both >20% YoY) had only 11.5% precision (below V4's 22.9% and
+    # below the ~9% random baseline).  The upgrade added 279 noisy stocks
+    # that dragged overall precision from 22.9% to 16.7%.  The data fields
+    # (contract_liab_yoy, capex_yoy) are still collected and returned in the
+    # signal for reporting/analysis, but they no longer trigger level upgrades.
+    # if bs_confirmed and level == "none":
+    #     level = "emerging"
+    #     trigger = "bs_demand_supply_confirmed"
+    # elif bs_confirmed and level == "emerging":
+    #     level = "confirmed"
+    #     trigger = "bs_demand_supply_confirmed"
+
     return SuperCycleSignal(
         level=level,
         consecutive_positive_dg=consecutive,
         latest_g=round(latest_g, 1) if latest_g is not None else None,
         latest_dg=round(latest_dg, 1) if latest_dg is not None else None,
         latest_profit_g=round(latest_profit_g, 1) if latest_profit_g is not None else None,
+        latest_contract_liab=round(latest_contract_liab, 0) if latest_contract_liab is not None else None,
+        contract_liab_yoy=round(contract_liab_yoy, 1) if contract_liab_yoy is not None else None,
+        latest_capex=round(latest_capex, 0) if latest_capex is not None else None,
+        capex_yoy=round(capex_yoy, 1) if capex_yoy is not None else None,
         dg_trend=[round(d, 1) for d in dg_trend],
         trigger=trigger,
     )

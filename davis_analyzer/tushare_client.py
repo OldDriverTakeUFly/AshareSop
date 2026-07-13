@@ -289,7 +289,7 @@ class TushareClient:
         return self._get_financial(
             "balancesheet",
             self._pro.balancesheet,
-            "ts_code,end_date,ann_date,total_assets,total_liab",
+            "ts_code,end_date,ann_date,total_assets,total_liab,contract_liab",
             ts_code,
             start_date,
             end_date,
@@ -299,7 +299,7 @@ class TushareClient:
         return self._get_financial(
             "cashflow",
             self._pro.cashflow,
-            "ts_code,end_date,ann_date,n_cashflow_act",
+            "ts_code,end_date,ann_date,n_cashflow_act,c_pay_acq_const_fiolta",
             ts_code,
             start_date,
             end_date,

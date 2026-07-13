@@ -183,6 +183,8 @@ def fetch_financial_data(
             grossprofit_margin=gross_margin,
             rd_exp=rd_exp,
             ann_date=ann_date,
+            contract_liab=_safe_float(row.get("contract_liab")),
+            capex=_safe_float(row.get("c_pay_acq_const_fiolta")),
         )
         results.append(fd)
 
