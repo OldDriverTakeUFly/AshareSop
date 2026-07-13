@@ -60,7 +60,7 @@ from davis_analyzer.valuation import (
 )
 
 # ── Config ──
-AS_OF = date(2026, 7, 11)          # most recent trading day close
+AS_OF = date(2026, 7, 12)          # most recent trading day close
 VALUATION_PREFILTER = 50.0          # pipeline default
 TOP_N = 20
 OUTPUT_DIR = PROJECT_ROOT / "studies" / "output"
