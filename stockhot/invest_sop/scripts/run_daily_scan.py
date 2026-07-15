@@ -196,6 +196,20 @@ def main(argv: list[str] | None = None) -> int:
         status = "✓" if ok else "✗"
         print(f"  {status} {mod}")
 
+    # Wave 4: 同步 daily_data JSON → market_data.db 结构化表
+    # 让 after-hours-review 等消费方能直接读结构化表（repo.get_limit_pool 等），
+    # 不改采集模块源码（符合 daily-market-scan guardrail）。
+    if succeeded > 0:
+        try:
+            from stockhot.data_layer.migrate_panels import sync_single_day
+            n = sync_single_day(trade_date)
+            print(f"[{trade_date}] Wave 4 sync_to_market_db: {n} rows synced ✓")
+            _log_scan(trade_date, "sync_market_db", "success", rows=n)
+        except Exception as e:
+            print(f"[{trade_date}] Wave 4 sync_to_market_db: FAILED — {type(e).__name__}: {e}")
+            _log_scan(trade_date, "sync_market_db", "failed",
+                      error_msg=f"{type(e).__name__}: {e}")
+
     # Exit 0 if at least limit_up succeeded (core data), else 1
     return 0 if results["limit_up"] else 1
 

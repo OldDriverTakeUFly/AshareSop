@@ -1,4 +1,12 @@
-"""Scheduler module for StockHot-CN."""
+"""Scheduler module for StockHot-CN.
+
+⚠️  DEPRECATED（2026-07-15）：本模块已废弃，自 2026-04 起未运行。
+    盘后采集改由系统 cron + ``stockhot/invest_sop/scripts/run_daily_scan.py`` 承担
+    （Wave 1/2/3 隔离 + Wave 4 结构化同步，符合 daily-market-scan skill 规范）。
+    本模块的 ``run_daily_workflow`` 与 run_daily_scan 存在重复采集，且无 try/except
+    隔离，保留仅供历史参考，不应再启动。
+    详见 ``docs/方法论/统一市场数据架构.md``。
+"""
 
 from datetime import datetime
 from apscheduler.schedulers.blocking import BlockingScheduler

@@ -30,9 +30,13 @@ def main():
     print(f"日期: {args.date or '今日'}")
 
     if args.mode == "scheduler":
-        from stockhot.scheduler import run_scheduler
-
-        run_scheduler()
+        print(
+            "⚠️  scheduler 模式已废弃（自 2026-04 停用，含重复采集 + 无隔离）。\n"
+            "    盘后采集请改用系统 cron + run_daily_scan.py：\n"
+            "      bash stockhot/invest_sop/install.sh   # 安装 cron\n"
+            "      .venv/bin/python stockhot/invest_sop/scripts/run_daily_scan.py\n"
+            "    详见 docs/方法论/统一市场数据架构.md"
+        )
         return
 
     from stockhot.storage.database import init_database

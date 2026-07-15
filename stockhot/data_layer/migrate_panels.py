@@ -287,6 +287,201 @@ def migrate(dry_run: bool = False) -> int:
     return 0
 
 
+def sync_single_day(trade_date: str) -> int:
+    """同步单日的 daily_data JSON → market_data.db 结构化表（增量）.
+
+    供 run_daily_scan.py 在采集后调用，让结构化表与 JSON blob 保持同步，
+    使 after-hours-review 等消费方能直接读结构化表（repo.get_limit_pool 等）。
+
+    与 ``migrate()`` 的区别：只处理指定日期，不扫全表。用 INSERT OR REPLACE
+    保证幂等（同一天重跑不会产生重复行）。
+
+    返回同步的行数（0 表示该日无数据或同步失败）。
+    """
+    init_db()
+    total = 0
+    try:
+        with sqlite3.connect(str(STOCKHOT_DB)) as src, sqlite3.connect(str(MARKET_DB_PATH)) as dst:
+            # 先删除目标库该日的旧数据（避免池子成员变化的脏数据残留）
+            for table in ["limit_pool", "dragon_tiger", "fund_flow_sector",
+                          "fund_flow_market", "index_technical"]:
+                dst.execute(f"DELETE FROM {table} WHERE trade_date=?", (trade_date,))
+
+            # 复用按全表迁移的函数，但通过临时限定只读该日数据
+            # —— 直接调 migrate_pools 等，它们会 INSERT OR REPLACE 全部日期，
+            #    但因我们已 DELETE 该日，且其他日期已有数据会被 IGNORE，开销可接受。
+            # 更精确的做法：内联按单日解析。这里用精确单日解析避免全表扫描。
+            _sync_day_pools(src, dst, trade_date)
+            _sync_day_dragon_tiger(src, dst, trade_date)
+            _sync_day_fund_flow(src, dst, trade_date)
+            _sync_day_index_technical(src, dst, trade_date)
+
+            for table in ["limit_pool", "dragon_tiger", "fund_flow_sector",
+                          "fund_flow_market", "index_technical"]:
+                total += dst.execute(
+                    f"SELECT COUNT(*) FROM {table} WHERE trade_date=?", (trade_date,)
+                ).fetchone()[0]
+            dst.commit()
+    except Exception as e:
+        print(f"[sync_single_day] {trade_date} 同步失败: {e}")
+        return 0
+    return total
+
+
+def _sync_day_pools(src, dst, trade_date: str) -> None:
+    """同步单日涨停/炸板/跌停池."""
+    for data_type, pool_kind in POOL_KIND_MAP.items():
+        row = src.execute(
+            "SELECT data_json FROM daily_data WHERE data_type=? AND trade_date=?",
+            (data_type, trade_date),
+        ).fetchone()
+        if not row:
+            continue
+        try:
+            items = json.loads(row[0])
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(items, list):
+            continue
+        records = []
+        for item in items:
+            code = item.get("code") or item.get("ts_code") or ""
+            records.append((
+                trade_date, code, pool_kind,
+                item.get("name"), item.get("sector"),
+                _safe_float(item.get("change_pct")),
+                _safe_float(item.get("seal_amount")),
+                _safe_int(item.get("consecutive_boards") or item.get("max_board")),
+                _safe_int(item.get("broken_count")),
+                item.get("first_seal_time"), item.get("last_seal_time"),
+                _safe_float(item.get("turnover_rate")),
+            ))
+        if records:
+            dst.executemany(
+                "INSERT OR REPLACE INTO limit_pool "
+                "(trade_date, ts_code, pool_kind, name, sector, change_pct, "
+                "seal_amount, consecutive_boards, broken_count, "
+                "first_seal_time, last_seal_time, turnover_rate) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)", records)
+
+
+def _sync_day_dragon_tiger(src, dst, trade_date: str) -> None:
+    """同步单日龙虎榜."""
+    row = src.execute(
+        "SELECT data_json FROM daily_data WHERE data_type='dragon_tiger_detail' AND trade_date=?",
+        (trade_date,),
+    ).fetchone()
+    if not row:
+        return
+    try:
+        items = json.loads(row[0])
+    except json.JSONDecodeError:
+        return
+    if not isinstance(items, list):
+        return
+    records = []
+    for item in items:
+        code = item.get("code") or item.get("ts_code") or ""
+        records.append((
+            trade_date, code, item.get("name"), item.get("reason"),
+            _safe_float(item.get("close_price") or item.get("close")),
+            _safe_float(item.get("change_pct")),
+            _safe_float(item.get("net_buy_amount") or item.get("net_buy")),
+            _safe_float(item.get("buy_amount")), _safe_float(item.get("sell_amount")),
+            item.get("list_date"),
+        ))
+    if records:
+        dst.executemany(
+            "INSERT OR REPLACE INTO dragon_tiger "
+            "(trade_date, ts_code, name, reason, close, change_pct, "
+            "net_buy, buy_amount, sell_amount, list_date) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?)", records)
+
+
+def _sync_day_fund_flow(src, dst, trade_date: str) -> None:
+    """同步单日板块+大盘资金流."""
+    for data_type, table, pk_extra in [
+        ("fund_flow_sector", "fund_flow_sector", "sector_name"),
+        ("fund_flow_market", "fund_flow_market", "seq"),
+    ]:
+        row = src.execute(
+            f"SELECT data_json FROM daily_data WHERE data_type=? AND trade_date=?",
+            (data_type, trade_date),
+        ).fetchone()
+        if not row:
+            continue
+        try:
+            items = json.loads(row[0])
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(items, list):
+            continue
+        records = []
+        for seq, item in enumerate(items):
+            if table == "fund_flow_sector":
+                records.append((
+                    trade_date,
+                    item.get("name") or item.get("sector_name") or "",
+                    _safe_float(item.get("change_pct")), _safe_float(item.get("main_net")),
+                    _safe_float(item.get("main_pct")), _safe_float(item.get("huge_net")),
+                    _safe_float(item.get("large_net")), _safe_float(item.get("medium_net")),
+                    _safe_float(item.get("small_net")),
+                ))
+            else:
+                records.append((
+                    trade_date, seq,
+                    _safe_float(item.get("main_net")), _safe_float(item.get("main_pct")),
+                    _safe_float(item.get("huge_net")), _safe_float(item.get("large_net")),
+                    _safe_float(item.get("medium_net")), _safe_float(item.get("small_net")),
+                ))
+        if records:
+            if table == "fund_flow_sector":
+                dst.executemany(
+                    "INSERT OR REPLACE INTO fund_flow_sector "
+                    "(trade_date, sector_name, change_pct, main_net, main_pct, "
+                    "huge_net, large_net, medium_net, small_net) "
+                    "VALUES (?,?,?,?,?,?,?,?,?)", records)
+            else:
+                dst.executemany(
+                    "INSERT OR REPLACE INTO fund_flow_market "
+                    "(trade_date, seq, main_net, main_pct, huge_net, large_net, "
+                    "medium_net, small_net) VALUES (?,?,?,?,?,?,?,?)", records)
+
+
+def _sync_day_index_technical(src, dst, trade_date: str) -> None:
+    """同步单日指数技术面."""
+    row = src.execute(
+        "SELECT data_json FROM daily_data WHERE data_type='index_technical' AND trade_date=?",
+        (trade_date,),
+    ).fetchone()
+    if not row:
+        return
+    try:
+        data = json.loads(row[0])
+    except json.JSONDecodeError:
+        return
+    if not isinstance(data, dict):
+        return
+    indices = data.get("indices", {})
+    records = []
+    for ts_code, info in indices.items():
+        records.append((
+            trade_date, ts_code,
+            _safe_float(info.get("close")), _safe_float(info.get("pct_chg")),
+            _safe_float(info.get("technical_score")), info.get("technical_state"),
+            info.get("stage"), _safe_int(info.get("stage_confidence")),
+            info.get("expected_action"),
+            json.dumps(info.get("reasons", []), ensure_ascii=False) if info.get("reasons") else None,
+            json.dumps(info.get("signals_detail"), ensure_ascii=False) if info.get("signals_detail") else None,
+        ))
+    if records:
+        dst.executemany(
+            "INSERT OR REPLACE INTO index_technical "
+            "(trade_date, ts_code, close, pct_chg, technical_score, technical_state, "
+            "stage, stage_confidence, expected_action, reasons_json, signals_json) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?,?)", records)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Migrate panel JSON blobs to structured tables")
     parser.add_argument("--dry-run", action="store_true")
