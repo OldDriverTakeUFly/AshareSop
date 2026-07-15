@@ -46,7 +46,7 @@ def _get_recent_trade_day() -> str:
     today = datetime.now().strftime("%Y%m%d")
     with get_market_conn() as conn:
         row = conn.execute(
-            "SELECT MAX(trade_date) FROM daily_price WHERE ts_code='000001.SH' AND trade_date <= ?",
+            "SELECT MAX(trade_date) FROM daily_price WHERE trade_date <= ?",
             (today,),
         ).fetchone()
     if row and row[0]:
@@ -119,10 +119,10 @@ def cmd_run(args):
 
 
 def cmd_backfill(args):
-    """Backfill over a historical date range."""
+    """Backfill over a historical date range with automatic factor scoring."""
     _ensure_db()
     from davis_analyzer.paper_trading.account import PaperAccount
-    from davis_analyzer.paper_trading.executor import run_backfill
+    from davis_analyzer.paper_trading.executor import run_backfill_auto
     from davis_analyzer.paper_trading.strategy import create_strategy
 
     account = PaperAccount.load(args.name)
@@ -131,14 +131,24 @@ def cmd_backfill(args):
     start = args.start.replace("-", "")
     end = args.end.replace("-", "") if args.end else None
 
-    print(f"\n回填模拟盘 [{args.name}] {start} → {end or 'today'}...")
+    # Parse optional universe
+    universe = None
+    if args.universe:
+        universe = [c.strip() for c in args.universe.split(",")]
 
-    # For backfill, we need point-in-time factor scores.
-    # Currently the system doesn't have pre-computed historical scores,
-    # so davis_double strategy will only produce sells (no new buys).
-    # Factor_threshold will also need live computation.
-    # This is a known limitation — full backfill requires a scoring pipeline.
-    results = run_backfill(account, strategy, start, end)
+    print(f"\n全自动回填 [{args.name}] {start} → {end or 'today'}...")
+    print(f"  策略：{account.strategy_name}")
+    print(f"  股票池：{len(universe) if universe else '默认50只'} 只")
+    print(f"  评分频率：每 {args.scoring_freq} 个交易日")
+
+    results = run_backfill_auto(
+        account,
+        strategy,
+        start,
+        end,
+        universe_codes=universe,
+        scoring_frequency=args.scoring_freq,
+    )
 
     ok_days = sum(1 for r in results if r["status"] == "ok")
     skipped = sum(1 for r in results if r["status"] == "skipped")
@@ -147,9 +157,39 @@ def cmd_backfill(args):
     if results:
         last = results[-1]
         if "nav" in last:
+            initial = account.initial_capital
+            ret = (last["nav"] / initial - 1) * 100
+            print(f"  初始资金：{initial:,.0f} 元")
             print(f"  最终 NAV：{last['nav']:,.0f} 元")
+            print(f"  总收益：{'+' if ret >= 0 else ''}{ret:.2f}%")
 
     account.close()
+
+
+def cmd_live(args):
+    """Start live monitoring daemon."""
+    _ensure_db()
+    from davis_analyzer.paper_trading.account import PaperAccount
+    from davis_analyzer.paper_trading.live_monitor import LiveMonitor
+    from davis_analyzer.paper_trading.strategy import create_strategy
+
+    account = PaperAccount.load(args.name)
+    strategy = create_strategy(account.strategy_name, account.config)
+
+    monitor = LiveMonitor(
+        account=account,
+        strategy=strategy,
+        interval_seconds=args.interval,
+    )
+
+    print(f"\n实盘监控启动 [{args.name}]")
+    print(f"  策略：{account.strategy_name}")
+    print(f"  检查间隔：{args.interval} 秒")
+    print(f"  市场时段：09:30-11:30 / 13:00-15:00 CST")
+    print(f"  功能：盘中止损/止盈监控 → 收盘自动执行策略 + NAV")
+    print(f"\n  按 Ctrl+C 停止\n")
+
+    monitor.run_forever()
 
 
 def cmd_report(args):
@@ -218,11 +258,19 @@ def main():
     p_run.set_defaults(func=cmd_run)
 
     # backfill
-    p_bf = subparsers.add_parser("backfill", help="历史回填")
+    p_bf = subparsers.add_parser("backfill", help="全自动历史回填（自动计算因子评分）")
     p_bf.add_argument("--name", required=True, help="账户名称")
     p_bf.add_argument("--start", required=True, help="开始日期 (YYYYMMDD)")
     p_bf.add_argument("--end", default=None, help="结束日期 (YYYYMMDD)")
+    p_bf.add_argument("--universe", default=None, help="股票池 (逗号分隔ts_code，默认50只)")
+    p_bf.add_argument("--scoring-freq", type=int, default=5, help="评分频率(每N个交易日)")
     p_bf.set_defaults(func=cmd_backfill)
+
+    # live
+    p_live = subparsers.add_parser("live", help="实盘监控（盘中自动止损/止盈 + 收盘自动执行策略）")
+    p_live.add_argument("--name", required=True, help="账户名称")
+    p_live.add_argument("--interval", type=int, default=60, help="检查间隔(秒，默认60)")
+    p_live.set_defaults(func=cmd_live)
 
     # report
     p_rep = subparsers.add_parser("report", help="生成报告")

@@ -42,13 +42,13 @@ from stockhot.data_layer.market_db import get_connection as get_market_conn
 def _get_trading_days(start: str, end: str) -> list[str]:
     """Get sorted list of trading days (YYYYMMDD) from the daily_price table.
 
-    Uses the SSE Composite Index (000001.SH) as anchor — its cached prices are
-    dense on trading days.
+    Derives the calendar from the union of all cached stock trade dates
+    (more robust than relying on a single anchor stock which may not be cached).
     """
     with get_market_conn() as conn:
         rows = conn.execute(
             "SELECT DISTINCT trade_date FROM daily_price "
-            "WHERE ts_code='000001.SH' AND trade_date >= ? AND trade_date <= ? "
+            "WHERE trade_date >= ? AND trade_date <= ? "
             "ORDER BY trade_date",
             (start, end),
         ).fetchall()
@@ -267,7 +267,8 @@ def run_backfill(
     Args:
         start_date / end_date: YYYYMMDD format.
         davis_scores_by_date: {date_str: {ts_code: {final_score, rank, name}}}
-            Pre-computed point-in-time scores. If None, davis strategy produces no buys.
+            Pre-computed point-in-time scores. If None and auto_score=True,
+            scores are computed live via score_universe_at + factor engines.
         factor_scores_by_date: {date_str: {ts_code: {momentum, holder, ...}}}
             Pre-computed point-in-time factor scores.
     """
@@ -298,5 +299,174 @@ def run_backfill(
 
         if (i + 1) % 20 == 0:
             logger.info(f"  progress: {i+1}/{len(trading_days)} days")
+
+    return results
+
+
+# ─── Auto-scoring helpers ───────────────────────────────────────────────
+
+
+def _compute_davis_scores_at(
+    client,
+    as_of: date,
+    universe: list[str],
+    stock_infos: dict,
+) -> dict[str, dict]:
+    """Compute Davis Double composite scores for *universe* at *as_of* date.
+
+    Uses ``score_universe_at`` from backtest_factors (point-in-time correct).
+    Returns ``{ts_code: {"final_score": float, "name": str}}``.
+    """
+    from davis_analyzer.backtest_factors import score_universe_at
+
+    # Filter stock_infos to the requested universe
+    filtered = {c: stock_infos[c] for c in universe if c in stock_infos}
+    if not filtered:
+        return {}
+
+    raw_scores = score_universe_at(client, as_of, filtered)
+    # Rank and format
+    ranked = sorted(raw_scores.items(), key=lambda x: x[1], reverse=True)
+    result: dict[str, dict] = {}
+    for rank, (code, score) in enumerate(ranked, 1):
+        name = stock_infos.get(code)
+        name_str = name.name if hasattr(name, "name") else str(code)
+        result[code] = {"final_score": round(score, 2), "rank": rank, "name": name_str}
+    return result
+
+
+def _compute_factor_scores_at(
+    client,
+    as_of: date,
+    universe: list[str],
+) -> dict[str, dict]:
+    """Compute supplementary factor scores (momentum/holder/dividend) at *as_of*.
+
+    Returns ``{ts_code: {"momentum": float, "holder": float, "holder_trend": str, ...}}``.
+    """
+    from davis_analyzer.momentum import analyze_momentum
+    from davis_analyzer.holder_concentration import analyze_holder_concentration
+    from davis_analyzer.dividend import analyze_dividend
+
+    scores: dict[str, dict] = {}
+    for code in universe:
+        try:
+            entry: dict[str, Any] = {}
+            mom = analyze_momentum(client, code, today=as_of)
+            if mom:
+                entry["momentum"] = mom.momentum_score
+            hc = analyze_holder_concentration(client, code, today=as_of)
+            if hc:
+                entry["holder"] = hc.concentration_score
+                entry["holder_trend"] = hc.trend
+            div = analyze_dividend(client, code, today=as_of)
+            if div:
+                entry["dividend"] = div.dividend_score
+            if entry:
+                scores[code] = entry
+        except Exception:
+            pass
+    return scores
+
+
+def run_backfill_auto(
+    account: PaperAccount,
+    strategy: Strategy,
+    start_date: str,
+    end_date: str | None = None,
+    universe_codes: list[str] | None = None,
+    scoring_frequency: int = 5,
+) -> list[dict]:
+    """Full-auto backfill: automatically compute factor scores each scoring day.
+
+    This is the one-command backfill — no pre-computed scores needed. It:
+    1. Builds a stock universe (from ``universe_codes`` or the full stock list).
+    2. Every ``scoring_frequency`` trading days, computes Davis scores + factor
+       scores for the universe (point-in-time correct via ``as_of=`` params).
+    3. Passes scores to ``run_day`` for strategy evaluation + trade execution.
+
+    Args:
+        start_date / end_date: YYYYMMDD.
+        universe_codes: explicit stock list to score. If None, uses the top-50
+            by cached market cap (avoid full-universe for speed).
+        scoring_frequency: re-score every N trading days (default 5 = weekly).
+    """
+    from davis_analyzer.tushare_client import TushareClient
+
+    end_date = end_date or datetime.now().strftime("%Y%m%d")
+    trading_days = _get_trading_days(start_date, end_date)
+    if not trading_days:
+        logger.warning(f"No trading days found between {start_date} and {end_date}")
+        return []
+
+    client = TushareClient()
+
+    # Build universe
+    if universe_codes is None:
+        # Default: use the stock list from market_data.db, take a reasonable set
+        repo = get_repository()
+        stock_df = repo.get_stock_list()
+        if stock_df is not None and not stock_df.empty:
+            universe_codes = stock_df["ts_code"].tolist()[:50]  # top 50 for speed
+        else:
+            universe_codes = []
+
+    # Build stock_infos dict for score_universe_at
+    stock_infos: dict = {}
+    with get_market_conn() as conn:
+        conn.row_factory = sqlite3.Row  # enable name-based access
+        for code in universe_codes:
+            row = conn.execute(
+                "SELECT ts_code, name, industry FROM stock_basic WHERE ts_code=?", (code,)
+            ).fetchone()
+            if row:
+                from davis_analyzer.types import StockInfo
+
+                stock_infos[code] = StockInfo(
+                    ts_code=row["ts_code"],
+                    name=row["name"],
+                    industry=row["industry"] or "",
+                    list_status="L",
+                    is_cyclical=False,
+                )
+
+    logger.info(
+        f"[{account.name}] Auto-backfill {len(trading_days)} days, "
+        f"universe={len(universe_codes)} stocks, "
+        f"scoring every {scoring_frequency} days"
+    )
+
+    executor = DailyExecutor(account, strategy)
+    results: list[dict] = []
+    cached_davis: dict[str, dict] = {}
+    cached_factors: dict[str, dict] = {}
+
+    for i, day in enumerate(trading_days):
+        as_of = datetime.strptime(day, "%Y%m%d").date()
+
+        # Re-score periodically
+        if i % scoring_frequency == 0:
+            logger.info(f"  [{day}] Scoring universe ({len(universe_codes)} stocks)...")
+            try:
+                cached_davis = _compute_davis_scores_at(client, as_of, universe_codes, stock_infos)
+                cached_factors = _compute_factor_scores_at(client, as_of, universe_codes)
+                logger.info(
+                    f"  [{day}] Scored: {len(cached_davis)} davis, {len(cached_factors)} factor"
+                )
+            except Exception:
+                logger.exception(f"  [{day}] Scoring failed")
+                cached_davis = {}
+                cached_factors = {}
+
+        scores = {
+            "_davis_scores": cached_davis,
+            "_factor_scores": cached_factors,
+        }
+        result = executor.run_day(day, factor_scores=scores)
+        results.append(result)
+
+        if (i + 1) % 10 == 0:
+            nav = result.get("nav", 0)
+            logger.info(f"  progress: {i+1}/{len(trading_days)} days, NAV={nav:,.0f}")
 
     return results

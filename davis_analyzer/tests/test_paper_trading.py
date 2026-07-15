@@ -333,3 +333,113 @@ class TestReport:
         assert "当前持仓" in report
         assert "1,000,000" in report or "1000000" in report  # initial capital
         account.close()
+
+
+# ── Live Monitor tests ─────────────────────────────────────────────────
+
+
+class TestLiveMonitor:
+    def test_is_market_open_weekday_morning(self):
+        from davis_analyzer.paper_trading.live_monitor import is_market_open
+        from datetime import datetime
+        from zoneinfo import ZoneInfo
+
+        # Wednesday 10:00 CST → market open
+        wed = datetime(2026, 7, 15, 10, 0, tzinfo=ZoneInfo("Asia/Shanghai"))
+        assert is_market_open(wed) is True
+
+    def test_is_market_closed_weekend(self):
+        from davis_analyzer.paper_trading.live_monitor import is_market_open
+        from datetime import datetime
+        from zoneinfo import ZoneInfo
+
+        # Saturday 10:00 → closed
+        sat = datetime(2026, 7, 18, 10, 0, tzinfo=ZoneInfo("Asia/Shanghai"))
+        assert is_market_open(sat) is False
+
+    def test_is_market_closed_lunch_break(self):
+        from davis_analyzer.paper_trading.live_monitor import is_market_open
+        from datetime import datetime
+        from zoneinfo import ZoneInfo
+
+        # Wednesday 12:00 → lunch break, closed
+        noon = datetime(2026, 7, 15, 12, 0, tzinfo=ZoneInfo("Asia/Shanghai"))
+        assert is_market_open(noon) is False
+
+    def test_is_market_closed_after_hours(self):
+        from davis_analyzer.paper_trading.live_monitor import is_market_open
+        from datetime import datetime
+        from zoneinfo import ZoneInfo
+
+        # Wednesday 16:00 → after hours
+        late = datetime(2026, 7, 15, 16, 0, tzinfo=ZoneInfo("Asia/Shanghai"))
+        assert is_market_open(late) is False
+
+    def test_sell_signal_hard_stop(self, temp_db):
+        """Hard stop triggers sell when price drops below cost × (1 - 12%)."""
+        from davis_analyzer.paper_trading.account import PaperAccount
+        from davis_analyzer.paper_trading.strategy import create_strategy
+        from davis_analyzer.paper_trading.live_monitor import LiveMonitor
+        from unittest.mock import patch
+
+        account = PaperAccount.create("live_stop_test", "factor_threshold", 100_000)
+        # Buy at 10.0 → hard stop at 8.8 (10 × 0.88)
+        account.buy("000099.SZ", "测试", 1000, 10.0, "20260101")
+        assert len(account.get_positions()) == 1
+
+        strategy = create_strategy("factor_threshold", account.config)
+        monitor = LiveMonitor(account, strategy, interval_seconds=1)
+
+        # Mock get_realtime_price to return 8.5 (below 8.8 stop)
+        with patch("davis_analyzer.paper_trading.live_monitor.get_realtime_price", return_value=8.5):
+            monitor._check_sell_signals("20260102")
+
+        # Position should be sold
+        assert len(account.get_positions()) == 0
+        trades = account.get_trades()
+        assert any(t.action == "SELL" and "止损" in t.signal_reason for t in trades)
+        account.close()
+
+    def test_sell_signal_target_reached(self, temp_db):
+        """Take-profit triggers sell when price rises above cost × (1 + 20%)."""
+        from davis_analyzer.paper_trading.account import PaperAccount
+        from davis_analyzer.paper_trading.strategy import create_strategy
+        from davis_analyzer.paper_trading.live_monitor import LiveMonitor
+        from unittest.mock import patch
+
+        account = PaperAccount.create("live_target_test", "factor_threshold", 100_000)
+        # Buy at 10.0 → target at 12.0 (10 × 1.20)
+        account.buy("000098.SZ", "测试", 1000, 10.0, "20260101")
+
+        strategy = create_strategy("factor_threshold", account.config)
+        monitor = LiveMonitor(account, strategy, interval_seconds=1)
+
+        # Mock price at 12.5 (above 12.0 target)
+        with patch("davis_analyzer.paper_trading.live_monitor.get_realtime_price", return_value=12.5):
+            monitor._check_sell_signals("20260102")
+
+        assert len(account.get_positions()) == 0
+        trades = account.get_trades()
+        assert any(t.action == "SELL" and "止盈" in t.signal_reason for t in trades)
+        account.close()
+
+    def test_no_sell_when_price_normal(self, temp_db):
+        """No sell signal when price is within normal range."""
+        from davis_analyzer.paper_trading.account import PaperAccount
+        from davis_analyzer.paper_trading.strategy import create_strategy
+        from davis_analyzer.paper_trading.live_monitor import LiveMonitor
+        from unittest.mock import patch
+
+        account = PaperAccount.create("live_normal_test", "factor_threshold", 100_000)
+        account.buy("000097.SZ", "测试", 1000, 10.0, "20260101")
+
+        strategy = create_strategy("factor_threshold", account.config)
+        monitor = LiveMonitor(account, strategy, interval_seconds=1)
+
+        # Price at 10.5 — within range (not below 8.8, not above 12.0)
+        with patch("davis_analyzer.paper_trading.live_monitor.get_realtime_price", return_value=10.5):
+            monitor._check_sell_signals("20260102")
+
+        # Position should still be held
+        assert len(account.get_positions()) == 1
+        account.close()
