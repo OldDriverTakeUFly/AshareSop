@@ -159,22 +159,17 @@ def collect_overseas_data(target_date: str) -> dict:
         errors.append(f"a50: {e}")
         traceback.print_exc()
 
-    # VIX (China 50ETF QVIX)
+    # VIX (China 50ETF QVIX) — 走 DAL 缓存（与 volatility 模块共享）
     try:
-        df = _call_akshare("index_option_50etf_qvix")
-        if df is not None and len(df) >= 1:
-            close_col = None
-            for col in df.columns:
-                if "close" in str(col).lower():
-                    close_col = col
-                    break
-            if close_col:
-                results["vix"] = round(float(df[close_col].iloc[-1]), 4)
-                print(f"  [OK] VIX (QVIX): {results.get('vix')}")
-            else:
-                errors.append("vix: no close column found")
+        from stockhot.data_layer import get_repository
+
+        repo = get_repository()
+        ivix_df = repo.get_ivix_history(days=30)
+        if not ivix_df.empty:
+            results["vix"] = round(float(ivix_df["close"].iloc[-1]), 4)
+            print(f"  [OK] VIX (QVIX via DAL): {results.get('vix')}")
         else:
-            errors.append("vix: no data returned")
+            errors.append("vix: no data in DAL cache")
     except Exception as e:
         errors.append(f"vix: {e}")
         traceback.print_exc()

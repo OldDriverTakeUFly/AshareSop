@@ -208,6 +208,13 @@ _SCHEMA_STATEMENTS: list[str] = [
         fetched_at   REAL,
         PRIMARY KEY (ts_code, report_date, org_name)
     )""",
+    # iVIX/QVIX 历史（中国 50ETF 波动率指数），AKShare index_option_50etf_qvix 唯一源，
+    # volatility 和 invest_sop/overseas 共享缓存避免重复拉取
+    """CREATE TABLE IF NOT EXISTS ivix_history (
+        trade_date TEXT PRIMARY KEY,
+        close      REAL,
+        fetched_at REAL
+    )""",
     # 采集日志 — 解决"不知道哪个模块跑没跑"的问题
     """CREATE TABLE IF NOT EXISTS scan_log (
         id            INTEGER PRIMARY KEY AUTOINCREMENT,

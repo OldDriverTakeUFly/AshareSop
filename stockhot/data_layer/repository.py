@@ -401,6 +401,113 @@ class MarketDataRepository:
         return [dict(zip(cols, r)) for r in rows]
 
     # ═══════════════════════════════════════════════════════════════════
+    # iVIX/QVIX 历史（中国 50ETF 波动率指数，AKShare 唯一源，跨模块共享缓存）
+    # ═══════════════════════════════════════════════════════════════════
+
+    def get_ivix_history(self, days: int = 1300) -> pd.DataFrame:
+        """获取 iVIX/QVIX 历史收盘价序列（跨模块共享缓存）.
+
+        替代 volatility 和 invest_sop/overseas 各自独立调 AKShare
+        ``index_option_50etf_qvix``。缓存命中时不调 API。
+
+        返回 DataFrame[index=date, columns=[close]]，升序。
+        """
+        from datetime import datetime, timedelta
+
+        end_date = datetime.now().strftime("%Y%m%d")
+        start_date = (datetime.now() - timedelta(days=int(days * 1.6))).strftime("%Y%m%d")
+
+        # 检查缓存
+        with closing(get_connection()) as conn:
+            row = conn.execute(
+                "SELECT COUNT(*), MAX(trade_date) FROM ivix_history "
+                "WHERE trade_date >= ?", (start_date,)
+            ).fetchone()
+            cached_count = row[0] if row else 0
+
+        # 缓存不足或过期（非今日拉取）则刷新
+        from stockhot.data_layer.cache import is_fetched_today, now_ts
+        with closing(get_connection()) as conn:
+            latest = conn.execute(
+                "SELECT fetched_at FROM ivix_history ORDER BY fetched_at DESC LIMIT 1"
+            ).fetchone()
+        latest_ts = latest[0] if latest else None
+
+        if cached_count < 100 or not is_fetched_today(latest_ts):
+            # 从 AKShare 拉取（唯一源）
+            try:
+                import akshare as ak
+                from stockhot.core.rate_limiter import safe_akshare_call
+
+                raw = safe_akshare_call(ak.index_option_50etf_qvix)
+                if raw is not None and not raw.empty:
+                    ts = now_ts()
+                    records = []
+                    for _, r in raw.iterrows():
+                        td = str(r.get("date", "")).replace("-", "")
+                        if td:
+                            records.append((td, float(r.get("close", 0)), ts))
+                    with closing(get_connection()) as conn:
+                        conn.executemany(
+                            "INSERT OR REPLACE INTO ivix_history (trade_date, close, fetched_at) "
+                            "VALUES (?,?,?)", records
+                        )
+                        conn.commit()
+            except Exception as e:
+                logger.warning(f"iVIX refresh failed: {e}")
+
+        # 从缓存读取
+        with closing(get_connection()) as conn:
+            rows = conn.execute(
+                "SELECT trade_date, close FROM ivix_history "
+                "WHERE trade_date >= ? ORDER BY trade_date", (start_date,)
+            ).fetchall()
+        if not rows:
+            return pd.DataFrame()
+        df = pd.DataFrame(rows, columns=["trade_date", "close"])
+        df["date"] = pd.to_datetime(df["trade_date"], format="%Y%m%d")
+        return df.set_index("date")[["close"]].astype(float).tail(days)
+
+    # ═══════════════════════════════════════════════════════════════════
+    # 缓存维护：清理过期行（解决 davis/stockhot 缓存只增不减的膨胀问题）
+    # ═══════════════════════════════════════════════════════════════════
+
+    def cleanup_expired_cache(self, max_age_days: int = 90) -> dict[str, int]:
+        """清理过期缓存行，返回各表删除行数.
+
+        清理策略（与数据生命周期对齐）：
+        - daily_basic: 删除 30 天前的行（24h TTL，但保留近期供查询）
+        - scan_log: 删除 max_age_days 天前（默认 90 天）的日志
+        - daily_price / financial / hk_hold: **不删**（历史数据不可变，永久保留）
+        - ivix_history: 删除 5 年前的行（够算长周期分位）
+
+        由 run_daily_scan Wave 4 每天调用一次（盘后低频，不影响采集）。
+        """
+        from datetime import datetime, timedelta
+
+        cutoff_30d = (datetime.now() - timedelta(days=30)).strftime("%Y%m%d")
+        cutoff_5y = (datetime.now() - timedelta(days=365 * 5)).strftime("%Y%m%d")
+        cutoff_log = now_ts() - max_age_days * 86400
+
+        deleted: dict[str, int] = {}
+        cleanup_sql = [
+            ("daily_basic", f"DELETE FROM daily_basic WHERE trade_date < '{cutoff_30d}'"),
+            ("scan_log", f"DELETE FROM scan_log WHERE created_at < {cutoff_log}"),
+            ("ivix_history", f"DELETE FROM ivix_history WHERE trade_date < '{cutoff_5y}'"),
+        ]
+        with closing(get_connection()) as conn:
+            for table, sql in cleanup_sql:
+                cur = conn.execute(sql)
+                deleted[table] = cur.rowcount
+            conn.commit()
+            # VACUUM 压缩碎片（仅在删除量较大时）
+            total_del = sum(deleted.values())
+            if total_del > 1000:
+                conn.execute("VACUUM")
+        logger.info(f"cleanup_expired_cache: deleted {deleted}")
+        return deleted
+
+    # ═══════════════════════════════════════════════════════════════════
     # 盘面采集：scan_log（采集日志，解决"不知道哪个模块跑没跑"）
     # ═══════════════════════════════════════════════════════════════════
 

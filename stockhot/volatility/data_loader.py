@@ -114,15 +114,14 @@ def fetch_index_history(ts_code: str, days: int = 1300) -> pd.DataFrame:
 def fetch_ivix_history(days: int = 1300) -> pd.Series:
     """采集上证 50ETF 波动率指数（iVIX / QVIX）历史 close 序列。
 
-    AKShare ``index_option_50etf_qvix`` 返回 2015-02 至今的完整日频数据，
-    覆盖 iVIX 官方停发（2018.6）后的第三方重建版本——这是 Layer 5 的核心数据源，
-    比方法论研报里的 Tushare 期权链 + BS 反算（仅快照可用）更优。
+    2026-07-15 统一架构调整：优先走 DAL 缓存（与 invest_sop/overseas 共享），
+    命中时不调 AKShare。fallback 到原始 AKShare 路径。
 
-    ⚠️ **数据源缺口**（参考 ``.agents/skills/data-source-convention.md``）：
-    Tushare **无 QVIX/iVIX 等价接口**，本函数为 **AKShare 单源**。
-    数据来自期权论坛（optbbs.com）第三方重建版，非官方发布，算法可能与
-    原 iVIX（Carr-Madan 无模型 IV）有偏差。建议定期与 50ETF 期权 BS 反算
-    IV 交叉校验（方法论文档 §3.3）。
+    AKShare ``index_option_50etf_qvix`` 返回 2015-02 至今的完整日频数据，
+    覆盖 iVIX 官方停发（2018.6）后的第三方重建版本——这是 Layer 5 的核心数据源。
+
+    ⚠️ **数据源缺口**：Tushare 无 QVIX/iVIX 等价接口，本函数为 AKShare 单源。
+    数据来自期权论坛（optbbs.com）第三方重建版，非官方发布。
 
     参数：
         days: 取最近 N 个交易日（默认 1300 ≈ 5 年）
@@ -131,6 +130,20 @@ def fetch_ivix_history(days: int = 1300) -> pd.Series:
         Series[index=date, name='ivix']，升序，float。
         失败返回空 Series。
     """
+    # 第一优先：DAL 缓存（与 invest_sop/overseas 共享，避免重复 AKShare 调用）
+    try:
+        from stockhot.data_layer import get_repository
+
+        repo = get_repository()
+        df_cache = repo.get_ivix_history(days=days)
+        if not df_cache.empty:
+            series = df_cache["close"].astype(float).rename("ivix")
+            logger.info(f"[iVIX] via DAL cache: {len(series)} rows, latest={series.iloc[-1]:.2f}")
+            return series
+    except Exception as e:
+        logger.warning(f"[iVIX] DAL cache failed: {e}")
+
+    # fallback：直接 AKShare（原逻辑）
     import akshare as ak
 
     try:

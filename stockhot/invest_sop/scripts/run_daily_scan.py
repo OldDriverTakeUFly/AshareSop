@@ -57,8 +57,12 @@ def run_wave_1(trade_date: str) -> bool:
     try:
         from stockhot.limit_up import run_limit_up_analysis
 
-        result = run_limit_up_analysis(trade_date)
-        count = len(result.get("limit_up_pool", [])) if isinstance(result, dict) else 0
+        run_limit_up_analysis(trade_date)
+        # 从 DB 读实际入库行数（result 返回值结构不稳定，DB 是 ground truth）
+        from stockhot.storage.database import get_daily_data
+
+        data = get_daily_data(trade_date)
+        count = len(data.get("limit_up_pool", []))
         print(f"[{trade_date}] Wave 1 limit_up: OK ({count} 涨停)")
         _log_scan(trade_date, "limit_up", "success", started_at=t0, rows=count)
         return True
@@ -82,8 +86,12 @@ def run_wave_2(trade_date: str) -> tuple[bool, bool, bool, bool]:
         from stockhot.fund_flow import run_fund_flow_analysis
 
         run_fund_flow_analysis(trade_date)
-        print(f"[{trade_date}] Wave 2 fund_flow: OK")
-        _log_scan(trade_date, "fund_flow", "success", started_at=t0)
+        from stockhot.storage.database import get_daily_data
+
+        ff_data = get_daily_data(trade_date)
+        ff_rows = len(ff_data.get("fund_flow_sector", []))
+        print(f"[{trade_date}] Wave 2 fund_flow: OK ({ff_rows} 板块)")
+        _log_scan(trade_date, "fund_flow", "success", started_at=t0, rows=ff_rows)
         ff_ok = True
     except Exception as e:
         msg = f"{type(e).__name__}: {e}"
@@ -97,8 +105,12 @@ def run_wave_2(trade_date: str) -> tuple[bool, bool, bool, bool]:
         from stockhot.dragon_tiger import run_dragon_tiger_analysis
 
         run_dragon_tiger_analysis(trade_date)
-        print(f"[{trade_date}] Wave 2 dragon_tiger: OK")
-        _log_scan(trade_date, "dragon_tiger", "success", started_at=t0)
+        from stockhot.storage.database import get_daily_data
+
+        dt_data = get_daily_data(trade_date)
+        dt_rows = len(dt_data.get("dragon_tiger_detail", []))
+        print(f"[{trade_date}] Wave 2 dragon_tiger: OK ({dt_rows} 条)")
+        _log_scan(trade_date, "dragon_tiger", "success", started_at=t0, rows=dt_rows)
         dt_ok = True
     except Exception as e:
         msg = f"{type(e).__name__}: {e}"
@@ -209,6 +221,15 @@ def main(argv: list[str] | None = None) -> int:
             print(f"[{trade_date}] Wave 4 sync_to_market_db: FAILED — {type(e).__name__}: {e}")
             _log_scan(trade_date, "sync_market_db", "failed",
                       error_msg=f"{type(e).__name__}: {e}")
+
+        # 顺带清理过期缓存行（每天一次，低频不影响采集）
+        try:
+            from stockhot.data_layer import get_repository
+            deleted = get_repository().cleanup_expired_cache()
+            if any(deleted.values()):
+                print(f"[{trade_date}] Wave 4 cleanup: {deleted}")
+        except Exception:
+            pass  # cleanup 失败不影响主流程
 
     # Exit 0 if at least limit_up succeeded (core data), else 1
     return 0 if results["limit_up"] else 1
