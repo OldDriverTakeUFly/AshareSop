@@ -231,6 +231,61 @@ def init_database() -> None:
             );
 
             CREATE INDEX IF NOT EXISTS idx_advisor_runs_date ON advisor_runs(trade_date);
+
+            -- ═══════════════════════════════════════════════════════════
+            -- 模拟盘（Paper Trading）表
+            -- ═══════════════════════════════════════════════════════════
+            CREATE TABLE IF NOT EXISTS paper_accounts (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL UNIQUE,
+                strategy_name TEXT NOT NULL,
+                initial_capital REAL NOT NULL,
+                cash REAL NOT NULL,
+                status TEXT DEFAULT 'active',
+                config_json TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+            );
+
+            CREATE TABLE IF NOT EXISTS paper_positions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                account_id INTEGER NOT NULL REFERENCES paper_accounts(id),
+                ts_code TEXT NOT NULL,
+                name TEXT,
+                shares INTEGER NOT NULL,
+                avg_cost REAL NOT NULL,
+                entry_date TEXT NOT NULL,
+                signal_reason TEXT,
+                UNIQUE(account_id, ts_code)
+            );
+
+            CREATE TABLE IF NOT EXISTS paper_trades (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                account_id INTEGER NOT NULL REFERENCES paper_accounts(id),
+                trade_date TEXT NOT NULL,
+                ts_code TEXT NOT NULL,
+                name TEXT,
+                action TEXT NOT NULL,
+                shares INTEGER NOT NULL,
+                price REAL NOT NULL,
+                amount REAL NOT NULL,
+                cost REAL NOT NULL,
+                signal_reason TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            );
+            CREATE INDEX IF NOT EXISTS idx_paper_trades_date ON paper_trades(account_id, trade_date);
+
+            CREATE TABLE IF NOT EXISTS paper_nav_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                account_id INTEGER NOT NULL REFERENCES paper_accounts(id),
+                trade_date TEXT NOT NULL,
+                cash REAL NOT NULL,
+                positions_value REAL NOT NULL,
+                total_equity REAL NOT NULL,
+                daily_return REAL,
+                UNIQUE(account_id, trade_date)
+            );
+            CREATE INDEX IF NOT EXISTS idx_paper_nav_date ON paper_nav_history(account_id, trade_date);
         """)
 
         # Migrate: add quantity and avg_cost columns if missing
