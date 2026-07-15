@@ -18,9 +18,11 @@ from pathlib import Path
 
 import pandas as pd
 
+from stockhot.core.config import STORAGE_DIR
 from stockhot.core.logging import logger
 
-CACHE_DIR = Path("stockhot/storage/sector_rv_cache")
+# 绝对路径（基于 PROJECT_ROOT），消除 cwd 依赖
+CACHE_DIR = STORAGE_DIR / "sector_rv_cache"
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
 MEMBERS_CACHE = CACHE_DIR / "sw_members.json"
 

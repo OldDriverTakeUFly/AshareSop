@@ -187,6 +187,48 @@ _SCHEMA_STATEMENTS: list[str] = [
         fetched_at         REAL,
         PRIMARY KEY (trade_date, ts_code)
     )""",
+    # 波动率——指数层（每日每指数一行，从 volatility JSON 的 indices 解构）
+    """CREATE TABLE IF NOT EXISTS daily_volatility_index (
+        trade_date   TEXT NOT NULL,
+        ts_code      TEXT NOT NULL,
+        name         TEXT,
+        close        REAL,
+        rv20         REAL,
+        rv60         REAL,
+        rv20_pct     REAL,
+        rv60_pct     REAL,
+        panic_level  TEXT,
+        fetched_at   REAL,
+        PRIMARY KEY (trade_date, ts_code)
+    )""",
+    # 波动率——市场层（每日一行，iVIX + V/R + 涨跌停行为）
+    """CREATE TABLE IF NOT EXISTS daily_volatility_market (
+        trade_date       TEXT PRIMARY KEY,
+        ivix_current     REAL,
+        ivix_pct         REAL,
+        ivix_panic_level TEXT,
+        vr_ratio         REAL,
+        limit_up         INTEGER,
+        broken           INTEGER,
+        limit_down       INTEGER,
+        up_down_ratio    REAL,
+        broken_rate      REAL,
+        behavior_signal  TEXT,
+        summary          TEXT,
+        fetched_at       REAL
+    )""",
+    # 板块波动率（每日每板块一行，从 sector_volatility JSON 的 sectors 解构）
+    """CREATE TABLE IF NOT EXISTS daily_sector_volatility (
+        trade_date      TEXT NOT NULL,
+        sw_code         TEXT NOT NULL,
+        name            TEXT,
+        member_count    INTEGER,
+        sector_rv20     REAL,
+        sector_rv20_pct REAL,
+        panic_level     TEXT,
+        fetched_at      REAL,
+        PRIMARY KEY (trade_date, sw_code)
+    )""",
 
     # ═══ 元数据表 ════════════════════════════════════════════════════
     # 宏观指标缓存（PMI/CPI/PPI/M2/Shibor/LPR），给 macro 模块加缓存

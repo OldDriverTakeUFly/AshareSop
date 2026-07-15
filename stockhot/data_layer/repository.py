@@ -45,6 +45,22 @@ from stockhot.data_layer.tushare_gateway import TushareGateway, get_gateway
 _TZ_SHANGHAI = ZoneInfo("Asia/Shanghai")
 
 
+def _safe_float(v, default=None):
+    """安全转 float（None/异常返回 default）."""
+    try:
+        return float(v) if v is not None else default
+    except (TypeError, ValueError):
+        return default
+
+
+def _safe_int(v, default=None):
+    """安全转 int（None/异常返回 default）."""
+    try:
+        return int(float(v)) if v is not None else default
+    except (TypeError, ValueError):
+        return default
+
+
 class MarketDataRepository:
     """market_data.db 的统一读写仓库."""
 
@@ -467,6 +483,132 @@ class MarketDataRepository:
         df = pd.DataFrame(rows, columns=["trade_date", "close"])
         df["date"] = pd.to_datetime(df["trade_date"], format="%Y%m%d")
         return df.set_index("date")[["close"]].astype(float).tail(days)
+
+    # ═══════════════════════════════════════════════════════════════════
+    # 波动率结构化写入（从 run_volatility_analysis 的 dict 解析入库）
+    # ═══════════════════════════════════════════════════════════════════
+
+    def save_volatility(self, trade_date: str, result: dict) -> int:
+        """把 run_volatility_analysis 的结果 dict 解析到结构化表.
+
+        解构 indices → daily_volatility_index（每指数一行），
+        market + limit_behavior → daily_volatility_market（每日一行）。
+        cross_signal 等嵌套结构不迁（查询时从 summary 即可）。
+        """
+        ts = now_ts()
+        n = 0
+        with closing(get_connection()) as conn:
+            # 指数层
+            indices = result.get("indices", {})
+            idx_records = []
+            for ts_code, info in indices.items():
+                if not isinstance(info, dict):
+                    continue
+                idx_records.append((
+                    trade_date, ts_code,
+                    info.get("name"),
+                    _safe_float(info.get("close")),
+                    _safe_float(info.get("rv20")),
+                    _safe_float(info.get("rv60")),
+                    _safe_float(info.get("rv20_pct")),
+                    _safe_float(info.get("rv60_pct")),
+                    info.get("panic_level"),
+                    ts,
+                ))
+            if idx_records:
+                conn.executemany(
+                    "INSERT OR REPLACE INTO daily_volatility_index "
+                    "(trade_date, ts_code, name, close, rv20, rv60, rv20_pct, rv60_pct, panic_level, fetched_at) "
+                    "VALUES (?,?,?,?,?,?,?,?,?,?)", idx_records
+                )
+                n += len(idx_records)
+
+            # 市场层（每日一行）
+            market = result.get("market", {})
+            limit_bh = result.get("limit_behavior", {})
+            if market or limit_bh:
+                conn.execute(
+                    "INSERT OR REPLACE INTO daily_volatility_market "
+                    "(trade_date, ivix_current, ivix_pct, ivix_panic_level, vr_ratio, "
+                    "limit_up, broken, limit_down, up_down_ratio, broken_rate, "
+                    "behavior_signal, summary, fetched_at) "
+                    "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    (
+                        trade_date,
+                        _safe_float(market.get("ivix_current")),
+                        _safe_float(market.get("ivix_pct")),
+                        market.get("ivix_panic_level"),
+                        _safe_float(market.get("vr_ratio")),
+                        _safe_int(limit_bh.get("limit_up")),
+                        _safe_int(limit_bh.get("broken")),
+                        _safe_int(limit_bh.get("limit_down")),
+                        _safe_float(limit_bh.get("up_down_ratio")),
+                        _safe_float(limit_bh.get("broken_rate")),
+                        limit_bh.get("behavior_signal"),
+                        result.get("summary"),
+                        ts,
+                    ),
+                )
+                n += 1
+            conn.commit()
+        return n
+
+    def save_sector_volatility(self, trade_date: str, result: dict) -> int:
+        """把 run_sector_volatility_analysis 的结果 dict 解析到结构化表.
+
+        解构 sectors → daily_sector_volatility（每板块一行）。
+        """
+        ts = now_ts()
+        sectors = result.get("sectors", {})
+        records = []
+        for _name, info in sectors.items():
+            if not isinstance(info, dict):
+                continue
+            records.append((
+                trade_date,
+                info.get("sw_code"),
+                info.get("name", _name),
+                _safe_int(info.get("member_count")),
+                _safe_float(info.get("sector_rv20")),
+                _safe_float(info.get("sector_rv20_pct")),
+                info.get("panic_level"),
+                ts,
+            ))
+        if records:
+            with closing(get_connection()) as conn:
+                conn.executemany(
+                    "INSERT OR REPLACE INTO daily_sector_volatility "
+                    "(trade_date, sw_code, name, member_count, sector_rv20, sector_rv20_pct, panic_level, fetched_at) "
+                    "VALUES (?,?,?,?,?,?,?,?)", records
+                )
+                conn.commit()
+        return len(records)
+
+    def get_volatility_index(self, trade_date: str) -> list[dict]:
+        """读取当日指数波动率（结构化）."""
+        with closing(get_connection()) as conn:
+            rows = conn.execute(
+                "SELECT ts_code, name, close, rv20, rv60, rv20_pct, rv60_pct, panic_level "
+                "FROM daily_volatility_index WHERE trade_date=? ORDER BY rv20_pct DESC",
+                (trade_date,),
+            ).fetchall()
+        cols = ["ts_code", "name", "close", "rv20", "rv60", "rv20_pct", "rv60_pct", "panic_level"]
+        return [dict(zip(cols, r)) for r in rows]
+
+    def get_volatility_market(self, trade_date: str) -> dict | None:
+        """读取当日市场波动率（结构化）."""
+        with closing(get_connection()) as conn:
+            row = conn.execute(
+                "SELECT ivix_current, ivix_pct, ivix_panic_level, vr_ratio, "
+                "limit_up, broken, limit_down, behavior_signal, summary "
+                "FROM daily_volatility_market WHERE trade_date=?",
+                (trade_date,),
+            ).fetchone()
+        if not row:
+            return None
+        cols = ["ivix_current", "ivix_pct", "ivix_panic_level", "vr_ratio",
+                "limit_up", "broken", "limit_down", "behavior_signal", "summary"]
+        return dict(zip(cols, row))
 
     # ═══════════════════════════════════════════════════════════════════
     # 缓存维护：清理过期行（解决 davis/stockhot 缓存只增不减的膨胀问题）

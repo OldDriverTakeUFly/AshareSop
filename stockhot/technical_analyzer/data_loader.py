@@ -188,7 +188,24 @@ def fetch_ohlcv(
     if not dal_df.empty:
         return dal_df
 
-    # 回退：Tushare pro_bar → AKShare（原有逻辑）
+    # DAL miss → 触发 DAL 增量拉取（内部会调 Tushare daily+adj_factor 并写入缓存），
+    # 这样下次命中缓存，避免重复走 pro_bar 无缓存路径。
+    try:
+        from stockhot.data_layer import get_repository
+
+        ts_code = symbol if "." in symbol else _to_ts_code(symbol)
+        s = start_date.replace("-", "")
+        e = end_date.replace("-", "")
+        repo = get_repository()
+        repo.get_daily_prices(ts_code, s, e)  # 增量拉取 + 写缓存
+        # 再次从 DAL 读取（此时应命中刚写入的缓存）
+        dal_df = _fetch_via_dal(symbol, start_date, end_date, adjust)
+        if not dal_df.empty:
+            return dal_df
+    except Exception:
+        pass  # DAL 增量拉取失败则走原始 fallback
+
+    # 最终回退：Tushare pro_bar → AKShare（原逻辑，不写缓存）
     return fetch_with_fallback(
         primary_fn=lambda: _fetch_via_tushare(symbol, start_date, end_date, adjust),
         fallback_fn=lambda: _fetch_via_akshare(symbol, start_date, end_date, adjust),

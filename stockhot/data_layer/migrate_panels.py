@@ -315,9 +315,11 @@ def sync_single_day(trade_date: str) -> int:
             _sync_day_dragon_tiger(src, dst, trade_date)
             _sync_day_fund_flow(src, dst, trade_date)
             _sync_day_index_technical(src, dst, trade_date)
+            _sync_day_volatility(src, dst, trade_date)
 
             for table in ["limit_pool", "dragon_tiger", "fund_flow_sector",
-                          "fund_flow_market", "index_technical"]:
+                          "fund_flow_market", "index_technical",
+                          "daily_volatility_index", "daily_volatility_market"]:
                 total += dst.execute(
                     f"SELECT COUNT(*) FROM {table} WHERE trade_date=?", (trade_date,)
                 ).fetchone()[0]
@@ -480,6 +482,74 @@ def _sync_day_index_technical(src, dst, trade_date: str) -> None:
             "(trade_date, ts_code, close, pct_chg, technical_score, technical_state, "
             "stage, stage_confidence, expected_action, reasons_json, signals_json) "
             "VALUES (?,?,?,?,?,?,?,?,?,?,?)", records)
+
+
+def _sync_day_volatility(src, dst, trade_date: str) -> None:
+    """同步单日波动率（indices → daily_volatility_index，market+limit_behavior → daily_volatility_market）."""
+    row = src.execute(
+        "SELECT data_json FROM daily_data WHERE data_type='volatility' AND trade_date=?",
+        (trade_date,),
+    ).fetchone()
+    if not row:
+        return
+    try:
+        data = json.loads(row[0])
+    except json.JSONDecodeError:
+        return
+    if not isinstance(data, dict):
+        return
+
+    ts = _safe_float  # 复用 helper（注意 _safe_float 返回 float，这里用 time.time）
+    import time as _t
+    now = _t.time()
+
+    # 指数层
+    indices = data.get("indices", {})
+    idx_records = []
+    for ts_code, info in indices.items():
+        if not isinstance(info, dict):
+            continue
+        idx_records.append((
+            trade_date, ts_code, info.get("name"),
+            _safe_float(info.get("close")), _safe_float(info.get("rv20")),
+            _safe_float(info.get("rv60")), _safe_float(info.get("rv20_pct")),
+            _safe_float(info.get("rv60_pct")), info.get("panic_level"), now,
+        ))
+    # 先清旧再写
+    dst.execute("DELETE FROM daily_volatility_index WHERE trade_date=?", (trade_date,))
+    if idx_records:
+        dst.executemany(
+            "INSERT OR REPLACE INTO daily_volatility_index "
+            "(trade_date, ts_code, name, close, rv20, rv60, rv20_pct, rv60_pct, panic_level, fetched_at) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?)", idx_records)
+
+    # 市场层
+    market = data.get("market", {})
+    limit_bh = data.get("limit_behavior", {})
+    dst.execute("DELETE FROM daily_volatility_market WHERE trade_date=?", (trade_date,))
+    if market or limit_bh:
+        dst.execute(
+            "INSERT INTO daily_volatility_market "
+            "(trade_date, ivix_current, ivix_pct, ivix_panic_level, vr_ratio, "
+            "limit_up, broken, limit_down, up_down_ratio, broken_rate, "
+            "behavior_signal, summary, fetched_at) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+            (
+                trade_date,
+                _safe_float(market.get("ivix_current")),
+                _safe_float(market.get("ivix_pct")),
+                market.get("ivix_panic_level"),
+                _safe_float(market.get("vr_ratio")),
+                _safe_int(limit_bh.get("limit_up")),
+                _safe_int(limit_bh.get("broken")),
+                _safe_int(limit_bh.get("limit_down")),
+                _safe_float(limit_bh.get("up_down_ratio")),
+                _safe_float(limit_bh.get("broken_rate")),
+                limit_bh.get("behavior_signal"),
+                data.get("summary"),
+                now,
+            ),
+        )
 
 
 if __name__ == "__main__":

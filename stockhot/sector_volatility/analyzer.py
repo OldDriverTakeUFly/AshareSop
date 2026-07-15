@@ -242,4 +242,12 @@ def run_sector_volatility_analysis(
         except Exception as e:
             logger.error(f"  持久化失败: {e}")
 
+        # 同步到 market_data.db 结构化表（供跨模块 SQL 查询）
+        try:
+            from stockhot.data_layer import get_repository
+            n = get_repository().save_sector_volatility(date, result)
+            logger.info(f"  持久化 sector_volatility → market_data.db ({n} 板块)")
+        except Exception as e:
+            logger.warning(f"  market_data.db 同步失败（不影响主流程）: {e}")
+
     return result

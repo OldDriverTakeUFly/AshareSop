@@ -96,6 +96,7 @@ def fetch_index_ohlcv(ts_code: str, days: int = 120) -> pd.DataFrame:
         end = date.today().strftime("%Y%m%d")
         start = (date.today() - timedelta(days=int(days * 1.6))).strftime("%Y%m%d")
         df_dal = repo.get_index_daily(ts_code, start, end)
+        # get_index_daily 内部已做增量拉取 + 写缓存，若返回非空直接用
         if not df_dal.empty:
             df = df_dal.copy()
             df["date"] = pd.to_datetime(df["trade_date"], format="%Y%m%d")
@@ -107,7 +108,7 @@ def fetch_index_ohlcv(ts_code: str, days: int = 120) -> pd.DataFrame:
     except Exception:
         pass  # DAL 失败则回退
 
-    # 回退：Tushare → AKShare（原逻辑）
+    # 最终回退：Tushare → AKShare（原逻辑，DAL 增量拉取也失败时）
     from stockhot.core.datasource import fetch_with_fallback
 
     def _akshare_cropped() -> pd.DataFrame:

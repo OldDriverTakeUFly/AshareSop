@@ -14,8 +14,6 @@ STUDIES_DIR = PROJECT_ROOT / "davis_analyzer" / "studies"
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
 STUDIES_DIR.mkdir(parents=True, exist_ok=True)
 
-CACHE_DB_PATH = CACHE_DIR / "davis_analyzer.db"
-
 
 def get_tushare_token() -> str:
     """Read Tushare Pro API token from environment variables (.env).
