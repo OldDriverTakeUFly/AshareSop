@@ -57,13 +57,15 @@ def _benchmark_for(ts_code: str) -> str:
 
 
 def _get_pro_api():
-    """Return an authenticated Tushare pro_api, or None."""
-    load_dotenv()
-    token = os.environ.get("TUSHARE_TOKEN")
-    if not token:
+    """Return the unified TushareGateway (replaces ts.pro_api SDK calls).
+
+    2026-07-15 统一架构调整：改用 stockhot.data_layer 的统一网关。
+    """
+    try:
+        from stockhot.data_layer import get_gateway
+        return get_gateway()
+    except Exception:
         return None
-    ts.set_token(token)
-    return ts.pro_api()
 
 
 def _today_str() -> str:

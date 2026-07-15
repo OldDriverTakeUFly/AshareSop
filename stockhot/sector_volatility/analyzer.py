@@ -76,12 +76,37 @@ def analyze_single_sector(
 
 
 def _fetch_sector_limits(date: str) -> dict[str, dict]:
-    """联读 limit_up，按申万 industry 聚合板块涨跌停数据。
+    """联读 limit_pool 表，按 sector 聚合板块涨跌停数据。
 
-    返回：{industry_name: {"limit_up": n, "broken": n, "limit_down": n}}
-    注意：limit_list_d 的 industry 是申万 2-3 级，与一级名称不完全一致，
-    用包含关系做模糊匹配（如"化学制品"归入"基础化工"）。
+    返回：{sector_name: {"limit_up": n, "broken": n, "limit_down": n}}
+
+    2026-07-15 统一架构调整：优先读 market_data.db 的 limit_pool 结构化表
+    （由 daily-market-scan 采集写入），避免重复调 Tushare limit_list_d。
+    DAL 无数据时 fallback 到原 safe_tushare_call 路径。
     """
+    # 第一优先：DAL limit_pool 结构化表（与 limit_up 模块共享采集结果）
+    try:
+        from stockhot.data_layer import get_repository
+
+        repo = get_repository()
+        pools = repo.get_limit_pool(date)  # 全部 pool_kind
+        if pools:
+            result: dict[str, dict] = {}
+            for item in pools:
+                sector = str(item.get("sector") or "").strip()
+                if not sector or sector == "nan":
+                    continue
+                kind = item.get("pool_kind", "")
+                if sector not in result:
+                    result[sector] = {"limit_up": 0, "broken": 0, "limit_down": 0}
+                if kind in result[sector]:
+                    result[sector][kind] += 1
+            if result:
+                return result
+    except Exception:
+        pass  # DAL 失败则回退
+
+    # 回退：Tushare limit_list_d（原逻辑）
     from stockhot.core.tushare_client_safe import safe_tushare_call
 
     df = safe_tushare_call("limit_list_d", trade_date=date.replace("-", ""))

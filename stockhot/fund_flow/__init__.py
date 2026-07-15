@@ -195,18 +195,11 @@ def _fetch_sector_fund_flow_tushare() -> list[dict]:
     main_net (亿元), huge_net, large_net, medium_net, small_net.
     """
     try:
-        import os
+        # 统一架构（2026-07-15）：改用 stockhot.data_layer 统一网关，
+        # 替代 ts.set_token + ts.pro_api 裸调。
+        from stockhot.data_layer import get_gateway
 
-        import tushare as ts
-        from dotenv import load_dotenv
-
-        load_dotenv()  # 从 .env 加载 TUSHARE_TOKEN
-        token = os.environ.get("TUSHARE_TOKEN")
-        if not token:
-            logger.info("fetch_sector_fund_flow (Tushare): no TUSHARE_TOKEN env, skipping")
-            return []
-        ts.set_token(token)
-        pro = ts.pro_api()
+        pro = get_gateway()
 
         trade_date = _today_trade_date_str()  # YYYYMMDD
 

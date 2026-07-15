@@ -75,7 +75,7 @@ def _fetch_via_tushare(ts_code: str, days: int) -> pd.DataFrame:
 
 
 def fetch_index_ohlcv(ts_code: str, days: int = 120) -> pd.DataFrame:
-    """采集指数 OHLCV，Tushare 优先，AKShare 兜底（2026-07-07 调整）。
+    """采集指数 OHLCV，DAL 缓存优先，Tushare/AKShare 兜底（2026-07-15 统一架构调整）。
 
     参数：
         ts_code: Tushare 格式代码，如 "000001.SH" / "399006.SZ" / "000688.SH"
@@ -84,10 +84,30 @@ def fetch_index_ohlcv(ts_code: str, days: int = 120) -> pd.DataFrame:
     返回：
         DataFrame[index=date, columns=[open, high, low, close, volume]]，
         升序，与 stockhot.technical_analyzer.indicators 完全兼容。
-        两源都失败返回空 DataFrame。
+        三级都失败返回空 DataFrame。
 
-    优先级：Tushare ``index_daily`` → AKShare ``stock_zh_index_daily``
+    优先级：DAL ``index_daily``（缓存，与 volatility 共享）→ Tushare → AKShare
     """
+    # 第一优先：DAL 缓存（与 volatility 模块共享，避免重复拉取 index_daily）
+    try:
+        from stockhot.data_layer import get_repository
+
+        repo = get_repository()
+        end = date.today().strftime("%Y%m%d")
+        start = (date.today() - timedelta(days=int(days * 1.6))).strftime("%Y%m%d")
+        df_dal = repo.get_index_daily(ts_code, start, end)
+        if not df_dal.empty:
+            df = df_dal.copy()
+            df["date"] = pd.to_datetime(df["trade_date"], format="%Y%m%d")
+            df = df.set_index("date").sort_index(ascending=True)
+            df = df.rename(columns={"vol": "volume"})
+            keep = ["open", "high", "low", "close", "volume"]
+            if all(c in df.columns for c in keep):
+                return df[keep].astype(float).tail(days)
+    except Exception:
+        pass  # DAL 失败则回退
+
+    # 回退：Tushare → AKShare（原逻辑）
     from stockhot.core.datasource import fetch_with_fallback
 
     def _akshare_cropped() -> pd.DataFrame:

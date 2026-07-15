@@ -69,7 +69,7 @@ def _fetch_index_via_tushare(ts_code: str, days: int) -> pd.DataFrame:
 
 
 def fetch_index_history(ts_code: str, days: int = 1300) -> pd.DataFrame:
-    """采集指数日线收盘价序列，Tushare 优先，AKShare 兜底。
+    """采集指数日线收盘价序列，DAL 缓存优先，Tushare/AKShare 兜底。
 
     参数：
         ts_code: Tushare 格式代码，如 "000001.SH" / "399006.SZ" / "000688.SH"
@@ -77,8 +77,27 @@ def fetch_index_history(ts_code: str, days: int = 1300) -> pd.DataFrame:
 
     返回：
         DataFrame[index=date, columns=[close]]，升序。
-        两源都失败返回空 DataFrame。
+        三级都失败返回空 DataFrame。
+
+    优先级：DAL ``index_daily``（缓存，与 index_technical 共享）→ Tushare → AKShare
     """
+    # 第一优先：DAL 缓存（与 index_technical 模块共享，避免重复拉取 index_daily）
+    try:
+        from stockhot.data_layer import get_repository
+
+        repo = get_repository()
+        end = date.today().strftime("%Y%m%d")
+        start = (date.today() - timedelta(days=int(days * 1.6))).strftime("%Y%m%d")
+        df_dal = repo.get_index_daily(ts_code, start, end)
+        if not df_dal.empty:
+            df = df_dal.copy()
+            df["date"] = pd.to_datetime(df["trade_date"], format="%Y%m%d")
+            df = df.set_index("date").sort_index(ascending=True)
+            return df[["close"]].astype(float).tail(days)
+    except Exception:
+        pass  # DAL 失败则回退
+
+    # 回退：Tushare → AKShare（原逻辑）
     from stockhot.core.datasource import fetch_with_fallback
 
     def _akshare_cropped() -> pd.DataFrame:

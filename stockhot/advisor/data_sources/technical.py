@@ -125,14 +125,39 @@ def fetch_technical_signal(code: str, ohlcv_df: pd.DataFrame) -> UnifiedSignal:
 def fetch_realtime_price(code: str) -> dict:
     """获取个股最新价。
 
-    2026-07-07 调整：Tushare ``daily_basic`` 优先（最新交易日收盘），AKShare ``stock_zh_a_spot_em`` 兜底。
-    注意：Tushare daily_basic 是收盘数据（非盘中实时），盘后/盘前场景够用；
+    三级回退（2026-07-15 统一架构调整）：
+    1. **DAL 缓存**（market_data.db daily_price）—— 与 davis 共享，命中时不调 API
+    2. **Tushare daily_basic** —— DAL 无数据时的实时拉取
+    3. **AKShare stock_zh_a_spot_em** —— Tushare 失败兜底
+
+    注意：DAL/Tushare 都是收盘数据（非盘中实时），盘后/盘前场景够用；
     若需盘中实时价，AKShare spot 路径在盘中调用时仍有效。
     """
-    # Tushare 优先
+    ts_code = code if "." in code else _to_ts_code_adv(code)
+
+    # 优先：DAL 缓存（davis 已写入 daily_price，避免重复 API 调用）
+    try:
+        from stockhot.data_layer import get_repository
+
+        repo = get_repository()
+        today = date.today().strftime("%Y%m%d")
+        lookback = (date.today() - timedelta(days=10)).strftime("%Y%m%d")
+        df_dal = repo.get_daily_prices(ts_code, lookback, today)
+        if not df_dal.empty:
+            r = df_dal.iloc[-1]  # 最新一行
+            return {
+                "code": code,
+                "current_price": float(r["close"]) if pd.notna(r.get("close")) else None,
+                "change_pct": float(r.get("pct_chg")) if pd.notna(r.get("pct_chg")) else None,
+                "volume": float(r.get("vol")) if pd.notna(r.get("vol")) else None,
+                "timestamp": str(r.get("trade_date", date.today().isoformat())),
+            }
+    except Exception:
+        pass  # DAL 失败则回退到原始路径
+
+    # 回退：Tushare daily_basic（原逻辑）
     from stockhot.core.tushare_client_safe import safe_tushare_call
 
-    ts_code = code if "." in code else _to_ts_code_adv(code)
     df_ts = safe_tushare_call("daily_basic", ts_code=ts_code, limit=1)
     if df_ts is not None and not df_ts.empty:
         r = df_ts.iloc[0]
@@ -144,7 +169,7 @@ def fetch_realtime_price(code: str) -> dict:
             "timestamp": str(r.get("trade_date", date.today().isoformat())),
         }
 
-    # AKShare 兜底
+    # 最终兜底：AKShare spot
     df = safe_akshare_call(ak.stock_zh_a_spot_em)
 
     if df is None or df.empty:

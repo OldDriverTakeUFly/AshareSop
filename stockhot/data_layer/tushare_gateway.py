@@ -262,6 +262,23 @@ class TushareGateway:
             fields="ts_code,trade_date,adj_factor",
         )
 
+    # ── SDK 风格属性代理 ──────────────────────────────────────────────
+
+    def __getattr__(self, api_name: str):
+        """属性访问代理：让 ``gw.cn_pmi(start_m=...)`` 等价于 ``gw.call("cn_pmi", ...)``.
+
+        替代旧的 ``ts.set_token() + ts.pro_api()`` SDK 用法，使 macro/valuation/
+        fund_flow 等模块只需把 ``_get_pro_api()`` 换成 ``get_gateway()``，
+        其余 ``pro.cn_pmi(...)`` 风格代码无需改动。
+
+        注意：__getattr__ 只在常规属性查找失败时触发，不会遮蔽 call/get_* 等显式方法。
+        """
+        # 返回一个可调用对象，调用时转发到 self.call
+        def _proxy(**params) -> pd.DataFrame:
+            return self.call(api_name, **params)
+        _proxy.__name__ = api_name
+        return _proxy
+
 
 # ── 模块级单例 ───────────────────────────────────────────────────────
 

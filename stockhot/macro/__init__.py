@@ -30,14 +30,19 @@ from stockhot.core.logging import logger
 
 
 def _get_pro_api():
-    """Return an authenticated Tushare pro_api, or None if no token."""
-    load_dotenv()
-    token = os.environ.get("TUSHARE_TOKEN")
-    if not token:
-        logger.warning("macro: no TUSHARE_TOKEN, cannot fetch macro data")
+    """Return the unified TushareGateway (replaces ts.pro_api SDK calls).
+
+    2026-07-15 统一架构调整：改用 stockhot.data_layer 的统一网关，
+    走新端点 api.tushare.pro/dataapi（绕过旧版 waditu.com），并复用
+    gateway 的线程安全限频 + 错误分类。__getattr__ 代理让 ``gw.cn_pmi(...)``
+    风格的代码无需改动。
+    """
+    try:
+        from stockhot.data_layer import get_gateway
+        return get_gateway()
+    except Exception as e:
+        logger.warning(f"macro: gateway init failed: {e}")
         return None
-    ts.set_token(token)
-    return ts.pro_api()
 
 
 def _latest_month_str(lookback: int = 12) -> str:
