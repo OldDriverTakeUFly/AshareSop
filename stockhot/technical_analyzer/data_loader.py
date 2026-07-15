@@ -1,14 +1,17 @@
-"""OHLCV data loader — Tushare primary, AKShare fallback.
+"""OHLCV data loader — 统一数据层（DAL）优先，Tushare/AKShare 兜底.
 
-数据源策略（2026-07-07 调整）：Tushare 第一，AKShare 兜底。
-- 主源：Tushare ``pro_bar(adj=qfq)``（前复权日线，走新端点 api.tushare.pro/dataapi）
-- 兜底：AKShare ``stock_zh_a_hist``（前复权，东财源）
+数据源策略（2026-07-15 统一架构调整）：
+- **主源：统一数据层 DAL**（``stockhot.data_layer``），复用 market_data.db 的
+  daily_price 缓存，避免 stockhot 与 davis_analyzer 重复拉取同一个个股日线。
+  DAL 内部按三段式增量缓存，命中时不调 Tushare。
+- 兜底 1：Tushare ``pro_bar(adj=qfq)``（DAL 无缓存时的实时拉取）
+- 兜底 2：AKShare ``stock_zh_a_hist``（Tushare 失败时）
+
+前复权处理：DAL 存原始 close + adj_factor，读取后在本地用 ``close * adj_factor / latest_adj``
+做前复权（与 pro_bar 的 qfq 语义一致），避免存储层固化复权基准。
 
 对外接口 ``fetch_ohlcv`` 签名与返回 schema 不变：
 DataFrame[index=date, columns=[open, high, low, close, volume]]，升序。
-
-历史上此模块曾仅用 AKShare，但 AKShare 个股接口（东财 stock_zh_a_hist）经常
-RemoteDisconnected，故改为 Tushare 优先。
 """
 
 from __future__ import annotations
@@ -110,13 +113,65 @@ def _fetch_via_akshare(symbol: str, start_date: str, end_date: str, adjust: str)
     return renamed[_KEEP_COLUMNS].astype(float)
 
 
+def _fetch_via_dal(symbol: str, start_date: str, end_date: str, adjust: str) -> pd.DataFrame:
+    """统一数据层取 OHLCV（增量缓存，stockhot 与 davis 共享）.
+
+    DAL 存原始 close + adj_factor，这里按 adjust 参数在本地做复权计算：
+    - qfq（前复权）：price * adj_factor / latest_adj_factor
+    - hfq（后复权）：price * adj_factor
+    - 不复权：price 原值
+    """
+    from stockhot.data_layer import get_repository
+
+    ts_code = symbol if "." in symbol else _to_ts_code(symbol)
+    s = start_date.replace("-", "")
+    e = end_date.replace("-", "")
+
+    try:
+        repo = get_repository()
+        df = repo.get_daily_prices(ts_code, s, e)
+    except Exception as exc:
+        logger.warning(f"DAL get_daily_prices({ts_code}) failed: {exc}")
+        return pd.DataFrame()
+
+    if df.empty:
+        return pd.DataFrame()
+
+    df = df.copy()
+    df["date"] = pd.to_datetime(df["trade_date"], format="%Y%m%d")
+    df = df.set_index("date").sort_index(ascending=True)
+
+    # 前复权 / 后复权
+    if adjust == "qfq" and "adj_factor" in df.columns:
+        latest_adj = df["adj_factor"].iloc[-1]
+        if latest_adj and latest_adj > 0:
+            ratio = df["adj_factor"] / latest_adj
+            for col in ["open", "high", "low", "close"]:
+                df[col] = df[col] * ratio
+    elif adjust == "hfq" and "adj_factor" in df.columns:
+        for col in ["open", "high", "low", "close"]:
+            df[col] = df[col] * df["adj_factor"]
+
+    # volume 列名映射（DAL 用 vol，对外用 volume）
+    df = df.rename(columns={"vol": "volume"})
+    for col in _KEEP_COLUMNS:
+        if col not in df.columns:
+            return pd.DataFrame()
+    return df[_KEEP_COLUMNS].astype(float)
+
+
 def fetch_ohlcv(
     symbol: str,
     start_date: str,
     end_date: str,
     adjust: str = "qfq",
 ) -> pd.DataFrame:
-    """采集个股 OHLCV，Tushare 优先，AKShare 兜底。
+    """采集个股 OHLCV，统一数据层（DAL）优先，Tushare/AKShare 兜底。
+
+    三级回退：
+    1. **DAL**（market_data.db 缓存）—— 首选，与 davis_analyzer 共享缓存
+    2. **Tushare pro_bar** —— DAL 无数据时的实时拉取（会写入 DAL 缓存）
+    3. **AKShare stock_zh_a_hist** —— Tushare 失败时的兜底
 
     参数：
         symbol: 股票代码，支持 "300398.SZ"（Tushare 格式）或 "300398"（纯代码）
@@ -126,8 +181,14 @@ def fetch_ohlcv(
 
     返回：
         DataFrame[index=date, columns=[open, high, low, close, volume]]，
-        升序，与 indicators.py 完全兼容。两源都失败返回空 DataFrame。
+        升序，与 indicators.py 完全兼容。三级都失败返回空 DataFrame。
     """
+    # 第一优先：DAL 缓存
+    dal_df = _fetch_via_dal(symbol, start_date, end_date, adjust)
+    if not dal_df.empty:
+        return dal_df
+
+    # 回退：Tushare pro_bar → AKShare（原有逻辑）
     return fetch_with_fallback(
         primary_fn=lambda: _fetch_via_tushare(symbol, start_date, end_date, adjust),
         fallback_fn=lambda: _fetch_via_akshare(symbol, start_date, end_date, adjust),
