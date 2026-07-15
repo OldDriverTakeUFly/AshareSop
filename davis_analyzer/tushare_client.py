@@ -2,10 +2,10 @@
 
 Cache schema (3 typed tables) replaces the former single-table ``api_cache``:
 
-* ``stock_basic_cache``  — full stock list, refreshed on a 7-day TTL.
-* ``daily_basic_cache``  — daily PE/PB/PS/market-cap, refreshed daily with
+* ``stock_basic``  — full stock list, refreshed on a 7-day TTL.
+* ``daily_basic``  — daily PE/PB/PS/market-cap, refreshed daily with
   incremental fetch (only new trade dates are pulled).
-* ``financial_cache``    — quarterly reports (income/balancesheet/cashflow/
+* ``financial``    — quarterly reports (income/balancesheet/cashflow/
   fina_indicator), stored permanently per ``(ts_code, end_date, endpoint)`` and
   fetched incrementally as new report periods become available.
 
@@ -26,8 +26,11 @@ from loguru import logger
 from davis_analyzer.config import CACHE_DIR, get_tushare_token
 from davis_analyzer.constants import TUSHARE_RATE_LIMIT
 
-# Cache DB lives inside the cache directory
-_CACHE_DB = CACHE_DIR / "tushare_cache.db"
+# 统一市场库：davis 现在读写 storage/database/market_data.db（与 stockhot 共享）。
+# 旧的 davis_analyzer/cache/tushare_cache.db 数据已迁移到 market_data.db，
+# 保留 _CACHE_DB 名字以兼容 backtest.py 的 `from ... import _CACHE_DB`。
+# 表名去掉 _cache 后缀，对齐 DAL schema（stock_basic → stock_basic 等）。
+from stockhot.data_layer.market_db import MARKET_DB_PATH as _CACHE_DB
 
 # Per-table TTL (seconds). Financial data is quarterly and immutable once
 # published, so it is cached permanently (no expiry). Dividend history is
@@ -39,74 +42,16 @@ _TTL_DIVIDEND = 7 * 24 * 3600
 
 
 def _init_cache_db(db_path: Path) -> None:
-    """Create the structured cache tables (and keep the legacy table intact)."""
+    """Create the structured cache tables.
+
+    现在委托给 DAL 的 ``init_db``（schema 单点维护），避免 davis 与 DAL
+    各自建表导致列定义冲突。DAL 的 schema 是超集（如 daily_price 12 列），
+    ``CREATE TABLE IF NOT EXISTS`` 保证已存在的表不受影响。
+    """
+    from stockhot.data_layer.market_db import init_db
+    init_db(db_path)
+    # 保留向后兼容：旓名字迁移工具仍可读 api_cache（如存在）
     db_path.parent.mkdir(parents=True, exist_ok=True)
-    with sqlite3.connect(str(db_path)) as conn:
-        # Legacy table — retained for migration. Never written by this client now.
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS api_cache (
-                endpoint  TEXT NOT NULL,
-                params_hash TEXT NOT NULL,
-                response   TEXT NOT NULL,
-                fetched_at REAL NOT NULL,
-                PRIMARY KEY (endpoint, params_hash)
-            )
-            """)
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS stock_basic_cache (
-                ts_code     TEXT PRIMARY KEY,
-                name        TEXT,
-                industry    TEXT,
-                list_status TEXT,
-                fetched_at  REAL NOT NULL
-            )
-            """)
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS daily_basic_cache (
-                ts_code    TEXT NOT NULL,
-                trade_date TEXT NOT NULL,
-                pe_ttm     REAL,
-                pb         REAL,
-                ps         REAL,
-                total_mv   REAL,
-                fetched_at REAL NOT NULL,
-                PRIMARY KEY (ts_code, trade_date)
-            )
-            """)
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS financial_cache (
-                ts_code    TEXT NOT NULL,
-                end_date   TEXT NOT NULL,
-                endpoint   TEXT NOT NULL,
-                payload    TEXT NOT NULL,
-                fetched_at REAL NOT NULL,
-                PRIMARY KEY (ts_code, end_date, endpoint)
-            )
-            """)
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS daily_price_cache (
-                ts_code    TEXT NOT NULL,
-                trade_date TEXT NOT NULL,
-                open       REAL,
-                close      REAL,
-                adj_factor REAL,
-                fetched_at REAL NOT NULL,
-                PRIMARY KEY (ts_code, trade_date)
-            )
-            """)
-        # ── Backward-compatible schema migration ──
-        # Pre-existing caches created the table without an ``open`` column
-        # (the backtest engine needs it for open-price execution).  ``ALTER
-        # TABLE … ADD COLUMN`` is idempotent via the PRAGMA check — existing
-        # rows keep open=NULL until refreshed by a new incremental fetch.
-        cols = {row[1] for row in conn.execute("PRAGMA table_info(daily_price_cache)")}
-        if "open" not in cols:
-            conn.execute("ALTER TABLE daily_price_cache ADD COLUMN open REAL")
-            logger.info("Migrated daily_price_cache: added 'open' column")
-        # Event-style endpoints (forecast / holder-number) are keyed the same
-        # way as financials (ts_code + end_date + endpoint), so they reuse the
-        # generic incremental-fetch path via _get_financial.
-        conn.commit()
 
 
 def _next_date_str(date_str: str) -> str:
@@ -207,7 +152,7 @@ class TushareClient:
     def get_stock_list(self) -> pd.DataFrame:
         """Return the A-share stock list with 7-day TTL caching."""
         with sqlite3.connect(str(_CACHE_DB)) as conn:
-            row = conn.execute("SELECT COUNT(*), MAX(fetched_at) FROM stock_basic_cache").fetchone()
+            row = conn.execute("SELECT COUNT(*), MAX(fetched_at) FROM stock_basic").fetchone()
 
         count = row[0] if row else 0
         latest = row[1] if row else None
@@ -237,7 +182,7 @@ class TushareClient:
         """
         with sqlite3.connect(str(_CACHE_DB)) as conn:
             row = conn.execute(
-                "SELECT MAX(trade_date), MAX(fetched_at) FROM daily_basic_cache WHERE ts_code=?",
+                "SELECT MAX(trade_date), MAX(fetched_at) FROM daily_basic WHERE ts_code=?",
                 (ts_code,),
             ).fetchone()
 
@@ -321,7 +266,7 @@ class TushareClient:
         Merges ``daily`` (unadjusted open/close) with ``adj_factor`` so callers can
         compute ``adj_close = close * adj_factor`` — the only correct way to
         derive returns across ex-dividend days (naïve pct_chg compounding is
-        biased on ex-div days). Cached in ``daily_price_cache``.
+        biased on ex-div days). Cached in ``daily_price``.
 
         Returns columns: ts_code, trade_date, open, close, adj_factor.
 
@@ -330,7 +275,7 @@ class TushareClient:
         """
         with sqlite3.connect(str(_CACHE_DB)) as conn:
             row = conn.execute(
-                "SELECT MAX(trade_date), MAX(fetched_at) FROM daily_price_cache WHERE ts_code=?",
+                "SELECT MAX(trade_date), MAX(fetched_at) FROM daily_price WHERE ts_code=?",
                 (ts_code,),
             ).fetchone()
 
@@ -391,7 +336,7 @@ class TushareClient:
         # Refresh once per 7 days; dividend history is slow-moving.
         with sqlite3.connect(str(_CACHE_DB)) as conn:
             row = conn.execute(
-                "SELECT MAX(fetched_at) FROM financial_cache WHERE ts_code=? AND endpoint='dividend'",
+                "SELECT MAX(fetched_at) FROM financial WHERE ts_code=? AND endpoint='dividend'",
                 (ts_code,),
             ).fetchone()
         latest_fetched = row[0] if row else None
@@ -453,13 +398,13 @@ class TushareClient:
         """Return northbound (HK Stock Connect) holding data for ``ts_code``.
 
         Uses Tushare ``hk_hold`` — returns vol (shares held), ratio (% of float),
-        and amount.  Cached per (ts_code, trade_date) in ``hk_hold_cache``.
+        and amount.  Cached per (ts_code, trade_date) in ``hk_hold``.
 
         Fields: ts_code, trade_date, name, vol, ratio.
         """
         with sqlite3.connect(str(_CACHE_DB)) as conn:
             conn.execute("""
-                CREATE TABLE IF NOT EXISTS hk_hold_cache (
+                CREATE TABLE IF NOT EXISTS hk_hold (
                     ts_code    TEXT NOT NULL,
                     trade_date TEXT NOT NULL,
                     vol        REAL,
@@ -470,7 +415,7 @@ class TushareClient:
             """)
             # Check cache coverage
             row = conn.execute(
-                "SELECT MAX(trade_date), MAX(fetched_at) FROM hk_hold_cache WHERE ts_code=?",
+                "SELECT MAX(trade_date), MAX(fetched_at) FROM hk_hold WHERE ts_code=?",
                 (ts_code,),
             ).fetchone()
             max_date = row[0] if row else None
@@ -482,14 +427,14 @@ class TushareClient:
 
             if max_date is not None and max_date >= end_date:
                 rows = conn.execute(
-                    """SELECT ts_code, trade_date, vol, ratio FROM hk_hold_cache
+                    """SELECT ts_code, trade_date, vol, ratio FROM hk_hold
                        WHERE ts_code=? AND trade_date>=? AND trade_date<=? ORDER BY trade_date""",
                     (ts_code, start_date, end_date),
                 ).fetchall()
                 return pd.DataFrame(rows, columns=["ts_code", "trade_date", "vol", "ratio"])
             if fetched_today:
                 rows = conn.execute(
-                    """SELECT ts_code, trade_date, vol, ratio FROM hk_hold_cache
+                    """SELECT ts_code, trade_date, vol, ratio FROM hk_hold
                        WHERE ts_code=? AND trade_date>=? AND trade_date<=? ORDER BY trade_date""",
                     (ts_code, start_date, end_date),
                 ).fetchall()
@@ -519,7 +464,7 @@ class TushareClient:
                 ]
                 with sqlite3.connect(str(_CACHE_DB)) as conn:
                     conn.executemany(
-                        """INSERT OR REPLACE INTO hk_hold_cache
+                        """INSERT OR REPLACE INTO hk_hold
                            (ts_code, trade_date, vol, ratio, fetched_at) VALUES (?,?,?,?,?)""",
                         records,
                     )
@@ -527,7 +472,7 @@ class TushareClient:
 
         with sqlite3.connect(str(_CACHE_DB)) as conn:
             rows = conn.execute(
-                """SELECT ts_code, trade_date, vol, ratio FROM hk_hold_cache
+                """SELECT ts_code, trade_date, vol, ratio FROM hk_hold
                    WHERE ts_code=? AND trade_date>=? AND trade_date<=? ORDER BY trade_date""",
                 (ts_code, start_date, end_date),
             ).fetchall()
@@ -539,11 +484,11 @@ class TushareClient:
         Uses Tushare ``report_rc`` — returns report_date, rating, target_price,
         org_name, author_name.  **Rate-limited to 10 calls/hour by Tushare.**
 
-        Cached per (ts_code, report_date) in ``research_cache``.
+        Cached per (ts_code, report_date) in ``research``.
         """
         with sqlite3.connect(str(_CACHE_DB)) as conn:
             conn.execute("""
-                CREATE TABLE IF NOT EXISTS research_cache (
+                CREATE TABLE IF NOT EXISTS research (
                     ts_code      TEXT NOT NULL,
                     report_date  TEXT NOT NULL,
                     rating       TEXT,
@@ -555,14 +500,14 @@ class TushareClient:
             """)
             # Check if we already have data for this range
             row = conn.execute(
-                "SELECT COUNT(*) FROM research_cache WHERE ts_code=? AND report_date>=? AND report_date<=?",
+                "SELECT COUNT(*) FROM research WHERE ts_code=? AND report_date>=? AND report_date<=?",
                 (ts_code, start_date, end_date),
             ).fetchone()
             cached_count = row[0] if row else 0
 
             if cached_count > 0:
                 rows = conn.execute(
-                    """SELECT ts_code, report_date, rating, target_price, org_name FROM research_cache
+                    """SELECT ts_code, report_date, rating, target_price, org_name FROM research
                        WHERE ts_code=? AND report_date>=? AND report_date<=? ORDER BY report_date""",
                     (ts_code, start_date, end_date),
                 ).fetchall()
@@ -588,7 +533,7 @@ class TushareClient:
             ]
             with sqlite3.connect(str(_CACHE_DB)) as conn:
                 conn.executemany(
-                    """INSERT OR REPLACE INTO research_cache
+                    """INSERT OR REPLACE INTO research
                        (ts_code, report_date, rating, target_price, org_name, fetched_at) VALUES (?,?,?,?,?,?)""",
                     records,
                 )
@@ -602,7 +547,7 @@ class TushareClient:
     def _stock_basic_from_cache() -> pd.DataFrame:
         with sqlite3.connect(str(_CACHE_DB)) as conn:
             rows = conn.execute(
-                "SELECT ts_code, name, industry, list_status FROM stock_basic_cache"
+                "SELECT ts_code, name, industry, list_status FROM stock_basic"
             ).fetchall()
         return pd.DataFrame(rows, columns=["ts_code", "name", "industry", "list_status"])
 
@@ -613,10 +558,10 @@ class TushareClient:
             for r in df.to_dict("records")
         ]
         with sqlite3.connect(str(_CACHE_DB)) as conn:
-            conn.execute("DELETE FROM stock_basic_cache")
+            conn.execute("DELETE FROM stock_basic")
             conn.executemany(
                 """
-                INSERT OR REPLACE INTO stock_basic_cache
+                INSERT OR REPLACE INTO stock_basic
                     (ts_code, name, industry, list_status, fetched_at)
                 VALUES (?, ?, ?, ?, ?)
                 """,
@@ -630,7 +575,7 @@ class TushareClient:
             rows = conn.execute(
                 """
                 SELECT ts_code, trade_date, pe_ttm, pb, ps, total_mv
-                FROM daily_basic_cache
+                FROM daily_basic
                 WHERE ts_code = ? AND trade_date >= ? AND trade_date <= ?
                 ORDER BY trade_date DESC
                 """,
@@ -661,7 +606,7 @@ class TushareClient:
         with sqlite3.connect(str(_CACHE_DB)) as conn:
             conn.executemany(
                 """
-                INSERT OR REPLACE INTO daily_basic_cache
+                INSERT OR REPLACE INTO daily_basic
                     (ts_code, trade_date, pe_ttm, pb, ps, total_mv, fetched_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
@@ -675,7 +620,7 @@ class TushareClient:
             rows = conn.execute(
                 """
                 SELECT ts_code, trade_date, open, close, adj_factor
-                FROM daily_price_cache
+                FROM daily_price
                 WHERE ts_code = ? AND trade_date >= ? AND trade_date <= ?
                 ORDER BY trade_date ASC
                 """,
@@ -717,7 +662,7 @@ class TushareClient:
         with sqlite3.connect(str(_CACHE_DB)) as conn:
             conn.executemany(
                 """
-                INSERT OR REPLACE INTO daily_price_cache
+                INSERT OR REPLACE INTO daily_price
                     (ts_code, trade_date, open, close, adj_factor, fetched_at)
                 VALUES (?, ?, ?, ?, ?, ?)
                 """,
@@ -737,7 +682,7 @@ class TushareClient:
         """Fetch quarterly financial data with incremental (per-report-period) fetch."""
         with sqlite3.connect(str(_CACHE_DB)) as conn:
             row = conn.execute(
-                "SELECT MAX(end_date), MAX(fetched_at) FROM financial_cache "
+                "SELECT MAX(end_date), MAX(fetched_at) FROM financial "
                 "WHERE ts_code=? AND endpoint=?",
                 (ts_code, endpoint),
             ).fetchone()
@@ -803,7 +748,7 @@ class TushareClient:
         with sqlite3.connect(str(_CACHE_DB)) as conn:
             conn.executemany(
                 """
-                INSERT OR REPLACE INTO financial_cache
+                INSERT OR REPLACE INTO financial
                     (ts_code, end_date, endpoint, payload, fetched_at)
                 VALUES (?, ?, ?, ?, ?)
                 """,
@@ -819,7 +764,7 @@ class TushareClient:
             rows = conn.execute(
                 """
                 SELECT payload
-                FROM financial_cache
+                FROM financial
                 WHERE ts_code = ? AND endpoint = ? AND end_date >= ? AND end_date <= ?
                 ORDER BY end_date DESC
                 """,

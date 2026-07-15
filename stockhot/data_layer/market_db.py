@@ -198,6 +198,16 @@ _SCHEMA_STATEMENTS: list[str] = [
         fetched_at     REAL,
         PRIMARY KEY (indicator_name, report_date)
     )""",
+    # 分析师研报缓存（等价 davis research_cache），按 ts_code + report_date 查询
+    """CREATE TABLE IF NOT EXISTS research (
+        ts_code      TEXT NOT NULL,
+        report_date  TEXT NOT NULL,
+        rating       TEXT,
+        target_price REAL,
+        org_name     TEXT,
+        fetched_at   REAL,
+        PRIMARY KEY (ts_code, report_date, org_name)
+    )""",
     # 采集日志 — 解决"不知道哪个模块跑没跑"的问题
     """CREATE TABLE IF NOT EXISTS scan_log (
         id            INTEGER PRIMARY KEY AUTOINCREMENT,

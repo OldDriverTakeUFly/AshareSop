@@ -286,7 +286,7 @@ def _calendar_from_union(client: TushareClient, config: BacktestConfig) -> list[
     end = config.end_date.strftime("%Y%m%d")
     with sqlite3.connect(str(_CACHE_DB)) as conn:
         rows = conn.execute(
-            "SELECT DISTINCT trade_date FROM daily_price_cache "
+            "SELECT DISTINCT trade_date FROM daily_price "
             "WHERE trade_date >= ? AND trade_date <= ? ORDER BY trade_date",
             (start, end),
         ).fetchall()
@@ -673,7 +673,7 @@ def _all_cached_stock_codes() -> list[str]:
 
     with sqlite3.connect(str(_CACHE_DB)) as conn:
         rows = conn.execute(
-            "SELECT DISTINCT ts_code FROM daily_price_cache"
+            "SELECT DISTINCT ts_code FROM daily_price"
         ).fetchall()
     return [r[0] for r in rows]
 

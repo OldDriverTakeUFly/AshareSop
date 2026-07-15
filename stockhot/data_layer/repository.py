@@ -279,6 +279,128 @@ class MarketDataRepository:
         )
 
     # ═══════════════════════════════════════════════════════════════════
+    # 基础行情：估值 / 财务 / 北向 / 研报（davis 等价读取，供 stockhot 侧复用）
+    # ═══════════════════════════════════════════════════════════════════
+
+    def get_daily_basic(
+        self, ts_code: str, start_date: str, end_date: str
+    ) -> pd.DataFrame:
+        """获取个股每日估值（PE/PB/PS/总市值）.
+
+        替代 davis TushareClient.get_daily_basic + stockhot advisor 的无缓存 daily_basic。
+        缓存由 davis 侧的 TushareClient 填充（迁移后写入同一张 daily_basic 表）。
+        """
+        with closing(get_connection()) as conn:
+            rows = conn.execute(
+                "SELECT ts_code, trade_date, pe_ttm, pb, ps, total_mv "
+                "FROM daily_basic WHERE ts_code=? AND trade_date>=? AND trade_date<=? "
+                "ORDER BY trade_date DESC",
+                (ts_code, start_date, end_date),
+            ).fetchall()
+        return pd.DataFrame(
+            rows, columns=["ts_code", "trade_date", "pe_ttm", "pb", "ps", "total_mv"]
+        )
+
+    def get_financial(
+        self, ts_code: str, endpoint: str, start_date: str, end_date: str
+    ) -> pd.DataFrame:
+        """获取财务数据（income/balancesheet/cashflow/fina_indicator/forecast/dividend）.
+
+        payload 是每行一个 JSON（与 davis financial_cache 格式一致），解包为 DataFrame。
+        """
+        import json as _json
+        with closing(get_connection()) as conn:
+            rows = conn.execute(
+                "SELECT payload FROM financial "
+                "WHERE ts_code=? AND endpoint=? AND end_date>=? AND end_date<=? "
+                "ORDER BY end_date DESC",
+                (ts_code, endpoint, start_date, end_date),
+            ).fetchall()
+        if not rows:
+            return pd.DataFrame()
+        return pd.DataFrame([_json.loads(r[0]) for r in rows])
+
+    def get_hk_hold(
+        self, ts_code: str, start_date: str, end_date: str
+    ) -> pd.DataFrame:
+        """获取北向资金个股持股."""
+        with closing(get_connection()) as conn:
+            rows = conn.execute(
+                "SELECT ts_code, trade_date, vol, ratio FROM hk_hold "
+                "WHERE ts_code=? AND trade_date>=? AND trade_date<=? ORDER BY trade_date",
+                (ts_code, start_date, end_date),
+            ).fetchall()
+        return pd.DataFrame(rows, columns=["ts_code", "trade_date", "vol", "ratio"])
+
+    def get_research_reports(
+        self, ts_code: str, start_date: str, end_date: str
+    ) -> pd.DataFrame:
+        """获取分析师研报."""
+        with closing(get_connection()) as conn:
+            rows = conn.execute(
+                "SELECT ts_code, report_date, rating, target_price, org_name FROM research "
+                "WHERE ts_code=? AND report_date>=? AND report_date<=? ORDER BY report_date",
+                (ts_code, start_date, end_date),
+            ).fetchall()
+        return pd.DataFrame(
+            rows, columns=["ts_code", "report_date", "rating", "target_price", "org_name"]
+        )
+
+    # ═══════════════════════════════════════════════════════════════════
+    # 盘面采集读取（结构化表，供 after-hours-review 等消费）
+    # ═══════════════════════════════════════════════════════════════════
+
+    def get_limit_pool(self, trade_date: str, pool_kind: str | None = None) -> list[dict]:
+        """读取涨停/炸板/跌停池（结构化）.
+
+        pool_kind: 'limit_up' / 'broken' / 'limit_down' / None（全部）
+        """
+        with closing(get_connection()) as conn:
+            if pool_kind:
+                rows = conn.execute(
+                    "SELECT ts_code, pool_kind, name, sector, change_pct, seal_amount, "
+                    "consecutive_boards, broken_count, first_seal_time, last_seal_time, turnover_rate "
+                    "FROM limit_pool WHERE trade_date=? AND pool_kind=?",
+                    (trade_date, pool_kind),
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    "SELECT ts_code, pool_kind, name, sector, change_pct, seal_amount, "
+                    "consecutive_boards, broken_count, first_seal_time, last_seal_time, turnover_rate "
+                    "FROM limit_pool WHERE trade_date=?",
+                    (trade_date,),
+                ).fetchall()
+        cols = ["ts_code", "pool_kind", "name", "sector", "change_pct", "seal_amount",
+                "consecutive_boards", "broken_count", "first_seal_time", "last_seal_time", "turnover_rate"]
+        return [dict(zip(cols, r)) for r in rows]
+
+    def get_dragon_tiger(self, trade_date: str) -> list[dict]:
+        """读取龙虎榜明细（结构化）."""
+        with closing(get_connection()) as conn:
+            rows = conn.execute(
+                "SELECT ts_code, name, reason, close, change_pct, net_buy, "
+                "buy_amount, sell_amount, list_date "
+                "FROM dragon_tiger WHERE trade_date=?",
+                (trade_date,),
+            ).fetchall()
+        cols = ["ts_code", "name", "reason", "close", "change_pct", "net_buy",
+                "buy_amount", "sell_amount", "list_date"]
+        return [dict(zip(cols, r)) for r in rows]
+
+    def get_fund_flow_sector(self, trade_date: str) -> list[dict]:
+        """读取板块资金流（结构化）."""
+        with closing(get_connection()) as conn:
+            rows = conn.execute(
+                "SELECT sector_name, change_pct, main_net, main_pct, huge_net, "
+                "large_net, medium_net, small_net "
+                "FROM fund_flow_sector WHERE trade_date=? ORDER BY change_pct DESC",
+                (trade_date,),
+            ).fetchall()
+        cols = ["sector_name", "change_pct", "main_net", "main_pct", "huge_net",
+                "large_net", "medium_net", "small_net"]
+        return [dict(zip(cols, r)) for r in rows]
+
+    # ═══════════════════════════════════════════════════════════════════
     # 盘面采集：scan_log（采集日志，解决"不知道哪个模块跑没跑"）
     # ═══════════════════════════════════════════════════════════════════
 
