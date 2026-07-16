@@ -48,6 +48,10 @@ class MarketSnapshot:
     # factor_scores[ts_code] = {"momentum": float, "holder": float, "dividend": float, ...}
     stock_names: dict[str, str] = field(default_factory=dict)
     # ts_code → name
+    # ── Smart strategy context (enhancement) ──
+    market_regime: str = "mixed"  # "bull" / "bear" / "mixed"
+    industries: dict[str, str] = field(default_factory=dict)  # ts_code → industry
+    industry_trend: dict[str, str] = field(default_factory=dict)  # industry → "up"/"down"/"flat"
 
 
 class Strategy(Protocol):
@@ -158,16 +162,18 @@ class DavisDoubleStrategy:
 
 
 class FactorThresholdStrategy:
-    """Daily factor-threshold strategy using supplementary engines.
+    """Daily factor-threshold strategy with market gate + sector rotation.
 
-    Buy when: momentum_score > buy_momentum AND holder trend is "集中"
-    Sell when: momentum_score < sell_momentum OR holder_score == 0 (distribution)
+    Buy when: market is bullish + momentum strong + holder accumulating +
+    sector trending up.
+    Sell when: momentum collapses, holder distributes, OR sector trend turns
+    down (proactive sector rotation).
 
     Config:
         max_positions: maximum concurrent positions
         buy_momentum: momentum threshold to trigger buy
         sell_momentum: momentum threshold to trigger sell
-        position_weight: equal weight per position (1/max_positions)
+        buy_holder_min: minimum holder score to buy
     """
 
     name = "factor_threshold"
@@ -183,7 +189,14 @@ class FactorThresholdStrategy:
         self.buy_momentum = buy_momentum
         self.sell_momentum = sell_momentum
         self.buy_holder_min = buy_holder_min
-        self.position_weight = 1.0 / max_positions
+
+    def _effective_max_positions(self, market_regime: str) -> int:
+        """Reduce position cap in bear/mixed markets."""
+        if market_regime == "bear":
+            return 0  # no new buys in bear market
+        if market_regime == "mixed":
+            return max(1, self.max_positions // 2)
+        return self.max_positions
 
     def evaluate(
         self,
@@ -199,10 +212,13 @@ class FactorThresholdStrategy:
             mom = factors.get("momentum")
             holder = factors.get("holder")
             holder_trend = factors.get("holder_trend", "")
+            industry = snapshot.industries.get(pos.ts_code, "")
+            sector_trend = snapshot.industry_trend.get(industry, "flat")
 
-            reasons = []
+            reasons: list[str] = []
             should_sell = False
 
+            # Factor-based sell
             if mom is not None and mom < self.sell_momentum:
                 should_sell = True
                 reasons.append(f"动量{mom:.0f}<{self.sell_momentum}")
@@ -210,6 +226,11 @@ class FactorThresholdStrategy:
             if holder is not None and holder <= 0 and "集中" not in holder_trend:
                 should_sell = True
                 reasons.append(f"筹码score={holder:.0f}分散")
+
+            # Sector rotation: proactively exit declining sectors
+            if sector_trend == "down":
+                should_sell = True
+                reasons.append(f"行业{industry}景气走弱，切换赛道")
 
             if should_sell:
                 signals.append(
@@ -221,10 +242,15 @@ class FactorThresholdStrategy:
                     )
                 )
 
+        # ── Market gate: no new buys in bear market ──
+        effective_max = self._effective_max_positions(snapshot.market_regime)
+        if effective_max == 0:
+            return signals  # bear market — only sells allowed
+
         # ── Scan for buy candidates ──
         held_codes = {p.ts_code for p in positions}
         current_count = len(positions)
-        slots_available = self.max_positions - current_count
+        slots_available = effective_max - current_count
 
         if slots_available > 0:
             candidates = []
@@ -239,19 +265,26 @@ class FactorThresholdStrategy:
 
                 if mom is not None and mom > self.buy_momentum:
                     if holder is not None and holder > self.buy_holder_min:
-                        candidates.append((code, mom, holder))
+                        # Sector filter: only buy in trending-up sectors
+                        industry = snapshot.industries.get(code, "")
+                        sector_trend = snapshot.industry_trend.get(industry, "flat")
+                        if sector_trend == "down":
+                            continue  # skip declining sectors
+                        candidates.append((code, mom, holder, industry))
 
             # Sort by momentum descending, take top slots
             candidates.sort(key=lambda x: x[1], reverse=True)
-            for code, mom, holder in candidates[:slots_available]:
+            position_weight = 1.0 / effective_max
+            for code, mom, holder, industry in candidates[:slots_available]:
                 name = snapshot.stock_names.get(code, code)
+                sector_note = f" 行业{industry}↑" if industry else ""
                 signals.append(
                     Signal(
                         ts_code=code,
                         name=name,
                         action="BUY",
-                        target_weight=self.position_weight,
-                        signal_reason=f"动量{mom:.0f}>{self.buy_momentum} 筹码{holder:.0f}>{self.buy_holder_min}",
+                        target_weight=position_weight,
+                        signal_reason=f"动量{mom:.0f}>{self.buy_momentum} 筹码{holder:.0f}>{self.buy_holder_min}{sector_note}",
                     )
                 )
 

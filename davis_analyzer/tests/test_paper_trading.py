@@ -168,6 +168,7 @@ class TestDavisDoubleStrategy:
                 "C.SZ": {"final_score": 60, "name": "C公司"},
                 "D.SZ": {"final_score": 40, "name": "D公司"},  # below min_score
             },
+            market_regime="bull",
         )
         signals = strategy.evaluate([], snapshot, 1_000_000)
         buys = [s for s in signals if s.action == "BUY"]
@@ -183,7 +184,7 @@ class TestDavisDoubleStrategy:
 
         strategy = DavisDoubleStrategy(top_n=3, frequency=5, min_score=50.0)
         positions = [Position("A.SZ", "A公司", 100, 10.0, "20260101")]
-        snapshot = MarketSnapshot(trade_date="20260102", prices={"A.SZ": 10.0})
+        snapshot = MarketSnapshot(trade_date="20260102", prices={"A.SZ": 10.0}, market_regime="bull")
 
         # Day 2 of 5 → not rebalance day
         signals = strategy.evaluate(positions, snapshot, 1_000_000)
@@ -204,6 +205,7 @@ class TestDavisDoubleStrategy:
             trade_date="20260102",
             prices={"NEW.SZ": 20.0, "OLD.SZ": 10.0},
             davis_scores={"NEW.SZ": {"final_score": 80, "name": "新公司"}},
+            market_regime="bull",
         )
         signals = strategy.evaluate(positions, snapshot, 1_000_000)
         sells = [s for s in signals if s.action == "SELL"]
@@ -224,6 +226,7 @@ class TestFactorThresholdStrategy:
             trade_date="20260101",
             prices={"X.SZ": 10.0},
             factor_scores={"X.SZ": {"momentum": 85, "holder": 60}},
+            market_regime="bull",
         )
         signals = strategy.evaluate([], snapshot, 1_000_000)
         buys = [s for s in signals if s.action == "BUY"]
@@ -241,6 +244,7 @@ class TestFactorThresholdStrategy:
             trade_date="20260101",
             prices={"X.SZ": 10.0},
             factor_scores={"X.SZ": {"momentum": 85, "holder": 20}},  # weak holder
+            market_regime="bull",
         )
         signals = strategy.evaluate([], snapshot, 1_000_000)
         buys = [s for s in signals if s.action == "BUY"]
@@ -259,6 +263,7 @@ class TestFactorThresholdStrategy:
             trade_date="20260102",
             prices={"Y.SZ": 8.0},
             factor_scores={"Y.SZ": {"momentum": 25, "holder": 50, "holder_trend": "集中"}},
+            market_regime="bull",
         )
         signals = strategy.evaluate(positions, snapshot, 1_000_000)
         sells = [s for s in signals if s.action == "SELL"]
@@ -277,6 +282,7 @@ class TestFactorThresholdStrategy:
             trade_date="20260102",
             prices={"Z.SZ": 12.0},
             factor_scores={"Z.SZ": {"momentum": 60, "holder": 0, "holder_trend": "分散"}},
+            market_regime="bull",
         )
         signals = strategy.evaluate(positions, snapshot, 1_000_000)
         sells = [s for s in signals if s.action == "SELL"]
@@ -299,10 +305,189 @@ class TestFactorThresholdStrategy:
                 "C.SZ": {"momentum": 75, "holder": 50},
                 "D.SZ": {"momentum": 90, "holder": 70},
             },
+            market_regime="bull",  # full max_positions in bull market
         )
         signals = strategy.evaluate(positions, snapshot, 1_000_000)
         buys = [s for s in signals if s.action == "BUY"]
         assert len(buys) == 1  # only 1 slot available (max 2 - 1 held)
+
+
+# ── Smart Strategy tests (market gate + dynamic stop + sector rotation) ─
+
+
+class TestMarketRegimeGate:
+    def test_bear_market_blocks_buys(self):
+        """In bear market, no buys even if momentum/holder are strong."""
+        from davis_analyzer.paper_trading.strategy import (
+            FactorThresholdStrategy,
+            MarketSnapshot,
+        )
+
+        strategy = FactorThresholdStrategy(buy_momentum=65, buy_holder_min=35)
+        snapshot = MarketSnapshot(
+            trade_date="20260101",
+            prices={"X.SZ": 10.0},
+            factor_scores={"X.SZ": {"momentum": 90, "holder": 80}},
+            market_regime="bear",
+        )
+        signals = strategy.evaluate([], snapshot, 1_000_000)
+        buys = [s for s in signals if s.action == "BUY"]
+        assert len(buys) == 0  # bear market: no new buys
+
+    def test_bull_market_allows_buys(self):
+        from davis_analyzer.paper_trading.strategy import (
+            FactorThresholdStrategy,
+            MarketSnapshot,
+        )
+
+        strategy = FactorThresholdStrategy(buy_momentum=65, buy_holder_min=35)
+        snapshot = MarketSnapshot(
+            trade_date="20260101",
+            prices={"X.SZ": 10.0},
+            factor_scores={"X.SZ": {"momentum": 90, "holder": 80}},
+            market_regime="bull",
+        )
+        signals = strategy.evaluate([], snapshot, 1_000_000)
+        buys = [s for s in signals if s.action == "BUY"]
+        assert len(buys) == 1
+
+    def test_mixed_market_halves_positions(self):
+        from davis_analyzer.paper_trading.strategy import (
+            FactorThresholdStrategy,
+            MarketSnapshot,
+        )
+
+        strategy = FactorThresholdStrategy(max_positions=10, buy_momentum=65, buy_holder_min=35)
+        # 8 candidates all qualify
+        factor_scores = {f"S{i}.SZ": {"momentum": 80, "holder": 60} for i in range(8)}
+        prices = {f"S{i}.SZ": 10.0 for i in range(8)}
+        snapshot = MarketSnapshot(
+            trade_date="20260101",
+            prices=prices,
+            factor_scores=factor_scores,
+            market_regime="mixed",  # max_positions halved: 10→5
+        )
+        signals = strategy.evaluate([], snapshot, 1_000_000)
+        buys = [s for s in signals if s.action == "BUY"]
+        assert len(buys) == 5  # mixed: only 5 slots (10/2)
+
+
+class TestSectorRotation:
+    def test_buy_skips_declining_sector(self):
+        """Buy candidates in declining sectors are filtered out."""
+        from davis_analyzer.paper_trading.strategy import (
+            FactorThresholdStrategy,
+            MarketSnapshot,
+        )
+
+        strategy = FactorThresholdStrategy(buy_momentum=65, buy_holder_min=35)
+        snapshot = MarketSnapshot(
+            trade_date="20260101",
+            prices={"UP.SZ": 10.0, "DOWN.SZ": 10.0},
+            factor_scores={
+                "UP.SZ": {"momentum": 80, "holder": 60},
+                "DOWN.SZ": {"momentum": 85, "holder": 65},  # stronger but...
+            },
+            market_regime="bull",
+            industries={"UP.SZ": "半导体", "DOWN.SZ": "房地产"},
+            industry_trend={"半导体": "up", "房地产": "down"},
+        )
+        signals = strategy.evaluate([], snapshot, 1_000_000)
+        buys = [s for s in signals if s.action == "BUY"]
+        assert len(buys) == 1
+        assert buys[0].ts_code == "UP.SZ"  # only the up-trending sector
+
+    def test_sell_on_sector_decline(self):
+        """Holding in a declining sector triggers proactive sell."""
+        from davis_analyzer.paper_trading.strategy import (
+            FactorThresholdStrategy,
+            MarketSnapshot,
+        )
+        from davis_analyzer.paper_trading.account import Position
+
+        strategy = FactorThresholdStrategy()
+        positions = [Position("HELD.SZ", "持仓股", 100, 10.0, "20260101")]
+        snapshot = MarketSnapshot(
+            trade_date="20260102",
+            prices={"HELD.SZ": 11.0},
+            factor_scores={"HELD.SZ": {"momentum": 60, "holder": 50, "holder_trend": "集中"}},
+            market_regime="bull",
+            industries={"HELD.SZ": "化工"},
+            industry_trend={"化工": "down"},
+        )
+        signals = strategy.evaluate(positions, snapshot, 1_000_000)
+        sells = [s for s in signals if s.action == "SELL"]
+        assert len(sells) == 1
+        assert "切换赛道" in sells[0].signal_reason
+
+
+class TestDynamicRiskThresholds:
+    def test_bear_down_sector_tight_stop(self, temp_db):
+        """Bear market + declining sector → 7% stop (tightest)."""
+        from davis_analyzer.paper_trading.account import PaperAccount
+        from davis_analyzer.paper_trading.strategy import create_strategy
+        from davis_analyzer.paper_trading.executor import DailyExecutor
+        from unittest.mock import patch
+
+        account = PaperAccount.create("risk_bear_down", "factor_threshold", 100_000)
+        account.buy("000050.SZ", "测试", 1000, 10.0, "20260101")
+        strategy = create_strategy("factor_threshold", account.config)
+        executor = DailyExecutor(account, strategy)
+
+        # Price at 9.2 → loss of 8% → should trigger 7% stop in bear+down
+        with patch("davis_analyzer.paper_trading.executor._get_close_prices",
+                   return_value={"000050.SZ": 9.2}):
+            risk_signals = executor._check_risk_signals(
+                account.get_positions(), {"000050.SZ": 9.2}, "20260102",
+                market_regime="bear",
+                industries={"000050.SZ": "化工"},
+                industry_trend={"化工": "down"},
+            )
+        assert len(risk_signals) == 1
+        assert "止损" in risk_signals[0].signal_reason
+        account.close()
+
+    def test_bull_up_sector_wide_stop(self, temp_db):
+        """Bull market + rising sector → 12% stop (widest), survives small dip."""
+        from davis_analyzer.paper_trading.account import PaperAccount
+        from davis_analyzer.paper_trading.strategy import create_strategy
+        from davis_analyzer.paper_trading.executor import DailyExecutor
+
+        account = PaperAccount.create("risk_bull_up", "factor_threshold", 100_000)
+        account.buy("000051.SZ", "测试", 1000, 10.0, "20260101")
+        strategy = create_strategy("factor_threshold", account.config)
+        executor = DailyExecutor(account, strategy)
+
+        # Price at 9.1 → loss of 9% → should NOT trigger 12% stop in bull+up
+        risk_signals = executor._check_risk_signals(
+            account.get_positions(), {"000051.SZ": 9.1}, "20260102",
+            market_regime="bull",
+            industries={"000051.SZ": "半导体"},
+            industry_trend={"半导体": "up"},
+        )
+        assert len(risk_signals) == 0  # 9% < 12% stop
+        account.close()
+
+    def test_bull_up_sector_high_take_profit(self, temp_db):
+        """Bull market + rising sector → 30% take-profit (doesn't trigger at 20%)."""
+        from davis_analyzer.paper_trading.account import PaperAccount
+        from davis_analyzer.paper_trading.strategy import create_strategy
+        from davis_analyzer.paper_trading.executor import DailyExecutor
+
+        account = PaperAccount.create("risk_tp", "factor_threshold", 100_000)
+        account.buy("000052.SZ", "测试", 1000, 10.0, "20260101")
+        strategy = create_strategy("factor_threshold", account.config)
+        executor = DailyExecutor(account, strategy)
+
+        # Price at 12.0 → gain of 20% → should NOT trigger 30% take-profit in bull+up
+        risk_signals = executor._check_risk_signals(
+            account.get_positions(), {"000052.SZ": 12.0}, "20260102",
+            market_regime="bull",
+            industries={"000052.SZ": "半导体"},
+            industry_trend={"半导体": "up"},
+        )
+        assert len(risk_signals) == 0  # 20% < 30% take-profit
+        account.close()
 
 
 # ── Report tests ───────────────────────────────────────────────────────

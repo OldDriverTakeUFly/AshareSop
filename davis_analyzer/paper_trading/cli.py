@@ -263,7 +263,7 @@ def main():
     p_bf.add_argument("--start", required=True, help="开始日期 (YYYYMMDD)")
     p_bf.add_argument("--end", default=None, help="结束日期 (YYYYMMDD)")
     p_bf.add_argument("--universe", default=None, help="股票池 (逗号分隔ts_code，默认50只)")
-    p_bf.add_argument("--scoring-freq", type=int, default=5, help="评分频率(每N个交易日)")
+    p_bf.add_argument("--scoring-freq", type=int, default=1, help="评分频率(每N个交易日，默认每日)")
     p_bf.set_defaults(func=cmd_backfill)
 
     # live

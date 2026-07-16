@@ -56,15 +56,26 @@ def _get_trading_days(start: str, end: str) -> list[str]:
 
 
 def _get_close_prices(ts_codes: list[str], trade_date: str) -> dict[str, float]:
-    """Fetch close prices for multiple stocks on a given date (YYYYMMDD)."""
+    """Fetch close prices for multiple stocks on a given date (YYYYMMDD).
+
+    If a stock has no price on *trade_date* (suspended, not yet listed, or
+    data gap), falls back to the most recent prior trading day's close.
+    This prevents NAV from collapsing to zero when one holding's price is
+    temporarily missing.
+    """
     if not ts_codes:
         return {}
     repo = get_repository()
+    # Look back up to 10 calendar days to find a fallback price
+    lookback_start = (
+        datetime.strptime(trade_date, "%Y%m%d") - timedelta(days=10)
+    ).strftime("%Y%m%d")
     prices = {}
     for code in ts_codes:
         try:
-            df = repo.get_daily_prices(code, trade_date, trade_date)
+            df = repo.get_daily_prices(code, lookback_start, trade_date)
             if df is not None and not df.empty:
+                df = df.sort_values("trade_date")
                 close = pd.to_numeric(df["close"], errors="coerce").dropna()
                 if len(close) > 0:
                     prices[code] = float(close.iloc[-1])
@@ -132,14 +143,168 @@ def _get_factor_scores(trade_date: str, ts_codes: list[str]) -> dict[str, dict]:
     return scores
 
 
+_BEARISH_STAGES = {"主跌浪", "下跌中反弹", "高位震荡筑顶"}
+_BULLISH_STAGES = {"主升浪", "上涨中回调", "低位筑底"}
+
+
+def _get_market_regime(trade_date: str) -> str:
+    """Read market regime from index_technical table for *trade_date*.
+
+    Returns "bull" / "bear" / "mixed". Falls back to "mixed" if no data.
+    """
+    with get_market_conn() as conn:
+        rows = conn.execute(
+            "SELECT stage FROM index_technical WHERE trade_date=? "
+            "AND ts_code IN ('000001.SH','399006.SZ','000688.SH','399001.SZ','000300.SH')",
+            (trade_date,),
+        ).fetchall()
+    if not rows:
+        # Try most recent date <= trade_date
+        with get_market_conn() as conn:
+            rows = conn.execute(
+                "SELECT stage FROM index_technical WHERE trade_date <= ? "
+                "AND ts_code IN ('000001.SH','399006.SZ','000688.SH','399001.SZ','000300.SH') "
+                "ORDER BY trade_date DESC LIMIT 5",
+                (trade_date,),
+            ).fetchall()
+    if not rows:
+        return "mixed"
+
+    stages = [r[0] for r in rows if r[0]]
+    bull_n = sum(1 for s in stages if s in _BULLISH_STAGES)
+    bear_n = sum(1 for s in stages if s in _BEARISH_STAGES)
+    if bear_n > bull_n:
+        return "bear"
+    if bull_n > bear_n:
+        return "bull"
+    return "mixed"
+
+
+def _get_industries(ts_codes: list[str]) -> dict[str, str]:
+    """Build ts_code → industry lookup from stock_basic table."""
+    if not ts_codes:
+        return {}
+    placeholders = ",".join("?" * len(ts_codes))
+    with get_market_conn() as conn:
+        rows = conn.execute(
+            f"SELECT ts_code, industry FROM stock_basic WHERE ts_code IN ({placeholders})",
+            ts_codes,
+        ).fetchall()
+    return {r[0]: r[1] for r in rows if r[1]}
+
+
+def _infer_industry_trends(
+    factor_data: dict[str, dict], industries: dict[str, str]
+) -> dict[str, str]:
+    """Infer per-industry price trend from average momentum of scored stocks.
+
+    Uses the momentum scores already computed for stocks in each industry.
+    avg_momentum > 55 → "up", < 45 → "down", else "flat".
+    """
+    industry_momentums: dict[str, list[float]] = {}
+    for code, factors in factor_data.items():
+        mom = factors.get("momentum")
+        industry = industries.get(code, "")
+        if mom is not None and industry:
+            industry_momentums.setdefault(industry, []).append(mom)
+
+    trends: dict[str, str] = {}
+    for industry, moms in industry_momentums.items():
+        if len(moms) < 2:
+            trends[industry] = "flat"
+            continue
+        avg = sum(moms) / len(moms)
+        if avg > 55:
+            trends[industry] = "up"
+        elif avg < 45:
+            trends[industry] = "down"
+        else:
+            trends[industry] = "flat"
+    return trends
+
+
 class DailyExecutor:
     """Execute one trading day for a paper-trading account."""
+
+    # ── Dynamic stop-loss / take-profit rule table ──
+    # (market_regime, sector_trend) → (hard_stop_pct, take_profit_pct)
+    # take_profit_pct of 0.0 means "no take-profit, only stop-loss"
+    _RISK_RULES: dict[tuple[str, str], tuple[float, float]] = {
+        ("bear", "down"):  (0.07, 0.0),   # 熊市弱赛道：快速止损，不止盈
+        ("bear", "up"):    (0.10, 0.15),  # 熊市强赛道：保守
+        ("bear", "flat"):  (0.08, 0.10),  # 熊市中性：偏紧
+        ("bull", "up"):    (0.12, 0.30),  # 牛市强赛道：给足空间
+        ("bull", "down"):  (0.08, 0.15),  # 牛市弱赛道：收紧
+        ("bull", "flat"):  (0.10, 0.20),  # 牛市中性：标准
+        ("mixed", "up"):   (0.10, 0.20),  # 分化强赛道：标准
+        ("mixed", "down"): (0.08, 0.12),  # 分化弱赛道：偏紧
+        ("mixed", "flat"): (0.10, 0.20),  # 分化中性：标准
+    }
+    _DEFAULT_RISK = (0.10, 0.20)
 
     def __init__(self, account: PaperAccount, strategy: Strategy) -> None:
         self.account = account
         self.strategy = strategy
         self.commission_bps = 2.5
         self.stamp_tax_bps = 10.0
+
+    def _get_risk_thresholds(
+        self, market_regime: str, sector_trend: str
+    ) -> tuple[float, float]:
+        """Look up dynamic stop-loss / take-profit for this position."""
+        return self._RISK_RULES.get(
+            (market_regime, sector_trend), self._DEFAULT_RISK
+        )
+
+    def _check_risk_signals(
+        self,
+        positions: list[Position],
+        prices: dict[str, float],
+        trade_date: str,
+        market_regime: str = "mixed",
+        industries: dict[str, str] | None = None,
+        industry_trend: dict[str, str] | None = None,
+    ) -> list[Signal]:
+        """Check stop-loss / take-profit for every holding with DYNAMIC thresholds.
+
+        Thresholds adapt to market regime + sector trend:
+        - Bear market + declining sector → tight 7% stop, no take-profit
+        - Bull market + rising sector → wide 12% stop, 30% take-profit
+        - etc. (see _RISK_RULES table)
+        """
+        industries = industries or {}
+        industry_trend = industry_trend or {}
+        signals: list[Signal] = []
+        for pos in positions:
+            px = prices.get(pos.ts_code)
+            if px is None or px <= 0:
+                continue
+            pnl_pct = (px / pos.avg_cost - 1) if pos.avg_cost > 0 else 0
+
+            # Dynamic thresholds based on market + sector
+            industry = industries.get(pos.ts_code, "")
+            sector_trend = industry_trend.get(industry, "flat")
+            hard_stop, take_profit = self._get_risk_thresholds(market_regime, sector_trend)
+
+            if pnl_pct <= -hard_stop:
+                signals.append(
+                    Signal(
+                        ts_code=pos.ts_code,
+                        name=pos.name,
+                        action="SELL",
+                        signal_reason=f"硬止损 P&L={pnl_pct*100:.1f}% (止损线{hard_stop*100:.0f}% {market_regime}/{sector_trend})",
+                    )
+                )
+            elif take_profit > 0 and pnl_pct >= take_profit:
+                signals.append(
+                    Signal(
+                        ts_code=pos.ts_code,
+                        name=pos.name,
+                        action="SELL",
+                        signal_reason=f"止盈 P&L=+{pnl_pct*100:.1f}% (止盈线{take_profit*100:.0f}% {market_regime}/{sector_trend})",
+                    )
+                )
+        return signals
 
     def run_day(self, trade_date: str, factor_scores: dict | None = None) -> dict:
         """Execute one trading day. Returns a summary dict.
@@ -181,7 +346,25 @@ class DailyExecutor:
             logger.warning(f"[{self.account.name}] {trade_date}: no prices available")
             return {"status": "no_prices", "trade_date": trade_date}
 
-        # ── 3. Build snapshot ──
+        # ── 2b. Market regime + industry context ──
+        market_regime = _get_market_regime(trade_date)
+        industries = _get_industries(codes_to_price)
+        industry_trend = _infer_industry_trends(factor_data, industries)
+
+        # ── 3a. Risk management: dynamic stop-loss / take-profit ──
+        risk_signals = self._check_risk_signals(
+            positions, prices, trade_date,
+            market_regime=market_regime,
+            industries=industries,
+            industry_trend=industry_trend,
+        )
+        if risk_signals:
+            logger.info(
+                f"[{self.account.name}] {trade_date}: {len(risk_signals)} risk signals "
+                f"(market={market_regime})"
+            )
+
+        # ── 3b. Build snapshot with smart context ──
         stock_names = {c: _get_stock_name(c) for c in codes_to_price}
         total_equity = self.account.market_value(prices)
 
@@ -191,10 +374,21 @@ class DailyExecutor:
             davis_scores=davis_scores,
             factor_scores=factor_data,
             stock_names=stock_names,
+            market_regime=market_regime,
+            industries=industries,
+            industry_trend=industry_trend,
         )
 
         # ── 4. Evaluate strategy ──
-        signals = self.strategy.evaluate(positions, snapshot, total_equity)
+        strategy_signals = self.strategy.evaluate(positions, snapshot, total_equity)
+
+        # Merge: risk signals take priority (a stock flagged for stop-loss
+        # is sold regardless of what the strategy says)
+        risk_codes = {s.ts_code for s in risk_signals if s.action == "SELL"}
+        # Filter out strategy HOLD signals for stocks being risk-sold
+        signals = risk_signals + [
+            s for s in strategy_signals if s.ts_code not in risk_codes
+        ]
         logger.info(
             f"[{self.account.name}] {trade_date}: {len(signals)} signals "
             f"({sum(1 for s in signals if s.action == 'BUY')} buy, "
@@ -375,7 +569,7 @@ def run_backfill_auto(
     start_date: str,
     end_date: str | None = None,
     universe_codes: list[str] | None = None,
-    scoring_frequency: int = 5,
+    scoring_frequency: int = 1,
 ) -> list[dict]:
     """Full-auto backfill: automatically compute factor scores each scoring day.
 
@@ -389,7 +583,7 @@ def run_backfill_auto(
         start_date / end_date: YYYYMMDD.
         universe_codes: explicit stock list to score. If None, uses the top-50
             by cached market cap (avoid full-universe for speed).
-        scoring_frequency: re-score every N trading days (default 5 = weekly).
+        scoring_frequency: re-score every N trading days (default 1 = daily).
     """
     from davis_analyzer.tushare_client import TushareClient
 
