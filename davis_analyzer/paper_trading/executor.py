@@ -148,34 +148,54 @@ _BULLISH_STAGES = {"主升浪", "上涨中回调", "低位筑底"}
 
 
 def _get_market_regime(trade_date: str) -> str:
-    """Read market regime from index_technical table for *trade_date*.
+    """Determine market regime (bull/bear/mixed) using ONLY data available
+    on or before *trade_date* — no look-ahead bias.
 
-    Returns "bull" / "bear" / "mixed". Falls back to "mixed" if no data.
+    Uses index_daily price data (not the pre-computed index_technical table,
+    which has limited date coverage and a date-format mismatch risk).
+
+    Logic: compute 20-day return for 上证指数 (000001.SH) and 创业板指
+    (399006.SZ). If both are negative → bear. Both positive → bull.
+    Mixed otherwise.
+
+    Args:
+        trade_date: YYYYMMDD format (no dashes).
     """
-    with get_market_conn() as conn:
-        rows = conn.execute(
-            "SELECT stage FROM index_technical WHERE trade_date=? "
-            "AND ts_code IN ('000001.SH','399006.SZ','000688.SH','399001.SZ','000300.SH')",
-            (trade_date,),
-        ).fetchall()
-    if not rows:
-        # Try most recent date <= trade_date
-        with get_market_conn() as conn:
-            rows = conn.execute(
-                "SELECT stage FROM index_technical WHERE trade_date <= ? "
-                "AND ts_code IN ('000001.SH','399006.SZ','000688.SH','399001.SZ','000300.SH') "
-                "ORDER BY trade_date DESC LIMIT 5",
-                (trade_date,),
-            ).fetchall()
-    if not rows:
-        return "mixed"
+    import pandas as pd
 
-    stages = [r[0] for r in rows if r[0]]
-    bull_n = sum(1 for s in stages if s in _BULLISH_STAGES)
-    bear_n = sum(1 for s in stages if s in _BEARISH_STAGES)
-    if bear_n > bull_n:
+    repo = get_repository()
+    # Look back 40 calendar days to get enough for a 20-trading-day window
+    lookback_start = (
+        datetime.strptime(trade_date, "%Y%m%d") - timedelta(days=60)
+    ).strftime("%Y%m%d")
+
+    signals = []
+    for index_code in ("000001.SH", "399006.SZ"):
+        try:
+            df = repo.get_index_daily(index_code, lookback_start, trade_date)
+            if df is None or df.empty:
+                continue
+            df = df.sort_values("trade_date")
+            close = pd.to_numeric(df["close"], errors="coerce").dropna()
+            if len(close) < 5:
+                continue
+            # 20-trading-day return (or whatever we have, min 5)
+            window = min(20, len(close) - 1)
+            if window < 5:
+                continue
+            ret_20d = (close.iloc[-1] / close.iloc[-1 - window] - 1) * 100
+            signals.append(("up" if ret_20d > 0 else "down", index_code, ret_20d))
+        except Exception:
+            continue
+
+    if not signals:
+        return "mixed"  # no data → cautious default
+
+    up_n = sum(1 for s, _, _ in signals if s == "up")
+    down_n = sum(1 for s, _, _ in signals if s == "down")
+    if down_n > up_n:
         return "bear"
-    if bull_n > bear_n:
+    if up_n > down_n:
         return "bull"
     return "mixed"
 
