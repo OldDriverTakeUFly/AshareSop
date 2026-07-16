@@ -206,7 +206,28 @@ class FactorThresholdStrategy:
     ) -> list[Signal]:
         signals: list[Signal] = []
 
-        # ── Check existing positions for sell signals ──
+        # ── 1. Scan ALL candidates (not just held + small subset) ──
+        # Build a ranked list of every stock that passes the factor filter.
+        held_codes = {p.ts_code for p in positions}
+        all_qualified: list[tuple[str, float, float, str]] = []  # (code, mom, holder, industry)
+
+        for code, factors in snapshot.factor_scores.items():
+            if code not in snapshot.prices or snapshot.prices[code] <= 0:
+                continue
+            mom = factors.get("momentum")
+            holder = factors.get("holder")
+            if mom is not None and mom > self.buy_momentum:
+                if holder is not None and holder > self.buy_holder_min:
+                    industry = snapshot.industries.get(code, "")
+                    sector_trend = snapshot.industry_trend.get(industry, "flat")
+                    if sector_trend == "down":
+                        continue
+                    all_qualified.append((code, mom, holder, industry))
+
+        # Rank by momentum descending
+        all_qualified.sort(key=lambda x: x[1], reverse=True)
+
+        # ── 2. Check existing positions for sell signals ──
         for pos in positions:
             factors = snapshot.factor_scores.get(pos.ts_code, {})
             mom = factors.get("momentum")
@@ -218,7 +239,6 @@ class FactorThresholdStrategy:
             reasons: list[str] = []
             should_sell = False
 
-            # Factor-based sell
             if mom is not None and mom < self.sell_momentum:
                 should_sell = True
                 reasons.append(f"动量{mom:.0f}<{self.sell_momentum}")
@@ -227,7 +247,6 @@ class FactorThresholdStrategy:
                 should_sell = True
                 reasons.append(f"筹码score={holder:.0f}分散")
 
-            # Sector rotation: proactively exit declining sectors
             if sector_trend == "down":
                 should_sell = True
                 reasons.append(f"行业{industry}景气走弱，切换赛道")
@@ -242,40 +261,63 @@ class FactorThresholdStrategy:
                     )
                 )
 
-        # ── Market gate: no new buys in bear market ──
+        # ── 3. Market gate ──
         effective_max = self._effective_max_positions(snapshot.market_regime)
         if effective_max == 0:
-            return signals  # bear market — only sells allowed
+            return signals
 
-        # ── Scan for buy candidates ──
-        held_codes = {p.ts_code for p in positions}
-        current_count = len(positions)
-        slots_available = effective_max - current_count
+        # ── 4. Optimal portfolio: keep best N qualified stocks ──
+        # The target portfolio is the top `effective_max` qualified stocks.
+        # If a held stock is NOT in the top effective_max, it should be
+        # replaced — BUT only if the replacement is meaningfully better
+        # (margin > swap_threshold) to avoid excessive churn.
+        swap_threshold = 5.0  # momentum points; don't swap if difference < 5
 
-        if slots_available > 0:
-            candidates = []
-            for code, factors in snapshot.factor_scores.items():
-                if code in held_codes:
-                    continue
-                if code not in snapshot.prices or snapshot.prices[code] <= 0:
-                    continue
+        target_codes = {c for c, _, _, _ in all_qualified[:effective_max]}
+        # Also include qualified stocks already held (even if below rank cutoff)
+        qualified_codes = {c for c, _, _, _ in all_qualified}
 
-                mom = factors.get("momentum")
-                holder = factors.get("holder")
+        position_weight = 1.0 / effective_max
 
-                if mom is not None and mom > self.buy_momentum:
-                    if holder is not None and holder > self.buy_holder_min:
-                        # Sector filter: only buy in trending-up sectors
-                        industry = snapshot.industries.get(code, "")
-                        sector_trend = snapshot.industry_trend.get(industry, "flat")
-                        if sector_trend == "down":
-                            continue  # skip declining sectors
-                        candidates.append((code, mom, holder, industry))
+        # Sell held stocks that are no longer qualified at all
+        # (skip if already flagged for sell above by factor/sector checks)
+        already_selling = {s.ts_code for s in signals if s.action == "SELL"}
+        for pos in positions:
+            if pos.ts_code not in qualified_codes and pos.ts_code not in already_selling:
+                signals.append(
+                    Signal(
+                        ts_code=pos.ts_code,
+                        name=pos.name,
+                        action="SELL",
+                        signal_reason="不再符合因子门槛，优化持仓",
+                    )
+                )
+                held_codes.discard(pos.ts_code)  # will be replaced
 
-            # Sort by momentum descending, take top slots
-            candidates.sort(key=lambda x: x[1], reverse=True)
-            position_weight = 1.0 / effective_max
-            for code, mom, holder, industry in candidates[:slots_available]:
+        # For held stocks that are qualified but dropped from top-N:
+        # sell only if the marginal replacement is significantly better
+        held_not_in_target = []
+        for pos in positions:
+            if pos.ts_code in qualified_codes and pos.ts_code not in target_codes:
+                # Find the best unheld target stock
+                for code, mom, holder, industry in all_qualified:
+                    if code not in held_codes and code in target_codes:
+                        held_mom = snapshot.factor_scores.get(pos.ts_code, {}).get("momentum", 0)
+                        if mom - held_mom > swap_threshold:
+                            signals.append(
+                                Signal(
+                                    ts_code=pos.ts_code,
+                                    name=pos.name,
+                                    action="SELL",
+                                    signal_reason=f"优化换仓: 替换为{snapshot.stock_names.get(code, code)}(动量{mom:.0f}>{held_mom:.0f})",
+                                )
+                            )
+                            held_codes.discard(pos.ts_code)
+                        break  # only check the best replacement
+
+        # Buy new target stocks that aren't held
+        for code, mom, holder, industry in all_qualified[:effective_max]:
+            if code not in held_codes:
                 name = snapshot.stock_names.get(code, code)
                 sector_note = f" 行业{industry}↑" if industry else ""
                 signals.append(
@@ -287,6 +329,7 @@ class FactorThresholdStrategy:
                         signal_reason=f"动量{mom:.0f}>{self.buy_momentum} 筹码{holder:.0f}>{self.buy_holder_min}{sector_note}",
                     )
                 )
+                held_codes.add(code)  # prevent duplicate buy
 
         return signals
 

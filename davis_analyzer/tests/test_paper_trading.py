@@ -296,11 +296,13 @@ class TestFactorThresholdStrategy:
         from davis_analyzer.paper_trading.account import Position
 
         strategy = FactorThresholdStrategy(max_positions=2)
+        # A.SZ is held AND qualified (in factor_scores)
         positions = [Position("A.SZ", "A", 100, 10, "20260101")]
         snapshot = MarketSnapshot(
             trade_date="20260102",
-            prices={"B.SZ": 10.0, "C.SZ": 10.0, "D.SZ": 10.0},
+            prices={"A.SZ": 10.0, "B.SZ": 10.0, "C.SZ": 10.0, "D.SZ": 10.0},
             factor_scores={
+                "A.SZ": {"momentum": 85, "holder": 55},  # held, qualified
                 "B.SZ": {"momentum": 80, "holder": 60},
                 "C.SZ": {"momentum": 75, "holder": 50},
                 "D.SZ": {"momentum": 90, "holder": 70},
@@ -309,7 +311,10 @@ class TestFactorThresholdStrategy:
         )
         signals = strategy.evaluate(positions, snapshot, 1_000_000)
         buys = [s for s in signals if s.action == "BUY"]
-        assert len(buys) == 1  # only 1 slot available (max 2 - 1 held)
+        # effective_max=2, A.SZ held+qualified (ranked #2), D.SZ is #1.
+        # Top-2 = [D.SZ(90), A.SZ(85)] → A.SZ stays, D.SZ bought = 1 buy
+        assert len(buys) == 1
+        assert buys[0].ts_code == "D.SZ"  # highest momentum
 
 
 # ── Smart Strategy tests (market gate + dynamic stop + sector rotation) ─
