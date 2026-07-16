@@ -151,12 +151,18 @@ def _get_market_regime(trade_date: str) -> str:
     """Determine market regime (bull/bear/mixed) using ONLY data available
     on or before *trade_date* — no look-ahead bias.
 
-    Uses index_daily price data (not the pre-computed index_technical table,
-    which has limited date coverage and a date-format mismatch risk).
+    Multi-timeframe approach for sensitivity:
+    - **Short-term (5-day return)**: catches trend reversal quickly (the
+      critical signal that lets us exit before the 20-day confirms).
+    - **Medium-term (20-day return)**: confirms the broader trend.
+    - **MA5 vs MA20**: structural trend confirmation (slowest but most
+      reliable — filters out one-day flash crashes).
 
-    Logic: compute 20-day return for 上证指数 (000001.SH) and 创业板指
-    (399006.SZ). If both are negative → bear. Both positive → bull.
-    Mixed otherwise.
+    Decision priority:
+      1. If 5-day return < -5% for either index → bear (fast exit signal).
+      2. If both 5d and 20d positive → bull (confirmed uptrend).
+      3. If 20d negative for both → bear (confirmed downtrend).
+      4. Otherwise → mixed.
 
     Args:
         trade_date: YYYYMMDD format (no dashes).
@@ -164,12 +170,11 @@ def _get_market_regime(trade_date: str) -> str:
     import pandas as pd
 
     repo = get_repository()
-    # Look back 40 calendar days to get enough for a 20-trading-day window
     lookback_start = (
         datetime.strptime(trade_date, "%Y%m%d") - timedelta(days=60)
     ).strftime("%Y%m%d")
 
-    signals = []
+    index_data = []
     for index_code in ("000001.SH", "399006.SZ"):
         try:
             df = repo.get_index_daily(index_code, lookback_start, trade_date)
@@ -179,24 +184,43 @@ def _get_market_regime(trade_date: str) -> str:
             close = pd.to_numeric(df["close"], errors="coerce").dropna()
             if len(close) < 5:
                 continue
-            # 20-trading-day return (or whatever we have, min 5)
-            window = min(20, len(close) - 1)
-            if window < 5:
-                continue
-            ret_20d = (close.iloc[-1] / close.iloc[-1 - window] - 1) * 100
-            signals.append(("up" if ret_20d > 0 else "down", index_code, ret_20d))
+
+            ret_5d = (close.iloc[-1] / close.iloc[-1 - min(5, len(close) - 1)] - 1) * 100
+            window_20 = min(20, len(close) - 1)
+            ret_20d = (close.iloc[-1] / close.iloc[-1 - window_20] - 1) * 100
+
+            ma5 = close.rolling(5).mean().iloc[-1] if len(close) >= 5 else None
+            ma20 = close.rolling(20).mean().iloc[-1] if len(close) >= 20 else None
+            ma_below = ma5 is not None and ma20 is not None and ma5 < ma20
+
+            index_data.append({
+                "code": index_code,
+                "ret_5d": ret_5d,
+                "ret_20d": ret_20d,
+                "ma_below": ma_below,
+            })
         except Exception:
             continue
 
-    if not signals:
-        return "mixed"  # no data → cautious default
+    if not index_data:
+        return "mixed"
 
-    up_n = sum(1 for s, _, _ in signals if s == "up")
-    down_n = sum(1 for s, _, _ in signals if s == "down")
-    if down_n > up_n:
+    # ── Fast signal: any index with 5-day return < -5% → bear immediately ──
+    if any(d["ret_5d"] < -5.0 for d in index_data):
         return "bear"
-    if up_n > down_n:
+
+    # ── Confirmed bull: both indices positive on both timeframes ──
+    if all(d["ret_5d"] > 0 and d["ret_20d"] > 0 for d in index_data):
         return "bull"
+
+    # ── Confirmed bear: both indices negative on 20-day ──
+    if all(d["ret_20d"] < 0 for d in index_data):
+        return "bear"
+
+    # ── MA confirmation: both indices MA5 < MA20 → bear ──
+    if all(d["ma_below"] for d in index_data):
+        return "bear"
+
     return "mixed"
 
 
