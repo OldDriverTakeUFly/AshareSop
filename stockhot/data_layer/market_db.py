@@ -257,6 +257,36 @@ _SCHEMA_STATEMENTS: list[str] = [
         close      REAL,
         fetched_at REAL
     )""",
+    # ═══ 盘后复盘引擎产出（eod_review）════════════════════════════════
+    # 量化归因信号（涨停归因/跌停分类/大宗折价等），每日每信号一行
+    """CREATE TABLE IF NOT EXISTS eod_review (
+        trade_date   TEXT NOT NULL,
+        ts_code      TEXT NOT NULL,
+        name         TEXT,
+        signal_type  TEXT NOT NULL,   -- limit_up_breakout / limit_up_volume_fund /
+                                       -- limit_up_relay / limit_up_event /
+                                       -- limit_up_value_repair / limit_down_*
+        sector       TEXT,
+        price        REAL,
+        pct_chg      REAL,
+        detail       TEXT,            -- JSON，规则特定字段（量比/PE百分位/封单等）
+        fetched_at   REAL,
+        PRIMARY KEY (trade_date, ts_code, signal_type)
+    )""",
+    # 情绪温度计：多维情绪快照（融资融券/北向/大宗），每日一行
+    """CREATE TABLE IF NOT EXISTS eod_sentiment (
+        trade_date            TEXT PRIMARY KEY,
+        margin_balance        REAL,   -- 融资余额合计（亿）
+        margin_chg            REAL,   -- 较前日变化（亿）
+        north_net             REAL,   -- 北向净流入（亿）
+        north_5d_avg          REAL,   -- 5 日均值（亿）
+        block_trade_count     INTEGER,-- 大宗交易笔数
+        block_discount_median REAL,   -- 大宗折价率中位数（%，负=折价）
+        sentiment_score       REAL,   -- 综合情绪分 0-100
+        sentiment_label       TEXT,   -- 极热/偏热/中性/偏冷/极冷
+        detail                TEXT,   -- JSON 全维度明细
+        fetched_at            REAL
+    )""",
     # 采集日志 — 解决"不知道哪个模块跑没跑"的问题
     """CREATE TABLE IF NOT EXISTS scan_log (
         id            INTEGER PRIMARY KEY AUTOINCREMENT,
