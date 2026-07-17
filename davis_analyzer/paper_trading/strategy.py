@@ -201,12 +201,18 @@ class FactorThresholdStrategy:
         buy_dividend_min: float = 55.0,
         buy_forecast_min: float = 70.0,
         buy_prosperity_min: float = 45.0,
+        min_secondary_dims: int = 1,
+        max_single_position_pct: float = 12.0,
     ) -> None:
         self.max_positions = max_positions
         self.buy_momentum = buy_momentum
         self.sell_momentum = sell_momentum
         self.buy_holder_min = buy_holder_min
         self.buy_dividend_min = buy_dividend_min
+        self.buy_forecast_min = buy_forecast_min
+        self.buy_prosperity_min = buy_prosperity_min
+        self.min_secondary_dims = min_secondary_dims
+        self.max_single_position_pct = max_single_position_pct
         self.buy_forecast_min = buy_forecast_min
         self.buy_prosperity_min = buy_prosperity_min
         # Track recently sold codes to enforce cooldown (ts_code → trade_date)
@@ -271,6 +277,10 @@ class FactorThresholdStrategy:
 
             if not secondary_pass:
                 continue  # must pass at least one secondary dimension
+
+            # Quality gate: require at least min_secondary_dims secondary dimensions
+            if len(secondary_pass) < self.min_secondary_dims:
+                continue
 
             # Composite score: momentum 40%, best secondary 40%, prosperity bonus 20%
             best_secondary = max(
@@ -405,12 +415,16 @@ class FactorThresholdStrategy:
             # If still qualified (even if ranking dropped), KEEP it — no swap
 
         # Buy new target stocks ONLY for empty slots (no forced swaps)
+        # Cap single position to max_single_position_pct of total equity
         current_hold_count = len(positions) - len(already_selling) - sum(
             1 for s in signals if s.action == "SELL"
         )
         slots = effective_max - current_hold_count
         if slots > 0:
             bought = 0
+            # Calculate position weight with single-position cap
+            raw_weight = 1.0 / effective_max
+            capped_weight = min(raw_weight, self.max_single_position_pct / 100.0)
             for code, score, details, industry, dims in all_qualified:
                 if bought >= slots:
                     break
@@ -426,7 +440,7 @@ class FactorThresholdStrategy:
                         ts_code=code,
                         name=name,
                         action="BUY",
-                        target_weight=position_weight,
+                        target_weight=capped_weight,
                         signal_reason=f"{details}{sector_note}",
                     )
                 )
