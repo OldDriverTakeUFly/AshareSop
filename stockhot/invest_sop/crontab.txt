@@ -31,3 +31,9 @@
 # Runs all 4 modules: limit_up → dragon_tiger + fund_flow → risk_alert
 # Data feeds the after-hours-review skill (盘后总结)
 0 17 * * 1-5 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python stockhot/invest_sop/scripts/run_daily_scan.py >> stockhot/invest_sop/logs/daily_scan.log 2>&1
+
+# Intraday panic alert (Mon–Fri, 4 checks during trading hours)
+# Detects systemic panic (RV P90+), behavioral panic (limit-up/down ratio <0.5),
+# and iVIX/V-R extremes. Pushes to Feishu only when triggered.
+# Requires FEISHU_WEBHOOK_URL in .env
+30 10,11,13,14 * * 1-5 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python stockhot/invest_sop/scripts/run_panic_alert.py >> stockhot/invest_sop/logs/panic_alert.log 2>&1
