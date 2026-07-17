@@ -24,6 +24,17 @@ from typing import Any, Protocol
 from davis_analyzer.paper_trading.account import Position
 
 
+def _days_between(date_str1: str, date_str2: str) -> int:
+    """Approximate calendar days between two YYYYMMDD strings."""
+    try:
+        from datetime import datetime as _dt
+        d1 = _dt.strptime(date_str1, "%Y%m%d")
+        d2 = _dt.strptime(date_str2, "%Y%m%d")
+        return abs((d2 - d1).days)
+    except (ValueError, TypeError):
+        return 999  # treat invalid as far apart
+
+
 @dataclass
 class Signal:
     """A trading signal produced by a strategy."""
@@ -198,6 +209,9 @@ class FactorThresholdStrategy:
         self.buy_dividend_min = buy_dividend_min
         self.buy_forecast_min = buy_forecast_min
         self.buy_prosperity_min = buy_prosperity_min
+        # Track recently sold codes to enforce cooldown (ts_code → trade_date)
+        self._cooldown: dict[str, str] = {}
+        self._cooldown_days = 5  # don't rebuy within 5 trading days of selling
 
     def _effective_max_positions(self, market_regime: str) -> int:
         """Reduce position cap in bear/mixed markets."""
@@ -333,64 +347,78 @@ class FactorThresholdStrategy:
                         signal_reason="；".join(reasons),
                     )
                 )
+                self._cooldown[pos.ts_code] = snapshot.trade_date
 
         # ── 3. Market gate ──
         effective_max = self._effective_max_positions(snapshot.market_regime)
         if effective_max == 0:
             return signals
 
-        # ── 4. Optimal portfolio: keep best N qualified stocks ──
-        # The target portfolio is the top `effective_max` qualified stocks.
-        # If a held stock is NOT in the top effective_max, it should be
-        # replaced — BUT only if the replacement is meaningfully better
-        # (margin > swap_threshold) to avoid excessive churn.
-        swap_threshold = 5.0  # momentum points; don't swap if difference < 5
-
+        # ── 4. Core holding philosophy: hold unless buy reason reverses ──
+        # We do NOT swap for marginally better stocks. A held stock stays
+        # unless its buy reason has fundamentally reversed (checked above).
+        # Only fill empty slots with new qualified candidates.
         target_codes = {c for c, _, _, _, _ in all_qualified[:effective_max]}
-        # Also include qualified stocks already held (even if below rank cutoff)
         qualified_codes = {c for c, _, _, _, _ in all_qualified}
 
         position_weight = 1.0 / effective_max
 
-        # Sell held stocks that are no longer qualified at all
-        # (skip if already flagged for sell above by factor/sector checks)
+        # Update cooldown: remove entries older than cooldown_days
+        current_date = snapshot.trade_date
+        expired = [k for k, v in list(self._cooldown.items())
+                   if _days_between(v, current_date) >= self._cooldown_days]
+        for k in expired:
+            del self._cooldown[k]
+
+        # Sell held stocks ONLY if ALL buy reasons have reversed
+        # (not just "dropped from top-N ranking")
         already_selling = {s.ts_code for s in signals if s.action == "SELL"}
         for pos in positions:
             if pos.ts_code not in qualified_codes and pos.ts_code not in already_selling:
-                signals.append(
-                    Signal(
-                        ts_code=pos.ts_code,
-                        name=pos.name,
-                        action="SELL",
-                        signal_reason="不再符合因子门槛，优化持仓",
-                    )
-                )
-                held_codes.discard(pos.ts_code)  # will be replaced
+                # Check: did ALL secondary dimensions reverse?
+                factors_p = snapshot.factor_scores.get(pos.ts_code, {})
+                p_holder = factors_p.get("holder")
+                p_div = factors_p.get("dividend")
+                p_fc = factors_p.get("forecast_leading") or factors_p.get("leading")
+                p_pros = factors_p.get("prosperity")
+                all_reversed = True
+                if p_holder is not None and p_holder > self.buy_holder_min:
+                    all_reversed = False
+                if p_div is not None and p_div > self.buy_dividend_min:
+                    all_reversed = False
+                if p_fc is not None and p_fc > self.buy_forecast_min:
+                    all_reversed = False
+                if p_pros is not None and p_pros > self.buy_prosperity_min:
+                    all_reversed = False
 
-        # For held stocks that are qualified but dropped from top-N:
-        # sell only if the marginal replacement is significantly better
-        for pos in positions:
-            if pos.ts_code in qualified_codes and pos.ts_code not in target_codes:
-                for code, score, details, industry, dims in all_qualified:
-                    if code not in held_codes and code in target_codes:
-                        held_score = next(
-                            (s for c, s, _, _, _ in all_qualified if c == pos.ts_code), 0
+                if all_reversed:
+                    signals.append(
+                        Signal(
+                            ts_code=pos.ts_code,
+                            name=pos.name,
+                            action="SELL",
+                            signal_reason="买入理由全部反转，清仓",
                         )
-                        if score - held_score > swap_threshold:
-                            signals.append(
-                                Signal(
-                                    ts_code=pos.ts_code,
-                                    name=pos.name,
-                                    action="SELL",
-                                    signal_reason=f"优化换仓: 替换为{snapshot.stock_names.get(code, code)}(综合分{score:.0f}>{held_score:.0f})",
-                                )
-                            )
-                            held_codes.discard(pos.ts_code)
-                        break
+                    )
+                    held_codes.discard(pos.ts_code)
+                    self._cooldown[pos.ts_code] = current_date
+            # If still qualified (even if ranking dropped), KEEP it — no swap
 
-        # Buy new target stocks that aren't held
-        for code, score, details, industry, dims in all_qualified[:effective_max]:
-            if code not in held_codes:
+        # Buy new target stocks ONLY for empty slots (no forced swaps)
+        current_hold_count = len(positions) - len(already_selling) - sum(
+            1 for s in signals if s.action == "SELL"
+        )
+        slots = effective_max - current_hold_count
+        if slots > 0:
+            bought = 0
+            for code, score, details, industry, dims in all_qualified:
+                if bought >= slots:
+                    break
+                if code in held_codes:
+                    continue
+                # Cooldown check
+                if code in self._cooldown:
+                    continue
                 name = snapshot.stock_names.get(code, code)
                 sector_note = f" 行业{industry}↑" if industry else ""
                 signals.append(
@@ -403,6 +431,7 @@ class FactorThresholdStrategy:
                     )
                 )
                 held_codes.add(code)
+                bought += 1
 
         return signals
 
