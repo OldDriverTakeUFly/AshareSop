@@ -118,15 +118,18 @@ def _fetch_sector_fund_flow_ths() -> list[dict]:
             if not name:
                 continue
             main_net = safe_float(cells[6])  # 净额(亿), already in 亿
+            # ⚠️ 同花顺只提供单一净额，无法区分主力/散户。
+            # main_net 在此路径是"全部资金净流入"（含散户），与 Tushare/东财路径
+            # 的"主力=超大单+大单净流入"语义不一致。此为兜底路径，优先级最低。
             rows.append({
                 "name": name,
                 "change_pct": _parse_pct(cells[3]),
                 "main_net": main_net,
                 "main_pct": 0.0,  # not reported by THS
                 "huge_net": 0.0,
-                "large_net": main_net,  # THS net ≈ main (large+)
+                "large_net": main_net,  # THS 无法拆分，近似填入全部净额
                 "medium_net": 0.0,
-                "small_net": -main_net,  # zero-sum approximation
+                "small_net": -main_net,  # 零和近似（兜底用，非真实分档）
             })
         logger.info(f"fetch_sector_fund_flow (THS fallback): {len(rows)} rows")
         return rows
@@ -220,18 +223,28 @@ def _fetch_sector_fund_flow_tushare() -> list[dict]:
         basic = pro.stock_basic(fields="ts_code,name,industry")
         merged = mf.merge(basic[["ts_code", "industry"]], on="ts_code", how="left")
 
-        # Aggregate by industry (net_mf_amount 单位万元 → 亿元)
+        # 各档净额 = 买入 - 卖出（修复：之前只取 buy 单边值）
+        # Tushare moneyflow 单位万元，四档划分：小单<5万 / 中单5-20万 / 大单20-100万 / 超大单>100万
         import pandas as _pd
+        merged = merged.copy()
+        merged["huge_net"] = merged["buy_elg_amount"].fillna(0) - merged["sell_elg_amount"].fillna(0)
+        merged["large_net"] = merged["buy_lg_amount"].fillna(0) - merged["sell_lg_amount"].fillna(0)
+        merged["medium_net"] = merged["buy_md_amount"].fillna(0) - merged["sell_md_amount"].fillna(0)
+        merged["small_net"] = merged["buy_sm_amount"].fillna(0) - merged["sell_sm_amount"].fillna(0)
+
+        # main_net = 主力净流入 = 超大单 + 大单（与个股路径 _fetch_individual_fund_flow_tushare
+        # 及东财口径对齐；net_mf_amount 是全部净流入含散户，不再用作 main_net）
+        merged["main_net_raw"] = merged["huge_net"] + merged["large_net"]
+
         agg = merged.groupby("industry").agg(
-            main_net=("net_mf_amount", "sum"),
-            huge_net=("buy_elg_amount", "sum"),   # 超大单 = buy - sell
-            large_net=("buy_lg_amount", "sum"),
-            medium_net=("buy_md_amount", "sum"),
-            small_net=("buy_sm_amount", "sum"),
+            main_net=("main_net_raw", "sum"),
+            huge_net=("huge_net", "sum"),
+            large_net=("large_net", "sum"),
+            medium_net=("medium_net", "sum"),
+            small_net=("small_net", "sum"),
             count=("ts_code", "count"),
         ).reset_index()
-        # 净额 = 买入 - 卖出; 但 moneyflow 的 net_mf_amount 已是净额
-        # 对于 buy_*_amount 列需减去 sell (这里简化用 net_mf_amount 为主)
+        # 万元 → 亿元
         rows: list[dict] = []
         for _, r in agg.iterrows():
             if not r["industry"] or _pd.isna(r["industry"]):
@@ -239,7 +252,7 @@ def _fetch_sector_fund_flow_tushare() -> list[dict]:
             rows.append({
                 "name": r["industry"],
                 "change_pct": 0.0,  # Tushare moneyflow 不含涨跌幅
-                "main_net": r["main_net"] / 1e4,  # 万元→亿元
+                "main_net": r["main_net"] / 1e4,  # 万元→亿元（主力=超大单+大单净额）
                 "main_pct": 0.0,
                 "huge_net": r["huge_net"] / 1e4,
                 "large_net": r["large_net"] / 1e4,
