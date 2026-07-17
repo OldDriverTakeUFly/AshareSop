@@ -151,21 +151,16 @@ _BULLISH_STAGES = {"主升浪", "上涨中回调", "低位筑底"}
 
 
 def _get_market_regime(trade_date: str) -> str:
-    """Determine market regime (bull/bear/mixed) using ONLY data available
+    """Determine market regime (bull/bear/mixed/panic) using ONLY data available
     on or before *trade_date* — no look-ahead bias.
 
     Multi-timeframe approach for sensitivity:
-    - **Short-term (5-day return)**: catches trend reversal quickly (the
-      critical signal that lets us exit before the 20-day confirms).
+    - **Short-term (5-day return)**: catches trend reversal quickly.
     - **Medium-term (20-day return)**: confirms the broader trend.
-    - **MA5 vs MA20**: structural trend confirmation (slowest but most
-      reliable — filters out one-day flash crashes).
-
-    Decision priority:
-      1. If 5-day return < -5% for either index → bear (fast exit signal).
-      2. If both 5d and 20d positive → bull (confirmed uptrend).
-      3. If 20d negative for both → bear (confirmed downtrend).
-      4. Otherwise → mixed.
+    - **MA5 vs MA20**: structural trend confirmation.
+    - **iVIX percentile**: panic overlay — when iVIX is historically high,
+      downgrade regime one level (bull→mixed, mixed→bear) to reflect
+      elevated risk even if price trends haven't fully reversed.
 
     Args:
         trade_date: YYYYMMDD format (no dashes).
@@ -214,17 +209,58 @@ def _get_market_regime(trade_date: str) -> str:
 
     # ── Confirmed bull: both indices positive on both timeframes ──
     if all(d["ret_5d"] > 0 and d["ret_20d"] > 0 for d in index_data):
-        return "bull"
-
+        base_regime = "bull"
     # ── Confirmed bear: both indices negative on 20-day ──
-    if all(d["ret_20d"] < 0 for d in index_data):
-        return "bear"
-
+    elif all(d["ret_20d"] < 0 for d in index_data):
+        base_regime = "bear"
     # ── MA confirmation: both indices MA5 < MA20 → bear ──
-    if all(d["ma_below"] for d in index_data):
-        return "bear"
+    elif all(d["ma_below"] for d in index_data):
+        base_regime = "bear"
+    else:
+        base_regime = "mixed"
 
-    return "mixed"
+    # ── iVIX panic overlay ──
+    # When iVIX is historically elevated, downgrade regime to reflect risk
+    ivix_pct = _get_ivix_percentile(trade_date)
+    if ivix_pct is not None:
+        if ivix_pct >= 75:
+            # Extreme panic: force bear regardless of price trends
+            return "bear"
+        elif ivix_pct >= 60 and base_regime == "bull":
+            # Elevated panic: downgrade bull → mixed
+            return "mixed"
+
+    return base_regime
+
+
+def _get_ivix_percentile(trade_date: str) -> float | None:
+    """Get iVIX historical percentile for *trade_date* (0-100).
+
+    Returns the % of historical iVIX values below the current reading.
+    High percentile = market is in a state of elevated fear/panic.
+    Uses point-in-time data only (trade_date and before).
+    """
+    with get_market_conn() as conn:
+        # Current iVIX on or before trade_date
+        row = conn.execute(
+            "SELECT close FROM ivix_history WHERE trade_date <= ? ORDER BY trade_date DESC LIMIT 1",
+            (trade_date,),
+        ).fetchone()
+        if not row or row[0] is None:
+            return None
+        current_ivix = float(row[0])
+
+        # Historical distribution (all data up to trade_date)
+        rows = conn.execute(
+            "SELECT close FROM ivix_history WHERE trade_date <= ? AND close IS NOT NULL",
+            (trade_date,),
+        ).fetchall()
+        if len(rows) < 30:  # need enough history
+            return None
+
+        all_values = [float(r[0]) for r in rows if r[0] is not None]
+        pct = sum(1 for v in all_values if v < current_ivix) / len(all_values) * 100
+        return round(pct, 1)
 
 
 def _get_industries(ts_codes: list[str]) -> dict[str, str]:
@@ -435,6 +471,10 @@ class DailyExecutor:
                     continue
                 # Prosperity score must still be decent
                 if prosperity is not None and prosperity < 40:
+                    continue
+                # Panic gate: don't add when iVIX is elevated (market fearful)
+                ivix_pct = _get_ivix_percentile(trade_date)
+                if ivix_pct is not None and ivix_pct >= 60:
                     continue
 
                 add_shares = int(pos.shares * self.t_add_ratio // 100) * 100
