@@ -35,11 +35,12 @@ def _to_akshare_symbol(ts_code: str) -> str:
 
 
 def _fetch_index_via_akshare(ts_code: str) -> pd.DataFrame:
-    """AKShare 主源：返回升序 OHLCV DataFrame（index=date）。"""
+    """AKShare 主源：返回升序 close DataFrame（index=date）。"""
     import akshare as ak
+    from stockhot.core.rate_limiter import safe_akshare_call
 
     symbol = _to_akshare_symbol(ts_code)
-    raw = ak.stock_zh_index_daily(symbol=symbol)
+    raw = safe_akshare_call(ak.stock_zh_index_daily, symbol=symbol)
     if raw is None or raw.empty:
         return pd.DataFrame()
 
@@ -143,15 +144,11 @@ def fetch_ivix_history(days: int = 1300) -> pd.Series:
     except Exception as e:
         logger.warning(f"[iVIX] DAL cache failed: {e}")
 
-    # fallback：直接 AKShare（原逻辑）
+    # fallback：直接 AKShare（唯一源，走 safe_akshare_call 限频+重试）
     import akshare as ak
+    from stockhot.core.rate_limiter import safe_akshare_call
 
-    try:
-        raw = ak.index_option_50etf_qvix()
-    except Exception as e:
-        logger.warning(f"[iVIX] AKShare error: {type(e).__name__}: {e}")
-        return pd.Series(dtype=float, name="ivix")
-
+    raw = safe_akshare_call(ak.index_option_50etf_qvix)
     if raw is None or raw.empty:
         logger.warning("[iVIX] AKShare empty")
         return pd.Series(dtype=float, name="ivix")

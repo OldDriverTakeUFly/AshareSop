@@ -37,9 +37,10 @@ def _to_akshare_symbol(ts_code: str) -> str:
 def _fetch_via_akshare(ts_code: str) -> pd.DataFrame:
     """AKShare 主源：返回升序 OHLCV DataFrame（index=date）。"""
     import akshare as ak
+    from stockhot.core.rate_limiter import safe_akshare_call
 
     symbol = _to_akshare_symbol(ts_code)
-    raw = ak.stock_zh_index_daily(symbol=symbol)
+    raw = safe_akshare_call(ak.stock_zh_index_daily, symbol=symbol)
     if raw is None or raw.empty:
         return pd.DataFrame()
 

@@ -34,8 +34,9 @@ def fetch_sw_l1_sectors() -> list[dict]:
     数据源：AKShare sw_index_first_info（唯一干净来源）。
     """
     import akshare as ak
+    from stockhot.core.rate_limiter import safe_akshare_call
 
-    df = ak.sw_index_first_info()
+    df = safe_akshare_call(ak.sw_index_first_info)
     sectors: list[dict] = []
     for _, row in df.iterrows():
         sectors.append({

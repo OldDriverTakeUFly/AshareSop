@@ -1,39 +1,37 @@
 """Trading calendar utilities using akshare trade date history."""
 
-import os
 from datetime import datetime
 from typing import Optional
+
+from stockhot.core.logging import logger
+from stockhot.core.rate_limiter import safe_akshare_call
 
 _trade_dates: Optional[set[str]] = None
 
 
 def _load_trade_dates() -> set[str]:
-    """Load trade dates from akshare (Sina source), stripping proxy env vars."""
+    """Load trade dates from akshare (Sina source).
+
+    Uses ``safe_akshare_call`` for rate limiting + retry + proxy handling.
+    On failure, caches an empty set so the process does not retry on every
+    call (the calendar rarely changes).
+    """
     global _trade_dates
     if _trade_dates is not None:
         return _trade_dates
 
-    removed: dict[str, str] = {}
-    proxy_keys = [
-        "http_proxy",
-        "https_proxy",
-        "HTTP_PROXY",
-        "HTTPS_PROXY",
-        "ALL_PROXY",
-        "all_proxy",
-    ]
-    for key in proxy_keys:
-        if key in os.environ:
-            removed[key] = os.environ.pop(key)
+    import akshare as ak
 
-    try:
-        import akshare as ak
+    df = safe_akshare_call(ak.tool_trade_date_hist_sina)
+    if df.empty:
+        logger.warning(
+            "[trading_calendar] 交易日历加载失败（AKShare 数据源不可用），"
+            "本次进程内 is_trading_day 将始终返回 False"
+        )
+        _trade_dates = set()
+        return _trade_dates
 
-        df = ak.tool_trade_date_hist_sina()
-        _trade_dates = set(str(d) for d in df["trade_date"])
-    finally:
-        os.environ.update(removed)
-
+    _trade_dates = set(str(d) for d in df["trade_date"])
     return _trade_dates
 
 

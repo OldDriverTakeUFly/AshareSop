@@ -38,22 +38,6 @@ async def get_holding(id: int):
     return row
 
 
-def _strip_proxy():
-    import os
-
-    removed = {}
-    for key in ["http_proxy", "https_proxy", "HTTP_PROXY", "HTTPS_PROXY"]:
-        if key in os.environ:
-            removed[key] = os.environ.pop(key)
-    return removed
-
-
-def _restore_proxy(removed):
-    import os
-
-    os.environ.update(removed)
-
-
 @router.post("/holdings", response_model=Holding)
 async def add_holding(body: HoldingCreateSimple):
     import akshare as ak
@@ -61,11 +45,14 @@ async def add_holding(body: HoldingCreateSimple):
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     today = datetime.now().strftime("%Y-%m-%d")
 
-    removed = _strip_proxy()
-    try:
-        df = ak.stock_zh_a_spot_em()
-    finally:
-        _restore_proxy(removed)
+    from stockhot.core.rate_limiter import safe_akshare_call
+
+    df = safe_akshare_call(ak.stock_zh_a_spot_em)
+    if df.empty:
+        raise HTTPException(
+            status_code=503,
+            detail="实时行情数据源暂不可用，请稍后重试",
+        )
 
     row = df[df["代码"] == body.code]
     if row.empty:
