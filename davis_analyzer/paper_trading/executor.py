@@ -294,6 +294,12 @@ class DailyExecutor:
         self.strategy = strategy
         self.commission_bps = 2.5
         self.stamp_tax_bps = 10.0
+        # T-trading config
+        self.enable_t_trading = True
+        self.t_trim_threshold = 0.08   # trim 1/3 when up 8%+
+        self.t_add_threshold = -0.05   # add 1/4 when down 5%+ (buy the dip)
+        self.t_trim_ratio = 1.0 / 3    # sell 1/3 of position
+        self.t_add_ratio = 1.0 / 4     # buy 25% of current position
 
     def _get_risk_thresholds(
         self, market_regime: str, sector_trend: str
@@ -352,6 +358,81 @@ class DailyExecutor:
                     )
                 )
         return signals
+
+    def _execute_t_trades(
+        self,
+        positions: list[Position],
+        prices: dict[str, float],
+        trade_date: str,
+        market_regime: str = "mixed",
+        industries: dict[str, str] | None = None,
+        industry_trend: dict[str, str] | None = None,
+    ) -> list:
+        """Execute T-trades: trim profits and add on dips.
+
+        T-trading is position management within the holding period:
+        - **Trim** (partial sell): when a position is up ≥8%, sell 1/3 to
+          lock in partial profit while keeping the core position. This
+          reduces average cost and de-risks without fully exiting.
+        - **Add** (partial buy): when a position is down 5-8% but buy reasons
+          haven't reversed, buy 25% more to lower average cost. This is
+          "buying the dip" for quality holdings.
+        - **No T-trade** when down >8% (let the stop-loss handle it) or
+          in bear market (don't add to losers in a downtrend).
+
+        Returns list of TradeRecord from T-trades.
+        """
+        from davis_analyzer.paper_trading.account import TradeRecord
+
+        industries = industries or {}
+        industry_trend = industry_trend or {}
+        t_trades: list[TradeRecord] = []
+
+        for pos in positions:
+            px = prices.get(pos.ts_code)
+            if px is None or px <= 0 or pos.avg_cost <= 0:
+                continue
+
+            pnl_pct = (px / pos.avg_cost - 1)
+            industry = industries.get(pos.ts_code, "")
+            sector_trend = industry_trend.get(industry, "flat")
+
+            # ── Trim: partial take-profit ──
+            if pnl_pct >= self.t_trim_threshold:
+                trim_shares = int(pos.shares * self.t_trim_ratio // 100) * 100
+                if trim_shares >= 100:
+                    trade = self.account.sell(
+                        ts_code=pos.ts_code,
+                        name=pos.name,
+                        shares=trim_shares,
+                        price=px,
+                        trade_date=trade_date,
+                        signal_reason=f"T+减仓{self.t_trim_ratio:.0%} P&L=+{pnl_pct*100:.1f}%",
+                    )
+                    if trade:
+                        t_trades.append(trade)
+
+            # ── Add: buy the dip (only in non-bear market + sector not declining) ──
+            elif (self.t_add_threshold <= pnl_pct < 0
+                  and market_regime != "bear"
+                  and sector_trend != "down"):
+                add_shares = int(pos.shares * self.t_add_ratio // 100) * 100
+                if add_shares >= 100:
+                    # Check we have enough cash
+                    cost_estimate = add_shares * px * (1 + self.commission_bps / 1e4)
+                    if self.account.cash >= cost_estimate:
+                        trade = self.account.buy(
+                            ts_code=pos.ts_code,
+                            name=pos.name,
+                            shares=add_shares,
+                            price=px,
+                            trade_date=trade_date,
+                            signal_reason=f"T+加仓{self.t_add_ratio:.0%} P&L={pnl_pct*100:.1f}% 逢低买入",
+                        )
+                        if trade:
+                            t_trades.append(trade)
+
+        return t_trades
 
     def run_day(self, trade_date: str, factor_scores: dict | None = None) -> dict:
         """Execute one trading day. Returns a summary dict.
@@ -442,8 +523,22 @@ class DailyExecutor:
             f"{sum(1 for s in signals if s.action == 'SELL')} sell)"
         )
 
-        # ── 5. Execute trades (sells first) ──
+        # ── 5a. T-trade: trim profits / add on dips (before full SELL/BUY) ──
+        # For each held position, check if we should trim (sell partial) or
+        # add (buy partial) based on short-term P&L.
         trades = []
+        if self.enable_t_trading:
+            t_trades = self._execute_t_trades(
+                positions, prices, trade_date,
+                market_regime=market_regime,
+                industries=industries,
+                industry_trend=industry_trend,
+            )
+            trades.extend(t_trades)
+            # Refresh positions after T-trades
+            positions = self.account.get_positions()
+
+        # ── 5b. Execute main signals (sells first) ──
         # Sells
         for sig in signals:
             if sig.action == "SELL":
