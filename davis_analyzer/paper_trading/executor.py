@@ -136,6 +136,9 @@ def _get_factor_scores(trade_date: str, ts_codes: list[str]) -> dict[str, dict]:
             div = analyze_dividend(client, code, today=as_of)
             if div:
                 entry["dividend"] = div.dividend_score
+            fc = analyze_forecast(client, code, today=as_of)
+            if fc:
+                entry["forecast_leading"] = fc.leading_score
             scores[code] = entry
         except Exception:
             pass
@@ -578,13 +581,14 @@ def _compute_factor_scores_at(
     as_of: date,
     universe: list[str],
 ) -> dict[str, dict]:
-    """Compute supplementary factor scores (momentum/holder/dividend) at *as_of*.
+    """Compute supplementary factor scores (momentum/holder/dividend/forecast) at *as_of*.
 
     Returns ``{ts_code: {"momentum": float, "holder": float, "holder_trend": str, ...}}``.
     """
     from davis_analyzer.momentum import analyze_momentum
     from davis_analyzer.holder_concentration import analyze_holder_concentration
     from davis_analyzer.dividend import analyze_dividend
+    from davis_analyzer.forecast import analyze_forecast
 
     scores: dict[str, dict] = {}
     for code in universe:
@@ -598,6 +602,11 @@ def _compute_factor_scores_at(
                 entry["holder"] = hc.concentration_score
                 entry["holder_trend"] = hc.trend
             div = analyze_dividend(client, code, today=as_of)
+            if div:
+                entry["dividend"] = div.dividend_score
+            fc = analyze_forecast(client, code, today=as_of)
+            if fc:
+                entry["forecast_leading"] = fc.leading_score
             if div:
                 entry["dividend"] = div.dividend_score
             if entry:
