@@ -367,6 +367,7 @@ class DailyExecutor:
         market_regime: str = "mixed",
         industries: dict[str, str] | None = None,
         industry_trend: dict[str, str] | None = None,
+        factor_data: dict[str, dict] | None = None,
     ) -> list:
         """Execute T-trades: trim profits and add on dips.
 
@@ -374,11 +375,15 @@ class DailyExecutor:
         - **Trim** (partial sell): when a position is up ≥8%, sell 1/3 to
           lock in partial profit while keeping the core position. This
           reduces average cost and de-risks without fully exiting.
-        - **Add** (partial buy): when a position is down 5-8% but buy reasons
-          haven't reversed, buy 25% more to lower average cost. This is
-          "buying the dip" for quality holdings.
-        - **No T-trade** when down >8% (let the stop-loss handle it) or
-          in bear market (don't add to losers in a downtrend).
+        - **Add** (partial buy): when a position is down 5-8% AND prosperity
+          stage is still 加速期/上升拐点 (fundamentals still healthy),
+          buy 25% more to lower average cost. This is "buying the dip" for
+          quality holdings whose growth thesis hasn't broken.
+        - **No T-add** when:
+          - market is bear (don't add in downtrend)
+          - sector is declining
+          - prosperity stage is 下降拐点/减速期 (fundamentals deteriorating)
+          - already added once for this position (frequency limit)
 
         Returns list of TradeRecord from T-trades.
         """
@@ -386,7 +391,10 @@ class DailyExecutor:
 
         industries = industries or {}
         industry_trend = industry_trend or {}
+        factor_data = factor_data or {}
         t_trades: list[TradeRecord] = []
+        # Track which positions we've already added to today (freq limit)
+        added_today: set[str] = set()
 
         for pos in positions:
             px = prices.get(pos.ts_code)
@@ -412,13 +420,25 @@ class DailyExecutor:
                     if trade:
                         t_trades.append(trade)
 
-            # ── Add: buy the dip (only in non-bear market + sector not declining) ──
+            # ── Add: buy the dip (with prosperity confirmation + freq limit) ──
             elif (self.t_add_threshold <= pnl_pct < 0
                   and market_regime != "bear"
-                  and sector_trend != "down"):
+                  and sector_trend != "down"
+                  and pos.ts_code not in added_today):
+                # Prosperity gate: only add if fundamentals still healthy
+                factors = factor_data.get(pos.ts_code, {})
+                stage = factors.get("stage", "")
+                prosperity = factors.get("prosperity")
+
+                # Must be in 加速期 or 上升拐点 (growth thesis intact)
+                if stage not in ("加速期", "上升拐点"):
+                    continue
+                # Prosperity score must still be decent
+                if prosperity is not None and prosperity < 40:
+                    continue
+
                 add_shares = int(pos.shares * self.t_add_ratio // 100) * 100
                 if add_shares >= 100:
-                    # Check we have enough cash
                     cost_estimate = add_shares * px * (1 + self.commission_bps / 1e4)
                     if self.account.cash >= cost_estimate:
                         trade = self.account.buy(
@@ -427,10 +447,11 @@ class DailyExecutor:
                             shares=add_shares,
                             price=px,
                             trade_date=trade_date,
-                            signal_reason=f"T+加仓{self.t_add_ratio:.0%} P&L={pnl_pct*100:.1f}% 逢低买入",
+                            signal_reason=f"T+加仓{self.t_add_ratio:.0%} P&L={pnl_pct*100:.1f}% 景气{stage} 逢低买入",
                         )
                         if trade:
                             t_trades.append(trade)
+                            added_today.add(pos.ts_code)
 
         return t_trades
 
@@ -533,6 +554,7 @@ class DailyExecutor:
                 market_regime=market_regime,
                 industries=industries,
                 industry_trend=industry_trend,
+                factor_data=factor_data,
             )
             trades.extend(t_trades)
             # Refresh positions after T-trades
