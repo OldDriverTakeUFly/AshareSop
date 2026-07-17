@@ -189,6 +189,7 @@ class FactorThresholdStrategy:
         buy_holder_min: float = 40.0,
         buy_dividend_min: float = 55.0,
         buy_forecast_min: float = 70.0,
+        buy_prosperity_min: float = 45.0,
     ) -> None:
         self.max_positions = max_positions
         self.buy_momentum = buy_momentum
@@ -196,6 +197,7 @@ class FactorThresholdStrategy:
         self.buy_holder_min = buy_holder_min
         self.buy_dividend_min = buy_dividend_min
         self.buy_forecast_min = buy_forecast_min
+        self.buy_prosperity_min = buy_prosperity_min
 
     def _effective_max_positions(self, market_regime: str) -> int:
         """Reduce position cap in bear/mixed markets."""
@@ -213,11 +215,11 @@ class FactorThresholdStrategy:
     ) -> list[Signal]:
         signals: list[Signal] = []
 
-        # ── 1. Scan ALL candidates with 4-dimension scoring ──
+        # ── 1. Scan ALL candidates with 5-dimension scoring ──
         # A stock qualifies if momentum passes (primary gate) AND at least
-        # one secondary dimension (holder/dividend/forecast) passes.
+        # one secondary dimension (holder/dividend/forecast/prosperity) passes.
         held_codes = {p.ts_code for p in positions}
-        all_qualified: list[tuple] = []  # (code, composite_score, details_str, industry)
+        all_qualified: list[tuple] = []  # (code, composite_score, details_str, industry, passed_dims)
 
         for code, factors in snapshot.factor_scores.items():
             if code not in snapshot.prices or snapshot.prices[code] <= 0:
@@ -236,6 +238,7 @@ class FactorThresholdStrategy:
             holder = factors.get("holder")
             dividend = factors.get("dividend")
             forecast = factors.get("forecast_leading") or factors.get("leading")
+            prosperity = factors.get("prosperity")
 
             secondary_pass = []
             secondary_details = []
@@ -248,17 +251,22 @@ class FactorThresholdStrategy:
             if forecast is not None and forecast > self.buy_forecast_min:
                 secondary_pass.append("forecast")
                 secondary_details.append(f"前瞻{forecast:.0f}")
+            if prosperity is not None and prosperity > self.buy_prosperity_min:
+                secondary_pass.append("prosperity")
+                secondary_details.append(f"景气{prosperity:.0f}")
 
             if not secondary_pass:
                 continue  # must pass at least one secondary dimension
 
-            # Composite score: momentum weighted 50%, best secondary 50%
+            # Composite score: momentum 40%, best secondary 40%, prosperity bonus 20%
             best_secondary = max(
-                holder or 0, dividend or 0, forecast or 0
+                holder or 0, dividend or 0, forecast or 0, prosperity or 0
             )
-            composite = mom * 0.5 + best_secondary * 0.5
+            # Prosperity gets a bonus weight because it reflects fundamental growth quality
+            prosperity_score = prosperity or 50  # default neutral if missing
+            composite = mom * 0.4 + best_secondary * 0.4 + prosperity_score * 0.2
             detail_str = f"动量{mom:.0f} " + " ".join(secondary_details)
-            all_qualified.append((code, composite, detail_str, industry))
+            all_qualified.append((code, composite, detail_str, industry, set(secondary_pass)))
 
         # Rank by composite score descending
         all_qualified.sort(key=lambda x: x[1], reverse=True)
@@ -271,6 +279,8 @@ class FactorThresholdStrategy:
             holder_trend = factors.get("holder_trend", "")
             dividend = factors.get("dividend")
             forecast = factors.get("forecast_leading") or factors.get("leading")
+            prosperity = factors.get("prosperity")
+            stage = factors.get("stage", "")
             industry = snapshot.industries.get(pos.ts_code, "")
             sector_trend = snapshot.industry_trend.get(industry, "flat")
 
@@ -282,23 +292,32 @@ class FactorThresholdStrategy:
                 should_sell = True
                 reasons.append(f"动量{mom:.0f}<{self.sell_momentum}")
 
+            # Prosperity sell: stage turned to 下降拐点 or 减速期 with low score
+            if stage in ("下降拐点",) and prosperity is not None and prosperity < 35:
+                should_sell = True
+                reasons.append(f"景气{stage} score={prosperity:.0f}")
+
             # Secondary sell: ALL secondary dimensions failing
             holder_ok = holder is not None and holder > self.buy_holder_min
             div_ok = dividend is not None and dividend > self.buy_dividend_min
             fc_ok = forecast is not None and forecast > self.buy_forecast_min
-            if not (holder_ok or div_ok or fc_ok):
-                # Only sell if not already flagged by momentum
+            pros_ok = prosperity is not None and prosperity > self.buy_prosperity_min
+            if not (holder_ok or div_ok or fc_ok or pros_ok):
                 if not should_sell:
                     should_sell = True
                     fails = []
                     if holder is not None: fails.append(f"筹码{holder:.0f}")
-                    if dividend is not None: fails.append(f"红利{dividend:.0f}")
-                    reasons.append(f"次维度全_fail({','.join(fails)})")
+                    if prosperity is not None: fails.append(f"景气{prosperity:.0f}")
+                    reasons.append(f"次维度全fail({','.join(fails)})")
 
-            # Holder distribution (hard sell)
+            # Holder distribution hard sell — only if holder was the buy reason
+            # (if stock was bought via dividend/forecast/prosperity, holder=0
+            # alone shouldn't trigger sell)
             if holder is not None and holder <= 0 and "集中" not in holder_trend:
-                should_sell = True
-                reasons.append(f"筹码score={holder:.0f}分散")
+                # Check if any other dimension still supports holding
+                if not (div_ok or fc_ok or pros_ok):
+                    should_sell = True
+                    reasons.append(f"筹码score={holder:.0f}分散且无其他支撑")
 
             # Sector rotation
             if sector_trend == "down":
@@ -327,9 +346,9 @@ class FactorThresholdStrategy:
         # (margin > swap_threshold) to avoid excessive churn.
         swap_threshold = 5.0  # momentum points; don't swap if difference < 5
 
-        target_codes = {c for c, _, _, _ in all_qualified[:effective_max]}
+        target_codes = {c for c, _, _, _, _ in all_qualified[:effective_max]}
         # Also include qualified stocks already held (even if below rank cutoff)
-        qualified_codes = {c for c, _, _, _ in all_qualified}
+        qualified_codes = {c for c, _, _, _, _ in all_qualified}
 
         position_weight = 1.0 / effective_max
 
@@ -352,10 +371,10 @@ class FactorThresholdStrategy:
         # sell only if the marginal replacement is significantly better
         for pos in positions:
             if pos.ts_code in qualified_codes and pos.ts_code not in target_codes:
-                for code, score, details, industry in all_qualified:
+                for code, score, details, industry, dims in all_qualified:
                     if code not in held_codes and code in target_codes:
                         held_score = next(
-                            (s for c, s, _, _ in all_qualified if c == pos.ts_code), 0
+                            (s for c, s, _, _, _ in all_qualified if c == pos.ts_code), 0
                         )
                         if score - held_score > swap_threshold:
                             signals.append(
@@ -370,7 +389,7 @@ class FactorThresholdStrategy:
                         break
 
         # Buy new target stocks that aren't held
-        for code, score, details, industry in all_qualified[:effective_max]:
+        for code, score, details, industry, dims in all_qualified[:effective_max]:
             if code not in held_codes:
                 name = snapshot.stock_names.get(code, code)
                 sector_note = f" 行业{industry}↑" if industry else ""

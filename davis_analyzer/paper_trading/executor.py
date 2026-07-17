@@ -581,7 +581,7 @@ def _compute_factor_scores_at(
     as_of: date,
     universe: list[str],
 ) -> dict[str, dict]:
-    """Compute supplementary factor scores (momentum/holder/dividend/forecast) at *as_of*.
+    """Compute supplementary factor scores (momentum/holder/dividend/forecast/prosperity) at *as_of*.
 
     Returns ``{ts_code: {"momentum": float, "holder": float, "holder_trend": str, ...}}``.
     """
@@ -589,6 +589,9 @@ def _compute_factor_scores_at(
     from davis_analyzer.holder_concentration import analyze_holder_concentration
     from davis_analyzer.dividend import analyze_dividend
     from davis_analyzer.forecast import analyze_forecast
+    from davis_analyzer.financial_fetcher import fetch_financial_data
+    from davis_analyzer.prosperity import calculate_prosperity_score
+    from davis_analyzer.prosperity_sector import classify_stock_stage
 
     scores: dict[str, dict] = {}
     for code in universe:
@@ -607,6 +610,13 @@ def _compute_factor_scores_at(
             fc = analyze_forecast(client, code, today=as_of)
             if fc:
                 entry["forecast_leading"] = fc.leading_score
+            # Prosperity (景气度 G+ΔG)
+            fin = fetch_financial_data(client, code, periods=12)
+            if fin and len(fin) >= 2:
+                pscore = calculate_prosperity_score(fin)
+                entry["prosperity"] = pscore.composite_score
+                entry["delta_g"] = pscore.delta_g
+                entry["stage"] = classify_stock_stage(pscore)
             if div:
                 entry["dividend"] = div.dividend_score
             if entry:
