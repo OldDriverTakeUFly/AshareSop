@@ -276,14 +276,113 @@ def _get_industries(ts_codes: list[str]) -> dict[str, str]:
     return {r[0]: r[1] for r in rows if r[1]}
 
 
-def _infer_industry_trends(
-    factor_data: dict[str, dict], industries: dict[str, str]
-) -> dict[str, str]:
-    """Infer per-industry price trend from average momentum of scored stocks.
+def _full_market_sector_trends(trade_date: str) -> dict[str, str]:
+    """Compute per-industry trend from ALL market stocks' 5-day returns.
 
-    Uses the momentum scores already computed for stocks in each industry.
-    avg_momentum > 55 → "up", < 45 → "down", else "flat".
+    For each industry in stock_basic, calculates the average 5-trading-day
+    return of all stocks in that industry using daily_price data up to
+    *trade_date*. This gives a true sector-level signal:
+      - avg 5d return > +2% → "up" (sector is rallying)
+      - avg 5d return < -2% → "down" (sector is selling off)
+      - otherwise → "flat"
+
+    Only industries with ≥5 stocks are scored (statistical significance).
     """
+    import pandas as pd
+
+    # Find the trade_date and 5 trading days before it
+    with get_market_conn() as conn:
+        rows = conn.execute(
+            "SELECT DISTINCT trade_date FROM daily_price "
+            "WHERE trade_date <= ? ORDER BY trade_date DESC LIMIT 6",
+            (trade_date,),
+        ).fetchall()
+    dates = [r[0] for r in rows]
+    if len(dates) < 2:
+        return {}
+    today_str = dates[0]
+    past_str = dates[-1]
+
+    # Get all stocks' returns over this window
+    with get_market_conn() as conn:
+        conn.row_factory = __import__("sqlite3").Row
+        # Current close
+        curr = conn.execute(
+            "SELECT ts_code, close FROM daily_price WHERE trade_date = ?",
+            (today_str,),
+        ).fetchall()
+        curr_map = {r["ts_code"]: float(r["close"]) for r in curr if r["close"]}
+
+        # Past close (5 trading days ago)
+        past = conn.execute(
+            "SELECT ts_code, close FROM daily_price WHERE trade_date = ?",
+            (past_str,),
+        ).fetchall()
+        past_map = {r["ts_code"]: float(r["close"]) for r in past if r["close"]}
+
+        # Industry mapping
+        ind_rows = conn.execute(
+            "SELECT ts_code, industry FROM stock_basic WHERE industry IS NOT NULL AND industry != ''"
+        ).fetchall()
+        code2ind = {r["ts_code"]: r["industry"] for r in ind_rows}
+
+    # Group returns by industry
+    industry_returns: dict[str, list[float]] = {}
+    for code, curr_close in curr_map.items():
+        past_close = past_map.get(code)
+        industry = code2ind.get(code)
+        if past_close and past_close > 0 and industry:
+            ret = (curr_close / past_close - 1) * 100
+            industry_returns.setdefault(industry, []).append(ret)
+
+    # Score each industry
+    trends: dict[str, str] = {}
+    for industry, rets in industry_returns.items():
+        if len(rets) < 5:
+            trends[industry] = "flat"
+            continue
+        avg_ret = sum(rets) / len(rets)
+        if avg_ret > 2.0:
+            trends[industry] = "up"
+        elif avg_ret < -2.0:
+            trends[industry] = "down"
+        else:
+            trends[industry] = "flat"
+
+    return trends
+
+
+def _infer_industry_trends(
+    factor_data: dict[str, dict], industries: dict[str, str],
+    trade_date: str | None = None,
+) -> dict[str, str]:
+    """Determine per-industry price trend using full-market sector scoring.
+
+    When *trade_date* is provided, computes each industry's average 5-day
+    return across ALL stocks in that industry (from daily_price + stock_basic),
+    not just the small candidate pool. This gives an accurate sector-level
+    signal: if 半导体 as a whole (195 stocks) is up 5% in 5 days, that's a
+    strong sector uptrend regardless of what our 8-stock portfolio shows.
+
+    Falls back to the old momentum-based inference if trade_date is None or
+    the full-market query fails.
+
+    Args:
+        factor_data: per-stock factor scores (fallback path).
+        industries: ts_code → industry mapping.
+        trade_date: YYYYMMDD — if given, uses full-market sector calc.
+
+    Returns:
+        industry → "up" / "down" / "flat"
+    """
+    # ── Full-market sector scoring (preferred) ──
+    if trade_date:
+        try:
+            return _full_market_sector_trends(trade_date)
+        except Exception:
+            logger.debug(f"full-market sector trends failed for {trade_date}, fallback")
+
+    # ── Fallback: infer from candidate pool momentum ──
     industry_momentums: dict[str, list[float]] = {}
     for code, factors in factor_data.items():
         mom = factors.get("momentum")
@@ -538,7 +637,7 @@ class DailyExecutor:
         # ── 2b. Market regime + industry context ──
         market_regime = _get_market_regime(trade_date)
         industries = _get_industries(codes_to_price)
-        industry_trend = _infer_industry_trends(factor_data, industries)
+        industry_trend = _infer_industry_trends(factor_data, industries, trade_date=trade_date)
 
         # ── 3a. Risk management: dynamic stop-loss / take-profit ──
         risk_signals = self._check_risk_signals(
@@ -635,6 +734,38 @@ class DailyExecutor:
                 )
                 if trade:
                     trades.append(trade)
+
+        # ── 5c. Shadow tracking: record rotation swaps ──
+        # When a stock is sold via "轮动换仓" and another is bought on the
+        # same day, record the pair for shadow tracking.
+        rotation_sells = [s for s in signals if s.action == "SELL" and "轮动" in (s.signal_reason or "")]
+        rotation_buys = [s for s in signals if s.action == "BUY" and s not in rotation_sells]
+        for sell_sig in rotation_sells:
+            # Find the matching buy (from the signal_reason which contains the target name)
+            for buy_sig in rotation_buys:
+                if buy_sig.ts_code in [sell_sig.ts_code]:
+                    continue
+                # Record shadow trade
+                sold_price = prices.get(sell_sig.ts_code, 0)
+                bought_price = prices.get(buy_sig.ts_code, 0)
+                if sold_price > 0 and bought_price > 0:
+                    # Extract score diff from reason if possible
+                    score_diff = 0.0
+                    import re
+                    m = re.search(r'差值([\d.]+)', sell_sig.signal_reason or "")
+                    if m:
+                        score_diff = float(m.group(1))
+                    _record_shadow_trade(
+                        self.account.account_id, trade_date,
+                        sell_sig.ts_code, sell_sig.name, sold_price,
+                        buy_sig.ts_code, buy_sig.name, bought_price,
+                        score_diff,
+                    )
+                    rotation_buys.remove(buy_sig)
+                    break
+
+        # ── 5d. Update shadow tracking for existing records ──
+        _update_shadow_tracking(trade_date, prices)
 
         # ── 6. Record NAV ──
         # Re-fetch prices for all held stocks (may have changed after buys)
@@ -884,3 +1015,84 @@ def run_backfill_auto(
             logger.info(f"  progress: {i+1}/{len(trading_days)} days, NAV={nav:,.0f}")
 
     return results
+
+
+# ── Shadow tracking helpers ────────────────────────────────────────────
+
+_SHADOW_CONFIRM_DAYS = 20  # trading days to judge a rotation swap
+
+
+def _record_shadow_trade(
+    account_id: int,
+    trade_date: str,
+    sold_code: str, sold_name: str, sold_price: float,
+    bought_code: str, bought_name: str, bought_price: float,
+    score_diff: float,
+) -> None:
+    """Record a rotation swap for shadow tracking."""
+    with get_sc() as c:
+        c.execute(
+            "INSERT INTO paper_shadow_trades "
+            "(account_id, rotate_date, sold_ts_code, sold_name, sold_price, "
+            "bought_ts_code, bought_name, bought_price, score_diff, status) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'tracking')",
+            (account_id, trade_date, sold_code, sold_name, sold_price,
+             bought_code, bought_name, bought_price, score_diff),
+        )
+        c.commit()
+
+
+def _update_shadow_tracking(trade_date: str, prices: dict[str, float]) -> None:
+    """Update shadow trade P&L and confirm those past the threshold.
+
+    For each 'tracking' shadow trade:
+    1. Compute sold_return and bought_return from rotate_date prices.
+    2. Compute excess_return = bought_return - sold_return.
+    3. If ≥20 trading days since rotate_date, mark as confirmed with verdict.
+    """
+    with get_sc() as c:
+        rows = c.execute(
+            "SELECT id, rotate_date, sold_ts_code, sold_price, "
+            "bought_ts_code, bought_price FROM paper_shadow_trades "
+            "WHERE status = 'tracking'"
+        ).fetchall()
+        if not rows:
+            return
+
+        all_dates = _get_trading_days("20260101", trade_date)
+
+        for r in rows:
+            rotate_date = r["rotate_date"]
+            sold_price = r["sold_price"]
+            bought_price = r["bought_price"]
+
+            sold_px = prices.get(r["sold_ts_code"])
+            bought_px = prices.get(r["bought_ts_code"])
+
+            sold_ret = ((sold_px / sold_price - 1) * 100) if (sold_px and sold_price > 0) else None
+            bought_ret = ((bought_px / bought_price - 1) * 100) if (bought_px and bought_price > 0) else None
+            excess = (bought_ret - sold_ret) if (sold_ret is not None and bought_ret is not None) else None
+
+            try:
+                idx_rotate = all_dates.index(rotate_date)
+                idx_now = all_dates.index(trade_date)
+                days_passed = idx_now - idx_rotate
+            except (ValueError, IndexError):
+                days_passed = 0
+
+            if days_passed >= _SHADOW_CONFIRM_DAYS and excess is not None:
+                verdict = "正确" if excess > 0 else "错误"
+                c.execute(
+                    "UPDATE paper_shadow_trades SET "
+                    "status='confirmed', confirm_date=?, "
+                    "sold_return=?, bought_return=?, excess_return=?, verdict=? "
+                    "WHERE id=?",
+                    (trade_date, sold_ret, bought_ret, excess, verdict, r["id"]),
+                )
+            elif excess is not None:
+                c.execute(
+                    "UPDATE paper_shadow_trades SET "
+                    "sold_return=?, bought_return=?, excess_return=? WHERE id=?",
+                    (sold_ret, bought_ret, excess, r["id"]),
+                )
+        c.commit()

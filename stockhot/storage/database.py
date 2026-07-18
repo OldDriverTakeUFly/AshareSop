@@ -286,6 +286,26 @@ def init_database() -> None:
                 UNIQUE(account_id, trade_date)
             );
             CREATE INDEX IF NOT EXISTS idx_paper_nav_date ON paper_nav_history(account_id, trade_date);
+
+            CREATE TABLE IF NOT EXISTS paper_shadow_trades (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                account_id INTEGER NOT NULL REFERENCES paper_accounts(id),
+                rotate_date TEXT NOT NULL,
+                sold_ts_code TEXT NOT NULL,
+                sold_name TEXT,
+                sold_price REAL NOT NULL,
+                bought_ts_code TEXT NOT NULL,
+                bought_name TEXT,
+                bought_price REAL NOT NULL,
+                score_diff REAL,
+                status TEXT DEFAULT 'tracking',
+                confirm_date TEXT,
+                sold_return REAL,
+                bought_return REAL,
+                excess_return REAL,
+                verdict TEXT,
+                created_at TEXT DEFAULT CURRENT_TIMESTAMP
+            );
         """)
 
         # Migrate: add quantity and avg_cost columns if missing
