@@ -321,6 +321,97 @@ def _get_industries(ts_codes: list[str]) -> dict[str, str]:
     return {r[0]: r[1] for r in rows if r[1]}
 
 
+def _compute_short_momentum(ts_codes: list[str], trade_date: str) -> dict[str, float]:
+    """Compute 5-day return % for each stock. Positive = still rising recently."""
+    if not ts_codes:
+        return {}
+    with get_market_conn() as conn:
+        dates_row = conn.execute(
+            "SELECT DISTINCT trade_date FROM daily_price WHERE trade_date <= ? ORDER BY trade_date DESC LIMIT 6",
+            (trade_date,),
+        ).fetchall()
+    dates = [r[0] for r in dates_row]
+    if len(dates) < 2:
+        return {}
+    today_str, past_str = dates[0], dates[-1]
+
+    result: dict[str, float] = {}
+    with get_market_conn() as conn:
+        curr = {r[0]: float(r[1]) for r in conn.execute(
+            "SELECT ts_code, close FROM daily_price WHERE trade_date=? AND close IS NOT NULL", (today_str,)
+        ).fetchall()}
+        past = {r[0]: float(r[1]) for r in conn.execute(
+            "SELECT ts_code, close FROM daily_price WHERE trade_date=? AND close IS NOT NULL", (past_str,)
+        ).fetchall()}
+    for code in ts_codes:
+        c = curr.get(code)
+        p = past.get(code)
+        if c and p and p > 0:
+            result[code] = round((c / p - 1) * 100, 2)
+    return result
+
+
+def _compute_pe_percentiles(ts_codes: list[str], trade_date: str) -> dict[str, float]:
+    """Compute PE historical percentile (0-100) from daily_basic cache.
+
+    Uses 3-year rolling window. Returns {} if no data.
+    """
+    if not ts_codes:
+        return {}
+    from datetime import datetime as _dt, timedelta as _td
+    lookback = (_dt.strptime(trade_date, "%Y%m%d") - _td(days=1095)).strftime("%Y%m%d")
+    result: dict[str, float] = {}
+    with get_market_conn() as conn:
+        for code in ts_codes:
+            rows = conn.execute(
+                "SELECT pe_ttm FROM daily_basic WHERE ts_code=? AND trade_date>=? AND trade_date<=? AND pe_ttm > 0",
+                (code, lookback, trade_date),
+            ).fetchall()
+            if len(rows) < 20:
+                continue
+            values = [float(r[0]) for r in rows]
+            current = values[-1]
+            pct = sum(1 for v in values if v < current) / len(values) * 100
+            result[code] = round(pct, 1)
+    return result
+
+
+def _compute_volatilities(ts_codes: list[str], trade_date: str) -> dict[str, float]:
+    """Compute 20-day annualized volatility (%) for each stock.
+
+    vol = std(daily_returns) * sqrt(250) * 100
+    """
+    if not ts_codes:
+        return {}
+    import pandas as pd
+    with get_market_conn() as conn:
+        dates_row = conn.execute(
+            "SELECT DISTINCT trade_date FROM daily_price WHERE trade_date <= ? ORDER BY trade_date DESC LIMIT 21",
+            (trade_date,),
+        ).fetchall()
+    dates = [r[0] for r in dates_row]
+    if len(dates) < 5:
+        return {}
+    start_str = dates[-1]
+
+    result: dict[str, float] = {}
+    with get_market_conn() as conn:
+        for code in ts_codes:
+            rows = conn.execute(
+                "SELECT close FROM daily_price WHERE ts_code=? AND trade_date>=? AND trade_date<=? AND close IS NOT NULL ORDER BY trade_date",
+                (code, start_str, trade_date),
+            ).fetchall()
+            if len(rows) < 5:
+                continue
+            closes = pd.Series([float(r[0]) for r in rows])
+            rets = closes.pct_change().dropna()
+            if len(rets) < 3:
+                continue
+            vol = float(rets.std() * (250 ** 0.5) * 100)
+            result[code] = round(vol, 1)
+    return result
+
+
 def _full_market_sector_trends(trade_date: str) -> dict[str, str]:
     """Compute per-industry trend from ALL market stocks' 5-day returns.
 
@@ -482,12 +573,33 @@ class DailyExecutor:
         self.t_add_ratio = 1.0 / 4     # buy 25% of current position
 
     def _get_risk_thresholds(
-        self, market_regime: str, sector_trend: str
+        self, market_regime: str, sector_trend: str,
+        volatility: float | None = None,
     ) -> tuple[float, float]:
-        """Look up dynamic stop-loss / take-profit for this position."""
-        return self._RISK_RULES.get(
+        """Look up dynamic stop-loss / take-profit, optionally vol-adjusted.
+
+        When *volatility* (annualized %) is provided, the stop-loss is
+        widened proportionally: a stock with 2x average volatility gets
+        ~1.5x wider stop (not fully 2x to avoid excessive risk).
+        Base stop is from _RISK_RULES, then scaled by vol multiplier.
+        """
+        base_stop, base_tp = self._RISK_RULES.get(
             (market_regime, sector_trend), self._DEFAULT_RISK
         )
+
+        if volatility is not None and volatility > 0:
+            # Average A-share annualized vol ~35%. Scale linearly but clamp.
+            # vol_mult = clamp(volatility / 35, 0.8, 2.0)
+            vol_mult = max(0.8, min(2.0, volatility / 35.0))
+            # Apply sqrt scaling (not linear) to avoid over-widening
+            adj_stop = base_stop * (vol_mult ** 0.5)
+            adj_tp = base_tp * (vol_mult ** 0.5)
+            # Cap at reasonable bounds
+            adj_stop = min(adj_stop, 0.20)   # never wider than 20%
+            adj_tp = min(adj_tp, 0.50)       # never wider than 50%
+            return (adj_stop, adj_tp)
+
+        return (base_stop, base_tp)
 
     def _check_risk_signals(
         self,
@@ -497,16 +609,12 @@ class DailyExecutor:
         market_regime: str = "mixed",
         industries: dict[str, str] | None = None,
         industry_trend: dict[str, str] | None = None,
+        volatilities: dict[str, float] | None = None,
     ) -> list[Signal]:
-        """Check stop-loss / take-profit for every holding with DYNAMIC thresholds.
-
-        Thresholds adapt to market regime + sector trend:
-        - Bear market + declining sector → tight 7% stop, no take-profit
-        - Bull market + rising sector → wide 12% stop, 30% take-profit
-        - etc. (see _RISK_RULES table)
-        """
+        """Check stop-loss / take-profit with DYNAMIC + VOL-ADJUSTED thresholds."""
         industries = industries or {}
         industry_trend = industry_trend or {}
+        volatilities = volatilities or {}
         signals: list[Signal] = []
         for pos in positions:
             px = prices.get(pos.ts_code)
@@ -514,10 +622,12 @@ class DailyExecutor:
                 continue
             pnl_pct = (px / pos.avg_cost - 1) if pos.avg_cost > 0 else 0
 
-            # Dynamic thresholds based on market + sector
             industry = industries.get(pos.ts_code, "")
             sector_trend = industry_trend.get(industry, "flat")
-            hard_stop, take_profit = self._get_risk_thresholds(market_regime, sector_trend)
+            vol = volatilities.get(pos.ts_code)
+            hard_stop, take_profit = self._get_risk_thresholds(
+                market_regime, sector_trend, volatility=vol
+            )
 
             if pnl_pct <= -hard_stop:
                 signals.append(
@@ -684,12 +794,18 @@ class DailyExecutor:
         industries = _get_industries(codes_to_price)
         industry_trend = _infer_industry_trends(factor_data, industries, trade_date=trade_date)
 
-        # ── 3a. Risk management: dynamic stop-loss / take-profit ──
+        # ── 2c. Quality data: short momentum, PE percentile, volatility ──
+        short_momentum = _compute_short_momentum(codes_to_price, trade_date)
+        pe_percentiles = _compute_pe_percentiles(codes_to_price, trade_date)
+        volatilities = _compute_volatilities(codes_to_price, trade_date)
+
+        # ── 3a. Risk management: dynamic + vol-adjusted stop-loss/take-profit ──
         risk_signals = self._check_risk_signals(
             positions, prices, trade_date,
             market_regime=market_regime,
             industries=industries,
             industry_trend=industry_trend,
+            volatilities=volatilities,
         )
         if risk_signals:
             logger.info(
@@ -710,6 +826,9 @@ class DailyExecutor:
             market_regime=market_regime,
             industries=industries,
             industry_trend=industry_trend,
+            short_momentum=short_momentum,
+            pe_percentile=pe_percentiles,
+            volatility=volatilities,
         )
 
         # ── 4. Evaluate strategy ──

@@ -63,6 +63,10 @@ class MarketSnapshot:
     market_regime: str = "mixed"  # "bull" / "bear" / "mixed"
     industries: dict[str, str] = field(default_factory=dict)  # ts_code → industry
     industry_trend: dict[str, str] = field(default_factory=dict)  # industry → "up"/"down"/"flat"
+    # ── Short-term momentum + valuation (added for quality filtering) ──
+    short_momentum: dict[str, float] = field(default_factory=dict)  # ts_code → 5-day return %
+    pe_percentile: dict[str, float] = field(default_factory=dict)  # ts_code → PE historical percentile (0-100)
+    volatility: dict[str, float] = field(default_factory=dict)  # ts_code → 20-day annualized vol %
 
 
 class Strategy(Protocol):
@@ -205,6 +209,10 @@ class FactorThresholdStrategy:
         max_single_position_pct: float = 12.0,
         rotatable_ratio: float = 0.4,
         rotation_threshold: float = 15.0,
+        # ── Quality filters ──
+        require_short_momentum: bool = True,  # 5-day return must be > 0
+        max_pe_percentile: float = 80.0,      # PE must be below 80th percentile
+        vol_adjusted_stops: bool = True,      # Adjust stop-loss by individual volatility
     ) -> None:
         self.max_positions = max_positions
         self.buy_momentum = buy_momentum
@@ -215,11 +223,12 @@ class FactorThresholdStrategy:
         self.buy_prosperity_min = buy_prosperity_min
         self.min_secondary_dims = min_secondary_dims
         self.max_single_position_pct = max_single_position_pct
-        # 40% of positions are rotatable (weak ones can be replaced by stronger new candidates)
         self.rotatable_ratio = rotatable_ratio
-        # A held stock is replaced only if the new candidate's composite score
-        # exceeds the held stock's score by this many points
         self.rotation_threshold = rotation_threshold
+        # Quality filters
+        self.require_short_momentum = require_short_momentum
+        self.max_pe_percentile = max_pe_percentile
+        self.vol_adjusted_stops = vol_adjusted_stops
         self.buy_forecast_min = buy_forecast_min
         self.buy_prosperity_min = buy_prosperity_min
         # Track recently sold codes to enforce cooldown (ts_code → trade_date)
@@ -288,6 +297,21 @@ class FactorThresholdStrategy:
             # Quality gate: require at least min_secondary_dims secondary dimensions
             if len(secondary_pass) < self.min_secondary_dims:
                 continue
+
+            # ── Short-term momentum confirmation ──
+            # Don't buy stocks whose long-term momentum is high but recent
+            # 5-day return is negative (the "dead cat bounce" filter).
+            if self.require_short_momentum:
+                sm = snapshot.short_momentum.get(code)
+                if sm is not None and sm <= 0:
+                    continue  # recent 5-day return ≤ 0, skip
+
+            # ── Valuation filter ──
+            # Don't buy stocks at extreme valuation (PE > 80th percentile).
+            # High prosperity can tolerate higher PE, but not unlimited.
+            pe_pct = snapshot.pe_percentile.get(code)
+            if pe_pct is not None and pe_pct > self.max_pe_percentile:
+                continue  # too expensive even with good factors
 
             # Composite score: momentum 40%, best secondary 40%, prosperity bonus 20%
             best_secondary = max(
