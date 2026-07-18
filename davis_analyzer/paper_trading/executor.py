@@ -1030,7 +1030,7 @@ def _record_shadow_trade(
     score_diff: float,
 ) -> None:
     """Record a rotation swap for shadow tracking."""
-    with get_sc() as c:
+    with get_connection() as c:
         c.execute(
             "INSERT INTO paper_shadow_trades "
             "(account_id, rotate_date, sold_ts_code, sold_name, sold_price, "
@@ -1050,7 +1050,7 @@ def _update_shadow_tracking(trade_date: str, prices: dict[str, float]) -> None:
     2. Compute excess_return = bought_return - sold_return.
     3. If ≥20 trading days since rotate_date, mark as confirmed with verdict.
     """
-    with get_sc() as c:
+    with get_connection() as c:
         rows = c.execute(
             "SELECT id, rotate_date, sold_ts_code, sold_price, "
             "bought_ts_code, bought_price FROM paper_shadow_trades "
