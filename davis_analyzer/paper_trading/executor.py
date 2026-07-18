@@ -150,6 +150,51 @@ _BEARISH_STAGES = {"主跌浪", "下跌中反弹", "高位震荡筑顶"}
 _BULLISH_STAGES = {"主升浪", "上涨中回调", "低位筑底"}
 
 
+# ── Limit-up fill probability model ────────────────────────────────────
+
+def _get_daily_pct_chg(ts_code: str, trade_date: str) -> float | None:
+    """Get the daily pct change for a stock on trade_date from daily_price."""
+    with get_market_conn() as conn:
+        row = conn.execute(
+            "SELECT pct_chg FROM daily_price WHERE ts_code=? AND trade_date=?",
+            (ts_code, trade_date),
+        ).fetchone()
+    if row and row[0] is not None:
+        return float(row[0])
+    return None
+
+
+def _limit_up_fill_probability(pct_chg: float | None) -> float:
+    """Estimate the probability of successfully buying at close on a given day.
+
+    A-share limit-up rules: 10% for main board, 20% for STAR/ChiNext, 30% for BSE.
+    When a stock closes at limit-up, it means it was locked at the ceiling price
+    all day (or opened at ceiling = 一字板), and buying is nearly impossible.
+
+    Model:
+      pct < 5%       → 100% (normal, definitely fillable)
+      5% ≤ pct < 8%  → 95% (strong but not ceiling)
+      8% ≤ pct < 9.5%→ 80% (near limit, partial fills common)
+      9.5% ≤ pct < 19% → 20% (main board limit-up, mostly locked)
+      19% ≤ pct < 29% → 20% (STAR/ChiNext limit-up)
+      pct ≥ 29%      → 15% (BSE 30cm limit-up)
+      None           → 100% (unknown, assume normal)
+    """
+    if pct_chg is None:
+        return 1.0
+    if pct_chg < 5.0:
+        return 1.0
+    if pct_chg < 8.0:
+        return 0.95
+    if pct_chg < 9.5:
+        return 0.80
+    if pct_chg < 19.0:
+        return 0.20
+    if pct_chg < 29.0:
+        return 0.20
+    return 0.15
+
+
 def _get_market_regime(trade_date: str) -> str:
     """Determine market regime (bull/bear/mixed/panic) using ONLY data available
     on or before *trade_date* — no look-ahead bias.
@@ -716,21 +761,36 @@ class DailyExecutor:
         # Recalculate equity after sells
         total_equity = self.account.market_value(prices)
 
-        # Buys
+        # Buys — with limit-up probability adjustment
         for sig in signals:
             if sig.action == "BUY":
                 px = prices.get(sig.ts_code)
                 if px is None or px <= 0:
                     continue
+                # Check if today is a limit-up day → adjust buy probability
+                buy_pct = _get_daily_pct_chg(sig.ts_code, trade_date)
+                fill_prob = _limit_up_fill_probability(buy_pct)
+                if fill_prob <= 0:
+                    logger.info(f"[{self.account.name}] {trade_date}: skip {sig.name} — "
+                                f"limit-up {buy_pct:+.1f}% fill_prob=0")
+                    continue
                 target_amount = total_equity * sig.target_weight
                 target_shares = int(target_amount / px)
+                # Apply probability haircut to share count
+                if fill_prob < 1.0:
+                    target_shares = int(target_shares * fill_prob)
+                    logger.info(f"[{self.account.name}] {trade_date}: {sig.name} "
+                                f"pct={buy_pct:+.1f}% fill_prob={fill_prob:.0%} "
+                                f"shares {int(target_amount/px)}→{target_shares}")
+                if target_shares < 100:
+                    continue  # below board lot after haircut
                 trade = self.account.buy(
                     ts_code=sig.ts_code,
                     name=sig.name,
                     shares=target_shares,
                     price=px,
                     trade_date=trade_date,
-                    signal_reason=sig.signal_reason,
+                    signal_reason=sig.signal_reason + (f" | 涨停概率{fill_prob:.0%}" if fill_prob < 1.0 else ""),
                 )
                 if trade:
                     trades.append(trade)
