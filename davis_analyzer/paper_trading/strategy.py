@@ -203,6 +203,8 @@ class FactorThresholdStrategy:
         buy_prosperity_min: float = 45.0,
         min_secondary_dims: int = 1,
         max_single_position_pct: float = 12.0,
+        rotatable_ratio: float = 0.4,
+        rotation_threshold: float = 15.0,
     ) -> None:
         self.max_positions = max_positions
         self.buy_momentum = buy_momentum
@@ -213,6 +215,11 @@ class FactorThresholdStrategy:
         self.buy_prosperity_min = buy_prosperity_min
         self.min_secondary_dims = min_secondary_dims
         self.max_single_position_pct = max_single_position_pct
+        # 40% of positions are rotatable (weak ones can be replaced by stronger new candidates)
+        self.rotatable_ratio = rotatable_ratio
+        # A held stock is replaced only if the new candidate's composite score
+        # exceeds the held stock's score by this many points
+        self.rotation_threshold = rotation_threshold
         self.buy_forecast_min = buy_forecast_min
         self.buy_prosperity_min = buy_prosperity_min
         # Track recently sold codes to enforce cooldown (ts_code → trade_date)
@@ -364,28 +371,25 @@ class FactorThresholdStrategy:
         if effective_max == 0:
             return signals
 
-        # ── 4. Core holding philosophy: hold unless buy reason reverses ──
-        # We do NOT swap for marginally better stocks. A held stock stays
-        # unless its buy reason has fundamentally reversed (checked above).
-        # Only fill empty slots with new qualified candidates.
+        # ── 4. Tiered holding: 60% core (locked) + 40% rotatable ──
+        # Core positions are held unless buy reason fully reverses.
+        # Rotatable positions can be replaced by significantly stronger candidates.
         target_codes = {c for c, _, _, _, _ in all_qualified[:effective_max]}
         qualified_codes = {c for c, _, _, _, _ in all_qualified}
 
         position_weight = 1.0 / effective_max
 
-        # Update cooldown: remove entries older than cooldown_days
+        # Update cooldown
         current_date = snapshot.trade_date
         expired = [k for k, v in list(self._cooldown.items())
                    if _days_between(v, current_date) >= self._cooldown_days]
         for k in expired:
             del self._cooldown[k]
 
-        # Sell held stocks ONLY if ALL buy reasons have reversed
-        # (not just "dropped from top-N ranking")
+        # Sell held stocks that are no longer qualified at all
         already_selling = {s.ts_code for s in signals if s.action == "SELL"}
         for pos in positions:
             if pos.ts_code not in qualified_codes and pos.ts_code not in already_selling:
-                # Check: did ALL secondary dimensions reverse?
                 factors_p = snapshot.factor_scores.get(pos.ts_code, {})
                 p_holder = factors_p.get("holder")
                 p_div = factors_p.get("dividend")
@@ -400,7 +404,6 @@ class FactorThresholdStrategy:
                     all_reversed = False
                 if p_pros is not None and p_pros > self.buy_prosperity_min:
                     all_reversed = False
-
                 if all_reversed:
                     signals.append(
                         Signal(
@@ -412,9 +415,50 @@ class FactorThresholdStrategy:
                     )
                     held_codes.discard(pos.ts_code)
                     self._cooldown[pos.ts_code] = current_date
-            # If still qualified (even if ranking dropped), KEEP it — no swap
 
-        # Buy new target stocks ONLY for empty slots (no forced swaps)
+        # ── Rotatable tier: replace weak held stocks with stronger new candidates ──
+        # Identify which held stocks are "rotatable" (bottom 40% by composite score)
+        held_with_scores = []
+        for pos in positions:
+            if pos.ts_code in already_selling or pos.ts_code not in held_codes:
+                continue
+            # Find this stock's composite score from all_qualified
+            score = next((s for c, s, _, _, _ in all_qualified if c == pos.ts_code), None)
+            if score is not None:
+                held_with_scores.append((pos.ts_code, pos.name, score))
+
+        # Sort held stocks by score ascending (weakest first)
+        held_with_scores.sort(key=lambda x: x[2])
+
+        # Determine how many are rotatable
+        n_rotatable = int(len(held_with_scores) * self.rotatable_ratio)
+        rotatable_codes = {code for code, _, _ in held_with_scores[:n_rotatable]}
+
+        # For each rotatable stock, check if there's a significantly better unheld candidate
+        for held_code, held_name, held_score in held_with_scores[:n_rotatable]:
+            if held_code not in held_codes:
+                continue  # already being sold
+            # Find the best unheld qualified candidate
+            for cand_code, cand_score, cand_details, cand_ind, cand_dims in all_qualified:
+                if cand_code in held_codes or cand_code in self._cooldown:
+                    continue
+                if cand_code not in target_codes:
+                    continue
+                # Only rotate if new candidate is significantly stronger
+                if cand_score - held_score >= self.rotation_threshold:
+                    signals.append(
+                        Signal(
+                            ts_code=held_code,
+                            name=held_name,
+                            action="SELL",
+                            signal_reason=f"轮动换仓: {held_name}({held_score:.0f}) → {snapshot.stock_names.get(cand_code, cand_code)}({cand_score:.0f}) 差值{cand_score-held_score:.0f}>{self.rotation_threshold}",
+                        )
+                    )
+                    held_codes.discard(held_code)
+                    self._cooldown[held_code] = current_date
+                    break  # only replace with the single best candidate
+
+        # Buy new target stocks for empty slots
         # Cap single position to max_single_position_pct of total equity
         current_hold_count = len(positions) - len(already_selling) - sum(
             1 for s in signals if s.action == "SELL"
