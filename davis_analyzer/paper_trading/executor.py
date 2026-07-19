@@ -352,17 +352,41 @@ def _compute_short_momentum(ts_codes: list[str], trade_date: str) -> dict[str, f
 
 
 def _compute_pe_percentiles(ts_codes: list[str], trade_date: str) -> dict[str, float]:
-    """Compute PE historical percentile (0-100) from daily_basic cache.
+    """Get PE historical percentile (0-100) from cache (stockhot.db).
 
-    Uses 3-year rolling window. Returns {} if no data.
+    Tries the pe_percentile_cache table first. If not cached, falls back
+    to computing from daily_basic in market_data.db and writes result back.
     """
     if not ts_codes:
         return {}
+
+    # Try cache first (stockhot.db)
+    result: dict[str, float] = {}
+    missing: list[str] = []
+    from stockhot.storage.database import get_connection as get_stockhot
+    with get_stockhot() as conn:
+        placeholders = ",".join("?" * len(ts_codes))
+        rows = conn.execute(
+            f"SELECT ts_code, pe_percentile FROM pe_percentile_cache "
+            f"WHERE trade_date=? AND ts_code IN ({placeholders})",
+            [trade_date] + ts_codes,
+        ).fetchall()
+    cached = {r[0]: float(r[1]) for r in rows if r[1] is not None}
+    for code in ts_codes:
+        if code in cached:
+            result[code] = cached[code]
+        else:
+            missing.append(code)
+
+    if not missing:
+        return result
+
+    # Compute for missing stocks
     from datetime import datetime as _dt, timedelta as _td
     lookback = (_dt.strptime(trade_date, "%Y%m%d") - _td(days=1095)).strftime("%Y%m%d")
-    result: dict[str, float] = {}
+    computed: list[tuple] = []
     with get_market_conn() as conn:
-        for code in ts_codes:
+        for code in missing:
             rows = conn.execute(
                 "SELECT pe_ttm FROM daily_basic WHERE ts_code=? AND trade_date>=? AND trade_date<=? AND pe_ttm > 0",
                 (code, lookback, trade_date),
@@ -372,8 +396,77 @@ def _compute_pe_percentiles(ts_codes: list[str], trade_date: str) -> dict[str, f
             values = [float(r[0]) for r in rows]
             current = values[-1]
             pct = sum(1 for v in values if v < current) / len(values) * 100
-            result[code] = round(pct, 1)
+            pct_rounded = round(pct, 1)
+            result[code] = pct_rounded
+            computed.append((code, trade_date, current, pct_rounded))
+
+    # Write to cache (stockhot.db)
+    if computed:
+        with get_stockhot() as conn:
+            conn.executemany(
+                "INSERT OR REPLACE INTO pe_percentile_cache (ts_code, trade_date, pe_ttm, pe_percentile) VALUES (?, ?, ?, ?)",
+                computed,
+            )
+            conn.commit()
+
     return result
+
+
+def _batch_compute_pe_percentiles(ts_codes: list[str], trade_date: str) -> int:
+    """Batch pre-compute PE percentiles for all stocks on a given date.
+
+    Fetches 3-year PE history via TushareClient direct API call, computes
+    percentile, writes to pe_percentile_cache (stockhot.db) AND daily_basic
+    (market_data.db). Call once per month during pool refresh.
+
+    Returns number of stocks successfully cached.
+    """
+    from davis_analyzer.tushare_client import TushareClient
+    from stockhot.storage.database import get_connection as get_stockhot
+    from datetime import datetime as _dt, timedelta as _td
+    import pandas as pd
+
+    client = TushareClient()
+    lookback = (_dt.strptime(trade_date, "%Y%m%d") - _td(days=1095)).strftime("%Y%m%d")
+    cached_count = 0
+    batch: list[tuple] = []
+
+    for code in ts_codes:
+        try:
+            raw = client._call(
+                "daily_basic",
+                client._pro.daily_basic,
+                {
+                    "ts_code": code,
+                    "start_date": lookback,
+                    "end_date": trade_date,
+                    "fields": "ts_code,trade_date,pe_ttm,pb,ps,total_mv",
+                },
+            )
+            if raw is None or raw.empty:
+                continue
+            # Insert into daily_basic cache for future lookups
+            client._daily_basic_insert(code, raw)
+            pe = pd.to_numeric(raw.get("pe_ttm"), errors="coerce").dropna()
+            pe = pe[pe > 0]
+            if len(pe) < 20:
+                continue
+            current = float(pe.iloc[-1])
+            pct = sum(1 for v in pe if v < current) / len(pe) * 100
+            batch.append((code, trade_date, current, round(pct, 1)))
+            cached_count += 1
+        except Exception:
+            pass
+
+    if batch:
+        with get_stockhot() as conn:
+            conn.executemany(
+                "INSERT OR REPLACE INTO pe_percentile_cache (ts_code, trade_date, pe_ttm, pe_percentile) VALUES (?, ?, ?, ?)",
+                batch,
+            )
+            conn.commit()
+
+    return cached_count
 
 
 def _compute_volatilities(ts_codes: list[str], trade_date: str) -> dict[str, float]:

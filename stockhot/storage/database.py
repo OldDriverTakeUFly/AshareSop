@@ -306,6 +306,16 @@ def init_database() -> None:
                 verdict TEXT,
                 created_at TEXT DEFAULT CURRENT_TIMESTAMP
             );
+
+            CREATE TABLE IF NOT EXISTS pe_percentile_cache (
+                ts_code TEXT NOT NULL,
+                trade_date TEXT NOT NULL,
+                pe_ttm REAL,
+                pe_percentile REAL,
+                computed_at TEXT DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (ts_code, trade_date)
+            );
+            CREATE INDEX IF NOT EXISTS idx_pe_pct_code ON pe_percentile_cache(ts_code);
         """)
 
         # Migrate: add quantity and avg_cost columns if missing
