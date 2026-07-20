@@ -162,7 +162,7 @@ def _detect_rv_volatility() -> tuple[list[IndexVolatility], SignalResult]:
             df = repo.get_index_daily(ts_code, start_date, end_date)
             if df.empty or len(df) < 30:
                 continue
-            closes = df["close"].astype(float).values
+            closes = np.array(df["close"].astype(float).values, dtype=float)  # 可写副本
 
             # 盘中：替换最后一点为实时价（若可得）
             if ts_code in realtime_prices:
@@ -315,13 +315,11 @@ def _detect_ivix_vr() -> tuple[float | None, float | None, SignalResult]:
             # 盘中实时价替换
             try:
                 rt_prices = _fetch_realtime_index_prices()
+                sse_closes = np.array(df_idx["close"].astype(float).values, dtype=float)
                 if "000001.SH" in rt_prices:
-                    sse_closes = df_idx["close"].astype(float).values
                     sse_closes[-1] = rt_prices["000001.SH"]
-                else:
-                    sse_closes = df_idx["close"].astype(float).values
             except Exception:
-                sse_closes = df_idx["close"].astype(float).values
+                sse_closes = np.array(df_idx["close"].astype(float).values, dtype=float)
 
             log_ret = np.diff(np.log(sse_closes))
             rv_sse = np.std(log_ret[-20:]) * np.sqrt(242) * 100
