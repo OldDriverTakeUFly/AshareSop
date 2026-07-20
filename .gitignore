@@ -54,3 +54,15 @@ Thumbs.db
 
 # Speech-friendly text mirror (report_to_speech_text.py output)
 docs_speech/
+
+# Coverage data
+.coverage
+.coverage.*
+
+# ZCode agent runtime artifacts
+.zcode/
+*/.zcode/
+
+# Studies output (experimental)
+davis_analyzer/studies/output/
+davis_analyzer/studies/rally_screening/
