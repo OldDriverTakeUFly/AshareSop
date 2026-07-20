@@ -633,3 +633,425 @@ class TestLiveMonitor:
         # Position should still be held
         assert len(account.get_positions()) == 1
         account.close()
+
+
+# ── Volume-price signal tests ──────────────────────────────────────────
+
+
+class TestVolumePriceRiskSell:
+    """Tests for the high-position high-volume (高位放量) risk sell."""
+
+    def test_high_vol_with_profit_triggers_sell(self, temp_db):
+        """High-position volume + ≥10% profit → SELL signal."""
+        from davis_analyzer.paper_trading.account import PaperAccount, Position
+        from davis_analyzer.paper_trading.strategy import create_strategy
+        from davis_analyzer.paper_trading.executor import DailyExecutor
+
+        account = PaperAccount.create("vol_high_test", "factor_threshold", 100_000)
+        strategy = create_strategy("factor_threshold", account.config)
+        executor = DailyExecutor(account, strategy)
+
+        # Bought at 10.0, now at 12.0 → +20% profit
+        positions = [Position("HVOL.SZ", "测试", 1000, 10.0, "20260101")]
+        vol_signals = {
+            "HVOL.SZ": {
+                "score": 28.0,
+                "signal_type": "high_vol",
+                "vol_ratio": 2.5,
+                "position_pct": 95.0,
+                "box_amplitude": 18.0,
+            }
+        }
+        signals = executor._check_risk_signals(
+            positions, {"HVOL.SZ": 12.0}, "20260102",
+            market_regime="bull",
+            industries={"HVOL.SZ": "半导体"},
+            industry_trend={"半导体": "up"},
+            volume_signals=vol_signals,
+        )
+        assert len(signals) == 1
+        assert signals[0].action == "SELL"
+        assert "高位放量" in signals[0].signal_reason
+        account.close()
+
+    def test_high_vol_without_profit_no_trigger(self, temp_db):
+        """High-position volume but profit < 10% → no SELL (avoid killing fresh buys)."""
+        from davis_analyzer.paper_trading.account import PaperAccount, Position
+        from davis_analyzer.paper_trading.strategy import create_strategy
+        from davis_analyzer.paper_trading.executor import DailyExecutor
+
+        account = PaperAccount.create("vol_low_pnl_test", "factor_threshold", 100_000)
+        strategy = create_strategy("factor_threshold", account.config)
+        executor = DailyExecutor(account, strategy)
+
+        # Bought at 10.0, now at 10.5 → +5% profit (below 10% threshold)
+        positions = [Position("HVOL2.SZ", "测试", 1000, 10.0, "20260101")]
+        vol_signals = {
+            "HVOL2.SZ": {
+                "score": 28.0,
+                "signal_type": "high_vol",
+                "vol_ratio": 2.5,
+                "position_pct": 95.0,
+                "box_amplitude": 18.0,
+            }
+        }
+        signals = executor._check_risk_signals(
+            positions, {"HVOL2.SZ": 10.5}, "20260102",
+            market_regime="bull",
+            industries={"HVOL2.SZ": "半导体"},
+            industry_trend={"半导体": "up"},
+            volume_signals=vol_signals,
+        )
+        assert len(signals) == 0  # profit too low → no trigger
+        account.close()
+
+    def test_high_vol_with_enable_volume_risk_off(self, temp_db):
+        """When enable_volume_risk=False, high-vol signal is ignored."""
+        from davis_analyzer.paper_trading.account import PaperAccount, Position
+        from davis_analyzer.paper_trading.strategy import (
+            FactorThresholdStrategy,
+        )
+        from davis_analyzer.paper_trading.executor import DailyExecutor
+
+        account = PaperAccount.create("vol_disabled_test", "factor_threshold", 100_000)
+        # Disable volume-risk sell explicitly
+        strategy = FactorThresholdStrategy(enable_volume_risk=False)
+        executor = DailyExecutor(account, strategy)
+
+        positions = [Position("HVOL3.SZ", "测试", 1000, 10.0, "20260101")]
+        vol_signals = {
+            "HVOL3.SZ": {
+                "score": 28.0,
+                "signal_type": "high_vol",
+                "vol_ratio": 2.5,
+                "position_pct": 95.0,
+                "box_amplitude": 18.0,
+            }
+        }
+        signals = executor._check_risk_signals(
+            positions, {"HVOL3.SZ": 12.0}, "20260102",
+            market_regime="bull",
+            industries={"HVOL3.SZ": "半导体"},
+            industry_trend={"半导体": "up"},
+            volume_signals=vol_signals,
+        )
+        assert len(signals) == 0  # disabled → no trigger
+        account.close()
+
+    def test_neutral_volume_no_trigger(self, temp_db):
+        """Neutral volume signal (no high_vol) → no risk sell."""
+        from davis_analyzer.paper_trading.account import PaperAccount, Position
+        from davis_analyzer.paper_trading.strategy import create_strategy
+        from davis_analyzer.paper_trading.executor import DailyExecutor
+
+        account = PaperAccount.create("vol_neutral_test", "factor_threshold", 100_000)
+        strategy = create_strategy("factor_threshold", account.config)
+        executor = DailyExecutor(account, strategy)
+
+        positions = [Position("NEUT.SZ", "测试", 1000, 10.0, "20260101")]
+        vol_signals = {
+            "NEUT.SZ": {
+                "score": 50.0,
+                "signal_type": "neutral",
+                "vol_ratio": 1.1,
+                "position_pct": 50.0,
+                "box_amplitude": 10.0,
+            }
+        }
+        signals = executor._check_risk_signals(
+            positions, {"NEUT.SZ": 12.0}, "20260102",
+            market_regime="bull",
+            industries={"NEUT.SZ": "半导体"},
+            industry_trend={"半导体": "up"},
+            volume_signals=vol_signals,
+        )
+        assert len(signals) == 0  # neutral volume → no extra risk sell
+        account.close()
+
+
+class TestVolumeCompositeScore:
+    """Tests for volume-price score in the composite rating."""
+
+    def test_volume_score_boosts_composite(self):
+        """A high volume score (low_vol/platform_breakout) raises composite rating."""
+        from davis_analyzer.paper_trading.strategy import (
+            FactorThresholdStrategy,
+            MarketSnapshot,
+        )
+
+        # Same factors, but different volume scores
+        base_factors = {"momentum": 75, "holder": 60, "prosperity": 55}
+        # Stock A: neutral volume (score 50)
+        # Stock B: low_vol signal (score 80)
+        snapshot = MarketSnapshot(
+            trade_date="20260101",
+            prices={"A.SZ": 10.0, "B.SZ": 10.0},
+            factor_scores={"A.SZ": base_factors, "B.SZ": base_factors},
+            market_regime="bull",
+            volume_signal={
+                "A.SZ": {"score": 50.0, "signal_type": "neutral"},
+                "B.SZ": {"score": 80.0, "signal_type": "low_vol"},
+            },
+        )
+        strategy = FactorThresholdStrategy(volume_weight=0.10)
+        signals = strategy.evaluate([], snapshot, 1_000_000)
+        buys = [s for s in signals if s.action == "BUY"]
+        # Both qualify, but B should rank higher due to higher volume score
+        assert len(buys) == 2
+        # B.SZ should be first (higher composite due to volume bonus)
+        assert buys[0].ts_code == "B.SZ"
+
+    def test_volume_weight_zero_legacy_behavior(self):
+        """When volume_weight=0, volume signal doesn't affect ranking."""
+        from davis_analyzer.paper_trading.strategy import (
+            FactorThresholdStrategy,
+            MarketSnapshot,
+        )
+
+        base_factors = {"momentum": 75, "holder": 60, "prosperity": 55}
+        snapshot = MarketSnapshot(
+            trade_date="20260101",
+            prices={"A.SZ": 10.0, "B.SZ": 10.0},
+            factor_scores={"A.SZ": base_factors, "B.SZ": base_factors},
+            market_regime="bull",
+            volume_signal={
+                "A.SZ": {"score": 50.0, "signal_type": "neutral"},
+                "B.SZ": {"score": 90.0, "signal_type": "platform_breakout"},
+            },
+        )
+        # With volume_weight=0, both stocks should have identical composite
+        strategy = FactorThresholdStrategy(volume_weight=0.0)
+        signals = strategy.evaluate([], snapshot, 1_000_000)
+        buys = [s for s in signals if s.action == "BUY"]
+        # Both still bought (factors qualify), but the ranking order doesn't
+        # depend on volume. We just verify both qualify.
+        assert len(buys) == 2
+
+    def test_volume_signal_field_in_snapshot(self):
+        """MarketSnapshot accepts a volume_signal field."""
+        from davis_analyzer.paper_trading.strategy import MarketSnapshot
+
+        snap = MarketSnapshot(
+            trade_date="20260101",
+            prices={},
+            volume_signal={"X.SZ": {"score": 70.0, "signal_type": "low_vol"}},
+        )
+        assert "X.SZ" in snap.volume_signal
+        assert snap.volume_signal["X.SZ"]["signal_type"] == "low_vol"
+
+
+# ── Event filter tests ─────────────────────────────────────────────────
+
+
+class TestEventFilter:
+    """Tests for the event hard-filter (减持/解禁)."""
+
+    def test_blocked_stock_excluded_from_buys(self):
+        """A stock with blocked=True event_signal should not be bought."""
+        from davis_analyzer.paper_trading.strategy import (
+            FactorThresholdStrategy, MarketSnapshot,
+        )
+
+        strategy = FactorThresholdStrategy(buy_momentum=65, buy_holder_min=35,
+                                           enable_event_filter=True)
+        # A.SZ has strong factors but is event-blocked; B.SZ same factors, not blocked
+        base_factors = {"momentum": 80, "holder": 60}
+        snapshot = MarketSnapshot(
+            trade_date="20260101",
+            prices={"A.SZ": 10.0, "B.SZ": 10.0},
+            factor_scores={"A.SZ": base_factors, "B.SZ": base_factors},
+            market_regime="bull",
+            event_signal={
+                "A.SZ": {"blocked": True, "reason": "减持"},
+                "B.SZ": {"blocked": False, "reason": ""},
+            },
+        )
+        signals = strategy.evaluate([], snapshot, 1_000_000)
+        buys = [s for s in signals if s.action == "BUY"]
+        assert len(buys) == 1
+        assert buys[0].ts_code == "B.SZ"  # only unblocked stock
+
+    def test_filter_disabled_allows_blocked_stock(self):
+        """When enable_event_filter=False, blocked stocks can still be bought."""
+        from davis_analyzer.paper_trading.strategy import (
+            FactorThresholdStrategy, MarketSnapshot,
+        )
+
+        strategy = FactorThresholdStrategy(buy_momentum=65, buy_holder_min=35,
+                                           enable_event_filter=False)
+        snapshot = MarketSnapshot(
+            trade_date="20260101",
+            prices={"A.SZ": 10.0},
+            factor_scores={"A.SZ": {"momentum": 80, "holder": 60}},
+            market_regime="bull",
+            event_signal={"A.SZ": {"blocked": True, "reason": "减持"}},
+        )
+        signals = strategy.evaluate([], snapshot, 1_000_000)
+        buys = [s for s in signals if s.action == "BUY"]
+        assert len(buys) == 1
+        assert buys[0].ts_code == "A.SZ"  # filter off, can buy
+
+    def test_missing_event_signal_does_not_block(self):
+        """Stock not in event_signal dict should NOT be blocked (graceful degradation)."""
+        from davis_analyzer.paper_trading.strategy import (
+            FactorThresholdStrategy, MarketSnapshot,
+        )
+
+        strategy = FactorThresholdStrategy(buy_momentum=65, buy_holder_min=35,
+                                           enable_event_filter=True)
+        snapshot = MarketSnapshot(
+            trade_date="20260101",
+            prices={"X.SZ": 10.0},
+            factor_scores={"X.SZ": {"momentum": 80, "holder": 60}},
+            market_regime="bull",
+            event_signal={},  # X.SZ not present → no event data
+        )
+        signals = strategy.evaluate([], snapshot, 1_000_000)
+        buys = [s for s in signals if s.action == "BUY"]
+        assert len(buys) == 1  # missing event data = no block
+
+
+class TestEventSoftPenalty:
+    """Tests for the event soft-penalty (composite deduction, not hard-gate)."""
+
+    def test_penalized_stock_still_buys_but_ranks_lower(self):
+        """Stock with event penalty should still be buyable, just rank below peers."""
+        from davis_analyzer.paper_trading.strategy import (
+            FactorThresholdStrategy, MarketSnapshot,
+        )
+
+        # A.SZ and B.SZ same factors; A has event penalty, B doesn't
+        base_factors = {"momentum": 75, "holder": 60, "prosperity": 55}
+        snapshot = MarketSnapshot(
+            trade_date="20260101",
+            prices={"A.SZ": 10.0, "B.SZ": 10.0},
+            factor_scores={"A.SZ": base_factors, "B.SZ": base_factors},
+            market_regime="bull",
+            event_signal={
+                "A.SZ": {"blocked": True, "penalty": 20.0, "reason": "减持"},
+                "B.SZ": {"blocked": False, "penalty": 0.0, "reason": ""},
+            },
+        )
+        # Soft penalty: weight=1.0 → 20-point deduction; hard filter OFF
+        strategy = FactorThresholdStrategy(
+            enable_event_filter=False,  # hard filter off
+            event_penalty_weight=1.0,   # soft penalty on
+        )
+        signals = strategy.evaluate([], snapshot, 1_000_000)
+        buys = [s for s in signals if s.action == "BUY"]
+        # Both qualify (no hard filter), but B ranks first (no penalty)
+        assert len(buys) == 2
+        assert buys[0].ts_code == "B.SZ"  # B ranks higher
+
+    def test_zero_penalty_weight_no_effect(self):
+        """When event_penalty_weight=0, penalty has no effect."""
+        from davis_analyzer.paper_trading.strategy import (
+            FactorThresholdStrategy, MarketSnapshot,
+        )
+
+        base_factors = {"momentum": 75, "holder": 60, "prosperity": 55}
+        snapshot = MarketSnapshot(
+            trade_date="20260101",
+            prices={"A.SZ": 10.0, "B.SZ": 10.0},
+            factor_scores={"A.SZ": base_factors, "B.SZ": base_factors},
+            market_regime="bull",
+            event_signal={
+                "A.SZ": {"blocked": True, "penalty": 30.0, "reason": "减持"},
+                "B.SZ": {"blocked": False, "penalty": 0.0, "reason": ""},
+            },
+        )
+        # Both penalty weight and hard filter OFF → fully legacy behavior
+        strategy = FactorThresholdStrategy(
+            enable_event_filter=False, event_penalty_weight=0.0,
+        )
+        signals = strategy.evaluate([], snapshot, 1_000_000)
+        buys = [s for s in signals if s.action == "BUY"]
+        assert len(buys) == 2
+        # Same factors, no penalty effect → composite equal, ranking arbitrary but both qualify
+
+    def test_hard_filter_overrides_soft_penalty(self):
+        """When both hard filter and soft penalty are on, hard filter wins (skip)."""
+        from davis_analyzer.paper_trading.strategy import (
+            FactorThresholdStrategy, MarketSnapshot,
+        )
+
+        snapshot = MarketSnapshot(
+            trade_date="20260101",
+            prices={"A.SZ": 10.0},
+            factor_scores={"A.SZ": {"momentum": 80, "holder": 60}},
+            market_regime="bull",
+            event_signal={"A.SZ": {"blocked": True, "penalty": 30.0, "reason": "减持"}},
+        )
+        strategy = FactorThresholdStrategy(
+            enable_event_filter=True,   # hard filter on → skip
+            event_penalty_weight=1.0,   # soft penalty also on (but hard wins)
+        )
+        signals = strategy.evaluate([], snapshot, 1_000_000)
+        buys = [s for s in signals if s.action == "BUY"]
+        assert len(buys) == 0  # hard filter blocked the buy
+
+
+# ── Technical factor composite tests ───────────────────────────────────
+
+
+class TestTechScoreComposite:
+    """Tests for tech_score in the composite rating."""
+
+    def test_high_tech_score_ranks_higher(self):
+        """Stock with higher tech_score ranks above same-factor peer."""
+        from davis_analyzer.paper_trading.strategy import (
+            FactorThresholdStrategy, MarketSnapshot,
+        )
+
+        base_factors = {"momentum": 75, "holder": 60, "prosperity": 55}
+        snapshot = MarketSnapshot(
+            trade_date="20260101",
+            prices={"A.SZ": 10.0, "B.SZ": 10.0},
+            factor_scores={"A.SZ": base_factors, "B.SZ": base_factors},
+            market_regime="bull",
+            tech_score={"A.SZ": 30.0, "B.SZ": 80.0},  # B is stronger technically
+        )
+        strategy = FactorThresholdStrategy(tech_weight=0.10)
+        signals = strategy.evaluate([], snapshot, 1_000_000)
+        buys = [s for s in signals if s.action == "BUY"]
+        assert len(buys) == 2
+        # B.SZ should rank first due to higher tech score
+        assert buys[0].ts_code == "B.SZ"
+
+    def test_tech_weight_zero_ignores_score(self):
+        """When tech_weight=0, tech_score doesn't affect ranking."""
+        from davis_analyzer.paper_trading.strategy import (
+            FactorThresholdStrategy, MarketSnapshot,
+        )
+
+        base_factors = {"momentum": 75, "holder": 60, "prosperity": 55}
+        snapshot = MarketSnapshot(
+            trade_date="20260101",
+            prices={"A.SZ": 10.0, "B.SZ": 10.0},
+            factor_scores={"A.SZ": base_factors, "B.SZ": base_factors},
+            market_regime="bull",
+            tech_score={"A.SZ": 10.0, "B.SZ": 90.0},  # huge tech difference
+        )
+        strategy = FactorThresholdStrategy(tech_weight=0.0)
+        signals = strategy.evaluate([], snapshot, 1_000_000)
+        buys = [s for s in signals if s.action == "BUY"]
+        # Both qualify; tech_weight=0 means tech_score doesn't change ranking
+        assert len(buys) == 2
+
+    def test_tech_score_defaults_to_neutral_when_missing(self):
+        """Missing tech_score should default to neutral (50), not crash."""
+        from davis_analyzer.paper_trading.strategy import (
+            FactorThresholdStrategy, MarketSnapshot,
+        )
+
+        snapshot = MarketSnapshot(
+            trade_date="20260101",
+            prices={"X.SZ": 10.0},
+            factor_scores={"X.SZ": {"momentum": 80, "holder": 60}},
+            market_regime="bull",
+            tech_score={},  # no tech data
+        )
+        strategy = FactorThresholdStrategy(tech_weight=0.10)
+        signals = strategy.evaluate([], snapshot, 1_000_000)
+        buys = [s for s in signals if s.action == "BUY"]
+        assert len(buys) == 1  # missing data → neutral score, still qualifies

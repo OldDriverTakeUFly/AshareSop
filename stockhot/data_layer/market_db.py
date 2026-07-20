@@ -67,15 +67,18 @@ _SCHEMA_STATEMENTS: list[str] = [
         fetched_at REAL,
         PRIMARY KEY (ts_code, trade_date)
     )""",
-    # 个股每日估值指标（PE/PB/PS/总市值），24h TTL 增量
+    # 个股每日估值指标（PE/PB/PS/总市值/换手率/流通市值），24h TTL 增量
     """CREATE TABLE IF NOT EXISTS daily_basic (
-        ts_code    TEXT NOT NULL,
-        trade_date TEXT NOT NULL,
-        pe_ttm     REAL,
-        pb         REAL,
-        ps         REAL,
-        total_mv   REAL,
-        fetched_at REAL,
+        ts_code        TEXT NOT NULL,
+        trade_date     TEXT NOT NULL,
+        pe_ttm         REAL,
+        pb             REAL,
+        ps             REAL,
+        total_mv       REAL,
+        turnover_rate  REAL,
+        circ_mv        REAL,
+        free_share     REAL,
+        fetched_at     REAL,
         PRIMARY KEY (ts_code, trade_date)
     )""",
     # 财务三表 + 指标（永久缓存，按 end_date 季度键）
@@ -108,6 +111,34 @@ _SCHEMA_STATEMENTS: list[str] = [
         amount     REAL,
         pct_chg    REAL,
         fetched_at REAL,
+        PRIMARY KEY (ts_code, trade_date)
+    )""",
+    # 公司事件流（事件因子实证研究用）—— 解禁/增减持/回购/质押
+    # 每行 = 一个事件实例；通过 event_type + ann_date 可与日线 join 算 CAR
+    """CREATE TABLE IF NOT EXISTS corp_event (
+        ts_code       TEXT NOT NULL,
+        ann_date      TEXT NOT NULL,     -- 事件触发日（公告/解禁/减持日）
+        event_type    TEXT NOT NULL,     -- share_float/holder_trade/repurchase/pledge
+        direction     TEXT,              -- 'negative' / 'positive' / 'neutral'
+        magnitude     REAL,              -- 事件规模（解禁比例/减持比例/回购金额万元/质押率）
+        details_json  TEXT,              -- 其他细节（股东名/价格/进度等）
+        source        TEXT,              -- 'tushare' / 'akshare'
+        fetched_at    REAL,
+        PRIMARY KEY (ts_code, ann_date, event_type, details_json)
+    )""",
+    # 技术因子（技术因子实证研究用）—— tech_score / ma_align / rsi / macd_hist / kdj_j / boll_pos
+    # 每个 (ts_code, trade_date) 一行；与 daily_price join 用于 IC 计算
+    """CREATE TABLE IF NOT EXISTS tech_factor (
+        ts_code        TEXT NOT NULL,
+        trade_date     TEXT NOT NULL,
+        tech_score     REAL,             -- 综合技术分 0-100（复用 composite_technical_score）
+        ma_align       TEXT,             -- 'bullish' / 'bearish' / 'mixed'
+        ma_align_score REAL,             -- 0-100
+        rsi            REAL,             -- 0-100
+        macd_hist      REAL,             -- MACD 柱（正负）
+        kdj_j          REAL,             -- KDJ 的 J 值（可超 100/低于 0）
+        boll_position  REAL,             -- 0-1（在布林带中的位置）
+        fetched_at     REAL,
         PRIMARY KEY (ts_code, trade_date)
     )""",
 

@@ -479,6 +479,329 @@ def _compute_volatilities(ts_codes: list[str], trade_date: str) -> dict[str, flo
     return result
 
 
+# ── Volume-price signal computation ────────────────────────────────────
+#
+# Implements three classic Chinese-quant volume-price signals based on the
+# 国盛证券《量价淘金》framework plus practitioner thresholds:
+#
+#   1. 平台突破 (platform breakout) — BUY
+#      20-day box amplitude < 15% AND close > box_high * 1.01 AND vol > MA20 * 1.5
+#
+#   2. 低位放量 (low-position high-volume) — BUY
+#      120-day price percentile ≤ 20% AND (vol > MA20 * 2 OR 120d vol percentile ≥ 80%)
+#
+#   3. 高位放量 (high-position high-volume) — SELL/REDUCE
+#      120-day price percentile ≥ 80% AND (vol > MA20 * 2 OR 120d vol percentile ≥ 90%)
+#
+# Returns ``{ts_code: {score, signal_type, vol_ratio, position_pct, box_amplitude}}``.
+# Score is 0-100: platform/low-position signals score 70-90, high-position 25-35,
+# neutral cases 50-60. The strategy uses ``score`` as a composite-rating input
+# (default weight 10%); the risk layer keys off ``signal_type == "high_vol"``.
+#
+# Reads only from ``daily_price`` (vol/amount are 100% covered there); does NOT
+# depend on ``daily_basic.turnover_rate`` to avoid cross-table JOIN complexity.
+
+_VOL_LOOKBACK_DAYS = 130        # pull 130 trading days to compute 120d percentile + 20d box
+_VOL_MA_WINDOW = 20             # short-term volume baseline
+_VOL_MIN_HISTORY = 60           # below this many days → return neutral
+_BOX_WINDOW = 20                # platform consolidation window
+_BOX_MAX_AMPLITUDE = 0.15       # max (high-low)/low for a valid platform
+_BOX_BREAKOUT_BUFFER = 1.01     # close must exceed box_high by 1%
+_PLATFORM_VOL_RATIO = 1.5       # vol/MA20 threshold for platform breakout
+_EXTREME_VOL_RATIO = 2.0        # vol/MA20 threshold for low/high-position signals
+_LOW_POS_PCT = 20.0             # 120d price percentile ≤ 20% → low position
+_HIGH_POS_PCT = 80.0            # 120d price percentile ≥ 80% → high position
+_LOW_VOL_PCTILE = 80.0          # 120d volume percentile ≥ 80% → qualifies low-position
+_HIGH_VOL_PCTILE = 90.0         # 120d volume percentile ≥ 90% → qualifies high-position
+
+
+def _compute_volume_signals(ts_codes: list[str], trade_date: str) -> dict[str, dict]:
+    """Compute volume-price signals for each stock.
+
+    Returns ``{ts_code: {score, signal_type, vol_ratio, position_pct,
+    box_amplitude}}``. See module-level docstring above for signal definitions.
+    """
+    if not ts_codes:
+        return {}
+    import pandas as pd
+
+    # Resolve the lookback window using actual trading days.
+    with get_market_conn() as conn:
+        date_rows = conn.execute(
+            "SELECT DISTINCT trade_date FROM daily_price "
+            "WHERE trade_date <= ? ORDER BY trade_date DESC LIMIT ?",
+            (trade_date, _VOL_LOOKBACK_DAYS),
+        ).fetchall()
+    dates = [r[0] for r in date_rows]
+    if len(dates) < _VOL_MIN_HISTORY:
+        return {}
+    start_str = dates[-1]
+
+    result: dict[str, dict] = {}
+    with get_market_conn() as conn:
+        for code in ts_codes:
+            rows = conn.execute(
+                "SELECT trade_date, high, low, close, vol FROM daily_price "
+                "WHERE ts_code=? AND trade_date>=? AND trade_date<=? "
+                "AND close IS NOT NULL ORDER BY trade_date",
+                (code, start_str, trade_date),
+            ).fetchall()
+            if len(rows) < _VOL_MIN_HISTORY:
+                # Not enough history → return neutral so we don't bias the score.
+                result[code] = {
+                    "score": 50.0,
+                    "signal_type": "neutral",
+                    "vol_ratio": 0.0,
+                    "position_pct": 50.0,
+                    "box_amplitude": 0.0,
+                }
+                continue
+
+            df = pd.DataFrame(
+                rows, columns=["trade_date", "high", "low", "close", "vol"]
+            )
+            df["high"] = df["high"].astype(float)
+            df["low"] = df["low"].astype(float)
+            df["close"] = df["close"].astype(float)
+            df["vol"] = df["vol"].astype(float)
+
+            today_close = float(df["close"].iloc[-1])
+            today_vol = float(df["vol"].iloc[-1])
+
+            # 120-day price percentile (using all available rows up to 130)
+            position_pct = float(
+                (df["close"] <= today_close).sum() / len(df) * 100
+            )
+
+            # 20-day volume MA (use the last _VOL_MA_WINDOW rows; exclude today to
+            # avoid biasing the baseline with the very spike we are measuring).
+            if len(df) > _VOL_MA_WINDOW:
+                vol_ma = float(df["vol"].iloc[-_VOL_MA_WINDOW - 1 : -1].mean())
+            else:
+                vol_ma = float(df["vol"].iloc[:-1].mean()) if len(df) > 1 else today_vol
+            vol_ratio = float(today_vol / vol_ma) if vol_ma > 0 else 0.0
+
+            # 120-day volume percentile
+            vol_pctile = float((df["vol"] <= today_vol).sum() / len(df) * 100)
+
+            # 20-day box (platform) geometry
+            if len(df) >= _BOX_WINDOW:
+                box = df.iloc[-_BOX_WINDOW:]
+                box_high = float(box["high"].max())
+                box_low = float(box["low"].min())
+                box_amplitude = (
+                    float((box_high - box_low) / box_low) if box_low > 0 else 0.0
+                )
+            else:
+                box_high = today_close
+                box_low = today_close
+                box_amplitude = 0.0
+
+            # ── Classify signal ──
+            signal_type = "neutral"
+            score = 50.0  # neutral baseline
+
+            # 1. Platform breakout — needs tight box + breakout + volume confirm
+            is_platform = (
+                box_amplitude <= _BOX_MAX_AMPLITUDE
+                and len(df) >= _BOX_WINDOW
+            )
+            is_breakout = today_close >= box_high * _BOX_BREAKOUT_BUFFER
+            if is_platform and is_breakout and vol_ratio >= _PLATFORM_VOL_RATIO:
+                signal_type = "platform_breakout"
+                # 70-90 range: base 70 + bonus for stronger volume (cap at 90)
+                score = 70.0 + min((vol_ratio - _PLATFORM_VOL_RATIO) * 8, 20.0)
+
+            # 2. Low-position high-volume (accumulation)
+            # Position ≤ 20% AND (vol ratio ≥ 2 OR vol percentile ≥ 80%)
+            elif (
+                position_pct <= _LOW_POS_PCT
+                and (vol_ratio >= _EXTREME_VOL_RATIO or vol_pctile >= _LOW_VOL_PCTILE)
+            ):
+                signal_type = "low_vol"
+                # 60-85: base 60 + bonus for lower position + higher volume
+                pos_bonus = (_LOW_POS_PCT - position_pct) * 0.5  # 0-10
+                vol_bonus = min(max(vol_ratio - 1.0, 0.0) * 10, 15.0)  # 0-15
+                score = 60.0 + pos_bonus + vol_bonus
+
+            # 3. High-position high-volume (distribution)
+            # Position ≥ 80% AND (vol ratio ≥ 2 OR vol percentile ≥ 90%)
+            elif (
+                position_pct >= _HIGH_POS_PCT
+                and (vol_ratio >= _EXTREME_VOL_RATIO or vol_pctile >= _HIGH_VOL_PCTILE)
+            ):
+                signal_type = "high_vol"
+                # 25-35: lower score → drags down composite rating
+                pos_penalty = (position_pct - _HIGH_POS_PCT) * 0.2  # 0-2
+                vol_penalty = min(max(vol_ratio - 1.0, 0.0) * 5, 8.0)
+                score = 35.0 - pos_penalty - vol_penalty
+
+            # 4. Neutral — slight tilt toward 50 + mild volume strength
+            else:
+                if vol_ratio >= 1.2:
+                    # mild volume pick-up, neither extreme
+                    score = 55.0 + min((vol_ratio - 1.2) * 5, 5.0)
+                else:
+                    score = 50.0
+
+            result[code] = {
+                "score": round(score, 1),
+                "signal_type": signal_type,
+                "vol_ratio": round(vol_ratio, 2),
+                "position_pct": round(position_pct, 1),
+                "box_amplitude": round(box_amplitude * 100, 1),  # as %
+            }
+    return result
+
+
+# ── Event signal computation (实证驱动) ─────────────────────────────────
+#
+# Implements hard-gate filters based on the event CAR study
+# (docs/方法论/A股事件因子实证研究方法论.md). Two empirically validated
+# signals are included:
+#
+#   1. 股东减持 (holder reduction)
+#      Empirical: 公告前 20 天 +2.58% (t=+14), 公告后 60 天 -1.76% (t=-7).
+#      Rule: skip if last 60 days has a >1% reduction announcement.
+#
+#   2. 限售解禁 (lockup release)
+#      Empirical: 解禁前 20 天 -2.79% (t=-2.87).
+#      Rule: skip if next 20 calendar days has a >=5% unlock.
+#
+# Returns ``{ts_code: {"blocked": bool, "reason": str, "events": [...]}}``.
+# Strategy uses ``blocked`` to filter; ``reason`` is included in signal_reason
+# for traceability.
+
+# Lookback/forward windows (calibrated to our 2025-2026 sample CAR study)
+_REDUCTION_LOOKBACK_DAYS = 60       # 减持公告后 60 天负面影响期
+_REDUCTION_MIN_RATIO = 1.0         # 减持比例 ≥1% 才考虑（实证：>1% 组冲击显著）
+_UNLOCK_FORWARD_DAYS = 30          # 解禁前 30 天开始走弱（用 30 保守，实证是 20）
+_UNLOCK_MIN_RATIO = 5.0            # 解禁规模 ≥5%（"大非"标准）
+
+
+def _compute_event_signals(ts_codes: list[str], trade_date: str) -> dict[str, dict]:
+    """Compute event-based hard-gate flags for each stock.
+
+    Returns ``{ts_code: {"blocked": bool, "reason": str}}``.
+    ``blocked=True`` means the stock should be excluded from buy candidates.
+    """
+    if not ts_codes:
+        return {}
+
+    # Date arithmetic (YYYYMMDD strings)
+    from datetime import datetime, timedelta
+    td = datetime.strptime(trade_date, "%Y%m%d")
+    reduction_start = (td - timedelta(days=_REDUCTION_LOOKBACK_DAYS)).strftime("%Y%m%d")
+    unlock_end = (td + timedelta(days=_UNLOCK_FORWARD_DAYS)).strftime("%Y%m%d")
+
+    result: dict[str, dict] = {}
+
+    with get_market_conn() as conn:
+        # Bulk query 1: holder reductions in [reduction_start, trade_date]
+        # Filter by direction=negative (减持) and magnitude (change_ratio) ≥ threshold
+        reduction_rows = conn.execute(
+            "SELECT ts_code, ann_date, magnitude, details_json "
+            "FROM corp_event "
+            "WHERE event_type='holder_trade' AND direction='negative' "
+            "AND magnitude IS NOT NULL AND magnitude >= ? "
+            "AND ann_date >= ? AND ann_date <= ?",
+            (_REDUCTION_MIN_RATIO, reduction_start, trade_date),
+        ).fetchall()
+        reductions_by_code: dict[str, list] = {}
+        for r in reduction_rows:
+            reductions_by_code.setdefault(r[0], []).append({
+                "ann_date": r[1], "ratio": r[2],
+            })
+
+        # Bulk query 2: upcoming unlocks in [trade_date, unlock_end]
+        # NOTE: corp_event.share_float uses ann_date as the unlock announcement date.
+        # We treat "upcoming" as ann_date in the next N days. If the company has
+        # ALREADY announced (ann_date <= trade_date) an unlock dated in the future,
+        # that's also captured because we look at ann_date range.
+        unlock_rows = conn.execute(
+            "SELECT ts_code, ann_date, magnitude, details_json "
+            "FROM corp_event "
+            "WHERE event_type='share_float' "
+            "AND magnitude IS NOT NULL AND magnitude >= ? "
+            "AND ann_date >= ? AND ann_date <= ?",
+            (_UNLOCK_MIN_RATIO, trade_date, unlock_end),
+        ).fetchall()
+        unlocks_by_code: dict[str, list] = {}
+        for r in unlock_rows:
+            unlocks_by_code.setdefault(r[0], []).append({
+                "ann_date": r[1], "ratio": r[2],
+            })
+
+    for code in ts_codes:
+        reasons = []
+        penalty = 0.0  # 0-30 penalty for soft-gate use
+
+        reductions = reductions_by_code.get(code, [])
+        if reductions:
+            max_ratio = max(r["ratio"] for r in reductions)
+            most_recent = max(r["ann_date"] for r in reductions)
+            n_red = len(reductions)
+            reasons.append(
+                f"减持(ratio={max_ratio:.1f}%,{n_red}次,最近{most_recent})"
+            )
+            # 减持软门槛：基础分按 max_ratio 映射
+            #   1% → 3 分；3% → 9 分；5% → 15 分；10%+ → 20 分（封顶）
+            reduction_penalty = min(max_ratio * 3.0, 20.0)
+            # 多次减持加成：每次额外 +1，封顶 +5
+            reduction_penalty += min(n_red - 1, 5)
+            penalty += reduction_penalty
+
+        unlocks = unlocks_by_code.get(code, [])
+        if unlocks:
+            max_ratio = max(u["ratio"] for u in unlocks)
+            nearest = min(u["ann_date"] for u in unlocks)
+            n_unl = len(unlocks)
+            reasons.append(
+                f"解禁(ratio={max_ratio:.1f}%,{n_unl}次,最近{nearest})"
+            )
+            # 解禁软门槛：按 max_ratio 映射（解禁通常更大，所以系数小一些）
+            #   5% → 3 分；10% → 6 分；20% → 12 分；50%+ → 20 分（封顶）
+            unlock_penalty = min(max_ratio * 0.6, 20.0)
+            penalty += unlock_penalty
+
+        # Cap total penalty at 30 (so a strong stock can still rank, just lower)
+        penalty = min(penalty, 30.0)
+
+        result[code] = {
+            "blocked": bool(reasons),
+            "penalty": round(penalty, 1),
+            "reason": "；".join(reasons) if reasons else "",
+        }
+
+    return result
+
+
+def _load_tech_scores(ts_codes: list[str], trade_date: str) -> dict[str, float]:
+    """Load tech_score from tech_factor table (computed offline by tech_research).
+
+    The tech_factor table is keyed by (ts_code, trade_date). We look up each
+    stock's score on the exact trade_date; if missing, return nothing (the
+    strategy defaults to 50.0 in the composite formula).
+    """
+    if not ts_codes:
+        return {}
+    result: dict[str, float] = {}
+    # Batch query in chunks of 500 (SQLite parameter limit safety)
+    with get_market_conn() as conn:
+        for i in range(0, len(ts_codes), 500):
+            chunk = ts_codes[i : i + 500]
+            placeholders = ",".join("?" * len(chunk))
+            rows = conn.execute(
+                f"SELECT ts_code, tech_score FROM tech_factor "
+                f"WHERE trade_date=? AND ts_code IN ({placeholders}) "
+                f"AND tech_score IS NOT NULL",
+                (trade_date, *chunk),
+            ).fetchall()
+            for r in rows:
+                result[r[0]] = float(r[1])
+    return result
+
+
 def _full_market_sector_trends(trade_date: str) -> dict[str, str]:
     """Compute per-industry trend from ALL market stocks' 5-day returns.
 
@@ -677,11 +1000,20 @@ class DailyExecutor:
         industries: dict[str, str] | None = None,
         industry_trend: dict[str, str] | None = None,
         volatilities: dict[str, float] | None = None,
+        volume_signals: dict[str, dict] | None = None,
     ) -> list[Signal]:
-        """Check stop-loss / take-profit with DYNAMIC + VOL-ADJUSTED thresholds."""
+        """Check stop-loss / take-profit with DYNAMIC + VOL-ADJUSTED thresholds.
+
+        Also includes the **高位放量 (high-position high-volume)** risk sell:
+        when a position is already profitable AND the volume-price engine flags
+        ``signal_type == "high_vol"``, we treat it as a distribution event and
+        emit a SELL. This catches "riding a winner into a top" scenarios where
+        price is at 120d-high and turnover is spiking.
+        """
         industries = industries or {}
         industry_trend = industry_trend or {}
         volatilities = volatilities or {}
+        volume_signals = volume_signals or {}
         signals: list[Signal] = []
         for pos in positions:
             px = prices.get(pos.ts_code)
@@ -714,6 +1046,33 @@ class DailyExecutor:
                         signal_reason=f"止盈 P&L=+{pnl_pct*100:.1f}% (止盈线{take_profit*100:.0f}% {market_regime}/{sector_trend})",
                     )
                 )
+            else:
+                # 高位放量 (high-position high-volume) — distribution risk.
+                # Only trigger when already profitable AND volume-price engine
+                # explicitly flags "high_vol" signal type. This is a take-profit
+                # variant that fires earlier than the static take_profit line
+                # when the volume-price pattern suggests distribution.
+                # Skip entirely if strategy disabled the volume-risk path.
+                if not getattr(self.strategy, "enable_volume_risk", True):
+                    continue
+                vol_sig = volume_signals.get(pos.ts_code)
+                if (
+                    vol_sig is not None
+                    and vol_sig.get("signal_type") == "high_vol"
+                    and pnl_pct >= 0.10  # only reduce winners (≥10% gain)
+                ):
+                    signals.append(
+                        Signal(
+                            ts_code=pos.ts_code,
+                            name=pos.name,
+                            action="SELL",
+                            signal_reason=(
+                                f"高位放量 P&L=+{pnl_pct*100:.1f}% "
+                                f"量比={vol_sig.get('vol_ratio', 0):.1f} "
+                                f"价格分位={vol_sig.get('position_pct', 0):.0f}%"
+                            ),
+                        )
+                    )
         return signals
 
     def _execute_t_trades(
@@ -865,6 +1224,20 @@ class DailyExecutor:
         short_momentum = _compute_short_momentum(codes_to_price, trade_date)
         pe_percentiles = _compute_pe_percentiles(codes_to_price, trade_date)
         volatilities = _compute_volatilities(codes_to_price, trade_date)
+        # Volume-price signal — used both by the strategy (composite rating)
+        # and by the risk layer (high-position high-volume SELL).
+        volume_signals = _compute_volume_signals(codes_to_price, trade_date)
+        # Event signals (减持/解禁) — computed when hard filter OR soft penalty is on.
+        if getattr(self.strategy, "enable_event_filter", False) or \
+           getattr(self.strategy, "event_penalty_weight", 0) > 0:
+            event_signals = _compute_event_signals(codes_to_price, trade_date)
+        else:
+            event_signals = {}
+        # Technical factor (tech_score) — only loaded when tech_weight > 0.
+        if getattr(self.strategy, "tech_weight", 0) > 0:
+            tech_scores = _load_tech_scores(codes_to_price, trade_date)
+        else:
+            tech_scores = {}
 
         # ── 3a. Risk management: dynamic + vol-adjusted stop-loss/take-profit ──
         risk_signals = self._check_risk_signals(
@@ -873,6 +1246,7 @@ class DailyExecutor:
             industries=industries,
             industry_trend=industry_trend,
             volatilities=volatilities,
+            volume_signals=volume_signals,
         )
         if risk_signals:
             logger.info(
@@ -896,6 +1270,9 @@ class DailyExecutor:
             short_momentum=short_momentum,
             pe_percentile=pe_percentiles,
             volatility=volatilities,
+            volume_signal=volume_signals,
+            event_signal=event_signals,
+            tech_score=tech_scores,
         )
 
         # ── 4. Evaluate strategy ──

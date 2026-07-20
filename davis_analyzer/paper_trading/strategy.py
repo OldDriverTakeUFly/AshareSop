@@ -67,6 +67,16 @@ class MarketSnapshot:
     short_momentum: dict[str, float] = field(default_factory=dict)  # ts_code → 5-day return %
     pe_percentile: dict[str, float] = field(default_factory=dict)  # ts_code → PE historical percentile (0-100)
     volatility: dict[str, float] = field(default_factory=dict)  # ts_code → 20-day annualized vol %
+    # ── Volume-price signal (added for composite rating) ──
+    volume_signal: dict[str, dict] = field(default_factory=dict)
+    # ts_code → {"score": float, "signal_type": str, "vol_ratio": float, ...}
+    # signal_type ∈ {"platform_breakout", "low_vol", "high_vol", "neutral"}
+    # ── Event signal (减持/解禁硬门槛) ──
+    event_signal: dict[str, dict] = field(default_factory=dict)
+    # ts_code → {"blocked": bool, "reason": str}
+    # ── Technical factor (composite tech_score, 0-100) ──
+    tech_score: dict[str, float] = field(default_factory=dict)
+    # ts_code → tech_score (0-100, higher = stronger technical state)
 
 
 class Strategy(Protocol):
@@ -213,6 +223,49 @@ class FactorThresholdStrategy:
         require_short_momentum: bool = True,  # 5-day return must be > 0
         max_pe_percentile: float = 80.0,      # PE must be below 80th percentile
         vol_adjusted_stops: bool = True,      # Adjust stop-loss by individual volatility
+        # ── Volume-price composite weight ──
+        # When > 0, the composite rating blends in a volume-price score
+        # (platform breakout / low-position volume = positive; high-position
+        # volume = negative). Set to 0 to disable (legacy behaviour).
+        #
+        # Sweep result (2026-07-20, 127-day backtest, top-200 universe):
+        #   vw=0.00 → +2.75%   vw=0.05 → +3.01% (best)
+        #   vw=0.10 → -0.91%   vw=0.15 → -1.52%   vw=0.20 → -1.45%
+        # The buy-side volume signal is noisy — most value comes from the
+        # high-vol risk sell (enable_volume_risk). Keep buy weight low.
+        volume_weight: float = 0.05,           # weight of volume-price score in composite
+        # ── Volume-price risk sell (高位放量) ──
+        # When True, the risk layer treats ``signal_type == "high_vol"`` as a
+        # distribution event and emits a SELL for profitable positions. Set to
+        # False to disable this risk-sell path entirely (for A/B testing).
+        enable_volume_risk: bool = True,
+        # ── Event hard filter (减持/解禁) ──
+        # When True, stocks with recent >1% reductions (last 60d) or upcoming
+        # >=5% unlocks (next 30d) are excluded from buy candidates.
+        # Empirical basis: docs/方法论/A股事件因子实证研究方法论.md
+        #
+        # NOTE: 4-way backtest on 2026-07-20 showed enabling this REDUCES return
+        # by -3.92pp (V3 vs V2), because the filter is too aggressive in our
+        # strong-momentum universe (减持后继续上涨的强势股被误杀).
+        # Default OFF — prefer event_penalty_weight (soft-gate) below.
+        enable_event_filter: bool = False,
+        # ── Event soft penalty (减持/解禁 扣分) ──
+        # When > 0, stocks with event signals receive a composite-score penalty
+        # proportional to event severity (0-30 points), weighted by this factor.
+        # Unlike enable_event_filter (hard-gate), this preserves ranking — strong
+        # stocks still qualify, just rank lower. Recommended 0.5-1.0.
+        #   penalty_weight=1.0 → 30-point penalty reduces composite by 30
+        #   penalty_weight=0.5 → 30-point penalty reduces composite by 15
+        event_penalty_weight: float = 0.0,
+        # ── Technical factor weight ──
+        # Weight of tech_score (0-100) in the composite rating.
+        # Empirical basis: docs/方法论/A股技术因子实证研究方法论.md (Q5-Q1=+1.14%, 20d)
+        # When > 0, the composite blends in tech_score. Set to 0 to disable.
+        #
+        # NOTE: 4-way backtest showed +1.29pp improvement when combined with
+        # event filter (V4 vs V3), but net negative vs volume-only (V4 < V2).
+        # Default OFF — re-enable if event filter is also kept.
+        tech_weight: float = 0.0,
     ) -> None:
         self.max_positions = max_positions
         self.buy_momentum = buy_momentum
@@ -229,6 +282,11 @@ class FactorThresholdStrategy:
         self.require_short_momentum = require_short_momentum
         self.max_pe_percentile = max_pe_percentile
         self.vol_adjusted_stops = vol_adjusted_stops
+        self.volume_weight = volume_weight
+        self.enable_volume_risk = enable_volume_risk
+        self.enable_event_filter = enable_event_filter
+        self.event_penalty_weight = event_penalty_weight
+        self.tech_weight = tech_weight
         self.buy_forecast_min = buy_forecast_min
         self.buy_prosperity_min = buy_prosperity_min
         # Track recently sold codes to enforce cooldown (ts_code → trade_date)
@@ -313,14 +371,60 @@ class FactorThresholdStrategy:
             if pe_pct is not None and pe_pct > self.max_pe_percentile:
                 continue  # too expensive even with good factors
 
-            # Composite score: momentum 40%, best secondary 40%, prosperity bonus 20%
+            # ── Event hard filter (减持/解禁) ──
+            # Empirical: 减持后 60 天 CAR -1.76%, 解禁前 20 天 CAR -2.79%
+            # Skip stocks with recent ≥1% reductions or upcoming ≥5% unlocks.
+            if self.enable_event_filter:
+                ev = snapshot.event_signal.get(code)
+                if ev is not None and ev.get("blocked"):
+                    continue  # event-blocked, skip buy
+
+            # Composite score: momentum + best secondary + prosperity + volume-price + tech.
+            # Default weights:
+            #   动量 35% + 次维度 35% + 景气 17.5% + 量价 5% + 技术 7.5%
+            # The legacy 40/40/20 weights are rescaled into (1 - vw - tw) of total.
             best_secondary = max(
                 holder or 0, dividend or 0, forecast or 0, prosperity or 0
             )
-            # Prosperity gets a bonus weight because it reflects fundamental growth quality
             prosperity_score = prosperity or 50  # default neutral if missing
-            composite = mom * 0.4 + best_secondary * 0.4 + prosperity_score * 0.2
-            detail_str = f"动量{mom:.0f} " + " ".join(secondary_details)
+
+            vw = self.volume_weight
+            tw = self.tech_weight
+            extras_weight = vw + tw
+            legacy_weight = 1.0 - extras_weight
+
+            vol_score = snapshot.volume_signal.get(code, {}).get("score", 50.0)
+            tech_s = snapshot.tech_score.get(code, 50.0)
+
+            if extras_weight > 0:
+                composite = (
+                    mom * 0.40 * legacy_weight
+                    + best_secondary * 0.40 * legacy_weight
+                    + prosperity_score * 0.20 * legacy_weight
+                    + vol_score * vw
+                    + tech_s * tw
+                )
+                detail_str = (
+                    f"动量{mom:.0f} " + " ".join(secondary_details)
+                    + (f" 量价{vol_score:.0f}" if vw > 0 else "")
+                    + (f" 技术{tech_s:.0f}" if tw > 0 else "")
+                )
+            else:
+                composite = mom * 0.4 + best_secondary * 0.4 + prosperity_score * 0.2
+                detail_str = f"动量{mom:.0f} " + " ".join(secondary_details)
+
+            # ── Event soft penalty (减持/解禁 扣分) ──
+            # Unlike hard filter, this doesn't skip — just lowers composite.
+            if self.event_penalty_weight > 0:
+                ev = snapshot.event_signal.get(code)
+                if ev is not None:
+                    penalty = ev.get("penalty", 0.0)
+                    if penalty > 0:
+                        # penalty is 0-30, weighted by event_penalty_weight
+                        deduction = penalty * self.event_penalty_weight
+                        composite -= deduction
+                        detail_str += f" 事件-{penalty:.0f}"
+
             all_qualified.append((code, composite, detail_str, industry, set(secondary_pass)))
 
         # Rank by composite score descending

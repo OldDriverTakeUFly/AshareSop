@@ -142,6 +142,8 @@ class PaperAccount:
         row = self._conn.execute(
             "SELECT initial_capital FROM paper_accounts WHERE id=?", (self.account_id,)
         ).fetchone()
+        if row is None:
+            return 0.0
         return row["initial_capital"]
 
     @property
@@ -149,6 +151,10 @@ class PaperAccount:
         row = self._conn.execute(
             "SELECT cash FROM paper_accounts WHERE id=?", (self.account_id,)
         ).fetchone()
+        if row is None:
+            # Account was deleted by a concurrent process (e.g. sweep rerun).
+            # Return 0 rather than crashing — caller can detect via account state.
+            return 0.0
         return row["cash"]
 
     @property
