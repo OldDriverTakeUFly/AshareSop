@@ -27,10 +27,11 @@
 # 10:00 – Weekly report generation & portfolio review
 0 10 * * 0 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python stockhot/invest_sop/scripts/weekly_cycle.py >> stockhot/invest_sop/logs/weekly.log 2>&1
 
-# After-hours market scan (Mon–Fri, after close + dragon-tiger list ~17:00)
+# After-hours market scan (Mon–Fri, after close + dragon-tiger list)
+# 17:30 起跑（避开 Tushare index_daily 延迟——17:00 时指数日线常未更新）
 # Runs all 4 modules: limit_up → dragon_tiger + fund_flow → risk_alert
 # Data feeds the after-hours-review skill (盘后总结)
-0 17 * * 1-5 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python stockhot/invest_sop/scripts/run_daily_scan.py >> stockhot/invest_sop/logs/daily_scan.log 2>&1
+30 17 * * 1-5 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python stockhot/invest_sop/scripts/run_daily_scan.py >> stockhot/invest_sop/logs/daily_scan.log 2>&1
 
 # Intraday panic alert (Mon–Fri, 4 checks during trading hours)
 # Detects systemic panic (RV P90+), behavioral panic (limit-up/down ratio <0.5),
