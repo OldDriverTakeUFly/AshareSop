@@ -1,19 +1,36 @@
-"""飞书（Lark）自定义机器人 webhook 通知模块.
+"""飞书（Lark）通知模块 — 支持两种机器人模式.
 
 仅推送：向飞书群发送恐慌预警等文本消息。不接收命令。
+
+## 两种模式
+
+### 1. 企业自建应用机器人（推荐，已启用）
+
+通过 App ID + App Secret 换取 tenant_access_token，再调 IM 消息接口推送。
+需要在飞书开发者平台创建企业自建应用并发布，把机器人加入目标群。
+
+配置（.env）：
+    FEISHU_APP_ID     — 应用 App ID（cli_ 开头）
+    FEISHU_APP_SECRET — 应用 App Secret
+    FEISHU_CHAT_ID    — 目标群 chat_id（oc_ 开头）
+
+### 2. 群自定义机器人（简单备选）
+
+直接 POST webhook URL，无需应用凭证，但只能往绑定的群发消息。
+
+配置（.env）：
+    FEISHU_WEBHOOK_URL — 完整 webhook URL
+    FEISHU_SECRET      — 签名校验密钥（可选）
+
+## 自动选择
+
+``get_feishu_notifier()`` 优先读企业自建应用配置，其次读 webhook 配置。
+两者都未配置时返回 None。
 
 架构与 ``telegram_bot.py`` 平行：
 - 用 ``httpx`` 原生异步 POST（无飞书 SDK 依赖）
 - 重试 3 次 + 指数退避
-- 支持可选的签名校验（HMAC-SHA256）
-- 测试用 ``_transport=httpx.MockTransport`` 注入，不触碰真实 webhook
-
-飞书自定义机器人文档：
-https://open.feishu.cn/document/client-docs/bot-v3/add-custom-bot
-
-配置（从 .env 读取）：
-    FEISHU_WEBHOOK_URL  — 完整 webhook URL（必填）
-    FEISHU_SECRET       — 签名校验密钥（可选，若飞书 bot 开启了签名校验）
+- 测试用 ``_transport=httpx.MockTransport`` 注入，不触碰真实 API
 """
 
 from __future__ import annotations
@@ -147,16 +164,145 @@ class FeishuNotifier:
         raise RuntimeError("Feishu send failed for unknown reason")
 
 
-def get_feishu_notifier() -> FeishuNotifier | None:
-    """从环境变量构造 FeishuNotifier（生产用）.
+class EnterpriseFeishuNotifier:
+    """企业自建应用机器人推送（通过 App ID/Secret + IM 消息接口）.
 
-    从 .env 读取 ``FEISHU_WEBHOOK_URL``（必填）和 ``FEISHU_SECRET``（可选）。
-    未配置 webhook_url 时返回 None（调用方应跳过推送）。
+    两步推送：① 用 App ID/Secret 换 tenant_access_token；
+              ② 用 token 调 IM 消息接口发到指定 chat_id。
+
+    token 有缓存（有效期约 2 小时），过期自动刷新。
+    """
+
+    _TOKEN_URL = "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal"
+    _MSG_URL = "https://open.feishu.cn/open-apis/im/v1/messages?receive_id_type=chat_id"
+
+    def __init__(
+        self,
+        app_id: str,
+        app_secret: str,
+        chat_id: str,
+        *,
+        _transport: httpx.AsyncBaseTransport | None = None,
+        _backoff_override: Callable[[int], float] | None = None,
+    ) -> None:
+        self._app_id = app_id
+        self._app_secret = app_secret
+        self._chat_id = chat_id
+        self._transport = _transport
+        self._backoff_override = _backoff_override
+        # token 缓存（避免每次推送都重新获取）
+        self._cached_token: str | None = None
+        self._token_expire: float = 0  # unix timestamp，过期时间
+
+    async def _get_token(self) -> str:
+        """获取 tenant_access_token（带缓存，提前 5 分钟刷新）."""
+        import time as _time
+        if self._cached_token and _time.time() < self._token_expire:
+            return self._cached_token
+
+        async with httpx.AsyncClient(transport=self._transport) as client:
+            resp = await client.post(
+                self._TOKEN_URL,
+                json={"app_id": self._app_id, "app_secret": self._app_secret},
+                timeout=10,
+            )
+        result = resp.json()
+        if result.get("code") != 0:
+            raise RuntimeError(f"获取 token 失败: {result.get('msg')}")
+        self._cached_token = result["tenant_access_token"]
+        # token 有效期 expire（秒），提前 5 分钟过期保险
+        self._token_expire = _time.time() + result.get("expire", 7200) - 300
+        return self._cached_token
+
+    async def send_text(self, text: str) -> dict[str, Any]:
+        """发送文本消息到 chat_id 指定的群.
+
+        重试最多 _MAX_RETRIES 次。token 过期会自动刷新重试。
+        """
+        import json as _json
+
+        last_exc: Exception | None = None
+
+        for attempt in range(1, _MAX_RETRIES + 1):
+            try:
+                token = await self._get_token()
+                payload = {
+                    "receive_id": self._chat_id,
+                    "msg_type": "text",
+                    "content": _json.dumps({"text": text}),
+                }
+                async with httpx.AsyncClient(transport=self._transport) as client:
+                    resp = await client.post(
+                        self._MSG_URL,
+                        headers={"Authorization": f"Bearer {token}"},
+                        json=payload,
+                        timeout=10,
+                    )
+                result = resp.json()
+                code = result.get("code", -1)
+                if code == 0:
+                    logger.info("Feishu enterprise message sent successfully")
+                    return result
+
+                # 99991663 = token 过期/无效，清除缓存重试
+                if code == 99991663:
+                    self._cached_token = None
+                    self._token_expire = 0
+                    logger.warning(f"Feishu token expired, retrying {attempt}/{_MAX_RETRIES}")
+
+                # 130102 = 限频，可重试
+                elif code == 130102:
+                    logger.warning(f"Feishu rate limited, retry {attempt}/{_MAX_RETRIES}")
+                    last_exc = RuntimeError(f"rate limited: {result.get('msg')}")
+                else:
+                    # 其他业务错误：不重试
+                    logger.error(f"Feishu send failed (code={code}): {result.get('msg')}")
+                    return result
+
+            except (httpx.HTTPStatusError, httpx.RequestError) as exc:
+                last_exc = exc
+                logger.warning(
+                    f"Feishu network error (attempt {attempt}): {type(exc).__name__}: {exc}"
+                )
+
+            if attempt < _MAX_RETRIES:
+                delay = (
+                    self._backoff_override(attempt)
+                    if self._backoff_override
+                    else _BACKOFF_BASE * (2 ** (attempt - 1))
+                )
+                await asyncio.sleep(delay)
+
+        logger.error(f"Feishu send failed after {_MAX_RETRIES} retries")
+        if last_exc:
+            raise last_exc
+        raise RuntimeError("Feishu send failed for unknown reason")
+
+
+def get_feishu_notifier() -> FeishuNotifier | EnterpriseFeishuNotifier | None:
+    """从环境变量构造飞书 notifier（生产用），自动选择模式.
+
+    优先级：
+    1. 企业自建应用（FEISHU_APP_ID + FEISHU_APP_SECRET + FEISHU_CHAT_ID）
+    2. 群自定义机器人（FEISHU_WEBHOOK_URL + 可选 FEISHU_SECRET）
+    3. 都未配置返回 None
     """
     load_dotenv(override=True)
+
+    # 模式 1：企业自建应用
+    app_id = os.environ.get("FEISHU_APP_ID", "")
+    app_secret = os.environ.get("FEISHU_APP_SECRET", "")
+    chat_id = os.environ.get("FEISHU_CHAT_ID", "")
+    if app_id and app_secret and chat_id:
+        logger.info("Feishu notifier: enterprise bot mode")
+        return EnterpriseFeishuNotifier(app_id, app_secret, chat_id)
+
+    # 模式 2：群自定义机器人 webhook
     webhook_url = os.environ.get("FEISHU_WEBHOOK_URL", "")
-    if not webhook_url:
-        logger.warning("FEISHU_WEBHOOK_URL not configured, skipping Feishu push")
-        return None
-    secret = os.environ.get("FEISHU_SECRET") or None
-    return FeishuNotifier(webhook_url, secret=secret)
+    if webhook_url:
+        logger.info("Feishu notifier: custom webhook mode")
+        secret = os.environ.get("FEISHU_SECRET") or None
+        return FeishuNotifier(webhook_url, secret=secret)
+
+    logger.warning("No Feishu notifier configured (need APP_ID/SECRET/CHAT_ID or WEBHOOK_URL)")
+    return None
