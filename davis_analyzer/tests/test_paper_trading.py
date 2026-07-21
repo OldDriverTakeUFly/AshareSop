@@ -453,14 +453,18 @@ class TestDynamicRiskThresholds:
         account.close()
 
     def test_bull_up_sector_wide_stop(self, temp_db):
-        """Bull market + rising sector → 12% stop (widest), survives small dip."""
+        """Bull market + rising sector → 12% stop (widest), survives small dip.
+
+        Note: uses risk_stop_multiplier=1.0 explicitly to test the BASE rule
+        (bull/up → 12%); the default multiplier is now 0.70 (Sharpe-optimized).
+        """
         from davis_analyzer.paper_trading.account import PaperAccount
-        from davis_analyzer.paper_trading.strategy import create_strategy
+        from davis_analyzer.paper_trading.strategy import FactorThresholdStrategy
         from davis_analyzer.paper_trading.executor import DailyExecutor
 
         account = PaperAccount.create("risk_bull_up", "factor_threshold", 100_000)
         account.buy("000051.SZ", "测试", 1000, 10.0, "20260101")
-        strategy = create_strategy("factor_threshold", account.config)
+        strategy = FactorThresholdStrategy(risk_stop_multiplier=1.0)
         executor = DailyExecutor(account, strategy)
 
         # Price at 9.1 → loss of 9% → should NOT trigger 12% stop in bull+up
@@ -470,18 +474,22 @@ class TestDynamicRiskThresholds:
             industries={"000051.SZ": "半导体"},
             industry_trend={"半导体": "up"},
         )
-        assert len(risk_signals) == 0  # 9% < 12% stop
+        assert len(risk_signals) == 0  # 9% < 12% stop (base rule, multiplier=1.0)
         account.close()
 
     def test_bull_up_sector_high_take_profit(self, temp_db):
-        """Bull market + rising sector → 30% take-profit (doesn't trigger at 20%)."""
+        """Bull market + rising sector → 30% take-profit (doesn't trigger at 20%).
+
+        Note: uses risk_stop_multiplier=1.0 explicitly to test the BASE rule
+        (bull/up → 30% take-profit); default multiplier is now 0.70.
+        """
         from davis_analyzer.paper_trading.account import PaperAccount
-        from davis_analyzer.paper_trading.strategy import create_strategy
+        from davis_analyzer.paper_trading.strategy import FactorThresholdStrategy
         from davis_analyzer.paper_trading.executor import DailyExecutor
 
         account = PaperAccount.create("risk_tp", "factor_threshold", 100_000)
         account.buy("000052.SZ", "测试", 1000, 10.0, "20260101")
-        strategy = create_strategy("factor_threshold", account.config)
+        strategy = FactorThresholdStrategy(risk_stop_multiplier=1.0)
         executor = DailyExecutor(account, strategy)
 
         # Price at 12.0 → gain of 20% → should NOT trigger 30% take-profit in bull+up
@@ -491,7 +499,7 @@ class TestDynamicRiskThresholds:
             industries={"000052.SZ": "半导体"},
             industry_trend={"半导体": "up"},
         )
-        assert len(risk_signals) == 0  # 20% < 30% take-profit
+        assert len(risk_signals) == 0  # 20% < 30% take-profit (base rule, multiplier=1.0)
         account.close()
 
 
@@ -989,6 +997,48 @@ class TestEventSoftPenalty:
         signals = strategy.evaluate([], snapshot, 1_000_000)
         buys = [s for s in signals if s.action == "BUY"]
         assert len(buys) == 0  # hard filter blocked the buy
+
+
+# ── Sharpe-optimized defaults tests ────────────────────────────────────
+
+
+class TestSharpeOptimizedDefaults:
+    """Tests verifying the Sharpe-optimized default config (2026-07-21 sweep)."""
+
+    def test_default_max_positions_is_5(self):
+        """Sharpe sweep showed pos=5 beats pos=10/12 in all stop_mult settings."""
+        from davis_analyzer.paper_trading.strategy import FactorThresholdStrategy
+        s = FactorThresholdStrategy()
+        assert s.max_positions == 5  # was 10 before Sharpe optimization
+
+    def test_default_risk_stop_multiplier_is_0_70(self):
+        """Sharpe sweep showed stop_mult=0.70 + pos=5 = best Sharpe (-0.133)."""
+        from davis_analyzer.paper_trading.strategy import FactorThresholdStrategy
+        s = FactorThresholdStrategy()
+        assert s.risk_stop_multiplier == 0.70  # was 1.0 before
+
+    def test_tighter_stop_actually_reduces_threshold(self, temp_db):
+        """Verify risk_stop_multiplier=0.70 gives 8.4% stop (not 12%) in bull/up."""
+        from davis_analyzer.paper_trading.account import PaperAccount
+        from davis_analyzer.paper_trading.strategy import FactorThresholdStrategy
+        from davis_analyzer.paper_trading.executor import DailyExecutor
+
+        account = PaperAccount.create("sharpe_default_test", "factor_threshold", 100_000)
+        account.buy("000060.SZ", "测试", 1000, 10.0, "20260101")
+        # Default strategy: stop_mult=0.70 → bull/up base 12% × 0.70 = 8.4%
+        strategy = FactorThresholdStrategy()  # default config
+        executor = DailyExecutor(account, strategy)
+
+        # Price at 9.0 → loss of 10% → should trigger 8.4% stop
+        risk_signals = executor._check_risk_signals(
+            account.get_positions(), {"000060.SZ": 9.0}, "20260102",
+            market_regime="bull",
+            industries={"000060.SZ": "半导体"},
+            industry_trend={"半导体": "up"},
+        )
+        assert len(risk_signals) == 1
+        assert "止损" in risk_signals[0].signal_reason
+        account.close()
 
 
 # ── Technical factor composite tests ───────────────────────────────────

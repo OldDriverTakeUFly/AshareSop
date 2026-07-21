@@ -972,10 +972,17 @@ class DailyExecutor:
         widened proportionally: a stock with 2x average volatility gets
         ~1.5x wider stop (not fully 2x to avoid excessive risk).
         Base stop is from _RISK_RULES, then scaled by vol multiplier.
+
+        Also applies strategy.risk_stop_multiplier (global scaling for sweep).
         """
         base_stop, base_tp = self._RISK_RULES.get(
             (market_regime, sector_trend), self._DEFAULT_RISK
         )
+
+        # Global multiplier from strategy (for parameter sweep)
+        multiplier = getattr(self.strategy, "risk_stop_multiplier", 1.0)
+        base_stop *= multiplier
+        base_tp *= multiplier
 
         if volatility is not None and volatility > 0:
             # Average A-share annualized vol ~35%. Scale linearly but clamp.

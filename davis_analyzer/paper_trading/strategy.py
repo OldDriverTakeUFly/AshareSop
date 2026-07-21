@@ -208,7 +208,7 @@ class FactorThresholdStrategy:
 
     def __init__(
         self,
-        max_positions: int = 10,
+        max_positions: int = 5,
         buy_momentum: float = 70.0,
         sell_momentum: float = 40.0,
         buy_holder_min: float = 40.0,
@@ -266,6 +266,18 @@ class FactorThresholdStrategy:
         # event filter (V4 vs V3), but net negative vs volume-only (V4 < V2).
         # Default OFF — re-enable if event filter is also kept.
         tech_weight: float = 0.0,
+        # ── Risk threshold multiplier (止损/止盈收紧/放宽) ──
+        # Multiplies the base stop-loss/take-profit from _RISK_RULES.
+        #   1.0 = baseline
+        #   0.8 = 止损收紧 20%（降低回撤但可能多砍仓）
+        #   1.2 = 止损放宽 20%（少砍仓但回撤可能加大）
+        #
+        # Sharpe sweep result (2026-07-21, 127-day backtest):
+        #   pos=5 + stop=0.70 → Sharpe -0.133 (BEST)
+        #   pos=5 + stop=1.00 → Sharpe -0.367
+        #   pos=10 (any stop) → Sharpe -0.482 ~ -0.649 (worst)
+        # Tighter stop + concentrated positions = better risk-adjusted return.
+        risk_stop_multiplier: float = 0.70,
     ) -> None:
         self.max_positions = max_positions
         self.buy_momentum = buy_momentum
@@ -287,6 +299,7 @@ class FactorThresholdStrategy:
         self.enable_event_filter = enable_event_filter
         self.event_penalty_weight = event_penalty_weight
         self.tech_weight = tech_weight
+        self.risk_stop_multiplier = risk_stop_multiplier
         self.buy_forecast_min = buy_forecast_min
         self.buy_prosperity_min = buy_prosperity_min
         # Track recently sold codes to enforce cooldown (ts_code → trade_date)
