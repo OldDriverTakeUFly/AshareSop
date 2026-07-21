@@ -1035,13 +1035,31 @@ class DailyExecutor:
                 market_regime, sector_trend, volatility=vol
             )
 
+            # ── Low-volume (吸筹) stop-loss exemption ──
+            # Rationale: low-position high-volume signals accumulation (主力吸筹),
+            # which often involves shake-outs (洗盘) before the real move.
+            # Widening the stop for these positions avoids being stopped out
+            # during normal accumulation dips. Empirical basis: the volume_signal
+            # is computed fresh each day from the latest 130-day window.
+            low_vol_exemption = getattr(self.strategy, "low_vol_stop_exemption", 0.0)
+            if low_vol_exemption > 0:
+                vol_sig = volume_signals.get(pos.ts_code, {})
+                if vol_sig.get("signal_type") == "low_vol":
+                    hard_stop = hard_stop * (1.0 + low_vol_exemption)
+
             if pnl_pct <= -hard_stop:
+                # Include exemption note in reason if applied
+                extra = ""
+                if low_vol_exemption > 0:
+                    vol_sig = volume_signals.get(pos.ts_code, {})
+                    if vol_sig.get("signal_type") == "low_vol":
+                        extra = " [低位放量豁免]"
                 signals.append(
                     Signal(
                         ts_code=pos.ts_code,
                         name=pos.name,
                         action="SELL",
-                        signal_reason=f"硬止损 P&L={pnl_pct*100:.1f}% (止损线{hard_stop*100:.0f}% {market_regime}/{sector_trend})",
+                        signal_reason=f"硬止损 P&L={pnl_pct*100:.1f}% (止损线{hard_stop*100:.0f}% {market_regime}/{sector_trend}){extra}",
                     )
                 )
             elif take_profit > 0 and pnl_pct >= take_profit:

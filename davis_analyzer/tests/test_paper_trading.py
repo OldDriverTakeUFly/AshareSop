@@ -1041,6 +1041,154 @@ class TestSharpeOptimizedDefaults:
         account.close()
 
 
+# ── Stage-2 optimization tests ─────────────────────────────────────────
+
+
+class TestPEExemptionForVolume:
+    """Tests for the PE exemption when volume signal is strong (Stage-2 opt)."""
+
+    def test_high_pe_blocks_buy_when_no_volume_signal(self):
+        """PE > 80% blocks buy when there's no volume signal exemption."""
+        from davis_analyzer.paper_trading.strategy import (
+            FactorThresholdStrategy, MarketSnapshot,
+        )
+        strategy = FactorThresholdStrategy(
+            buy_momentum=65, buy_holder_min=35,
+            pe_exemption_for_volume=True,  # exemption enabled
+        )
+        snapshot = MarketSnapshot(
+            trade_date="20260101",
+            prices={"X.SZ": 10.0},
+            factor_scores={"X.SZ": {"momentum": 80, "holder": 60}},
+            market_regime="bull",
+            pe_percentile={"X.SZ": 90.0},  # above 80% cap
+            volume_signal={"X.SZ": {"score": 50.0, "signal_type": "neutral"}},
+        )
+        signals = strategy.evaluate([], snapshot, 1_000_000)
+        buys = [s for s in signals if s.action == "BUY"]
+        assert len(buys) == 0  # blocked: high PE + only neutral volume
+
+    def test_high_pe_allows_buy_with_platform_breakout(self):
+        """PE > 80% is exempted when volume signal is platform_breakout."""
+        from davis_analyzer.paper_trading.strategy import (
+            FactorThresholdStrategy, MarketSnapshot,
+        )
+        strategy = FactorThresholdStrategy(
+            buy_momentum=65, buy_holder_min=35,
+            pe_exemption_for_volume=True,
+        )
+        snapshot = MarketSnapshot(
+            trade_date="20260101",
+            prices={"X.SZ": 10.0},
+            factor_scores={"X.SZ": {"momentum": 80, "holder": 60}},
+            market_regime="bull",
+            pe_percentile={"X.SZ": 90.0},  # above cap
+            volume_signal={"X.SZ": {"score": 80.0, "signal_type": "platform_breakout"}},
+        )
+        signals = strategy.evaluate([], snapshot, 1_000_000)
+        buys = [s for s in signals if s.action == "BUY"]
+        assert len(buys) == 1  # exempted by platform_breakout
+
+    def test_high_pe_allows_buy_with_low_vol(self):
+        """PE > 80% is exempted when volume signal is low_vol."""
+        from davis_analyzer.paper_trading.strategy import (
+            FactorThresholdStrategy, MarketSnapshot,
+        )
+        strategy = FactorThresholdStrategy(
+            buy_momentum=65, buy_holder_min=35,
+            pe_exemption_for_volume=True,
+        )
+        snapshot = MarketSnapshot(
+            trade_date="20260101",
+            prices={"X.SZ": 10.0},
+            factor_scores={"X.SZ": {"momentum": 80, "holder": 60}},
+            market_regime="bull",
+            pe_percentile={"X.SZ": 90.0},
+            volume_signal={"X.SZ": {"score": 75.0, "signal_type": "low_vol"}},
+        )
+        signals = strategy.evaluate([], snapshot, 1_000_000)
+        buys = [s for s in signals if s.action == "BUY"]
+        assert len(buys) == 1
+
+    def test_no_exemption_when_disabled(self):
+        """Default behavior (pe_exemption_for_volume=False) blocks all high-PE."""
+        from davis_analyzer.paper_trading.strategy import (
+            FactorThresholdStrategy, MarketSnapshot,
+        )
+        strategy = FactorThresholdStrategy(
+            buy_momentum=65, buy_holder_min=35,
+            pe_exemption_for_volume=False,  # default
+        )
+        snapshot = MarketSnapshot(
+            trade_date="20260101",
+            prices={"X.SZ": 10.0},
+            factor_scores={"X.SZ": {"momentum": 80, "holder": 60}},
+            market_regime="bull",
+            pe_percentile={"X.SZ": 90.0},
+            volume_signal={"X.SZ": {"score": 80.0, "signal_type": "platform_breakout"}},
+        )
+        signals = strategy.evaluate([], snapshot, 1_000_000)
+        buys = [s for s in signals if s.action == "BUY"]
+        assert len(buys) == 0  # blocked regardless of volume signal
+
+
+class TestLowVolStopExemption:
+    """Tests for the wider stop-loss on low_vol positions (Stage-2 opt)."""
+
+    def test_low_vol_position_gets_wider_stop(self, temp_db):
+        """Position with low_vol signal should survive a dip that triggers normal stop."""
+        from davis_analyzer.paper_trading.account import PaperAccount
+        from davis_analyzer.paper_trading.strategy import FactorThresholdStrategy
+        from davis_analyzer.paper_trading.executor import DailyExecutor
+
+        account = PaperAccount.create("lv_stop_test", "factor_threshold", 100_000)
+        account.buy("LV.SZ", "测试", 1000, 10.0, "20260101")
+        # low_vol_stop_exemption=0.5 → 8.4% × 1.5 = 12.6% (survives 10% dip)
+        strategy = FactorThresholdStrategy(
+            risk_stop_multiplier=0.70,  # default
+            low_vol_stop_exemption=0.5,
+        )
+        executor = DailyExecutor(account, strategy)
+
+        # Without exemption: 8.4% stop → 10% loss triggers
+        # With exemption: 12.6% stop → 10% loss does NOT trigger
+        vol_signals = {"LV.SZ": {"signal_type": "low_vol", "score": 75.0}}
+        risk_signals = executor._check_risk_signals(
+            account.get_positions(), {"LV.SZ": 9.0}, "20260102",  # -10% loss
+            market_regime="bull",
+            industries={"LV.SZ": "半导体"},
+            industry_trend={"半导体": "up"},
+            volume_signals=vol_signals,
+        )
+        assert len(risk_signals) == 0  # exempted, no stop trigger
+        account.close()
+
+    def test_normal_position_not_exempted(self, temp_db):
+        """Position without low_vol signal uses normal stop (no exemption)."""
+        from davis_analyzer.paper_trading.account import PaperAccount
+        from davis_analyzer.paper_trading.strategy import FactorThresholdStrategy
+        from davis_analyzer.paper_trading.executor import DailyExecutor
+
+        account = PaperAccount.create("lv_normal_test", "factor_threshold", 100_000)
+        account.buy("N.SZ", "测试", 1000, 10.0, "20260101")
+        strategy = FactorThresholdStrategy(
+            risk_stop_multiplier=0.70,
+            low_vol_stop_exemption=0.5,  # exemption on, but stock isn't low_vol
+        )
+        executor = DailyExecutor(account, strategy)
+
+        vol_signals = {"N.SZ": {"signal_type": "neutral", "score": 50.0}}
+        risk_signals = executor._check_risk_signals(
+            account.get_positions(), {"N.SZ": 9.0}, "20260102",  # -10% loss
+            market_regime="bull",
+            industries={"N.SZ": "半导体"},
+            industry_trend={"半导体": "up"},
+            volume_signals=vol_signals,
+        )
+        assert len(risk_signals) == 1  # 8.4% stop triggers (no exemption)
+        account.close()
+
+
 # ── Technical factor composite tests ───────────────────────────────────
 
 

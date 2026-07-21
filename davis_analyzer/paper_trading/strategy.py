@@ -223,6 +223,28 @@ class FactorThresholdStrategy:
         require_short_momentum: bool = True,  # 5-day return must be > 0
         max_pe_percentile: float = 80.0,      # PE must be below 80th percentile
         vol_adjusted_stops: bool = True,      # Adjust stop-loss by individual volatility
+        # ── PE exemption for volume-price signals ──
+        # When True, stocks with platform_breakout or low_vol volume signal
+        # bypass the max_pe_percentile cap. Rationale: technically-driven buys
+        # where expensive is justified by momentum confirmation.
+        #
+        # Stage-2 A/B result (2026-07-21, 127-day backtest):
+        #   S0 (no exemption)   → Sharpe -0.133
+        #   S1 (PE exemption)   → Sharpe +0.085 (BEST, first positive Sharpe)
+        #   S2 (low_vol stop)   → Sharpe -0.155 (worse)
+        #   S3 (S1 + S2)        → Sharpe -0.155 (S2 cancels S1's gain)
+        pe_exemption_for_volume: bool = True,
+        # ── Low-volume (吸筹) stop-loss exemption ──
+        # When > 0, positions flagged as low_vol (主力吸筹 signal) get wider
+        # stop-loss: hard_stop *= (1 + low_vol_stop_exemption).
+        #   0.0 = no exemption (default)
+        #   0.5 = stop widened by 50% (e.g., 8% → 12%)
+        # Rationale: low-position high-volume often involves shake-outs (洗盘)
+        # before the real move; tight stop would exit during normal dips.
+        #
+        # NOTE: Stage-2 A/B showed this REDUCES Sharpe (S2/S3 < S1), because
+        # wider stops on low_vol positions led to larger losses. Default OFF.
+        low_vol_stop_exemption: float = 0.0,
         # ── Volume-price composite weight ──
         # When > 0, the composite rating blends in a volume-price score
         # (platform breakout / low-position volume = positive; high-position
@@ -294,6 +316,8 @@ class FactorThresholdStrategy:
         self.require_short_momentum = require_short_momentum
         self.max_pe_percentile = max_pe_percentile
         self.vol_adjusted_stops = vol_adjusted_stops
+        self.pe_exemption_for_volume = pe_exemption_for_volume
+        self.low_vol_stop_exemption = low_vol_stop_exemption
         self.volume_weight = volume_weight
         self.enable_volume_risk = enable_volume_risk
         self.enable_event_filter = enable_event_filter
@@ -380,9 +404,22 @@ class FactorThresholdStrategy:
             # ── Valuation filter ──
             # Don't buy stocks at extreme valuation (PE > 80th percentile).
             # High prosperity can tolerate higher PE, but not unlimited.
+            #
+            # EXEMPTION: stocks with strong volume-price confirmation
+            # (platform_breakout or low_vol signal) bypass the PE cap — these
+            # are technically-driven buys where expensive is justified by
+            # momentum confirmation.
             pe_pct = snapshot.pe_percentile.get(code)
             if pe_pct is not None and pe_pct > self.max_pe_percentile:
-                continue  # too expensive even with good factors
+                if self.pe_exemption_for_volume:
+                    vol_sig = snapshot.volume_signal.get(code, {})
+                    sig_type = vol_sig.get("signal_type", "neutral")
+                    if sig_type in ("platform_breakout", "low_vol"):
+                        pass  # exempt — strong technical confirmation
+                    else:
+                        continue  # too expensive AND no volume confirmation
+                else:
+                    continue  # too expensive even with good factors
 
             # ── Event hard filter (减持/解禁) ──
             # Empirical: 减持后 60 天 CAR -1.76%, 解禁前 20 天 CAR -2.79%
