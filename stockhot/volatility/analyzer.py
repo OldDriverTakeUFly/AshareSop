@@ -1,5 +1,9 @@
 """Volatility analyzer — 五层观察体系的 Layer 1/2/5 计算 + run_volatility_analysis 入口。
 
+⚠️ **数据原则**：本模块的 RV20/RV60 严格使用**收盘价**计算。数据源是 DAL index_daily
+表（由 daily_scan 17:30 跑，此时已收盘，数据完整）。如果当日收盘数据未入库，
+宁可不算也不要用盘中价凑。盘中实时预警（panic_detector）是独立场景，不在此约束内。
+
 实现方法论研报（``docs/方法论/A股波动率观察框架方法论深度研报.md``）中的：
 
 Layer 1（已实现波动率 RV，主轴）— ``realized_vol`` + ``analyze_single_index``

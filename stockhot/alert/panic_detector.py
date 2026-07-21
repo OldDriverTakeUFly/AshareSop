@@ -1,7 +1,16 @@
 """盘中恐慌信号检测器 — 三大信号独立检测.
 
+⚠️ **数据使用原则（重要）**：
+  本模块是**盘中实时预警**功能，使用实时数据（盘中价替换今日点）是合理的——
+  预警的目的就是提前感知。但**盘后分析（after-hours-review）的 RV20 必须只用
+  收盘数据**，不能用盘中价凑。两个场景的数据策略不同：
+    - 盘中预警（本模块）：实时价替换今日点，提供盘中预警
+    - 盘后分析（daily_scan 算的 daily_volatility_index）：只用收盘价，数据不全则不算
+
 数据源（盘中实时）：
 - RV20：DAL index_daily 历史 + AKShare stock_zh_index_spot_em 实时价替换今日点
+  （注：这是盘中预警的近似，std 对单点变动不敏感，尾盘趋近精确；
+   严格的收盘 RV20 由 daily_scan 17:30 跑的 volatility 模块计算）
 - 涨跌停：AKShare stock_zt_pool_em / stock_zt_pool_zbgc_em / stock_zt_pool_dtgc_em（传今日 date）
 - iVIX：AKShare index_option_50etf_min_qvix（分时实时）
 
