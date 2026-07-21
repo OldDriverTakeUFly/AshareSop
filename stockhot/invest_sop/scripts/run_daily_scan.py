@@ -51,6 +51,71 @@ def _log_scan(trade_date: str, module: str, status: str,
 # ── Wave 1: limit_up (must run first — risk_alert reads its DB output) ──
 
 
+def run_wave_0(trade_date: str) -> bool:
+    """Wave 0: 更新全市场个股日线行情 (daily_price + daily_basic).
+
+    这是所有后续分析的基础数据——如果不更新，盘后分析/策略运行会用到旧数据。
+    使用 repository.get_daily_by_date() 分页拉取全市场 ~5500 只股票的 OHLCV+adj_factor，
+    并通过 TushareClient 补充 daily_basic（PE/PB/turnover_rate）。
+
+    耗时约 2-3 分钟（Tushare 分页限频）。
+    """
+    t0 = _time.time()
+    try:
+        from stockhot.data_layer import get_repository
+
+        repo = get_repository()
+        # get_daily_by_date 内部会查缓存；如果当日已有 >1000 行则跳过
+        df = repo.get_daily_by_date(trade_date, use_cache=True)
+        n_prices = len(df) if df is not None else 0
+
+        # 同步更新 daily_basic（PE/PB/turnover 等）—— 用于策略 PE 百分位计算
+        n_basic = 0
+        try:
+            from davis_analyzer.tushare_client import TushareClient
+
+            client = TushareClient()
+            basic_df = client._pro.daily_basic(
+                trade_date=trade_date,
+                fields="ts_code,trade_date,pe_ttm,pb,ps,total_mv,turnover_rate,circ_mv,free_share",
+            )
+            if basic_df is not None and not basic_df.empty:
+                from stockhot.data_layer.market_db import get_connection
+                import time as _t
+
+                records = []
+                for r in basic_df.to_dict("records"):
+                    records.append((
+                        r.get("ts_code", ""), str(r.get("trade_date", trade_date)),
+                        r.get("pe_ttm"), r.get("pb"), r.get("ps"), r.get("total_mv"),
+                        r.get("turnover_rate"), r.get("circ_mv"), r.get("free_share"),
+                        _t.time(),
+                    ))
+                with get_connection() as conn:
+                    conn.executemany(
+                        "INSERT OR REPLACE INTO daily_basic "
+                        "(ts_code, trade_date, pe_ttm, pb, ps, total_mv, "
+                        "turnover_rate, circ_mv, free_share, fetched_at) "
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        records,
+                    )
+                    conn.commit()
+                n_basic = len(records)
+        except Exception as e_basic:
+            print(f"[{trade_date}] Wave 0 daily_basic: WARNING — {type(e_basic).__name__}: {e_basic}")
+            # daily_basic 失败不阻断 daily_price
+
+        print(f"[{trade_date}] Wave 0 market_data: {n_prices} prices + {n_basic} basic ✓")
+        _log_scan(trade_date, "market_data", "success", started_at=t0,
+                  rows=n_prices + n_basic)
+        return n_prices > 0
+    except Exception as e:
+        msg = f"{type(e).__name__}: {e}"
+        print(f"[{trade_date}] Wave 0 market_data: FAILED — {msg}")
+        _log_scan(trade_date, "market_data", "failed", error_msg=msg, started_at=t0)
+        return False
+
+
 def run_wave_1(trade_date: str) -> bool:
     """limit_up analysis —涨停池/炸板池/跌停池/连板梯队/板块联动."""
     t0 = _time.time()
@@ -193,6 +258,9 @@ def main(argv: list[str] | None = None) -> int:
     print(f"[{trade_date}] === Daily Market Scan starting ===")
 
     results = {}
+    # Wave 0: 更新全市场个股行情（daily_price + daily_basic）
+    # 这是所有后续分析的基础——必须在其他模块之前运行
+    results["market_data"] = run_wave_0(trade_date)
     results["limit_up"] = run_wave_1(trade_date)
     ff_ok, dt_ok, it_ok, vol_ok = run_wave_2(trade_date)
     results["fund_flow"] = ff_ok
