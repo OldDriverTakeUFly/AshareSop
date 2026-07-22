@@ -13,12 +13,15 @@ build/
 
 # Data
 *.db
+*.db-wal
+*.db-shm
 *.sqlite
 data/
 
 # Allow stockhot/storage code but not runtime data
 /stockhot/storage/files/
 /stockhot/storage/database/*.db
+/stockhot/storage/sector_rv_cache/
 
 # Environment
 .env
@@ -65,4 +68,6 @@ docs_speech/
 
 # Studies output (experimental)
 davis_analyzer/studies/output/
-davis_analyzer/studies/rally_screening/
+/studies/output/
+# rally_screening 是研究脚本源码，仅忽略其 __pycache__
+davis_analyzer/studies/rally_screening/__pycache__/
