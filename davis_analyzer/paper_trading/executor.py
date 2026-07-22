@@ -196,16 +196,83 @@ def _limit_up_fill_probability(pct_chg: float | None) -> float:
 
 
 def _get_market_regime(trade_date: str) -> str:
-    """Determine market regime (bull/bear/mixed/panic) using ONLY data available
-    on or before *trade_date* — no look-ahead bias.
+    """Determine market regime using HMM + MA confirmation.
 
-    Multi-timeframe approach for sensitivity:
+    Delegates to ``davis_analyzer.market_regime.get_market_regime`` which
+    uses a 3-state Gaussian HMM trained on 5 years of index returns,
+    confirmed by MA20/MA60 alignment.
+
+    Returns "bull", "bear", or "neutral".
+    Falls back to the old rule-based logic if HMM is unavailable.
+    """
+    try:
+        from davis_analyzer.market_regime import get_market_regime as hmm_regime
+        return hmm_regime(trade_date)
+    except Exception:
+        logger.debug(f"HMM regime failed for {trade_date}, fallback to rule-based")
+        return _get_market_regime_rulebased(trade_date)
+
+
+def _get_market_vol_regime(trade_date: str) -> tuple[str, float]:
+    """Compute market volatility regime (independent of bull/bear).
+
+    Uses 上证 20-day realized volatility (RV20) percentile over trailing
+    250 trading days. High volatility → wider stops + smaller positions.
+
+    Returns (vol_regime, vol_multiplier) where:
+    - vol_regime: "low_vol" / "normal_vol" / "high_vol" / "extreme_vol"
+    - vol_multiplier: position size multiplier (1.1 / 1.0 / 0.8 / 0.5)
+
+    Based on research finding: high vol = wide stop + LIGHT position
+    (not heavy position), because momentum stocks are inherently high-vol.
+    """
+    import numpy as np
+
+    with get_market_conn() as conn:
+        rows = conn.execute(
+            "SELECT close FROM index_daily WHERE ts_code='000001.SH' "
+            "AND trade_date<=? AND close IS NOT NULL AND close > 0 "
+            "ORDER BY trade_date DESC LIMIT 270",
+            (trade_date,),
+        ).fetchall()
+    if len(rows) < 250:
+        return ("normal_vol", 1.0)
+
+    closes = np.array([float(r[0]) for r in rows])[::-1]  # chronological
+    returns = np.diff(np.log(closes))
+
+    # RV20 = std of last 20 daily log returns × sqrt(250)
+    if len(returns) < 20:
+        return ("normal_vol", 1.0)
+    rv20 = float(returns[-20:].std() * np.sqrt(250) * 100)  # annualized %
+
+    # Percentile over trailing 250 days
+    rolling_rv = []
+    for i in range(20, len(returns)):
+        rv = returns[i-20:i].std() * np.sqrt(250) * 100
+        rolling_rv.append(rv)
+    if len(rolling_rv) < 50:
+        return ("normal_vol", 1.0)
+
+    pctile = float(sum(1 for rv in rolling_rv if rv < rv20) / len(rolling_rv) * 100)
+
+    if pctile > 90:
+        return ("extreme_vol", 0.5)
+    elif pctile > 75:
+        return ("high_vol", 0.8)
+    elif pctile < 25:
+        return ("low_vol", 1.1)
+    return ("normal_vol", 1.0)
+
+
+def _get_market_regime_rulebased(trade_date: str) -> str:
+    """Legacy rule-based market regime (fallback when HMM unavailable).
+
+    Multi-timeframe approach:
     - **Short-term (5-day return)**: catches trend reversal quickly.
     - **Medium-term (20-day return)**: confirms the broader trend.
     - **MA5 vs MA20**: structural trend confirmation.
-    - **iVIX percentile**: panic overlay — when iVIX is historically high,
-      downgrade regime one level (bull→mixed, mixed→bear) to reflect
-      elevated risk even if price trends haven't fully reversed.
+    - **iVIX percentile**: panic overlay.
 
     Args:
         trade_date: YYYYMMDD format (no dashes).
@@ -803,20 +870,165 @@ def _load_tech_scores(ts_codes: list[str], trade_date: str) -> dict[str, float]:
 
 
 def _full_market_sector_trends(trade_date: str) -> dict[str, str]:
-    """Compute per-industry trend from ALL market stocks' 5-day returns.
+    """Compute per-industry trend using dual-confirmation: 20d return + MA alignment.
 
-    For each industry in stock_basic, calculates the average 5-trading-day
-    return of all stocks in that industry using daily_price data up to
-    *trade_date*. This gives a true sector-level signal:
-      - avg 5d return > +2% → "up" (sector is rallying)
-      - avg 5d return < -2% → "down" (sector is selling off)
-      - otherwise → "flat"
+    For each industry, two signals are computed:
+    1. **20-day average return**:成分股 20 日均涨幅（> +3% = 强, < -3% = 弱）
+    2. **MA alignment ratio**:成分股中 MA5>MA20>MA60 的占比（>60% = 强, <30% = 弱）
 
-    Only industries with ≥5 stocks are scored (statistical significance).
+    Dual-confirmation rule:
+    - Both strong → "up"
+    - Both weak → "down"
+    - Otherwise → "flat"
+
+    This replaces the old 5-day ±2% method which was too sensitive to
+    single-day reversals (e.g., 半导体 collective +20% on one day but
+    5-day still negative → falsely classified as "down").
     """
     import pandas as pd
+    import numpy as np
 
-    # Find the trade_date and 5 trading days before it
+    # Get trading dates: need 60 for MA60 + 20 for 20d return
+    with get_market_conn() as conn:
+        date_rows = conn.execute(
+            "SELECT DISTINCT trade_date FROM daily_price "
+            "WHERE trade_date <= ? ORDER BY trade_date DESC LIMIT 65",
+            (trade_date,),
+        ).fetchall()
+    dates = [r[0] for r in date_rows]
+    if len(dates) < 25:
+        # Fallback to old 5-day method if not enough data
+        return _full_market_sector_trends_5d(trade_date)
+
+    today_str = dates[0]
+    past_20d_str = dates[min(20, len(dates) - 1)]
+
+    # Industry mapping (use sub-industry if available)
+    try:
+        from davis_analyzer.sub_industry import get_sub_industry
+        use_sub_industry = True
+    except Exception:
+        use_sub_industry = False
+
+    with get_market_conn() as conn:
+        conn.row_factory = __import__("sqlite3").Row
+
+        # Current + 20d-ago close (for 20-day return)
+        curr = conn.execute(
+            "SELECT ts_code, close FROM daily_price WHERE trade_date = ?",
+            (today_str,),
+        ).fetchall()
+        curr_map = {r["ts_code"]: float(r["close"]) for r in curr if r["close"]}
+
+        past_20d = conn.execute(
+            "SELECT ts_code, close FROM daily_price WHERE trade_date = ?",
+            (past_20d_str,),
+        ).fetchall()
+        past_20d_map = {r["ts_code"]: float(r["close"]) for r in past_20d if r["close"]}
+
+        # Industry mapping
+        ind_rows = conn.execute(
+            "SELECT ts_code, name, industry FROM stock_basic WHERE industry IS NOT NULL AND industry != ''"
+        ).fetchall()
+        if use_sub_industry:
+            code2ind = {
+                r["ts_code"]: get_sub_industry(r["ts_code"], r["name"] or "", r["industry"] or "")
+                for r in ind_rows
+            }
+        else:
+            code2ind = {r["ts_code"]: r["industry"] for r in ind_rows}
+
+    # ── Signal 1: 20-day return by industry ──
+    industry_20d: dict[str, list[float]] = {}
+    for code, curr_close in curr_map.items():
+        past_close = past_20d_map.get(code)
+        industry = code2ind.get(code)
+        if past_close and past_close > 0 and industry:
+            ret = (curr_close / past_close - 1) * 100
+            industry_20d.setdefault(industry, []).append(ret)
+
+    # ── Signal 2: MA alignment ratio by industry ──
+    # For each stock, check if MA5 > MA20 > MA60 (needs 60 days of close)
+    # Batch query: get last 60 closes for all stocks
+    ma_start = dates[-1] if len(dates) >= 60 else dates[-1]
+    with get_market_conn() as conn:
+        # Get all closes from ma_start to today
+        ma_rows = conn.execute(
+            "SELECT ts_code, trade_date, close FROM daily_price "
+            "WHERE trade_date >= ? AND trade_date <= ? AND close IS NOT NULL AND close > 0 "
+            "ORDER BY ts_code, trade_date",
+            (ma_start, today_str),
+        ).fetchall()
+
+    # Group by stock
+    stock_closes: dict[str, list[float]] = {}
+    for r in ma_rows:
+        stock_closes.setdefault(r[0], []).append(float(r[2]))
+
+    # Compute MA alignment per stock
+    stock_ma_bull: dict[str, bool] = {}
+    for code, closes in stock_closes.items():
+        if len(closes) >= 60:
+            ma5 = np.mean(closes[-5:])
+            ma20 = np.mean(closes[-20:])
+            ma60 = np.mean(closes[-60:])
+            stock_ma_bull[code] = ma5 > ma20 > ma60
+        elif len(closes) >= 20:
+            ma5 = np.mean(closes[-5:])
+            ma20 = np.mean(closes[-20:])
+            stock_ma_bull[code] = ma5 > ma20
+
+    # Aggregate MA alignment ratio by industry
+    industry_ma: dict[str, list[bool]] = {}
+    for code, is_bull in stock_ma_bull.items():
+        industry = code2ind.get(code)
+        if industry:
+            industry_ma.setdefault(industry, []).append(is_bull)
+
+    # ── Dual confirmation scoring ──
+    trends: dict[str, str] = {}
+    all_industries = set(industry_20d.keys()) | set(industry_ma.keys())
+    for industry in all_industries:
+        rets = industry_20d.get(industry, [])
+        mas = industry_ma.get(industry, [])
+        n = max(len(rets), len(mas))
+        if n < 5:
+            trends[industry] = "flat"
+            continue
+
+        # Signal 1: 20-day return
+        avg_ret = sum(rets) / len(rets) if rets else 0
+        ret_strong = avg_ret > 3.0
+        ret_weak = avg_ret < -3.0
+
+        # Signal 2: MA alignment ratio
+        ma_ratio = sum(mas) / len(mas) if mas else 0.5
+        ma_strong = ma_ratio > 0.60
+        ma_weak = ma_ratio < 0.30
+
+        # Dual confirmation
+        if (ret_strong or ma_strong) and not (ret_weak and ma_weak):
+            # At least one strong, neither both weak
+            if ret_strong and ma_strong:
+                trends[industry] = "up"
+            elif ret_strong or ma_strong:
+                trends[industry] = "up"  # one signal strong enough
+            else:
+                trends[industry] = "flat"
+        elif ret_weak and ma_weak:
+            trends[industry] = "down"
+        elif ret_weak or ma_weak:
+            trends[industry] = "flat"  # one weak but not both
+        else:
+            trends[industry] = "flat"
+
+    return trends
+
+
+def _full_market_sector_trends_5d(trade_date: str) -> dict[str, str]:
+    """Legacy 5-day return method (fallback when <25 days of data)."""
+    import pandas as pd
+
     with get_market_conn() as conn:
         rows = conn.execute(
             "SELECT DISTINCT trade_date FROM daily_price "
@@ -829,30 +1041,25 @@ def _full_market_sector_trends(trade_date: str) -> dict[str, str]:
     today_str = dates[0]
     past_str = dates[-1]
 
-    # Get all stocks' returns over this window
     with get_market_conn() as conn:
         conn.row_factory = __import__("sqlite3").Row
-        # Current close
         curr = conn.execute(
             "SELECT ts_code, close FROM daily_price WHERE trade_date = ?",
             (today_str,),
         ).fetchall()
         curr_map = {r["ts_code"]: float(r["close"]) for r in curr if r["close"]}
 
-        # Past close (5 trading days ago)
         past = conn.execute(
             "SELECT ts_code, close FROM daily_price WHERE trade_date = ?",
             (past_str,),
         ).fetchall()
         past_map = {r["ts_code"]: float(r["close"]) for r in past if r["close"]}
 
-        # Industry mapping
         ind_rows = conn.execute(
             "SELECT ts_code, industry FROM stock_basic WHERE industry IS NOT NULL AND industry != ''"
         ).fetchall()
         code2ind = {r["ts_code"]: r["industry"] for r in ind_rows}
 
-    # Group returns by industry
     industry_returns: dict[str, list[float]] = {}
     for code, curr_close in curr_map.items():
         past_close = past_map.get(code)
@@ -861,7 +1068,6 @@ def _full_market_sector_trends(trade_date: str) -> dict[str, str]:
             ret = (curr_close / past_close - 1) * 100
             industry_returns.setdefault(industry, []).append(ret)
 
-    # Score each industry
     trends: dict[str, str] = {}
     for industry, rets in industry_returns.items():
         if len(rets) < 5:
@@ -1242,6 +1448,9 @@ class DailyExecutor:
 
         # ── 2b. Market regime + industry context ──
         market_regime = _get_market_regime(trade_date)
+        # Market volatility regime (independent of bull/bear) — used for
+        # position sizing: high vol = light position + wide stop.
+        vol_regime, vol_mult = _get_market_vol_regime(trade_date)
         industries = _get_industries(codes_to_price)
         industry_trend = _infer_industry_trends(factor_data, industries, trade_date=trade_date)
 
@@ -1290,6 +1499,7 @@ class DailyExecutor:
             factor_scores=factor_data,
             stock_names=stock_names,
             market_regime=market_regime,
+            vol_mult=vol_mult,
             industries=industries,
             industry_trend=industry_trend,
             short_momentum=short_momentum,

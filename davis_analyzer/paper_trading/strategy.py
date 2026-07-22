@@ -60,7 +60,8 @@ class MarketSnapshot:
     stock_names: dict[str, str] = field(default_factory=dict)
     # ts_code → name
     # ── Smart strategy context (enhancement) ──
-    market_regime: str = "mixed"  # "bull" / "bear" / "mixed"
+    market_regime: str = "neutral"  # "bull" / "bear" / "neutral" (HMM) or "mixed" (legacy)
+    vol_mult: float = 1.0           # position size multiplier from market vol regime
     industries: dict[str, str] = field(default_factory=dict)  # ts_code → industry
     industry_trend: dict[str, str] = field(default_factory=dict)  # industry → "up"/"down"/"flat"
     # ── Short-term momentum + valuation (added for quality filtering) ──
@@ -335,13 +336,25 @@ class FactorThresholdStrategy:
         self._cooldown: dict[str, str] = {}
         self._cooldown_days = 5  # don't rebuy within 5 trading days of selling
 
-    def _effective_max_positions(self, market_regime: str) -> int:
-        """Reduce position cap in bear/mixed markets."""
-        if market_regime == "bear":
+    def _effective_max_positions(self, market_regime: str,
+                                 vol_mult: float = 1.0) -> int:
+        """Reduce position cap in bear/neutral markets + vol adjustment.
+
+        Supports both old regime names (mixed) and new (neutral):
+        - bear/panic → 0 (no new buys)
+        - mixed/neutral → half positions × vol_mult
+        - bull → full positions × vol_mult
+
+        vol_mult: position size multiplier from market volatility regime
+        (1.1 low_vol / 1.0 normal / 0.8 high_vol / 0.5 extreme_vol).
+        """
+        if market_regime in ("bear", "panic"):
             return 0  # no new buys in bear market
-        if market_regime == "mixed":
-            return max(1, self.max_positions // 2)
-        return self.max_positions
+        if market_regime in ("mixed", "neutral"):
+            base = max(1, self.max_positions // 2)
+        else:
+            base = self.max_positions
+        return max(1, int(base * vol_mult))
 
     def evaluate(
         self,
@@ -550,7 +563,9 @@ class FactorThresholdStrategy:
                 self._cooldown[pos.ts_code] = snapshot.trade_date
 
         # ── 3. Market gate ──
-        effective_max = self._effective_max_positions(snapshot.market_regime)
+        effective_max = self._effective_max_positions(
+            snapshot.market_regime, getattr(snapshot, "vol_mult", 1.0)
+        )
         if effective_max == 0:
             return signals
 
