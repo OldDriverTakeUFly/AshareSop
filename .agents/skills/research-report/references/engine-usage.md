@@ -292,11 +292,16 @@ from davis_analyzer.profitability import analyze_profitability_quality
 client = TushareClient()
 mom = analyze_momentum(client, "603690.SH")        # MomentumSignal | None
 div = analyze_dividend(client, "603690.SH")         # DividendSignal (永不为 None)
-fc = analyze_forecast(client, "603690.SH")          # ForecastSignal | None
+# ⚠️ analyze_forecast 第三参是 ProsperityScore 对象（不是 float！），用于内部读 .delta_g
+#   错误写法: analyze_forecast(client, "603690.SH", pscore.composite_score)  # → 'float' object has no attribute 'delta_g'
+#   正确写法: analyze_forecast(client, "603690.SH", pscore)  # 传整个 ProsperityScore 对象
+fc = analyze_forecast(client, "603690.SH", pscore)  # ForecastSignal | None（需先算 pscore）
 rev = analyze_forecast_revision(client, "603690.SH")  # ForecastRevision | None
 hc = analyze_holder_concentration(client, "603690.SH")  # HolderConcentration | None
 pq = analyze_profitability_quality(fin_list)        # ProfitabilityQuality (纯计算，无需 client)
 ```
+
+> **坑点 13（forecast 传参）**：`analyze_forecast(client, ts_code, prosperity_score)` 的第三参签名虽叫 `prosperity_score`，但**实际期望传入 `ProsperityScore` dataclass 对象**（内部访问 `.delta_g`），**不是 `pscore.composite_score` 浮点数**。若传 float 会报 `'float' object has no attribute 'delta_g'`。调用前必须先 `pscore = calculate_prosperity_score(fin)` 拿到 ProsperityScore 对象，再传入。智度股份研报（2026-07）首次踩到此坑。
 
 ## 10. 数据时效性校验（写报告前必做）
 
