@@ -210,7 +210,12 @@ class FactorThresholdStrategy:
         self,
         max_positions: int = 5,
         buy_momentum: float = 70.0,
-        sell_momentum: float = 40.0,
+        # sell_momentum: Fine-param sweep (2026-07-23) showed 30 beats 40/45.
+        # Lower threshold = exit sooner when momentum fades (better in bear markets).
+        #   sell=30 → Sharpe +0.252 (BEST)
+        #   sell=40 → Sharpe +0.085
+        #   sell=45 → Sharpe -0.249
+        sell_momentum: float = 30.0,
         buy_holder_min: float = 40.0,
         buy_dividend_min: float = 55.0,
         buy_forecast_min: float = 70.0,
