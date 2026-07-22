@@ -3,14 +3,24 @@
 Run daily after market close (e.g., 16:00).
 Updates: name, sector, current_price, stop_loss, target_price, position_pct.
 
+非交易日静默跳过（避免周末/节假日跑空）。
+
 Usage:
-    python -m stockhot.invest_sop.scripts.update_holdings
+    python -m stockhot.invest_sop.scripts.update_holdings [--dry-run]
+
+Crontab (每日收盘后 16:00):
+    0 16 * * 1-5 cd /path && PYTHONPATH=/path \\
+        .venv/bin/python stockhot/invest_sop/scripts/update_holdings.py \\
+        >> stockhot/invest_sop/logs/update_holdings.log 2>&1
 """
+
+from __future__ import annotations
 
 import argparse
 import os
+import sys
 import traceback
-from datetime import datetime
+from datetime import date, datetime
 
 import akshare as ak
 import pandas as pd
@@ -133,9 +143,15 @@ def update_holding(holding: dict, market_df: pd.DataFrame, total_value: float) -
     return True
 
 
-def run(force: bool = False) -> None:
-    """Main entry point."""
-    print(f"=== update_holdings @ {datetime.now().isoformat()} ===")
+def run(force: bool = False, dry_run: bool = False) -> None:
+    """Main entry point.
+
+    Args:
+        force: Force update even if already updated today（保留向后兼容，当前未做去重）
+        dry_run: 只读取并打印将要更新的值，不写数据库
+    """
+    mode = "[DRY-RUN] " if dry_run else ""
+    print(f"=== update_holdings {mode}@ {datetime.now().isoformat()} ===")
 
     holdings = get_active_holdings()
     if not holdings:
@@ -165,19 +181,77 @@ def run(force: bool = False) -> None:
     updated = 0
     for h in holdings:
         try:
-            if update_holding(h, market_df, total_value):
+            if dry_run:
+                # dry-run 只打印不写库
+                _dry_run_print(h, market_df, total_value)
+            elif update_holding(h, market_df, total_value):
                 updated += 1
         except Exception as e:
             print(f"  ERROR updating {h['code']}: {e}")
             traceback.print_exc()
 
-    print(f"Updated {updated}/{len(holdings)} holdings.")
+    if not dry_run:
+        print(f"Updated {updated}/{len(holdings)} holdings.")
 
 
-if __name__ == "__main__":
+def _dry_run_print(holding: dict, market_df: pd.DataFrame, total_value: float) -> None:
+    """dry-run 模式：计算并打印将要写入的值，不操作数据库."""
+    code = holding["code"]
+    row = market_df[market_df["代码"] == code]
+    if row.empty:
+        print(f"  [DRY-RUN] {code} not found in market data, would skip")
+        return
+    row = row.iloc[0]
+    current_price = float(row["最新价"]) if pd.notna(row["最新价"]) else None
+    if current_price is None:
+        print(f"  [DRY-RUN] {code} has no price, would skip")
+        return
+    sector = str(row.get("所属行业", holding.get("sector"))) if pd.notna(row.get("所属行业")) else holding.get("sector")
+    rule = get_sector_rule(sector or "default")
+    entry_price = holding.get("entry_price") or current_price
+    stop_loss_hard = round(entry_price * (1 + rule["stop_loss_pct"]), 2)
+    target_price = round(entry_price * (1 + rule["target_pct"]), 2)
+    quantity = holding.get("quantity", 0)
+    position_pct = round(quantity * current_price / total_value * 100, 2) if total_value > 0 else 0
+    print(
+        f"  [DRY-RUN] {code} {holding.get('name','?')}: "
+        f"current_price {holding.get('current_price')}→{current_price}, "
+        f"stop_loss_hard→{stop_loss_hard}, target→{target_price}, "
+        f"position_pct→{position_pct}%"
+    )
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Cron 入口：交易日校验 + 调用 run(). 返回 0 成功 / 1 失败."""
     parser = argparse.ArgumentParser(description="Update holdings with latest market data")
     parser.add_argument(
         "--force", action="store_true", help="Force update even if already updated today"
     )
-    args = parser.parse_args()
-    run(force=args.force)
+    parser.add_argument(
+        "--dry-run", action="store_true", help="只读取并打印将要更新的值，不写数据库"
+    )
+    args = parser.parse_args(argv)
+
+    # 交易日校验（非交易日静默跳过）
+    today = date.today().isoformat()
+    try:
+        from stockhot.invest_sop.utils.trading_calendar import is_trading_day
+
+        if not is_trading_day(today):
+            print(f"[{today}] 非交易日，跳过持仓更新")
+            return 0
+    except Exception as e:
+        # 日历失败不阻断（宁可多跑，也不因日历故障漏更新）
+        print(f"[WARN] 交易日校验失败（{e}），继续执行")
+
+    try:
+        run(force=args.force, dry_run=args.dry_run)
+        return 0
+    except Exception as e:
+        print(f"[ERROR] update_holdings 失败: {type(e).__name__}: {e}")
+        traceback.print_exc()
+        return 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

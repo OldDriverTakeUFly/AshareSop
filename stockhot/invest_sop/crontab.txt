@@ -43,3 +43,8 @@
 # Scans report dirs for uncommitted changes, commits & pushes if any (idempotent).
 # Monitored: 盘后总结/盘后复盘/回测记录/invest_sop 盘前报告/深度研报. SSH key auth (no password).
 0 19 * * 1-5 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python stockhot/invest_sop/scripts/auto_commit_push.py >> stockhot/invest_sop/logs/auto_sync.log 2>&1
+
+# Update holdings with latest prices (Mon–Fri, after market close)
+# Refreshes current_price/stop_loss/target/position_pct from AKShare.
+# Required by 盘前报告 §3 + sell_monitor 卖出信号（不跑则现价过期）.
+0 16 * * 1-5 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python stockhot/invest_sop/scripts/update_holdings.py >> stockhot/invest_sop/logs/update_holdings.log 2>&1
