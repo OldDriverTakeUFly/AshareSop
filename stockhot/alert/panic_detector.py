@@ -435,3 +435,106 @@ def format_alert_message(report: PanicReport) -> str:
 
     lines.append("⚠️ 信号仅提示恐慌升温，不构成交易建议。减仓决策请结合持仓与风控。")
     return "\n".join(lines)
+
+
+# ═══════════════════════════════════════════════════════════════════
+# 趋势分析 + ASCII 图表格式化
+# ═══════════════════════════════════════════════════════════════════
+
+
+def _ascii_bar(value: float, max_value: float, width: int = 10) -> str:
+    """生成 ASCII 柱状条（用于横向对比）."""
+    if max_value <= 0 or value is None:
+        return "▏" * 0
+    ratio = min(value / max_value, 1.0)
+    filled = int(ratio * width)
+    return "█" * filled + "▏" * (width - filled)
+
+
+def _ascii_sparkline(values: list[float]) -> str:
+    """生成简易折线（用 block 字符表示趋势）."""
+    if not values:
+        return ""
+    blocks = "▁▂▃▄▅▆▇█"
+    vmin, vmax = min(values), max(values)
+    if vmax == vmin:
+        return blocks[4] * len(values)  # 全平，中间高度
+    return "".join(
+        blocks[min(int((v - vmin) / (vmax - vmin) * 7), 7)] for v in values
+    )
+
+
+def format_trend_section(
+    today_history: list[dict],
+    yesterday_close: dict | None,
+    multi_day: list[dict],
+) -> str:
+    """格式化趋势部分（ASCII 图表）.
+
+    参数：
+        today_history: 当日各时点检测记录（repo.get_panic_history_today）
+        yesterday_close: 昨日收盘波动率（repo.get_volatility_market(yesterday)）
+        multi_day: 近 N 日收盘数据列表（含 trade_date, ivix_current, limit_down, limit_up）
+
+    返回：
+        趋势部分的文本（不含免责声明，由调用方拼接）
+    """
+    lines = ["【趋势】"]
+
+    # ── 1. 今日盘中变化（至少 2 个时点才显示趋势）──
+    if today_history and len(today_history) >= 2:
+        times = [h["check_time"] for h in today_history]
+        ivix_vals = [h.get("ivix_current") for h in today_history if h.get("ivix_current")]
+        lu_vals = [h.get("limit_up") for h in today_history if h.get("limit_up") is not None]
+        ld_vals = [h.get("limit_down") for h in today_history if h.get("limit_down") is not None]
+
+        lines.append("📊 今日盘中变化：")
+        if ivix_vals and len(ivix_vals) >= 2:
+            spark = _ascii_sparkline(ivix_vals)
+            lines.append(f"  iVIX  {spark} {ivix_vals[0]:.1f}→{ivix_vals[-1]:.1f}")
+        if lu_vals and len(lu_vals) >= 2:
+            spark_u = _ascii_sparkline([float(x) for x in lu_vals])
+            lines.append(f"  涨停  {spark_u} {'→'.join(str(x) for x in lu_vals)}")
+        if ld_vals and len(ld_vals) >= 2:
+            spark_d = _ascii_sparkline([float(x) for x in ld_vals])
+            lines.append(f"  跌停  {spark_d} {'→'.join(str(x) for x in ld_vals)}")
+        lines.append(f"  时点  {' '.join(t[-5:] for t in times)}")
+        lines.append("")
+
+    # ── 2. vs 昨日收盘 ──
+    if yesterday_close and today_history:
+        latest = today_history[-1]
+        lines.append("📊 vs 昨日收盘：")
+        y_ivix = yesterday_close.get("ivix_current")
+        t_ivix = latest.get("ivix_current")
+        if y_ivix and t_ivix:
+            max_v = max(y_ivix, t_ivix)
+            lines.append(f"  iVIX    昨{y_ivix:.1f}{_ascii_bar(y_ivix, max_v)} → 今{t_ivix:.1f}{_ascii_bar(t_ivix, max_v)}")
+        y_ld = yesterday_close.get("limit_down")
+        t_ld = latest.get("limit_down")
+        if y_ld is not None and t_ld is not None:
+            max_v = max(y_ld, t_ld, 1)
+            lines.append(f"  跌停    昨{y_ld}{_ascii_bar(float(y_ld), float(max_v))} → 今{t_ld}{_ascii_bar(float(t_ld), float(max_v))}")
+        lines.append("")
+
+    # ── 3. 近 N 日趋势 ──
+    if multi_day and len(multi_day) >= 2:
+        lines.append("📊 近期收盘恐慌趋势：")
+        # 按时间正序
+        days = list(reversed(multi_day))
+        dates = [d["trade_date"][5:] for d in days]  # MM-DD
+        ld_series = [d.get("limit_down", 0) or 0 for d in days]
+        ivix_series = [d.get("ivix_current", 0) or 0 for d in days]
+
+        # 跌停数趋势
+        spark_ld = _ascii_sparkline([float(x) for x in ld_series])
+        lines.append(f"  跌停  {spark_ld}")
+        lines.append(f"        {' '.join(str(x).rjust(3) for x in ld_series)}")
+
+        # iVIX 趋势
+        spark_iv = _ascii_sparkline([float(x) for x in ivix_series])
+        lines.append(f"  iVIX  {spark_iv}")
+        lines.append(f"        {' '.join(f'{x:3.0f}' for x in ivix_series)}")
+        lines.append(f"  日期  {' '.join(d for d in dates)}")
+
+    return "\n".join(lines)

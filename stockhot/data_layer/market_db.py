@@ -260,6 +260,24 @@ _SCHEMA_STATEMENTS: list[str] = [
         fetched_at      REAL,
         PRIMARY KEY (trade_date, sw_code)
     )""",
+    # 盘中恐慌检测历史 — 每次 panic_alert 检测的读数快照（支持趋势分析）
+    # 每天 4 条（10:30/11:30/13:30/14:30），用于盘中时点间变化趋势
+    """CREATE TABLE IF NOT EXISTS panic_history (
+        id              INTEGER PRIMARY KEY AUTOINCREMENT,
+        trade_date      TEXT NOT NULL,
+        check_time      TEXT NOT NULL,   -- HH:MM 格式（10:30/11:30/13:30/14:30）
+        triggered       INTEGER NOT NULL, -- 0/1 是否触发
+        triggered_names TEXT,             -- 触发的信号名（逗号分隔）
+        limit_up        INTEGER,
+        broken          INTEGER,
+        limit_down      INTEGER,
+        up_down_ratio   REAL,
+        ivix_current    REAL,
+        rv20_max_pct    REAL,             -- 5 指数中最高的 RV20 分位
+        rv20_indices_p90 INTEGER,         -- P90+ 的指数数量
+        created_at      REAL,
+        UNIQUE(trade_date, check_time)    -- 同一时点重复运行覆盖
+    )""",
 
     # ═══ 元数据表 ════════════════════════════════════════════════════
     # 宏观指标缓存（PMI/CPI/PPI/M2/Shibor/LPR），给 macro 模块加缓存

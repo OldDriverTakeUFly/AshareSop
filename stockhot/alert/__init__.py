@@ -17,6 +17,7 @@ from stockhot.alert.panic_detector import (
     SignalResult,
     detect_panic_signals,
     format_alert_message,
+    format_trend_section,
 )
 
 __all__ = [
@@ -24,4 +25,5 @@ __all__ = [
     "SignalResult",
     "detect_panic_signals",
     "format_alert_message",
+    "format_trend_section",
 ]

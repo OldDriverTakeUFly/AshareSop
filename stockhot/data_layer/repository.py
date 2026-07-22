@@ -611,6 +611,53 @@ class MarketDataRepository:
         return dict(zip(cols, row))
 
     # ═══════════════════════════════════════════════════════════════════
+    # 盘中恐慌检测历史（趋势分析用）
+    # ═══════════════════════════════════════════════════════════════════
+
+    def save_panic_history(
+        self,
+        trade_date: str,
+        check_time: str,
+        triggered: bool,
+        triggered_names: list[str] | None = None,
+        limit_up: int | None = None,
+        broken: int | None = None,
+        limit_down: int | None = None,
+        up_down_ratio: float | None = None,
+        ivix_current: float | None = None,
+        rv20_max_pct: float | None = None,
+        rv20_indices_p90: int | None = None,
+    ) -> None:
+        """记录一次盘中恐慌检测的读数快照（同一时点重复运行会覆盖）."""
+        with closing(get_connection()) as conn:
+            conn.execute(
+                "INSERT OR REPLACE INTO panic_history "
+                "(trade_date, check_time, triggered, triggered_names, limit_up, broken, "
+                "limit_down, up_down_ratio, ivix_current, rv20_max_pct, rv20_indices_p90, created_at) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+                (
+                    trade_date, check_time, 1 if triggered else 0,
+                    ",".join(triggered_names) if triggered_names else None,
+                    limit_up, broken, limit_down, up_down_ratio,
+                    ivix_current, rv20_max_pct, rv20_indices_p90, now_ts(),
+                ),
+            )
+            conn.commit()
+
+    def get_panic_history_today(self, trade_date: str) -> list[dict]:
+        """获取当日所有盘中检测记录（按时间排序）."""
+        with closing(get_connection()) as conn:
+            rows = conn.execute(
+                "SELECT check_time, triggered, triggered_names, limit_up, broken, "
+                "limit_down, up_down_ratio, ivix_current, rv20_max_pct, rv20_indices_p90 "
+                "FROM panic_history WHERE trade_date=? ORDER BY check_time",
+                (trade_date,),
+            ).fetchall()
+        cols = ["check_time", "triggered", "triggered_names", "limit_up", "broken",
+                "limit_down", "up_down_ratio", "ivix_current", "rv20_max_pct", "rv20_indices_p90"]
+        return [dict(zip(cols, r)) for r in rows]
+
+    # ═══════════════════════════════════════════════════════════════════
     # 缓存维护：清理过期行（解决 davis/stockhot 缓存只增不减的膨胀问题）
     # ═══════════════════════════════════════════════════════════════════
 
