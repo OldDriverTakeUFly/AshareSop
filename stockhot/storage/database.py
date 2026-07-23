@@ -332,6 +332,13 @@ def init_database() -> None:
         if "thesis_snapshot_json" not in holdings_cols:
             conn.execute("ALTER TABLE invest_holdings ADD COLUMN thesis_snapshot_json TEXT")
 
+        # Migrate: add composite_score column to invest_watchlist (for screen_top20 候选池)
+        watchlist_cols = [
+            r[1] for r in conn.execute("PRAGMA table_info(invest_watchlist)").fetchall()
+        ]
+        if "composite_score" not in watchlist_cols:
+            conn.execute("ALTER TABLE invest_watchlist ADD COLUMN composite_score REAL")
+
         # Insert default sector rules
         default_rules = [
             ("AI", -0.15, 0.25),

@@ -53,3 +53,8 @@
 # Stage1 估值预筛 → Stage2 四因子打分 → top20.
 # Output: studies/output/top20_screen_<date>.json + docs/回测记录/全A股四因子top20筛选_<date>.md
 30 16 * * 1-5 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python studies/screen_top20.py >> stockhot/invest_sop/logs/screen_top20.log 2>&1
+
+# Sync screen top20 → watchlist 候选池 (Mon–Fri, after screen completes)
+# 选股结果写入 invest_watchlist（source=screen_top20），advisor 自动给候选出建议.
+# 跌出 top20 的旧候选自动归档（status=archived），不碰实盘 invest_holdings.
+20 17 * * 1-5 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python studies/sync_screen_to_watchlist.py >> stockhot/invest_sop/logs/screen_sync.log 2>&1

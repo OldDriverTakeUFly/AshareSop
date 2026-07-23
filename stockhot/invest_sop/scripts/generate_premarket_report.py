@@ -397,18 +397,53 @@ def build_section_4(strategy_signal: dict | None = None) -> str:
         else:
             lines.append("（今日无新增买入信号）")
         lines.append("")
-        return "\n".join(lines)
+    else:
+        lines.append(f"**AI 策略今日买入信号：{len(candidates)} 只**\n")
+        lines.append("| 代码 | 买入理由 | 参考价 | 数量 |")
+        lines.append("|------|----------|--------|------|")
+        for c in candidates:
+            lines.append(f"| {c['code']} | {c['reason']} | {c['price']} | {c['shares']} |")
+        lines.append("")
+        lines.append("> ⚠️ 以上为模拟盘策略信号，仅供参考。实际操作需结合盘前集合竞价和开盘走势。")
+        lines.append("")
 
-    lines.append(f"**AI 策略今日买入信号：{len(candidates)} 只**\n")
-    lines.append("| 代码 | 买入理由 | 参考价 | 数量 |")
-    lines.append("|------|----------|--------|------|")
-    for c in candidates:
-        lines.append(f"| {c['code']} | {c['reason']} | {c['price']} | {c['shares']} |")
-    lines.append("")
-    lines.append("> ⚠️ 以上为模拟盘策略信号，仅供参考。实际操作需结合盘前集合竞价和开盘走势。")
-    lines.append("")
+    # ── 多因子选股 top20 候选池（来自 screen_top20 → watchlist 同步）──
+    screen_candidates = _fetch_screen_candidates()
+    if screen_candidates:
+        lines.append(f"### 多因子选股 top20 候选（{len(screen_candidates)} 只，仅供参考）\n")
+        lines.append("| 代码 | 名称 | 综合分 | 行业 | 触发原因 |")
+        lines.append("|------|------|--------|------|----------|")
+        for c in screen_candidates:
+            score = c.get("composite_score")
+            score_str = f"{score:.1f}" if score is not None else "—"
+            lines.append(
+                f"| {c['code']} | {c.get('name', '-')} | {score_str} | "
+                f"{c.get('sector', '-')} | {c.get('trigger_reason', '-')} |"
+            )
+        lines.append("")
+        lines.append("> 📊 候选池来自全A四因子选股（动量+估值+景气度+困境），每日盘后自动更新。")
+        lines.append("> 仅供参考，需人工确认后建仓。AI 综合建议节会给出具体操作建议。")
+        lines.append("")
 
     return "\n".join(lines)
+
+
+def _fetch_screen_candidates() -> list[dict]:
+    """读取 watchlist 中 source='screen_top20' 的活跃候选，按综合分降序."""
+    try:
+        conn = get_connection()
+        try:
+            cursor = conn.execute(
+                "SELECT code, name, sector, composite_score, trigger_reason "
+                "FROM invest_watchlist "
+                "WHERE source = 'screen_top20' AND status = 'watching' "
+                "ORDER BY composite_score DESC"
+            )
+            return [dict(row) for row in cursor]
+        finally:
+            conn.close()
+    except Exception:
+        return []
 
 
 def build_section_5() -> str:
