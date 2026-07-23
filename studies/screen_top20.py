@@ -18,7 +18,7 @@ import json
 import os
 import sys
 import time
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from pathlib import Path
 
 # Bootstrap project root so imports work when run from anywhere.
@@ -60,14 +60,34 @@ from davis_analyzer.valuation import (
 )
 
 # ── Config ──
-AS_OF = date(2026, 7, 14)          # most recent trading day close
 VALUATION_PREFILTER = 50.0          # pipeline default
 TOP_N = 20
 OUTPUT_DIR = PROJECT_ROOT / "studies" / "output"
 DOCS_DIR = PROJECT_ROOT / "docs" / "回测记录"
 
 
-def main() -> None:
+def _resolve_as_of(cli_date: str | None) -> date:
+    """解析 AS_OF 日期：CLI 参数 > 最近交易日.
+
+    无参数时读最近交易日（用于每日 cron 自动化）；
+    传 --date 时用手动指定日期（用于回溯/重跑）。
+    """
+    if cli_date:
+        return datetime.strptime(cli_date, "%Y-%m-%d").date()
+    from stockhot.invest_sop.utils.trading_calendar import get_recent_trade_day
+
+    return datetime.strptime(get_recent_trade_day(), "%Y-%m-%d").date()
+
+
+def run_screening(as_of: date) -> dict:
+    """执行两阶段漏斗选股，返回 output dict（含 top20 + config）.
+
+    Args:
+        as_of: 截止日期（最近交易日收盘数据）
+
+    Returns:
+        output dict，同时写入 JSON 和 Markdown 文件
+    """
     client = TushareClient()
     cfg = FactorConfig()
 
@@ -84,7 +104,7 @@ def main() -> None:
     processed = 0
     for s in stock_list:
         try:
-            history = fetch_valuation_history(client, s.ts_code, as_of=AS_OF)
+            history = fetch_valuation_history(client, s.ts_code, as_of=as_of)
             if not history:
                 continue
             is_cyc = s.is_cyclical
@@ -126,7 +146,7 @@ def main() -> None:
             is_super_cycle = domain == "super_cycle"
 
             # Momentum
-            mom = analyze_momentum(client, code, today=AS_OF)
+            mom = analyze_momentum(client, code, today=as_of)
             momentum_score = None
             if mom is not None and mom.data_sufficient:
                 momentum_score = mom.momentum_score
@@ -142,7 +162,7 @@ def main() -> None:
                         momentum_score = max(0.0, momentum_score - penalty)
 
             # Valuation
-            history = fetch_valuation_history(client, code, as_of=AS_OF)
+            history = fetch_valuation_history(client, code, as_of=as_of)
             valuation_score = pe_pct = pb_pct = None
             if history:
                 valuation_score, pe_pct, pb_pct = calculate_valuation_score(history, is_cyclical)
@@ -157,7 +177,7 @@ def main() -> None:
 
             # Prosperity + Distress
             prosperity_score = distress_score = delta_g = None
-            fin = fetch_financial_data(client, code, as_of=AS_OF)
+            fin = fetch_financial_data(client, code, as_of=as_of)
             if len(fin) >= 2:
                 ps = calculate_prosperity_score(fin, is_cyclical=is_cyclical)
                 prosperity_score = ps.composite_score
@@ -254,7 +274,8 @@ def main() -> None:
     # ── Save JSON ──
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     output = {
-        "as_of": AS_OF.isoformat(),
+        "as_of": as_of.isoformat(),
+        "generated_at": datetime.now().isoformat(),
         "universe_size": len(stock_list),
         "prefilter_survivors": len(survivors),
         "scored": len(results),
@@ -271,7 +292,7 @@ def main() -> None:
             },
         },
     }
-    json_path = OUTPUT_DIR / f"top20_screen_{AS_OF.isoformat()}.json"
+    json_path = OUTPUT_DIR / f"top20_screen_{as_of.isoformat()}.json"
     with open(json_path, "w") as f:
         json.dump(output, f, ensure_ascii=False, indent=2)
     print(f"\nJSON saved: {json_path}")
@@ -279,10 +300,12 @@ def main() -> None:
     # ── Generate report ──
     report = generate_report(output)
     DOCS_DIR.mkdir(parents=True, exist_ok=True)
-    report_path = DOCS_DIR / f"全A股四因子top20筛选_{AS_OF.isoformat()}.md"
+    report_path = DOCS_DIR / f"全A股四因子top20筛选_{as_of.isoformat()}.md"
     with open(report_path, "w") as f:
         f.write(report)
     print(f"Report saved: {report_path}")
+
+    return output
 
 
 def generate_report(data: dict) -> str:
@@ -452,5 +475,33 @@ def generate_report(data: dict) -> str:
     return "\n".join(lines)
 
 
+def main(argv: list[str] | None = None) -> int:
+    """CLI 入口：解析 --date，执行选股，返回 0 成功 / 1 失败.
+
+    Designed for crontab — 默认读最近交易日（自动化）；
+    --date YYYY-MM-DD 手动指定（回溯/重跑）。
+    """
+    import argparse
+
+    parser = argparse.ArgumentParser(description="全A四因子选股 Top-20")
+    parser.add_argument(
+        "--date", default=None,
+        help="筛选截止日期 YYYY-MM-DD（默认：最近交易日）",
+    )
+    args = parser.parse_args(argv)
+
+    try:
+        as_of = _resolve_as_of(args.date)
+        print(f"=== screen_top20 @ {datetime.now().isoformat()} | AS_OF={as_of.isoformat()} ===")
+        run_screening(as_of)
+        return 0
+    except Exception as e:
+        import traceback
+
+        print(f"[ERROR] screen_top20 失败: {type(e).__name__}: {e}")
+        traceback.print_exc()
+        return 1
+
+
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

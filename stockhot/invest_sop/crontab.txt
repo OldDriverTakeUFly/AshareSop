@@ -48,3 +48,8 @@
 # Refreshes current_price/stop_loss/target/position_pct from AKShare.
 # Required by 盘前报告 §3 + sell_monitor 卖出信号（不跑则现价过期）.
 0 16 * * 1-5 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python stockhot/invest_sop/scripts/update_holdings.py >> stockhot/invest_sop/logs/update_holdings.log 2>&1
+
+# Multi-factor stock screening Top-20 (Mon–Fri, after-market; ~45min Tushare-heavy)
+# Stage1 估值预筛 → Stage2 四因子打分 → top20.
+# Output: studies/output/top20_screen_<date>.json + docs/回测记录/全A股四因子top20筛选_<date>.md
+30 16 * * 1-5 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python studies/screen_top20.py >> stockhot/invest_sop/logs/screen_top20.log 2>&1
