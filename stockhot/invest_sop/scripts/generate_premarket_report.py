@@ -18,6 +18,20 @@ SECTORS = ["AI", "半导体", "软件", "锂电", "光伏", "新能源车", "有
 NA = "数据不可用"
 
 
+def _fetch_strategy_signal(trade_date: str) -> dict | None:
+    """获取 AI 选股策略信号（HMM 牛熊 + 持仓 + 买卖信号）."""
+    try:
+        from davis_analyzer.strategy_signal import generate_daily_signal
+        # trade_date is YYYY-MM-DD, convert to YYYYMMDD
+        td = trade_date.replace("-", "")
+        return generate_daily_signal(td)
+    except Exception as e:
+        import traceback
+        print(f"[WARNING] strategy_signal fetch failed: {e}")
+        traceback.print_exc()
+        return None
+
+
 def _val(data: dict, key: str, fmt: str = "{}") -> str:
     v = data.get(key)
     if v is None:
@@ -76,6 +90,7 @@ def build_section_1(
     events: list[dict],
     futures: dict | None,
     index_technical: dict | None = None,
+    strategy_signal: dict | None = None,
 ) -> str:
     lines = ["## 一、市场环境评估\n"]
     lines.append("### 1.1 海外市场")
@@ -100,6 +115,38 @@ def build_section_1(
         )
     else:
         lines.append(f"- 股指期货：{NA}")
+
+    # AI 策略信号 — HMM 牛熊 + 波动率
+    if strategy_signal and strategy_signal.get("market"):
+        mkt = strategy_signal["market"]
+        lines.append("")
+        lines.append("### 1.2 AI 策略市场判定（HMM）")
+        regime = mkt.get("regime", "N/A")
+        vol_regime = mkt.get("vol_regime", "N/A")
+        vol_mult = mkt.get("vol_position_mult", 1.0)
+        idx = mkt.get("index_sh", {})
+
+        regime_emoji = {"bull": "🟢牛市", "bear": "🔴熊市", "neutral": "🟡震荡"}.get(regime, regime)
+        vol_emoji = {"low_vol": "低波动", "normal_vol": "正常", "high_vol": "⚠️高波动",
+                     "extreme_vol": "🔴极端波动"}.get(vol_regime, vol_regime)
+
+        lines.append(f"- **HMM 牛熊状态**：{regime_emoji}")
+        lines.append(f"- **波动率状态**：{vol_emoji}（建议仓位 ×{vol_mult}）")
+        if idx:
+            close = idx.get("close", "-")
+            ma5 = idx.get("ma5", "-")
+            ma20 = idx.get("ma20", "-")
+            ma60 = idx.get("ma60", "-")
+            above_ma20 = "上方✅" if isinstance(close, (int, float)) and isinstance(ma20, (int, float)) and close > ma20 else "下方❌"
+            above_ma60 = "上方✅" if isinstance(close, (int, float)) and isinstance(ma60, (int, float)) and close > ma60 else "下方❌"
+            lines.append(f"- 上证 {close} | MA5={ma5} | MA20={ma20}({above_ma20}) | MA60={ma60}({above_ma60})")
+        # 操作含义
+        if regime == "bear":
+            lines.append(f"- ⚠️ **熊市策略：不开新仓，仅止损/止盈/换股**")
+        elif regime == "neutral":
+            lines.append(f"- 🟡 **震荡策略：半仓操作（最多 {(strategy_signal.get('strategy_config', {}).get('max_positions', 5)) // 2} 只）**")
+        else:
+            lines.append(f"- 🟢 **牛市策略：可满仓操作（最多 {strategy_signal.get('strategy_config', {}).get('max_positions', 5)} 只）**")
 
     lines.append("")
     lines.append("### 1.2 重大事件")
@@ -268,12 +315,21 @@ def build_section_2(cycles: list[dict]) -> str:
     return "\n".join(lines)
 
 
-def build_section_3(holdings: list[dict]) -> str:
+def build_section_3(holdings: list[dict], strategy_signal: dict | None = None) -> str:
     lines = ["", "---", "", "## 三、持仓标的操作决策", ""]
 
     if not holdings:
         lines.append("（无活跃持仓）")
         return "\n".join(lines)
+
+    # 从策略信号获取模拟盘卖出建议
+    sell_codes = {}
+    if strategy_signal and strategy_signal.get("paper_trading", {}).get("sells"):
+        for s in strategy_signal["paper_trading"]["sells"]:
+            # 匹配 code（strip 后缀 .SH/.SZ）
+            raw = s.get("code", "")
+            bare = raw.split(".")[0]
+            sell_codes[bare] = s
 
     for i, h in enumerate(holdings, 1):
         name = h.get("name", NA)
@@ -283,8 +339,14 @@ def build_section_3(holdings: list[dict]) -> str:
         sl_tech = h.get("stop_loss_technical", "-")
         sl_hard = h.get("stop_loss_hard", "-")
         target = h.get("target_price", "-")
+        avg_cost = h.get("avg_cost", "-")
+        qty = h.get("quantity", "-")
 
-        lines.append(f"### 标的{i}：{name} ({code}) | 当前仓位：{pos_pct}%")
+        # 策略信号匹配
+        bare_code = code.split(".")[0] if code else code
+        ai_signal = sell_codes.get(bare_code)
+
+        lines.append(f"### 标的{i}：{name} ({code}) | 仓位：{pos_pct}% | 数量：{qty} | 成本：{avg_cost}")
         lines.append("")
         lines.append("| 维度 | 评估 | 说明 |")
         lines.append("|------|------|------|")
@@ -293,7 +355,16 @@ def build_section_3(holdings: list[dict]) -> str:
         lines.append("| 事件影响 | 🟡 | |")
         lines.append("| 技术状态 | 强势/震荡/弱势 | 均线：__  支撑：__  压力：__ |")
         lines.append("| 周期位置 | 复苏/繁荣/衰退 | |")
-        lines.append("| **操作决策** | **持有/减仓/加仓/清仓** | |")
+
+        # AI 策略建议
+        if ai_signal:
+            action = ai_signal.get("reason", "AI 策略建议卖出")
+            lines.append(f"| **AI 策略** | 🔴 **建议卖出** | {action} |")
+            lines.append(f"| **操作决策** | **减仓/清仓** | 参考价 {ai_signal.get('price', '-')} |")
+        else:
+            lines.append("| **AI 策略** | 🟢 持有 | 未触发卖出信号 |")
+            lines.append("| **操作决策** | **持有/减仓/加仓/清仓** | |")
+
         lines.append(
             f"| 止损价 | {sl_hard}（距当前-%） | 逻辑止损{sl_logic} / 技术止损{sl_tech} / 硬止损{sl_hard} |"
         )
@@ -304,18 +375,40 @@ def build_section_3(holdings: list[dict]) -> str:
     return "\n".join(lines)
 
 
-def build_section_4() -> str:
-    return "\n".join(
-        [
-            "",
-            "---",
-            "",
-            "## 四、新增标的备选",
-            "",
-            "（暂无备选标的）",
-            "",
-        ]
-    )
+def build_section_4(strategy_signal: dict | None = None) -> str:
+    lines = ["", "---", "", "## 四、新增标的备选\n"]
+
+    # 从策略信号获取买入候选
+    candidates = []
+    if strategy_signal and strategy_signal.get("paper_trading", {}).get("buys"):
+        for b in strategy_signal["paper_trading"]["buys"]:
+            candidates.append({
+                "code": b.get("code", ""),
+                "reason": b.get("reason", ""),
+                "price": b.get("price", "-"),
+                "shares": b.get("shares", "-"),
+            })
+
+    if not candidates:
+        # 检查市场状态——熊市不开仓
+        regime = strategy_signal.get("market", {}).get("regime", "") if strategy_signal else ""
+        if regime in ("bear",):
+            lines.append("**🔴 熊市状态，策略不开新仓。** 等待 HMM 状态切换到 neutral/bull。")
+        else:
+            lines.append("（今日无新增买入信号）")
+        lines.append("")
+        return "\n".join(lines)
+
+    lines.append(f"**AI 策略今日买入信号：{len(candidates)} 只**\n")
+    lines.append("| 代码 | 买入理由 | 参考价 | 数量 |")
+    lines.append("|------|----------|--------|------|")
+    for c in candidates:
+        lines.append(f"| {c['code']} | {c['reason']} | {c['price']} | {c['shares']} |")
+    lines.append("")
+    lines.append("> ⚠️ 以上为模拟盘策略信号，仅供参考。实际操作需结合盘前集合竞价和开盘走势。")
+    lines.append("")
+
+    return "\n".join(lines)
 
 
 def build_section_5() -> str:
@@ -476,18 +569,26 @@ def generate_report(date: str) -> str:
     index_technical = _fetch_latest_index_technical(date)
     volatility = _fetch_latest_volatility(date)
 
+    # AI 策略信号（HMM 牛熊 + 持仓 + 买卖信号）
+    strategy_signal = _fetch_strategy_signal(date)
+    if strategy_signal:
+        # 用策略信号的 holdings 补充止损止盈（如果有更新的话）
+        sig_holdings = strategy_signal.get("holdings", [])
+        if sig_holdings and not holdings:
+            holdings = sig_holdings
+
     parts = [
         f"# 盘前SOP报告 | {date} 星期{weekday}",
         "",
     ]
 
     sections = [
-        build_section_1(overseas, events, futures, index_technical),
+        build_section_1(overseas, events, futures, index_technical, strategy_signal),
         build_section_2(cycles),
-        build_section_3(holdings),
+        build_section_3(holdings, strategy_signal),
         build_section_holdings_monitor(holdings, date),
         build_advisor_section(date),
-        build_section_4(),
+        build_section_4(strategy_signal),
         build_section_5(),
         build_section_6(volatility),
         build_section_7(),
