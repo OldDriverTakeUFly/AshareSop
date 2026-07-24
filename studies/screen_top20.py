@@ -58,6 +58,10 @@ from davis_analyzer.valuation import (
     calculate_valuation_score,
     fetch_valuation_history,
 )
+from davis_analyzer.price_estimator import (
+    estimate_target_price,
+    estimate_technical_stop,
+)
 
 # ── Config ──
 VALUATION_PREFILTER = 50.0          # pipeline default
@@ -77,6 +81,26 @@ def _resolve_as_of(cli_date: str | None) -> date:
     from stockhot.invest_sop.utils.trading_calendar import get_recent_trade_day
 
     return datetime.strptime(get_recent_trade_day(), "%Y-%m-%d").date()
+
+
+def _get_latest_close(client, ts_code: str, as_of: date) -> float | None:
+    """读 daily_price 缓存拿 as_of 当日（或之前最近）的前复权收盘价.
+
+    选股流程的 momentum 已预热 daily_price 缓存，通常零额外 API。
+    """
+    end = as_of.strftime("%Y%m%d")
+    start = (as_of - timedelta(days=30)).strftime("%Y%m%d")
+    try:
+        df = client.get_daily_prices(ts_code, start, end)
+        if df is None or df.empty:
+            return None
+        df = df[df["trade_date"] <= end].sort_values("trade_date")
+        if df.empty:
+            return None
+        row = df.iloc[-1]
+        return round(float(row["close"]) * float(row["adj_factor"]), 2)
+    except Exception:
+        return None
 
 
 def run_screening(as_of: date) -> dict:
@@ -226,6 +250,11 @@ def run_screening(as_of: date) -> dict:
             if all(s is None for s in (momentum_score, valuation_score, prosperity_score, distress_score)):
                 continue
 
+            # ── 目标价 + 技术止损（估值反推 + trailing_stop）──
+            current_price = _get_latest_close(client, code, as_of)
+            target_price, target_method = estimate_target_price(history, current_price, domain)
+            stop_loss_tech = estimate_technical_stop(client, code, as_of)
+
             results.append({
                 "ts_code": code,
                 "name": info.name,
@@ -238,6 +267,10 @@ def run_screening(as_of: date) -> dict:
                 "distress": round(distress_score, 2) if distress_score else None,
                 "delta_g": round(delta_g, 2) if delta_g else None,
                 "persistence_bonus": persistence_bonus,
+                "current_price": current_price,
+                "target_price": target_price,
+                "target_method": target_method,
+                "stop_loss_technical": stop_loss_tech,
             })
         except Exception:
             pass

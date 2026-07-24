@@ -80,33 +80,47 @@ def sync(as_of: str, dry_run: bool = False) -> dict:
                 "SELECT id, status FROM invest_watchlist WHERE code = ?", (code,)
             ).fetchone()
 
+            # 价位：目标价写 target_entry_high，技术止损算成 pct 写 stop_loss_pct
+            target_price = r.get("target_price")
+            stop_loss_tech = r.get("stop_loss_technical")
+            current_price = r.get("current_price")
+            # 止损 pct：技术止损价/现价 - 1（负值）；无效则用 default -12%
+            if stop_loss_tech and current_price and current_price > 0:
+                stop_pct = round(stop_loss_tech / current_price - 1, 4)
+                # 限制在合理区间 [-0.30, 0]（技术止损不应高于现价或跌幅过大）
+                stop_pct = max(-0.30, min(0.0, stop_pct))
+            else:
+                stop_pct = -0.12
+
             if existing is None:
                 # 新候选：INSERT
                 if dry_run:
-                    print(f"  [DRY-RUN] INSERT {code} {name} score={composite}")
+                    print(f"  [DRY-RUN] INSERT {code} {name} score={composite} target={target_price} stop={stop_pct}")
                 else:
                     conn.execute(
                         """INSERT INTO invest_watchlist
                            (code, name, sector, added_date, trigger_reason,
-                            stop_loss_pct, priority, status, source, composite_score, updated_at)
-                           VALUES (?, ?, ?, ?, ?, -0.12, 2, 'watching', ?, ?, ?)""",
+                            target_entry_high, stop_loss_pct, priority, status, source,
+                            composite_score, updated_at)
+                           VALUES (?, ?, ?, ?, ?, ?, ?, 2, 'watching', ?, ?, ?)""",
                         (code, name, sector, today, trigger,
-                         SOURCE_TAG, composite, datetime.now().isoformat()),
+                         target_price, stop_pct, SOURCE_TAG, composite, datetime.now().isoformat()),
                     )
                 inserted += 1
             else:
-                # 已存在：刷新评分/行业/触发原因，保持 status（除非 archived 要重新激活）
+                # 已存在：刷新评分/行业/价位，保持 status（除非 archived 要重新激活）
                 new_status = "watching" if existing["status"] == "archived" else existing["status"]
                 if dry_run:
-                    print(f"  [DRY-RUN] UPDATE {code} {name} score={composite} (was {existing['status']})")
+                    print(f"  [DRY-RUN] UPDATE {code} {name} score={composite} target={target_price} stop={stop_pct}")
                 else:
                     conn.execute(
                         """UPDATE invest_watchlist SET
                            name = ?, sector = ?, trigger_reason = ?,
+                           target_entry_high = ?, stop_loss_pct = ?,
                            composite_score = ?, status = ?, updated_at = ?
                            WHERE code = ?""",
-                        (name, sector, trigger, composite, new_status,
-                         datetime.now().isoformat(), code),
+                        (name, sector, trigger, target_price, stop_pct,
+                         composite, new_status, datetime.now().isoformat(), code),
                     )
                 updated += 1
 
