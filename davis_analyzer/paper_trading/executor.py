@@ -985,7 +985,32 @@ def _full_market_sector_trends(trade_date: str) -> dict[str, str]:
         if industry:
             industry_ma.setdefault(industry, []).append(is_bull)
 
-    # ── Dual confirmation scoring ──
+    # ── Sector reversal detection ──
+    # When a sector was crashing (5d < -5%) but TODAY surges (+8%+),
+    # it may be starting a reversal. We don't flip "down" → "up" (too
+    # aggressive), but soften "down" → "flat" to let the strategy
+    # consider candidates from this sector.
+    #
+    # This requires 1-day returns. Compute from daily_price.
+    industry_1d: dict[str, list[float]] = {}
+    with get_market_conn() as conn:
+        # Get yesterday's close for 1-day return
+        if len(dates) >= 2:
+            prev_str = dates[1]  # yesterday
+            prev_closes = conn.execute(
+                "SELECT ts_code, close FROM daily_price WHERE trade_date=? AND close > 0",
+                (prev_str,)
+            ).fetchall()
+            prev_map = {r[0]: float(r[1]) for r in prev_closes}
+
+            for code, curr_close in curr_map.items():
+                prev_close = prev_map.get(code)
+                industry = code2ind.get(code)
+                if prev_close and prev_close > 0 and industry:
+                    ret_1d = (curr_close / prev_close - 1) * 100
+                    industry_1d.setdefault(industry, []).append(ret_1d)
+
+    # ── Dual confirmation scoring + reversal override ──
     trends: dict[str, str] = {}
     all_industries = set(industry_20d.keys()) | set(industry_ma.keys())
     for industry in all_industries:
@@ -1008,19 +1033,31 @@ def _full_market_sector_trends(trade_date: str) -> dict[str, str]:
 
         # Dual confirmation
         if (ret_strong or ma_strong) and not (ret_weak and ma_weak):
-            # At least one strong, neither both weak
             if ret_strong and ma_strong:
                 trends[industry] = "up"
             elif ret_strong or ma_strong:
-                trends[industry] = "up"  # one signal strong enough
+                trends[industry] = "up"
             else:
                 trends[industry] = "flat"
         elif ret_weak and ma_weak:
             trends[industry] = "down"
         elif ret_weak or ma_weak:
-            trends[industry] = "flat"  # one weak but not both
+            trends[industry] = "flat"
         else:
             trends[industry] = "flat"
+
+        # ── Reversal override ──
+        # If sector was "down" but today's avg 1-day return is extreme (+8%+),
+        # soften to "flat" (potential reversal in progress).
+        # Rationale: collective limit-up day after a crash often marks a
+        # bottom. We don't flip to "up" (needs 3-day confirmation), but
+        # removing the "down" block lets the strategy evaluate candidates.
+        if trends[industry] == "down":
+            rets_1d = industry_1d.get(industry, [])
+            if rets_1d:
+                avg_1d = sum(rets_1d) / len(rets_1d)
+                if avg_1d > 8.0:  # sector avg > +8% today
+                    trends[industry] = "flat"  # potential reversal
 
     return trends
 
