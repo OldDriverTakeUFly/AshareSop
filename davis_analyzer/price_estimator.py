@@ -95,7 +95,9 @@ def estimate_technical_stop(
 ) -> float | None:
     """trailing_stop 技术止损：max(MA20, 近20日最低) × 0.98.
 
-    用前复权价（adj_close = close × adj_factor）计算，与 sell_monitor 逻辑一致。
+    用未复权 close（真实交易价）计算。不用 close×adj_factor——那是绝对前复权，
+    对长期分红股会失真几倍，且与现价（未复权）不可比。
+    短期 20 日窗口内未复权价准确（除非正好有除权日，概率低）。
     数据来自 daily_price 缓存（选股流程的 momentum 已预热），零额外 API。
 
     Args:
@@ -122,14 +124,19 @@ def estimate_technical_stop(
     if len(df) < _STOP_MA_WINDOW:
         return None
 
-    # 前复权收盘
-    adj_close = (df["close"].astype(float) * df["adj_factor"].astype(float)).tail(_STOP_MA_WINDOW)
-    ma20 = adj_close.mean()
-    # 近 20 日最低（用未复权 close 近似，止损位用真实交易价更直观；
-    # adj_factor 在短期窗口内通常≈1，差异可忽略）
-    recent_low = float(df["close"].astype(float).tail(_STOP_LOW_WINDOW).min())
+    # 统一用未复权 close（与现价同基准，可正确比较）
+    closes = df["close"].astype(float)
+    latest_close = float(closes.iloc[-1])
+    ma20 = closes.tail(_STOP_MA_WINDOW).mean()
+    recent_low = float(closes.tail(_STOP_LOW_WINDOW).min())
 
-    trailing_stop = max(ma20, recent_low) * (1 - _STOP_BUFFER)
+    # 下跌趋势保护：当 MA20 > 现价时（股票急跌破均线），max(MA20, low) 会远高于
+    # 现价，止损位无意义（等于"早就该止损"）。此时改用近期低点（更低、更现实），
+    # 避免给出高于现价的止损位。正常趋势（MA20 < 现价）用 max(MA20, low)。
+    if ma20 > latest_close:
+        trailing_stop = recent_low * (1 - _STOP_BUFFER)
+    else:
+        trailing_stop = max(ma20, recent_low) * (1 - _STOP_BUFFER)
     return round(trailing_stop, 2)
 
 
