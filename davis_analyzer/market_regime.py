@@ -56,8 +56,13 @@ def _load_index_returns(index_code: str = "000001.SH",
     return df[["trade_date", "close", "ret"]]
 
 
-def _train_hmm(returns: np.ndarray, n_states: int = 3, random_state: int = 42):
-    """Train a Gaussian HMM on daily returns.
+def _train_hmm(features: np.ndarray, n_states: int = 3, random_state: int = 42):
+    """Train a Gaussian HMM on daily features (returns or multi-index).
+
+    Args:
+        features: (n_samples, n_features) array. For single-index: shape (N, 1).
+                  For multi-index: shape (N, 2) with [sh_ret, cyb_ret].
+        n_states: number of hidden states.
 
     Returns (model, state_labels) where state_labels maps raw state index
     to "bull"/"bear"/"neutral".
@@ -65,23 +70,25 @@ def _train_hmm(returns: np.ndarray, n_states: int = 3, random_state: int = 42):
     import warnings
     from hmmlearn.hmm import GaussianHMM
 
-    # Reshape for hmmlearn (n_samples, n_features)
-    X = returns.reshape(-1, 1)
+    # Ensure 2D (n_samples, n_features)
+    if features.ndim == 1:
+        X = features.reshape(-1, 1)
+    else:
+        X = features
 
     model = GaussianHMM(
         n_components=n_states,
         covariance_type="full",
         n_iter=200,
         random_state=random_state,
-        tol=0.01,  # relax convergence tolerance to avoid warnings
+        tol=0.01,
     )
     with warnings.catch_warnings():
-        warnings.simplefilter("ignore")  # suppress convergence warnings
+        warnings.simplefilter("ignore")
         model.fit(X)
 
-    # Label states by mean return
-    means = model.means_.flatten()  # shape (n_states,)
-    # Sort state indices by mean return: lowest → bear, highest → bull
+    # Label states by mean return (use first feature = SH return for labeling)
+    means = model.means_[:, 0].flatten()  # first column = SH return mean
     sorted_indices = np.argsort(means)
     state_labels = {}
     if n_states == 3:
@@ -93,19 +100,23 @@ def _train_hmm(returns: np.ndarray, n_states: int = 3, random_state: int = 42):
         state_labels[int(sorted_indices[1])] = "bull"
 
     logger.info(
-        f"HMM trained: {n_states} states, "
-        f"means={np.round(means, 5).tolist()}, "
+        f"HMM trained: {n_states} states, {X.shape[1]} features, "
+        f"means(SH)={np.round(means, 5).tolist()}, "
         f"labels={state_labels}"
     )
     return model, state_labels
 
 
 def _ensure_model_trained(end_date: str = "20260723"):
-    """Train HMM if not already trained or if new data available."""
+    """Train HMM if not already trained or if new data available.
+
+    Uses single SH index (multi-index SH+CYB was tested 2026-07-24 and
+    found slightly worse: Sharpe +1.440 vs +1.521 single-index).
+    """
     global _hmm_model, _hmm_state_labels, _hmm_train_end_date, _hmm_predictions
 
     if _hmm_model is not None and _hmm_train_end_date >= end_date:
-        return  # already trained up to this date
+        return
 
     df = _load_index_returns("000001.SH", "20210101", end_date)
     if len(df) < 100:
@@ -116,13 +127,12 @@ def _ensure_model_trained(end_date: str = "20260723"):
     _hmm_model, _hmm_state_labels = _train_hmm(returns, n_states=3)
     _hmm_train_end_date = end_date
 
-    # Pre-compute predictions for all dates (for fast backtest lookup)
     predictions = _hmm_model.predict(returns.reshape(-1, 1))
     _hmm_predictions = {
         df["trade_date"].iloc[i]: _hmm_state_labels.get(int(predictions[i]), "neutral")
         for i in range(len(predictions))
     }
-    logger.info(f"HMM: predicted {_hmm_predictions[end_date] if end_date in _hmm_predictions else '?'} "
+    logger.info(f"HMM: predicted {_hmm_predictions.get(end_date, '?')} "
                 f"for {end_date}, total {len(_hmm_predictions)} dates cached")
 
 

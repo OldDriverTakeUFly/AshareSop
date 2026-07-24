@@ -216,7 +216,17 @@ class FactorThresholdStrategy:
         #   sell=30 → Sharpe +0.252 (BEST)
         #   sell=40 → Sharpe +0.085
         #   sell=45 → Sharpe -0.249
+        #
+        # When enable_adaptive_sell=True, the threshold adjusts by HMM regime:
+        #   bull → 25 (let winners run longer)
+        #   neutral → 30 (standard)
+        #   bear → 35 (exit faster)
         sell_momentum: float = 30.0,
+        enable_adaptive_sell: bool = False,
+        # ── Dynamic position weighting ──
+        # When True, higher composite-score stocks get proportionally larger
+        # position sizes (softmax-like). When False, equal-weight allocation.
+        enable_dynamic_weight: bool = False,
         buy_holder_min: float = 40.0,
         buy_dividend_min: float = 55.0,
         buy_forecast_min: float = 70.0,
@@ -310,6 +320,8 @@ class FactorThresholdStrategy:
         self.max_positions = max_positions
         self.buy_momentum = buy_momentum
         self.sell_momentum = sell_momentum
+        self.enable_adaptive_sell = enable_adaptive_sell
+        self.enable_dynamic_weight = enable_dynamic_weight
         self.buy_holder_min = buy_holder_min
         self.buy_dividend_min = buy_dividend_min
         self.buy_forecast_min = buy_forecast_min
@@ -515,9 +527,21 @@ class FactorThresholdStrategy:
             should_sell = False
 
             # Primary sell: momentum collapse
-            if mom is not None and mom < self.sell_momentum:
+            # Adaptive threshold: adjust sell sensitivity by market regime
+            if self.enable_adaptive_sell:
+                regime = snapshot.market_regime
+                if regime == "bull":
+                    effective_sell = max(20, self.sell_momentum - 5)  # 25: let winners run
+                elif regime in ("bear", "panic"):
+                    effective_sell = self.sell_momentum + 5  # 35: exit faster in bear
+                else:  # neutral / mixed
+                    effective_sell = self.sell_momentum  # 30: standard
+            else:
+                effective_sell = self.sell_momentum
+
+            if mom is not None and mom < effective_sell:
                 should_sell = True
-                reasons.append(f"动量{mom:.0f}<{self.sell_momentum}")
+                reasons.append(f"动量{mom:.0f}<{effective_sell}")
 
             # Prosperity sell: stage turned to 下降拐点 or 减速期 with low score
             if stage in ("下降拐点",) and prosperity is not None and prosperity < 35:
@@ -664,10 +688,27 @@ class FactorThresholdStrategy:
         slots = effective_max - current_hold_count
         if slots > 0:
             bought = 0
-            # Calculate position weight with single-position cap
-            raw_weight = 1.0 / effective_max
-            capped_weight = min(raw_weight, self.max_single_position_pct / 100.0)
-            for code, score, details, industry, dims in all_qualified:
+            # Position sizing: equal-weight (default) or score-weighted
+            if self.enable_dynamic_weight:
+                # Score-weighted allocation: higher composite score → larger weight
+                # Uses softmax-like normalization across qualified candidates
+                scores_list = [s for _, s, _, _, _ in all_qualified[:slots]]
+                if scores_list and max(scores_list) > min(scores_list):
+                    # Normalize scores to 0.5-1.5 range, then normalize to sum=1
+                    s_min, s_max = min(scores_list), max(scores_list)
+                    raw_weights = [0.5 + 1.0 * (s - s_min) / (s_max - s_min)
+                                   for s in scores_list]
+                    total_w = sum(raw_weights)
+                    weights_list = [w / total_w for w in raw_weights]
+                else:
+                    # All same score → equal weight
+                    weights_list = [1.0 / len(scores_list)] * len(scores_list) if scores_list else []
+            else:
+                # Equal weight
+                raw_weight = 1.0 / effective_max
+                capped_weight = min(raw_weight, self.max_single_position_pct / 100.0)
+
+            for idx, (code, score, details, industry, dims) in enumerate(all_qualified):
                 if bought >= slots:
                     break
                 if code in held_codes:
@@ -675,6 +716,15 @@ class FactorThresholdStrategy:
                 # Cooldown check
                 if code in self._cooldown:
                     continue
+
+                # Calculate weight
+                if self.enable_dynamic_weight and idx < len(weights_list):
+                    weight = min(weights_list[idx], self.max_single_position_pct / 100.0)
+                else:
+                    # Fallback: equal weight
+                    raw_w = 1.0 / max(effective_max, 1)
+                    weight = min(raw_w, self.max_single_position_pct / 100.0)
+
                 name = snapshot.stock_names.get(code, code)
                 sector_note = f" 行业{industry}↑" if industry else ""
                 signals.append(
@@ -682,7 +732,7 @@ class FactorThresholdStrategy:
                         ts_code=code,
                         name=name,
                         action="BUY",
-                        target_weight=capped_weight,
+                        target_weight=weight,
                         signal_reason=f"{details}{sector_note}",
                     )
                 )
