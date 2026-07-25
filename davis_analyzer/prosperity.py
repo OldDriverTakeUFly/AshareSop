@@ -209,7 +209,7 @@ def calculate_prosperity_score(
 
     # A1: Cash flow quality adjustment
     latest = sorted_data[-1]
-    if latest.net_profit > 0:
+    if latest.net_profit is not None and latest.net_profit > 0 and latest.operating_cf is not None:
         cf_quality = min(1.0, latest.operating_cf / latest.net_profit)
         profit_score *= cf_quality
 
