@@ -582,6 +582,69 @@ _LOW_VOL_PCTILE = 80.0          # 120d volume percentile ≥ 80% → qualifies l
 _HIGH_VOL_PCTILE = 90.0         # 120d volume percentile ≥ 90% → qualifies high-position
 
 
+# ── Amihud non-liquidity factor ────────────────────────────────────────
+#
+# ILLIQ_i = mean( |daily_return| / daily_amount ) over last 20 trading days.
+# Low ILLIQ = high liquidity → positive. Score = 100 × (1 - cross-sectional pct_rank).
+# Academic (2025 A-share): IC 5.72%, long-short annual 20.63%, Sharpe 2.16.
+
+_AMIHUD_LOOKBACK = 25
+_AMIHUD_MIN_DAYS = 10
+
+
+def _compute_amihud(ts_codes: list[str], trade_date: str) -> dict[str, float]:
+    """Compute Amihud illiquidity score (0-100, higher = more liquid)."""
+    if not ts_codes:
+        return {}
+    with get_market_conn() as conn:
+        date_rows = conn.execute(
+            "SELECT DISTINCT trade_date FROM daily_price "
+            "WHERE trade_date <= ? ORDER BY trade_date DESC LIMIT ?",
+            (trade_date, _AMIHUD_LOOKBACK + 1),
+        ).fetchall()
+    dates = [r[0] for r in date_rows]
+    if len(dates) < _AMIHUD_MIN_DAYS:
+        return {}
+    start_str = dates[-1]
+
+    raw: dict[str, list[tuple]] = {}
+    with get_market_conn() as conn:
+        rows = conn.execute(
+            "SELECT ts_code, close, amount FROM daily_price "
+            "WHERE trade_date >= ? AND trade_date <= ? AND close > 0 AND amount > 0 "
+            "ORDER BY ts_code, trade_date",
+            (start_str, trade_date),
+        ).fetchall()
+    for r in rows:
+        raw.setdefault(r[0], []).append((float(r[1]), float(r[2])))
+
+    illiq_map: dict[str, float] = {}
+    for code in ts_codes:
+        data = raw.get(code)
+        if not data or len(data) < _AMIHUD_MIN_DAYS:
+            continue
+        closes = [d[0] for d in data]
+        amounts = [d[1] for d in data]
+        illiq_vals = []
+        for i in range(1, len(closes)):
+            ret = abs(closes[i] / closes[i - 1] - 1)
+            illiq_vals.append(ret / (amounts[i] * 1000))
+        if illiq_vals:
+            illiq_map[code] = sum(illiq_vals) / len(illiq_vals)
+
+    if not illiq_map:
+        return {}
+
+    sorted_illiq = sorted(illiq_map.values())
+    n = len(sorted_illiq)
+    result: dict[str, float] = {}
+    for code, illiq in illiq_map.items():
+        rank = sum(1 for v in sorted_illiq if v < illiq)
+        pct = rank / n * 100
+        result[code] = round(100 - pct, 1)
+    return result
+
+
 def _compute_volume_signals(ts_codes: list[str], trade_date: str) -> dict[str, dict]:
     """Compute volume-price signals for each stock.
 
@@ -1509,6 +1572,11 @@ class DailyExecutor:
             tech_scores = _load_tech_scores(codes_to_price, trade_date)
         else:
             tech_scores = {}
+        # Amihud liquidity factor — only computed when amihud_weight > 0.
+        if getattr(self.strategy, "amihud_weight", 0) > 0:
+            amihud_scores = _compute_amihud(codes_to_price, trade_date)
+        else:
+            amihud_scores = {}
 
         # ── 3a. Risk management: dynamic + vol-adjusted stop-loss/take-profit ──
         risk_signals = self._check_risk_signals(
@@ -1545,6 +1613,7 @@ class DailyExecutor:
             volume_signal=volume_signals,
             event_signal=event_signals,
             tech_score=tech_scores,
+            amihud=amihud_scores,
         )
 
         # ── 4. Evaluate strategy ──

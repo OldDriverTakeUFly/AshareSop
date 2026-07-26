@@ -78,6 +78,8 @@ class MarketSnapshot:
     # ── Technical factor (composite tech_score, 0-100) ──
     tech_score: dict[str, float] = field(default_factory=dict)
     # ts_code → tech_score (0-100, higher = stronger technical state)
+    # ── Amihud liquidity factor (0-100, higher = more liquid) ──
+    amihud: dict[str, float] = field(default_factory=dict)
 
 
 class Strategy(Protocol):
@@ -227,6 +229,11 @@ class FactorThresholdStrategy:
         # When True, higher composite-score stocks get proportionally larger
         # position sizes (softmax-like). When False, equal-weight allocation.
         enable_dynamic_weight: bool = False,
+        # ── Amihud liquidity weight ──
+        # Weight of Amihud illiquidity score in composite rating.
+        # 0 = disabled (default). When > 0, more liquid stocks rank higher.
+        # Academic: IC 5.72%, orthogonal to momentum/valuation.
+        amihud_weight: float = 0.0,
         buy_holder_min: float = 40.0,
         buy_dividend_min: float = 55.0,
         buy_forecast_min: float = 70.0,
@@ -322,6 +329,7 @@ class FactorThresholdStrategy:
         self.sell_momentum = sell_momentum
         self.enable_adaptive_sell = enable_adaptive_sell
         self.enable_dynamic_weight = enable_dynamic_weight
+        self.amihud_weight = amihud_weight
         self.buy_holder_min = buy_holder_min
         self.buy_dividend_min = buy_dividend_min
         self.buy_forecast_min = buy_forecast_min
@@ -470,11 +478,13 @@ class FactorThresholdStrategy:
 
             vw = self.volume_weight
             tw = self.tech_weight
-            extras_weight = vw + tw
+            aw = self.amihud_weight
+            extras_weight = vw + tw + aw
             legacy_weight = 1.0 - extras_weight
 
             vol_score = snapshot.volume_signal.get(code, {}).get("score", 50.0)
             tech_s = snapshot.tech_score.get(code, 50.0)
+            amihud_s = snapshot.amihud.get(code, 50.0)
 
             if extras_weight > 0:
                 composite = (
@@ -483,11 +493,13 @@ class FactorThresholdStrategy:
                     + prosperity_score * 0.20 * legacy_weight
                     + vol_score * vw
                     + tech_s * tw
+                    + amihud_s * aw
                 )
                 detail_str = (
                     f"动量{mom:.0f} " + " ".join(secondary_details)
                     + (f" 量价{vol_score:.0f}" if vw > 0 else "")
                     + (f" 技术{tech_s:.0f}" if tw > 0 else "")
+                    + (f" 流动{amihud_s:.0f}" if aw > 0 else "")
                 )
             else:
                 composite = mom * 0.4 + best_secondary * 0.4 + prosperity_score * 0.2
