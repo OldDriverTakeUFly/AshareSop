@@ -58,3 +58,11 @@
 # 选股结果写入 invest_watchlist（source=screen_top20），advisor 自动给候选出建议.
 # 跌出 top20 的旧候选自动归档（status=archived），不碰实盘 invest_holdings.
 20 17 * * 1-5 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python studies/sync_screen_to_watchlist.py >> stockhot/invest_sop/logs/screen_sync.log 2>&1
+
+# Inject screen signals → paper_trading forward test account (Mon–Fri, after sync)
+# 选股信号注入 executor，驱动 DavisDoubleStrategy 自动调仓（复用全部安全阀）.
+25 17 * * 1-5 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python studies/inject_screen_to_paper.py >> stockhot/invest_sop/logs/paper_inject.log 2>&1
+
+# Intraday holdings alert (Mon–Fri, 4 checks during trading hours)
+# 用 AKShare 实时价检查模拟账户+手动持仓异动（止损/目标/涨跌幅），触发推飞书.
+30 10,11,13,14 * * 1-5 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python stockhot/invest_sop/scripts/intraday_holdings_alert.py >> stockhot/invest_sop/logs/intraday_holdings.log 2>&1
