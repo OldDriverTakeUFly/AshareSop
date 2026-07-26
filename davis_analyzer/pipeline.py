@@ -298,7 +298,14 @@ def run_screening_pipeline(
             latest = fin_data[0]  # Use latest period for balance sheet
             total_debt = latest.total_debt
             total_assets = latest.total_assets
-            debt_ratio = total_debt / total_assets if total_assets > 0 else 0.0
+            # 防御 None：部分财报（北交所/缺失字段）total_assets 可能为 None，
+            # 原代码 total_assets > 0 会抛 TypeError 并打印完整堆栈（日志膨胀）。
+            if total_assets and total_assets > 0 and total_debt is not None:
+                debt_ratio = total_debt / total_assets
+            else:
+                debt_ratio = 0.0
+                total_debt = total_debt or 0.0
+                total_assets = total_assets or 0.0
             operating_cf = latest.operating_cf
 
             distress = calculate_distress_score(
