@@ -57,7 +57,7 @@ data = get_daily_data(date)
 | `limit_up_pool` | name, code, sector, seal_amount, consecutive_boards | **涨停个股** |
 | `limit_up_analysis` | 嵌套 sector_correlation（name, count, stocks）+ consecutive_boards（board_count, stocks） | **板块联动 + 连板梯队** |
 | `dragon_tiger_detail` | 营业部/机构/游资 | **游资动向** |
-| `fund_flow_market` | main_net, direction | **大盘资金流方向** |
+| `fund_flow_market` | date, main_net, main_pct, huge_net, large_net, medium_net, small_net, **is_latest** | **大盘资金流时序（30 日）**。⚠️ 这是**时序数据升序排列**，取当日值用 `fund_flow_market[-1]` 或筛选 `is_latest=True`，**不要取 `[0]`**（那是 30 天前的最早一条）。如要校验数据新鲜度，比对 `fund_flow_market[-1]['date']` 与今日是否一致。 |
 | `broken_pool` | name, code | **炸板池** |
 | `limit_down_pool` | name, code | **跌停池** |
 | `index_technical` | indices{ts_code→{name,close,pct_chg,technical_score,technical_state,stage,stage_confidence,reasons,expected_action,ma5/10/20/60,support,resistance}}, summary | **大盘技术面（4 指数 6 阶段趋势识别）** |

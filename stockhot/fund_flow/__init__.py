@@ -154,13 +154,20 @@ def fetch_market_fund_flow() -> list[dict]:
     - 中单净流入-净额   → medium_net
     - 小单净流入-净额   → small_net
 
-    Returns a list of dicts with normalised field names.
+    Returns a list of dicts with normalised field names, sorted ascending
+    (oldest → newest). The **last** element is the most recent trading day.
+
+    ⚠️ **消费方注意**：本函数返回的是**时间序列**（最近 N 日），不是单点。
+    取"当日值"请用 ``rows[-1]`` 或筛选 ``date == 期望交易日``，**不要取 ``rows[0]``**
+    （那是 N 天前的最早一条）。``mark_latest_market_flow()`` 会在最新一条加
+    ``is_latest=True`` 标记，``run_fund_flow_analysis`` 也会在返回里单独提供
+    ``latest_market_flow`` 字段方便消费方直接取。
     """
     df = safe_akshare_call(ak.stock_market_fund_flow)
     # 2026-07-07 调整：Tushare 优先，AKShare 兜底（反转原顺序）
     rows = _fetch_market_fund_flow_tushare()
     if rows:
-        return rows
+        return _mark_latest_market_flow(rows)
     logger.info("fetch_market_fund_flow: Tushare empty, trying AKShare fallback")
 
     if df is None or df.empty:
@@ -184,6 +191,22 @@ def fetch_market_fund_flow() -> list[dict]:
             }
         )
     logger.info(f"fetch_market_fund_flow (AKShare fallback): {len(rows)} rows")
+    return _mark_latest_market_flow(rows)
+
+
+def _mark_latest_market_flow(rows: list[dict]) -> list[dict]:
+    """为大盘资金流时序打 ``is_latest`` 标记（最新一条 = True）。
+
+    解决"消费方误取 ``rows[0]`` 当当日"的隐患——
+    ``rows[0]`` 是最早一天，``rows[-1]`` 才是最新。
+
+    幂等：重复调用不会累积 ``is_latest=True``（先全清再标最后一行）。
+    """
+    if not rows:
+        return rows
+    for r in rows:
+        r["is_latest"] = False
+    rows[-1]["is_latest"] = True
     return rows
 
 
@@ -564,7 +587,12 @@ def run_fund_flow_analysis(date: str) -> dict:
     1. Fetches market-wide and sector fund flow data.
     2. Analyses trends.
     3. Saves raw data and analysis result to DB.
-    4. Returns ``{date, status, data}``.
+    4. Returns ``{date, status, data, latest_market_flow, data_stale}``.
+
+    **日期校验**（2026-07-27 加）：``fund_flow_market`` 是 30 日时序，
+    最新一条的 ``date`` 应等于传入 ``date``。不等则说明 Tushare/AKShare
+    当日数据未上线（如盘后 17:30 拉取时数据源延迟），返回 ``data_stale=True``
+    并把实际数据日期记入 ``actual_data_date``，消费方据此决定是否降级处理。
     """
     logger.info(f"run_fund_flow_analysis: date={date}")
 
@@ -575,6 +603,19 @@ def run_fund_flow_analysis(date: str) -> dict:
         logger.warning("run_fund_flow_analysis: no data available")
         return {"date": date, "status": "no_data", "data": {}}
 
+    # 日期一致性校验：market_flow[-1].date 应等于传入 date
+    expected_date_norm = date.replace("-", "")  # YYYY-MM-DD → YYYYMMDD
+    latest_market = market_flow[-1] if market_flow else None
+    actual_date = latest_market.get("date", "") if latest_market else ""
+    actual_date_norm = actual_date.replace("-", "")
+    data_stale = bool(actual_date_norm) and actual_date_norm != expected_date_norm
+    if data_stale:
+        logger.warning(
+            f"run_fund_flow_analysis: DATA STALE — expected {expected_date_norm}, "
+            f"got {actual_date_norm} (fund_flow_market[-1].date). "
+            f"消费方应标注'数据日期待更新'。"
+        )
+
     trend = analyze_fund_flow_trend(market_flow)
     summary = generate_summary(market_flow, sector_flow, trend)
 
@@ -583,6 +624,10 @@ def run_fund_flow_analysis(date: str) -> dict:
         "sector_flow": sector_flow,
         "trend": trend,
         "summary": summary,
+        # 单点字段，方便消费方直接取当日值，无需自行从时序里挑
+        "latest_market_flow": latest_market,
+        "data_stale": data_stale,
+        "actual_data_date": actual_date,
     }
 
     save_daily_data(
@@ -591,5 +636,13 @@ def run_fund_flow_analysis(date: str) -> dict:
 
     save_analysis_result(date, "fund_flow_trend", {"trend": trend, "summary": summary})
 
-    logger.info(f"run_fund_flow_analysis: done — {trend['direction']} / {trend['momentum']}")
-    return {"date": date, "status": "success", "data": data}
+    status = "data_stale" if data_stale else "success"
+    logger.info(f"run_fund_flow_analysis: done — {status} / {trend['direction']} / {trend['momentum']}")
+    return {
+        "date": date,
+        "status": status,
+        "data": data,
+        "latest_market_flow": latest_market,
+        "data_stale": data_stale,
+        "actual_data_date": actual_date,
+    }
