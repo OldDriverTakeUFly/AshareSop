@@ -80,6 +80,10 @@ class MarketSnapshot:
     # ts_code → tech_score (0-100, higher = stronger technical state)
     # ── Amihud liquidity factor (0-100, higher = more liquid) ──
     amihud: dict[str, float] = field(default_factory=dict)
+    # ── Dragon-tiger institutional net-buy (0-100, higher = more accumulation) ──
+    dragon_tiger: dict[str, float] = field(default_factory=dict)
+    # ── Repurchase positive signal (0-100, higher = more bullish) ──
+    repurchase: dict[str, float] = field(default_factory=dict)
 
 
 class Strategy(Protocol):
@@ -234,6 +238,14 @@ class FactorThresholdStrategy:
         # 0 = disabled (default). When > 0, more liquid stocks rank higher.
         # Academic: IC 5.72%, orthogonal to momentum/valuation.
         amihud_weight: float = 0.0,
+        # ── Dragon-tiger (龙虎榜) institutional net-buy weight ──
+        # 0 = disabled (default). When > 0, stocks with recent positive
+        # institutional net-buy on dragon-tiger list rank higher.
+            dragon_tiger_weight: float = 0.0,
+        # ── Repurchase (回购) positive signal weight ──
+        # 0 = disabled (default). When > 0, stocks with recent large
+        # repurchase announcements rank higher (management confidence).
+        repurchase_weight: float = 0.0,
         buy_holder_min: float = 40.0,
         buy_dividend_min: float = 55.0,
         buy_forecast_min: float = 70.0,
@@ -330,6 +342,8 @@ class FactorThresholdStrategy:
         self.enable_adaptive_sell = enable_adaptive_sell
         self.enable_dynamic_weight = enable_dynamic_weight
         self.amihud_weight = amihud_weight
+        self.dragon_tiger_weight = dragon_tiger_weight
+        self.repurchase_weight = repurchase_weight
         self.buy_holder_min = buy_holder_min
         self.buy_dividend_min = buy_dividend_min
         self.buy_forecast_min = buy_forecast_min
@@ -479,12 +493,16 @@ class FactorThresholdStrategy:
             vw = self.volume_weight
             tw = self.tech_weight
             aw = self.amihud_weight
-            extras_weight = vw + tw + aw
+            dw = self.dragon_tiger_weight
+            rw = self.repurchase_weight
+            extras_weight = vw + tw + aw + dw + rw
             legacy_weight = 1.0 - extras_weight
 
             vol_score = snapshot.volume_signal.get(code, {}).get("score", 50.0)
             tech_s = snapshot.tech_score.get(code, 50.0)
             amihud_s = snapshot.amihud.get(code, 50.0)
+            dt_s = snapshot.dragon_tiger.get(code, 50.0)
+            rep_s = snapshot.repurchase.get(code, 50.0)
 
             if extras_weight > 0:
                 composite = (
@@ -494,12 +512,16 @@ class FactorThresholdStrategy:
                     + vol_score * vw
                     + tech_s * tw
                     + amihud_s * aw
+                    + dt_s * dw
+                    + rep_s * rw
                 )
                 detail_str = (
                     f"动量{mom:.0f} " + " ".join(secondary_details)
                     + (f" 量价{vol_score:.0f}" if vw > 0 else "")
                     + (f" 技术{tech_s:.0f}" if tw > 0 else "")
                     + (f" 流动{amihud_s:.0f}" if aw > 0 else "")
+                    + (f" 龙虎{dt_s:.0f}" if dw > 0 else "")
+                    + (f" 回购{rep_s:.0f}" if rw > 0 else "")
                 )
             else:
                 composite = mom * 0.4 + best_secondary * 0.4 + prosperity_score * 0.2

@@ -645,6 +645,170 @@ def _compute_amihud(ts_codes: list[str], trade_date: str) -> dict[str, float]:
     return result
 
 
+def _compute_dragon_tiger_signal(ts_codes: list[str], trade_date: str) -> dict[str, float]:
+    """Compute dragon-tiger (龙虎榜) institutional net-buy score (0-100).
+
+    Looks back 30 calendar days for dragon_tiger entries. A stock that appeared
+    on the dragon-tiger list with positive net_buy = institutional accumulation
+    = bullish signal.
+
+    Score mapping:
+    - Net buy > 0 and appeared recently → 70-90 (strong institutional interest)
+    - Net buy < 0 → 20-35 (institutional distribution)
+    - Not on dragon-tiger → 50 (neutral, most stocks)
+
+    Returns ``{ts_code: score}``.
+    """
+    if not ts_codes:
+        return {}
+    from datetime import datetime, timedelta
+
+    td = datetime.strptime(trade_date, "%Y%m%d")
+    lookback_start = (td - timedelta(days=30)).strftime("%Y%m%d")
+    # dragon_tiger uses YYYY-MM-DD format, convert
+    lookback_start_fmt = f"{lookback_start[:4]}-{lookback_start[4:6]}-{lookback_start[6:]}"
+    trade_date_fmt = f"{trade_date[:4]}-{trade_date[4:6]}-{trade_date[6:]}"
+
+    # Batch query dragon_tiger for all stocks in lookback window
+    with get_market_conn() as conn:
+        rows = conn.execute(
+            "SELECT ts_code, net_buy, trade_date FROM dragon_tiger "
+            "WHERE trade_date >= ? AND trade_date <= ?",
+            (lookback_start_fmt, trade_date_fmt),
+        ).fetchall()
+
+    if not rows:
+        return {}
+
+    # Aggregate per stock
+    dt_map: dict[str, list] = {}
+    for r in rows:
+        code = r[0]
+        net_buy = float(r[1]) if r[1] else 0
+        dt_date = r[2]
+        dt_map.setdefault(code, []).append({"net_buy": net_buy, "date": dt_date})
+
+    # Score each stock
+    result: dict[str, float] = {}
+    for code in ts_codes:
+        entries = dt_map.get(code)
+        if not entries:
+            result[code] = 50.0  # neutral (not on dragon-tiger)
+            continue
+
+        total_net = sum(e["net_buy"] for e in entries)
+        n_entries = len(entries)
+        latest_date = max(e["date"] for e in entries)
+
+        # Recency weighting: more recent = stronger signal
+        # dragon_tiger dates may be YYYY-MM-DD or YYYYMMDD
+        try:
+            if "-" in latest_date:
+                latest_td = datetime.strptime(latest_date, "%Y-%m-%d")
+            else:
+                latest_td = datetime.strptime(latest_date, "%Y%m%d")
+            days_since = (td - latest_td).days
+        except (ValueError, TypeError):
+            days_since = 30
+        recency_mult = max(0.3, 1.0 - days_since / 30.0)  # 30d → 0.3, 0d → 1.0
+
+        # Net buy magnitude in 亿元
+        net_yi = total_net / 1e8
+
+        if net_yi > 0:
+            # Institutional accumulation: base 60 + bonus by magnitude
+            score = 60.0 + min(net_yi * 5 * recency_mult, 30.0)  # cap at 90
+        elif net_yi < 0:
+            # Institutional distribution: base 40 - penalty by magnitude
+            score = 40.0 - min(abs(net_yi) * 3 * recency_mult, 20.0)  # floor at 20
+        else:
+            score = 50.0
+
+        # Multiple appearances bonus (repeated interest)
+        if n_entries > 1 and net_yi > 0:
+            score += min(n_entries * 3, 10)
+
+        result[code] = round(max(10, min(100, score)), 1)
+
+    return result
+
+
+def _compute_repurchase_signal(ts_codes: list[str], trade_date: str) -> dict[str, float]:
+    """Compute repurchase (回购) positive signal (0-100).
+
+    Looks back 90 calendar days for repurchase announcements from corp_event.
+    A stock with recent large repurchase = management confidence = bullish.
+
+    Score mapping:
+    - Large repurchase (>5亿) recently → 80-95
+    - Medium repurchase (1-5亿) → 65-80
+    - Small repurchase (<1亿) → 55-65
+    - No repurchase → 50 (neutral)
+
+    Returns ``{ts_code: score}``.
+    """
+    if not ts_codes:
+        return {}
+    from datetime import datetime, timedelta
+
+    td = datetime.strptime(trade_date, "%Y%m%d")
+    lookback_start = (td - timedelta(days=90)).strftime("%Y%m%d")
+
+    with get_market_conn() as conn:
+        rows = conn.execute(
+            "SELECT ts_code, magnitude, ann_date FROM corp_event "
+            "WHERE event_type='repurchase' AND direction='positive' "
+            "AND magnitude IS NOT NULL AND magnitude > 0 "
+            "AND ann_date >= ? AND ann_date <= ?",
+            (lookback_start, trade_date),
+        ).fetchall()
+
+    if not rows:
+        return {}
+
+    # Aggregate per stock (sum amounts, track latest date)
+    rep_map: dict[str, dict] = {}
+    for r in rows:
+        code = r[0]
+        amount = float(r[1]) if r[1] else 0  # in 元
+        ann_date = r[2]
+        if code not in rep_map:
+            rep_map[code] = {"total": 0, "n": 0, "latest": ann_date}
+        rep_map[code]["total"] += amount
+        rep_map[code]["n"] += 1
+        if ann_date > rep_map[code]["latest"]:
+            rep_map[code]["latest"] = ann_date
+
+    result: dict[str, float] = {}
+    for code in ts_codes:
+        info = rep_map.get(code)
+        if not info:
+            result[code] = 50.0
+            continue
+
+        total_yi = info["total"] / 1e8  # convert to 亿元
+        days_since = (td - datetime.strptime(info["latest"], "%Y%m%d")).days
+        recency_mult = max(0.4, 1.0 - days_since / 90.0)
+
+        # Score by magnitude
+        if total_yi > 10:
+            score = 80.0 + min((total_yi - 10) * 0.5, 15.0) * recency_mult
+        elif total_yi > 5:
+            score = 70.0 + (total_yi - 5) * 2.0 * recency_mult
+        elif total_yi > 1:
+            score = 60.0 + (total_yi - 1) * 2.5 * recency_mult
+        else:
+            score = 55.0 + total_yi * 5.0 * recency_mult
+
+        # Multiple repurchases bonus
+        if info["n"] > 1:
+            score += min(info["n"] * 2, 8)
+
+        result[code] = round(max(10, min(100, score)), 1)
+
+    return result
+
+
 def _compute_volume_signals(ts_codes: list[str], trade_date: str) -> dict[str, dict]:
     """Compute volume-price signals for each stock.
 
@@ -1577,6 +1741,16 @@ class DailyExecutor:
             amihud_scores = _compute_amihud(codes_to_price, trade_date)
         else:
             amihud_scores = {}
+        # Dragon-tiger institutional net-buy — only when dragon_tiger_weight > 0.
+        if getattr(self.strategy, "dragon_tiger_weight", 0) > 0:
+            dt_scores = _compute_dragon_tiger_signal(codes_to_price, trade_date)
+        else:
+            dt_scores = {}
+        # Repurchase positive signal — only when repurchase_weight > 0.
+        if getattr(self.strategy, "repurchase_weight", 0) > 0:
+            rep_scores = _compute_repurchase_signal(codes_to_price, trade_date)
+        else:
+            rep_scores = {}
 
         # ── 3a. Risk management: dynamic + vol-adjusted stop-loss/take-profit ──
         risk_signals = self._check_risk_signals(
@@ -1614,6 +1788,8 @@ class DailyExecutor:
             event_signal=event_signals,
             tech_score=tech_scores,
             amihud=amihud_scores,
+            dragon_tiger=dt_scores,
+            repurchase=rep_scores,
         )
 
         # ── 4. Evaluate strategy ──
