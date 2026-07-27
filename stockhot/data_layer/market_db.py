@@ -141,6 +141,19 @@ _SCHEMA_STATEMENTS: list[str] = [
         fetched_at     REAL,
         PRIMARY KEY (ts_code, trade_date)
     )""",
+    # 准盘中特征（从 daily_price OHLC 直接计算，零新数据源）
+    """CREATE TABLE IF NOT EXISTS intraday_feature (
+        ts_code         TEXT NOT NULL,
+        trade_date      TEXT NOT NULL,
+        gap             REAL,    -- 开盘缺口: open/pre_close - 1
+        amplitude       REAL,    -- 当日振幅: (high - low) / pre_close
+        close_position  REAL,    -- 收盘位置: (close - low) / (high - low), 0-1
+        upper_shadow    REAL,    -- 上影线: (high - max(open,close)) / (high - low)
+        lower_shadow    REAL,    -- 下影线: (min(open,close) - low) / (high - low)
+        body_ratio      REAL,    -- 实体比: (close - open) / (high - low)
+        fetched_at      REAL,
+        PRIMARY KEY (ts_code, trade_date)
+    )""",
 
     # ═══ 盘面采集表（从 stockhot.db daily_data JSON blob 结构化）═══════
     # 统一涨停/炸板/跌停池（pool_kind 鉴别列）
@@ -275,6 +288,10 @@ _SCHEMA_STATEMENTS: list[str] = [
         ivix_current    REAL,
         rv20_max_pct    REAL,             -- 5 指数中最高的 RV20 分位
         rv20_indices_p90 INTEGER,         -- P90+ 的指数数量
+        quadrant        TEXT,             -- 四象限标签：下跌恐慌/逼空过热/阴跌预警/强势上涨
+        intensity_score REAL,             -- 强度分 0-100（波幅×0.5+跌幅×0.3+行为×0.2）
+        direction_score REAL,             -- 方向综合分（负=下跌，正=上涨）
+        sse_pct_chg     REAL,             -- 上证当日涨跌幅 %
         created_at      REAL,
         UNIQUE(trade_date, check_time)    -- 同一时点重复运行覆盖
     )""",
@@ -372,10 +389,36 @@ def init_db(db_path: Path | None = None) -> None:
             conn.execute("PRAGMA synchronous=NORMAL")  # WAL 下 NORMAL 足够安全
             for stmt in _SCHEMA_STATEMENTS:
                 conn.execute(stmt)
+            # 幂等列迁移：对已存在的旧表补加新列（CREATE TABLE IF NOT EXISTS 不会更新已有表）
+            _apply_column_migrations(conn)
             conn.commit()
 
     if db_path is None:
         _initialized = True
+
+
+# 幂等列迁移声明：(表名, 列名, 列定义)
+# 启动时检测：若列不存在则 ALTER TABLE ADD COLUMN；已存在则跳过
+_COLUMN_MIGRATIONS: list[tuple[str, str, str]] = [
+    # panic_history 四象限细化（2026-07-27）：方向维度 + 强度分
+    ("panic_history", "quadrant", "TEXT"),
+    ("panic_history", "intensity_score", "REAL"),
+    ("panic_history", "direction_score", "REAL"),
+    ("panic_history", "sse_pct_chg", "REAL"),
+]
+
+
+def _apply_column_migrations(conn: sqlite3.Connection) -> None:
+    """对已存在的表幂等加列（兼容历史数据库，不丢数据）.
+
+    对每个 (table, column, type) 三元组：查 PRAGMA table_info，列不存在则
+    ALTER TABLE ADD COLUMN。SQLite 不支持 IF NOT EXISTS 加列，故用 PRAGMA 检测。
+    """
+    for table, column, col_type in _COLUMN_MIGRATIONS:
+        # PRAGMA table_info 返回 (cid, name, type, notnull, dflt_value, pk)
+        existing = {r[1] for r in conn.execute(f"PRAGMA table_info({table})").fetchall()}
+        if column not in existing:
+            conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {col_type}")
 
 
 def get_connection(db_path: Path | None = None) -> sqlite3.Connection:

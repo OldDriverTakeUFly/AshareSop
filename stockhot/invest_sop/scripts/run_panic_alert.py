@@ -1,15 +1,23 @@
 #!/usr/bin/env python
-"""盘中恐慌预警入口脚本 — 检测三大恐慌信号，达标时推送飞书.
+"""盘中恐慌预警入口脚本 — 检测四象限市场状态，推送飞书.
 
 Designed for crontab — 盘中定时运行（10:30/11:30/13:30/14:30）。
-非交易日或无信号触发时不推送（避免打扰）。
+非交易日或数据完全不可用时不推送。
 
-三大信号（任一达标即推送）：
+四象限分类（叠加方向维度，区分加仓点/减仓点）：
+  🔴 下跌恐慌：高波 P90+ × 方向↓ → 减仓信号
+  🟠 逼空过热：高波 P90+ × 方向↑ → 防回撤
+  🟡 阴跌预警：低波 P90- × 方向↓ → 谨慎观望
+  🟢 强势上涨：低波 P90- × 方向↑ → 加仓机会
+
+四象限都推送（每个都有行动参考），仅当 quadrant 为空（数据全部不可用）时不推。
+
+三大传统信号仍并行检测（用于详情展示）：
 1. 系统性恐慌：≥3 个指数 RV20 历史分位 ≥ 90
 2. 行为面恐慌抛售：涨跌停比 < 0.5 或 跌停占比 > 50%
 3. iVIX/V-R 极端值：iVIX > 25 或 V/R > 1.3
 
-⚠️ 信号仅提示恐慌升温，不构成交易建议。
+⚠️ 信号仅提示市场状态，不构成交易建议。
 
 Usage:
     .venv/bin/python stockhot/invest_sop/scripts/run_panic_alert.py [--dry-run]
@@ -61,14 +69,16 @@ def main(argv: list[str] | None = None) -> int:
         msg = msg + "\n" + trend_text
     print(msg)
 
-    # 无触发 → 不推送
-    if not report.any_triggered:
-        print(f"\n[{date.today().isoformat()}] 无恐慌信号触发，不推送")
+    # 推送策略：四象限都推（强势=加仓机会，下跌=减仓信号，同等信息价值）
+    # 仅当 quadrant 为空（数据全部不可用）时才不推
+    should_push = bool(report.quadrant)
+    if not should_push:
+        print(f"\n[{date.today().isoformat()}] 象限判定数据不足，不推送")
         _log_panic_scan(report, "normal")
         return 0
 
-    # 有触发 → 推送飞书
-    print(f"\n[{date.today().isoformat()}] 恐慌信号触发：{report.triggered_names}")
+    # 推送飞书
+    print(f"\n[{date.today().isoformat()}] 推送象限={report.quadrant} 强度={report.intensity_score:.0f}")
 
     if args.dry_run:
         print("[DRY-RUN] 不推送飞书")
@@ -82,28 +92,36 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def _save_panic_history(report) -> None:
-    """把本次检测读数写入 panic_history 表."""
+    """把本次检测读数写入 panic_history 表.
+
+    直接从 report 的结构化字段读（不再用正则解析 detail 文本）：
+    - 涨跌停：从 report.direction（DirectionReading）读
+    - RV20：从 report.volatility_indices 聚合
+    - iVIX：从 report.ivix_value 读
+    - 象限/强度/方向：从 report 顶层字段读
+    """
     try:
         from stockhot.data_layer import get_repository
         repo = get_repository()
-        # 从 report 提取关键读数
+
+        # 行为面读数（优先从 direction 拿，回退到 signals 解析）
         limit_up = limit_down = broken = None
         up_down_ratio = None
-        for sig in report.signals:
-            if "行为面" in sig.name:
-                # detail 格式: "涨停X/跌停Y/炸板Z，涨跌停比W..."
-                import re
-                m = re.search(r"涨停(\d+)/跌停(\d+)/炸板(\d+).*?涨跌停比([\d.]+)", sig.detail)
-                if m:
-                    limit_up = int(m.group(1))
-                    limit_down = int(m.group(2))
-                    broken = int(m.group(3))
-                    up_down_ratio = float(m.group(4))
+        if report.direction is not None:
+            limit_up = report.direction.limit_up
+            limit_down = report.direction.limit_down
+            broken = report.direction.broken
+            up_down_ratio = report.direction.limit_ratio
 
+        # RV20 聚合
         rv20_max_pct = max(
             (i.rv20_pct for i in report.volatility_indices), default=None
         )
         rv20_p90_n = sum(1 for i in report.volatility_indices if i.rv20_pct >= 90)
+
+        # 方向分（direction_score / sse_pct_chg）
+        direction_score = report.direction.direction_score if report.direction else None
+        sse_pct_chg = report.direction.sse_pct_chg if report.direction else None
 
         repo.save_panic_history(
             trade_date=report.trade_date,
@@ -115,6 +133,10 @@ def _save_panic_history(report) -> None:
             ivix_current=report.ivix_value,
             rv20_max_pct=rv20_max_pct,
             rv20_indices_p90=rv20_p90_n,
+            quadrant=report.quadrant or None,
+            intensity_score=report.intensity_score or None,
+            direction_score=direction_score,
+            sse_pct_chg=sse_pct_chg,
         )
     except Exception as e:
         print(f"[WARN] save_panic_history failed: {e}")

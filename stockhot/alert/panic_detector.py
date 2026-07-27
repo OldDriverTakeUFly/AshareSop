@@ -41,6 +41,21 @@ _DOWN_RATIO_THRESHOLD = 0.50  # 跌停占比阈值（> 此值 = 系统性恐慌�
 _IVIX_THRESHOLD = 25.0  # iVIX 明显恐慌上限
 _VR_RATIO_THRESHOLD = 1.3  # V/R 期权极贵阈值
 
+# 方向维度权重（_detect_direction 综合方向分）
+# direction_score = sign(当日涨跌)×0.4 + sign(涨跌停结构-1)×0.3 + sign(5日累计)×0.3
+_DIR_WEIGHT_TODAY = 0.4      # 当日涨跌（最即时）
+_DIR_WEIGHT_LIMIT = 0.3      # 涨跌停结构（行为确认）
+_DIR_WEIGHT_CUM5D = 0.3      # 5 日累计（趋势背景）
+# 涨跌停结构比的中性阈值：ratio > 1 偏多，< 1 偏空（与行为面恐慌的 0.5 阈值不冲突）
+_LIMIT_RATIO_NEUTRAL = 1.0
+
+# 强度分权重（_compute_intensity，0-100）
+# panic_score = rv20_max_pct × 0.5 + max(0,-跌幅)×10×0.3 + 跌停占比×100×0.2
+_INTENSITY_WEIGHT_RV = 0.5
+_INTENSITY_WEIGHT_DROP = 0.3
+_INTENSITY_WEIGHT_DOWNRATIO = 0.2
+_INTENSITY_DROP_MULTIPLIER = 10.0  # 把跌幅%放大到与 P 分位可比的量级（-2% → 贡献 6 分）
+
 # 监控的指数（与 volatility 模块一致）
 _INDICES = ["000001.SH", "399001.SZ", "000300.SH", "399006.SZ", "000688.SH"]
 _INDEX_NAMES = {
@@ -64,6 +79,39 @@ class IndexVolatility:
 
 
 @dataclass
+class LimitBehaviorReading:
+    """涨跌停行为面结构化读数（_detect_limit_behavior 内部用，传给方向维度复用）."""
+
+    limit_up: int = 0
+    limit_down: int = 0
+    broken: int = 0
+    up_down_ratio: float | None = None  # up / max(down, 1)
+    down_ratio: float | None = None     # down / (up + down)
+    available: bool = False             # 数据是否可用（up+down>0）
+
+
+@dataclass
+class DirectionReading:
+    """方向维度读数（4 维聚合）.
+
+    RV20 是标准差，只衡量波幅不衡量方向。本 dataclass 叠加方向维度，
+    用于把"系统性恐慌"细化为四象限：下跌恐慌/逼空过热/阴跌预警/强势上涨。
+    """
+
+    sse_pct_chg: float | None = None     # 上证当日涨跌幅 %
+    hs300_pct_chg: float | None = None   # 沪深300 当日涨跌幅 %
+    cum_5d_pct: float | None = None      # 上证近 5 日累计涨跌 %
+    rv20_delta_5d: float | None = None   # RV20 5 日变化（上升速率）
+    limit_up: int | None = None          # 涨停数（从行为面信号复用）
+    limit_down: int | None = None        # 跌停数
+    broken: int | None = None            # 炸板数
+    limit_ratio: float | None = None     # 涨跌停结构比（up / max(down,1)）
+    direction_score: float = 0.0         # 综合方向分（负=下跌，正=上涨）
+    direction_label: str = "中性"        # "上涨" / "下跌" / "中性"
+    available: bool = False              # 至少一个维度有数据
+
+
+@dataclass
 class SignalResult:
     """单个信号的检测结果."""
 
@@ -83,6 +131,11 @@ class PanicReport:
     volatility_indices: list[IndexVolatility] = field(default_factory=list)
     ivix_value: float | None = None
     vr_ratio: float | None = None
+    # 四象限细化（2026-07-27）：方向 + 象限 + 强度分
+    direction: DirectionReading | None = None
+    quadrant: str = ""                            # "下跌恐慌"/"逼空过热"/"阴跌预警"/"强势上涨"
+    intensity_score: float = 0.0                  # 0-100
+    intensity_label: str = ""                     # "极低/偏低/中等/偏高/极高"
 
     @property
     def any_triggered(self) -> bool:
@@ -146,10 +199,11 @@ def _fetch_realtime_index_prices() -> dict[str, float]:
     return price_map
 
 
-def _detect_rv_volatility() -> tuple[list[IndexVolatility], SignalResult]:
+def _detect_rv_volatility() -> tuple[list[IndexVolatility], SignalResult, dict[str, float]]:
     """检测 RV20 历史分位（盘中实时）.
 
     用 DAL index_daily 拿历史 250 日 close，最后一点替换为实时价，算 RV20 + 分位。
+    返回 (indices_vol, signal, realtime_prices)：实时价回传给方向维度复用。
     """
     from stockhot.data_layer import get_repository
 
@@ -219,7 +273,7 @@ def _detect_rv_volatility() -> tuple[list[IndexVolatility], SignalResult]:
         detail=detail,
         available=bool(indices_vol),
     )
-    return indices_vol, signal
+    return indices_vol, signal, realtime_prices
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -227,8 +281,12 @@ def _detect_rv_volatility() -> tuple[list[IndexVolatility], SignalResult]:
 # ═══════════════════════════════════════════════════════════════════
 
 
-def _detect_limit_behavior() -> SignalResult:
-    """检测涨跌停行为面（盘中实时，AKShare 东财源）."""
+def _detect_limit_behavior() -> tuple[SignalResult, LimitBehaviorReading]:
+    """检测涨跌停行为面（盘中实时，AKShare 东财源）.
+
+    返回 (SignalResult, LimitBehaviorReading)：前者用于消息格式化，
+    后者是结构化读数，传给 _detect_direction 复用（避免正则解析 detail 文本）。
+    """
     import akshare as ak
     from stockhot.core.rate_limiter import safe_akshare_call
 
@@ -257,7 +315,10 @@ def _detect_limit_behavior() -> SignalResult:
         logger.warning(f"[panic] broken_pool failed: {e}")
 
     if n_up + n_down == 0:
-        return SignalResult(name="行为面恐慌", triggered=False, detail="数据不可用", available=False)
+        return (
+            SignalResult(name="行为面恐慌", triggered=False, detail="数据不可用", available=False),
+            LimitBehaviorReading(available=False),
+        )
 
     ratio = n_up / max(n_down, 1)
     down_ratio = n_down / (n_up + n_down)
@@ -267,11 +328,17 @@ def _detect_limit_behavior() -> SignalResult:
               f"涨跌停比{ratio:.2f}{'(<0.5 恐慌抛售)' if ratio < _LIMIT_UP_DOWN_RATIO_THRESHOLD else ''}，"
               f"跌停占比{down_ratio:.0%}{f'(>50% 系统性恐慌)' if down_ratio > _DOWN_RATIO_THRESHOLD else ''}")
 
-    return SignalResult(
+    signal = SignalResult(
         name="行为面恐慌抛售",
         triggered=triggered,
         detail=detail,
     )
+    reading = LimitBehaviorReading(
+        limit_up=n_up, limit_down=n_down, broken=n_broken,
+        up_down_ratio=ratio, down_ratio=down_ratio,
+        available=True,
+    )
+    return signal, reading
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -281,6 +348,8 @@ def _detect_limit_behavior() -> SignalResult:
 
 def _classify_ivix_level(ivix_value: float) -> str:
     """iVIX 绝对值 → 恐慌等级（复用 volatility analyzer 的 7 档）."""
+    if pd.isna(ivix_value):
+        return "数据不可用"
     if ivix_value < 12:
         return "极度自满"
     if ivix_value < 18:
@@ -307,7 +376,9 @@ def _detect_ivix_vr() -> tuple[float | None, float | None, SignalResult]:
     try:
         df = safe_akshare_call(ak.index_option_50etf_min_qvix)
         if df is not None and not df.empty:
-            ivix_value = float(df.iloc[-1]["qvix"])
+            raw = float(df.iloc[-1]["qvix"])
+            # AKShare 可能返回 NaN（盘外/数据缺失），过滤
+            ivix_value = raw if not pd.isna(raw) else None
     except Exception as e:
         logger.warning(f"[panic] intraday iVIX failed: {e}")
 
@@ -363,32 +434,292 @@ def _detect_ivix_vr() -> tuple[float | None, float | None, SignalResult]:
 
 
 # ═══════════════════════════════════════════════════════════════════
+# 信号 4：方向维度（四象限细化）
+# RV20 是标准差只衡量波幅不衡量方向，需叠加方向维度才能区分
+# "高波 + 上涨（逼空/强势）" vs "高波 + 下跌（真恐慌）"
+# ═══════════════════════════════════════════════════════════════════
+
+
+def _compute_realtime_pct_chg(ts_code: str, realtime_prices: dict[str, float]) -> float | None:
+    """用 DAL 昨收 + AKShare 实时价算当日涨跌幅（盘中近似）.
+
+    优先用 AKShare 实时价 / 昨收 - 1（盘中场景）。
+    AKShare 实时价不可用时，回退到 DB index_daily.pct_chg——但仅当最后一行
+    就是今日时才用，避免数据滞后误判（DB 未更新时取到昨日 pct_chg）。
+    """
+    from stockhot.data_layer import get_repository
+
+    today_str = date.today().strftime("%Y%m%d")
+    today_iso = date.today().isoformat()
+
+    try:
+        repo = get_repository()
+        end_date = today_str
+        start_date = (date.today() - timedelta(days=20)).strftime("%Y%m%d")
+        df = repo.get_index_daily(ts_code, start_date, end_date)
+        if df.empty:
+            return None
+
+        # 路径 1：实时价 / 昨收 - 1（盘中）
+        if ts_code in realtime_prices:
+            rt = realtime_prices[ts_code]
+            if rt > 0 and len(df) >= 2:
+                prev_close = float(df["close"].iloc[-2])
+                if prev_close > 0:
+                    return round((rt / prev_close - 1) * 100, 3)
+
+        # 路径 2：DB pct_chg 回退——仅当最后一行 trade_date == 今日时才可信
+        # 否则 DB 数据滞后（今日 daily_scan 尚未跑），返回 None 比取昨日的值安全
+        last_trade_date = str(df["trade_date"].iloc[-1])
+        if last_trade_date in (today_str, today_iso):
+            latest_pct = df["pct_chg"].iloc[-1]
+            if pd.notna(latest_pct):
+                return round(float(latest_pct), 3)
+
+        return None
+    except Exception as e:
+        logger.warning(f"[panic] realtime pct_chg for {ts_code} failed: {e}")
+        return None
+
+
+def _compute_cum_5d_pct(ts_code: str) -> float | None:
+    """计算近 5 个交易日累计涨跌幅（近似 ∑pct_chg，DB 已收盘数据精确）."""
+    from stockhot.data_layer import get_repository
+
+    try:
+        repo = get_repository()
+        end_date = date.today().strftime("%Y%m%d")
+        start_date = (date.today() - timedelta(days=15)).strftime("%Y%m%d")
+        df = repo.get_index_daily(ts_code, start_date, end_date)
+        if df.empty:
+            return None
+        recent = df.tail(5)
+        if recent.empty:
+            return None
+        return round(float(recent["pct_chg"].sum()), 2)
+    except Exception as e:
+        logger.warning(f"[panic] cum_5d_pct for {ts_code} failed: {e}")
+        return None
+
+
+def _compute_rv20_delta_5d(ts_code: str) -> float | None:
+    """计算 RV20 在近 5 日的变化（上升速率）.
+
+    从 DAL 拉近 30 日 close，分别算 5 日前和今日的 RV20 取差。
+    正值=波动加速，负值=波动衰减。
+    """
+    from stockhot.data_layer import get_repository
+
+    try:
+        repo = get_repository()
+        end_date = date.today().strftime("%Y%m%d")
+        start_date = (date.today() - timedelta(days=60)).strftime("%Y%m%d")
+        df = repo.get_index_daily(ts_code, start_date, end_date)
+        if df.empty or len(df) < 30:
+            return None
+        closes = np.array(df["close"].astype(float).values, dtype=float)
+        log_returns = np.diff(np.log(closes))
+        if len(log_returns) < 25:
+            return None
+        # 今日 RV20（最后 20 个 log return）
+        rv_today = np.std(log_returns[-20:]) * np.sqrt(242) * 100
+        # 5 日前 RV20（往前推 5 个 log return，再取 20 个）
+        if len(log_returns) < 25:
+            return None
+        rv_5d_ago = np.std(log_returns[-25:-5]) * np.sqrt(242) * 100
+        return round(float(rv_today - rv_5d_ago), 2)
+    except Exception as e:
+        logger.warning(f"[panic] rv20_delta_5d for {ts_code} failed: {e}")
+        return None
+
+
+def _detect_direction(
+    limit_reading: LimitBehaviorReading,
+    realtime_prices: dict[str, float] | None = None,
+) -> DirectionReading:
+    """方向维度综合检测（4 维聚合）.
+
+    参数：
+        limit_reading: 行为面结构化读数（涨跌停数 + 结构比）
+        realtime_prices: AKShare 实时指数价（用于算当日涨跌）；None 时只靠 DB
+
+    返回：
+        DirectionReading，direction_score 聚合三维度符号（负空正多）
+    """
+    realtime_prices = realtime_prices or {}
+
+    # 维度 1：指数当日涨跌幅（上证 + 沪深300）
+    sse_chg = _compute_realtime_pct_chg("000001.SH", realtime_prices)
+    hs300_chg = _compute_realtime_pct_chg("000300.SH", realtime_prices)
+
+    # 维度 2：涨跌停结构比（已由 _detect_limit_behavior 采集）
+    limit_ratio = limit_reading.up_down_ratio if limit_reading.available else None
+
+    # 维度 3：近 5 日累计涨跌（上证）
+    cum_5d = _compute_cum_5d_pct("000001.SH")
+
+    # 维度 4：RV20 5 日变化（上证，仅作注解，不参与 direction_score）
+    rv20_delta = _compute_rv20_delta_5d("000001.SH")
+
+    # ── 综合方向分：加权符号聚合 ──
+    # 用 sign 而非原始值，避免某维度数值过大主导；权重反映即时性
+    score = 0.0
+    weight_used = 0.0
+    if sse_chg is not None:
+        score += _DIR_WEIGHT_TODAY * (1 if sse_chg > 0 else (-1 if sse_chg < 0 else 0))
+        weight_used += _DIR_WEIGHT_TODAY
+    if limit_ratio is not None:
+        # ratio > 1 偏多，< 1 偏空（与行为面恐慌阈值 0.5 不冲突）
+        sign = 1 if limit_ratio > _LIMIT_RATIO_NEUTRAL else (-1 if limit_ratio < _LIMIT_RATIO_NEUTRAL else 0)
+        score += _DIR_WEIGHT_LIMIT * sign
+        weight_used += _DIR_WEIGHT_LIMIT
+    if cum_5d is not None:
+        score += _DIR_WEIGHT_CUM5D * (1 if cum_5d > 0 else (-1 if cum_5d < 0 else 0))
+        weight_used += _DIR_WEIGHT_CUM5D
+
+    # 归一化到 [-1, 1]：避免某维度缺失导致分数系统性偏低
+    direction_score = round(score / weight_used, 3) if weight_used > 0 else 0.0
+
+    if direction_score > 0.001:
+        label = "上涨"
+    elif direction_score < -0.001:
+        label = "下跌"
+    else:
+        label = "中性"
+
+    available = any(v is not None for v in [sse_chg, hs300_chg, limit_ratio, cum_5d])
+
+    return DirectionReading(
+        sse_pct_chg=sse_chg,
+        hs300_pct_chg=hs300_chg,
+        cum_5d_pct=cum_5d,
+        rv20_delta_5d=rv20_delta,
+        limit_up=limit_reading.limit_up if limit_reading.available else None,
+        limit_down=limit_reading.limit_down if limit_reading.available else None,
+        broken=limit_reading.broken if limit_reading.available else None,
+        limit_ratio=limit_ratio,
+        direction_score=direction_score,
+        direction_label=label,
+        available=available,
+    )
+
+
+def _classify_quadrant(
+    direction: DirectionReading | None,
+    indices_vol: list[IndexVolatility],
+) -> str:
+    """四象限判定：波动率（高/低）× 方向（上/下）.
+
+    返回 ""（空串）表示数据不足以判定（方向维度完全不可用 + 无 RV20 数据）。
+
+    象限定义：
+        高波 P90+ × 下跌 → "下跌恐慌"   🔴
+        高波 P90+ × 上涨 → "逼空过热"   🟠
+        低波 P90- × 下跌 → "阴跌预警"   🟡
+        低波 P90- × 上涨 → "强势上涨"   🟢
+    """
+    if not indices_vol:
+        return ""
+    # 高波定义：≥3 指数 P90+（与系统性恐慌阈值一致）
+    panic_n = sum(1 for i in indices_vol if i.rv20_pct >= _RV_PCT_THRESHOLD)
+    high_vol = panic_n >= _RV_PCT_MIN_INDICES
+
+    if direction is None or not direction.available:
+        # 方向维度不可用时，仅按波动率粗分（高波=恐慌，低波=平静）
+        return "下跌恐慌" if high_vol else "强势上涨"
+
+    is_up = direction.direction_score >= 0  # 中性（=0）按上涨处理（避免无端恐慌）
+
+    if high_vol and not is_up:
+        return "下跌恐慌"
+    if high_vol and is_up:
+        return "逼空过热"
+    if not high_vol and not is_up:
+        return "阴跌预警"
+    return "强势上涨"
+
+
+def _compute_intensity(
+    indices_vol: list[IndexVolatility],
+    direction: DirectionReading | None,
+) -> tuple[float, str]:
+    """计算强度分（0-100）+ 等级标签.
+
+    panic_score = rv20_max_pct × 0.5 + max(0,-跌幅)×5×0.3 + 跌停占比×100×0.2
+
+    特性：涨日跌幅贡献=0，分数自然偏低；跌日三项叠加，分数高。
+    """
+    # 分项 1：波动率分位（取 5 指数最高 RV20 分位）
+    rv_max_pct = max((i.rv20_pct for i in indices_vol), default=0.0)
+    rv_contrib = rv_max_pct * _INTENSITY_WEIGHT_RV
+
+    # 分项 2：当日跌幅（涨日为 0）
+    sse_chg = direction.sse_pct_chg if direction else None
+    drop_pct = max(0.0, -sse_chg) if sse_chg is not None else 0.0
+    drop_contrib = drop_pct * _INTENSITY_DROP_MULTIPLIER * _INTENSITY_WEIGHT_DROP
+
+    # 分项 3：跌停占比（涨跌停结构）
+    limit_down = direction.limit_down if direction else None
+    limit_up = direction.limit_up if direction else None
+    if limit_down is not None and limit_up is not None and (limit_up + limit_down) > 0:
+        down_ratio = limit_down / (limit_up + limit_down)
+        down_contrib = down_ratio * 100 * _INTENSITY_WEIGHT_DOWNRATIO
+    else:
+        down_contrib = 0.0
+
+    score = max(0.0, min(100.0, rv_contrib + drop_contrib + down_contrib))
+    score = round(score, 1)
+
+    # 等级标签
+    if score >= 75:
+        label = "极高"
+    elif score >= 55:
+        label = "偏高"
+    elif score >= 35:
+        label = "中等"
+    elif score >= 20:
+        label = "偏低"
+    else:
+        label = "极低"
+
+    return score, label
+
+
+# ═══════════════════════════════════════════════════════════════════
 # 综合检测 + 消息格式化
 # ═══════════════════════════════════════════════════════════════════
 
 
 def detect_panic_signals() -> PanicReport:
-    """盘中恐慌信号综合检测（三大信号独立）.
+    """盘中恐慌信号综合检测（三大信号 + 方向维度独立）.
 
     每个信号独立 try/except，单源失败降级为"数据不可用"，不影响其他信号。
+    最后聚合方向维度 → 四象限 + 强度分。
     """
     report = PanicReport(
         trade_date=date.today().isoformat(),
         timestamp=time.strftime("%H:%M"),
     )
 
+    # 行为面结构化读数（信号 2 内部采集，传给方向维度复用）
+    limit_reading = LimitBehaviorReading(available=False)
+    # 实时指数价（信号 1 已采集，传给方向维度复用，避免重复拉 AKShare）
+    realtime_prices: dict[str, float] = {}
+
     # 信号 1：RV20
     try:
-        indices_vol, sig_rv = _detect_rv_volatility()
+        indices_vol, sig_rv, rt_prices = _detect_rv_volatility()
         report.volatility_indices = indices_vol
         report.signals.append(sig_rv)
+        realtime_prices = rt_prices
     except Exception as e:
         logger.error(f"[panic] RV20 detection error: {e}")
         report.signals.append(SignalResult("系统性恐慌", False, f"检测异常: {e}", available=False))
 
     # 信号 2：涨跌停行为
     try:
-        report.signals.append(_detect_limit_behavior())
+        sig_limit, limit_reading = _detect_limit_behavior()
+        report.signals.append(sig_limit)
     except Exception as e:
         logger.error(f"[panic] limit behavior error: {e}")
         report.signals.append(SignalResult("行为面恐慌抛售", False, f"检测异常: {e}", available=False))
@@ -403,23 +734,127 @@ def detect_panic_signals() -> PanicReport:
         logger.error(f"[panic] iVIX detection error: {e}")
         report.signals.append(SignalResult("期权面极端", False, f"检测异常: {e}", available=False))
 
+    # 信号 4：方向维度 → 四象限 + 强度分
+    try:
+        direction = _detect_direction(limit_reading, realtime_prices)
+        report.direction = direction
+        report.quadrant = _classify_quadrant(direction, report.volatility_indices)
+        score, label = _compute_intensity(report.volatility_indices, direction)
+        report.intensity_score = score
+        report.intensity_label = label
+    except Exception as e:
+        logger.error(f"[panic] direction detection error: {e}")
+        # 方向失败不影响三大信号，但象限会降级为空（按波动率粗分）
+        report.quadrant = _classify_quadrant(None, report.volatility_indices)
+
     return report
 
 
+# 四象限元数据：emoji + 行动参考文案（用于 format_alert_message）
+# 顺序与 _classify_quadrant 返回值对应
+_QUADRANT_META: dict[str, dict[str, str]] = {
+    "下跌恐慌": {
+        "emoji": "🔴",
+        "subtitle": "高波 × 方向↓ → 减仓信号",
+        "disclaimer": "⚠️ 减仓信号：高波 + 下跌共振，减仓决策结合持仓与风控。",
+    },
+    "逼空过热": {
+        "emoji": "🟠",
+        "subtitle": "高波 × 方向↑ → 防回撤",
+        "disclaimer": "⚠️ 高波强势：方向向上但波动大，注意热点轮动和回撤风险。",
+    },
+    "阴跌预警": {
+        "emoji": "🟡",
+        "subtitle": "低波 × 方向↓ → 谨慎观望",
+        "disclaimer": "⚠️ 风险累积：低波阴跌，趋势偏弱。警惕破位加速下行。",
+    },
+    "强势上涨": {
+        "emoji": "🟢",
+        "subtitle": "低波 × 方向↑ → 加仓机会",
+        "disclaimer": "⚠️ 加仓机会：方向向上 + 结构健康。注意仓位控制、不盲目追高。",
+    },
+}
+
+
+def _format_pct(value: float | None, suffix: str = "%") -> str:
+    """格式化百分比，None 显示为 'N/A'."""
+    if value is None:
+        return "N/A"
+    sign = "+" if value >= 0 else ""
+    return f"{sign}{value:.2f}{suffix}"
+
+
+def _format_direction_section(direction: DirectionReading) -> list[str]:
+    """格式化方向拆解章节（4 维读数）."""
+    lines = ["【方向拆解】"]
+
+    # 当日涨跌（上证 + 沪深300）
+    sse = _format_pct(direction.sse_pct_chg)
+    hs300 = _format_pct(direction.hs300_pct_chg)
+    lines.append(f"  上证当日  {sse:8s}  沪深300  {hs300}")
+
+    # 5 日累计
+    cum5 = _format_pct(direction.cum_5d_pct)
+    lines.append(f"  上证5日  {cum5:8s}  ({direction.direction_label})")
+
+    # 涨跌停结构
+    if direction.limit_up is not None and direction.limit_down is not None:
+        lu, ld = direction.limit_up, direction.limit_down
+        ratio = direction.limit_ratio if direction.limit_ratio is not None else (lu / max(ld, 1))
+        # 结构定性：综合考虑 ratio 和跌停占比
+        # ratio 反映相对强弱，跌停占比反映抛售广度（>30% 算偏激烈）
+        down_share = ld / (lu + ld) if (lu + ld) > 0 else 0
+        if ratio > 3 and down_share < 0.1:
+            bias = "强势追涨"
+        elif ratio > 1:
+            bias = "偏多" + (f"（跌停占比{down_share:.0%}偏高）" if down_share >= 0.3 else "")
+        elif ratio > 0.5:
+            bias = "偏空"
+        else:
+            bias = "恐慌抛售"
+        broken_str = f"/炸板{direction.broken}" if direction.broken is not None else ""
+        lines.append(f"  涨跌停    涨{lu}/跌{ld}{broken_str} = {ratio:.1f}（{bias}）")
+
+    # RV20 5 日变化（波动加速/衰减）
+    if direction.rv20_delta_5d is not None:
+        delta = direction.rv20_delta_5d
+        trend = "波动加速" if delta > 0.5 else ("波动衰减" if delta < -0.5 else "波动稳定")
+        lines.append(f"  RV20速率  {_format_pct(delta, suffix='')}% （{trend}）")
+
+    lines.append("")
+    return lines
+
+
 def format_alert_message(report: PanicReport) -> str:
-    """格式化恐慌预警消息（飞书文本）."""
-    lines = []
-    lines.append(f"🔴 恐慌预警 [{report.trade_date} {report.timestamp}]")
-    lines.append("")
+    """格式化恐慌预警消息（飞书文本）.
 
-    # 触发条件
-    if report.triggered_names:
-        lines.append(f"触发条件：{' / '.join(report.triggered_names)}")
+    标题用四象限 emoji + 行动参考；正文包含波动率温度、方向拆解、强度分。
+    象限不可用时降级为原"恐慌预警"标题。
+    """
+    lines: list[str] = []
+
+    # ── 标题：四象限 emoji + 强度 ──
+    meta = _QUADRANT_META.get(report.quadrant)
+    if meta:
+        emoji = meta["emoji"]
+        title = report.quadrant
+        subtitle = meta["subtitle"]
+        lines.append(f"{emoji} {title} [{report.trade_date} {report.timestamp}]  强度 {report.intensity_score:.0f}/100 {report.intensity_label}")
+        lines.append(f"象限：{subtitle}")
     else:
-        lines.append("（当前无信号触发）")
+        # 数据全部不可用降级
+        lines.append(f"⚪ 市场读数 [{report.trade_date} {report.timestamp}]")
+        lines.append("（数据不足，无法判定象限）")
     lines.append("")
 
-    # 波动率温度
+    # ── 触发条件（原三大信号）──
+    if report.triggered_names:
+        lines.append(f"触发信号：{' / '.join(report.triggered_names)}")
+    elif report.signals:
+        lines.append("（无传统恐慌信号触发）")
+    lines.append("")
+
+    # ── 波动率温度 ──
     if report.volatility_indices:
         lines.append("【波动率温度】")
         for i in sorted(report.volatility_indices, key=lambda x: -x.rv20_pct):
@@ -427,13 +862,21 @@ def format_alert_message(report: PanicReport) -> str:
             lines.append(f"  {i.name:8s} RV20={i.rv20:5.1f}% P{i.rv20_pct:2.0f} {bar} {i.panic_level}")
         lines.append("")
 
-    # 各信号详情
+    # ── 方向拆解（新增）──
+    if report.direction is not None and report.direction.available:
+        lines.extend(_format_direction_section(report.direction))
+
+    # ── 各信号详情 ──
     for sig in report.signals:
         mark = "🔴" if sig.triggered else ("⚪" if not sig.available else "🟢")
         lines.append(f"{mark} {sig.name}：{sig.detail}")
     lines.append("")
 
-    lines.append("⚠️ 信号仅提示恐慌升温，不构成交易建议。减仓决策请结合持仓与风控。")
+    # ── 行动参考（按象限）──
+    if meta:
+        lines.append(meta["disclaimer"])
+    else:
+        lines.append("⚠️ 信号仅提示市场状态，不构成交易建议。")
     return "\n".join(lines)
 
 

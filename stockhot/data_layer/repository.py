@@ -627,19 +627,26 @@ class MarketDataRepository:
         ivix_current: float | None = None,
         rv20_max_pct: float | None = None,
         rv20_indices_p90: int | None = None,
+        quadrant: str | None = None,
+        intensity_score: float | None = None,
+        direction_score: float | None = None,
+        sse_pct_chg: float | None = None,
     ) -> None:
         """记录一次盘中恐慌检测的读数快照（同一时点重复运行会覆盖）."""
         with closing(get_connection()) as conn:
             conn.execute(
                 "INSERT OR REPLACE INTO panic_history "
                 "(trade_date, check_time, triggered, triggered_names, limit_up, broken, "
-                "limit_down, up_down_ratio, ivix_current, rv20_max_pct, rv20_indices_p90, created_at) "
-                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+                "limit_down, up_down_ratio, ivix_current, rv20_max_pct, rv20_indices_p90, "
+                "quadrant, intensity_score, direction_score, sse_pct_chg, created_at) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                 (
                     trade_date, check_time, 1 if triggered else 0,
                     ",".join(triggered_names) if triggered_names else None,
                     limit_up, broken, limit_down, up_down_ratio,
-                    ivix_current, rv20_max_pct, rv20_indices_p90, now_ts(),
+                    ivix_current, rv20_max_pct, rv20_indices_p90,
+                    quadrant, intensity_score, direction_score, sse_pct_chg,
+                    now_ts(),
                 ),
             )
             conn.commit()
@@ -649,12 +656,14 @@ class MarketDataRepository:
         with closing(get_connection()) as conn:
             rows = conn.execute(
                 "SELECT check_time, triggered, triggered_names, limit_up, broken, "
-                "limit_down, up_down_ratio, ivix_current, rv20_max_pct, rv20_indices_p90 "
+                "limit_down, up_down_ratio, ivix_current, rv20_max_pct, rv20_indices_p90, "
+                "quadrant, intensity_score, direction_score, sse_pct_chg "
                 "FROM panic_history WHERE trade_date=? ORDER BY check_time",
                 (trade_date,),
             ).fetchall()
         cols = ["check_time", "triggered", "triggered_names", "limit_up", "broken",
-                "limit_down", "up_down_ratio", "ivix_current", "rv20_max_pct", "rv20_indices_p90"]
+                "limit_down", "up_down_ratio", "ivix_current", "rv20_max_pct", "rv20_indices_p90",
+                "quadrant", "intensity_score", "direction_score", "sse_pct_chg"]
         return [dict(zip(cols, r)) for r in rows]
 
     # ═══════════════════════════════════════════════════════════════════
