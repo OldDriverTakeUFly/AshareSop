@@ -19,9 +19,13 @@ from stockhot.alert.panic_detector import (
     IndexVolatility,
     LimitBehaviorReading,
     PanicReport,
+    SectorStrength,
+    SectorStructure,
     SignalResult,
     _classify_quadrant,
     _compute_intensity,
+    _detect_sector_structure,
+    _format_sector_section,
     _QUADRANT_META,
     format_alert_message,
 )
@@ -359,3 +363,168 @@ def test_save_panic_history_handles_missing_direction(tmp_path, monkeypatch):
     assert call.kwargs["limit_up"] is None
     assert call.kwargs["limit_down"] is None
     assert call.kwargs["quadrant"] is None  # quadrant="" → or None
+
+
+# ═══════════════════════════════════════════════════════════════════
+# 板块结构（强势/弱势板块）
+# ═══════════════════════════════════════════════════════════════════
+
+
+def test_sector_structure_strong_sorted_by_limit_up(monkeypatch):
+    """强势板块按涨停数降序（行为信号优先于涨跌幅）."""
+    # mock _fetch_sw_daily_pct 返回空（隔离 sw_daily，只测 sector_counts 逻辑）
+    import stockhot.alert.panic_detector as pd_mod
+    monkeypatch.setattr(pd_mod, "_fetch_sw_daily_pct", lambda: ({}, ""))
+    monkeypatch.setattr(pd_mod, "_fetch_sector_main_net", lambda: {})
+
+    sector_counts = {
+        "消费电子": {"limit_up": 8, "limit_down": 0, "broken": 1},
+        "半导体": {"limit_up": 6, "limit_down": 1, "broken": 0},
+        "食品饮料": {"limit_up": 2, "limit_down": 0, "broken": 0},
+    }
+    result = _detect_sector_structure(sector_counts)
+    assert result.available
+    assert len(result.strong) == 3
+    # 按涨停数降序
+    assert result.strong[0].name == "消费电子"
+    assert result.strong[0].limit_up == 8
+    assert result.strong[1].name == "半导体"
+    # 半导体有跌停（1个）→ 出现在 weak 里；消费电子/食品饮料无跌停 → weak 只含半导体
+    assert len(result.weak) == 1
+    assert result.weak[0].name == "半导体"
+
+
+def test_sector_structure_weak_sorted_by_limit_down(monkeypatch):
+    """弱势板块按跌停数降序."""
+    import stockhot.alert.panic_detector as pd_mod
+    monkeypatch.setattr(pd_mod, "_fetch_sw_daily_pct", lambda: ({}, ""))
+    monkeypatch.setattr(pd_mod, "_fetch_sector_main_net", lambda: {})
+
+    sector_counts = {
+        "房地产": {"limit_up": 0, "limit_down": 7, "broken": 2},
+        "建筑装饰": {"limit_up": 1, "limit_down": 5, "broken": 1},
+        "钢铁": {"limit_up": 0, "limit_down": 3, "broken": 0},
+    }
+    result = _detect_sector_structure(sector_counts)
+    assert len(result.weak) == 3
+    # 按跌停数降序
+    assert result.weak[0].name == "房地产"
+    assert result.weak[0].limit_down == 7
+    assert result.weak[1].name == "建筑装饰"
+    # 建筑装饰有涨停（1个）→ 也出现在 strong 里；房地产/钢铁无涨停 → strong 只含建筑装饰
+    assert len(result.strong) == 1
+    assert result.strong[0].name == "建筑装饰"
+
+
+def test_sector_structure_top_n_limit(monkeypatch):
+    """最多只返回 top N（_SECTOR_TOP_N=3）个."""
+    import stockhot.alert.panic_detector as pd_mod
+    monkeypatch.setattr(pd_mod, "_fetch_sw_daily_pct", lambda: ({}, ""))
+    monkeypatch.setattr(pd_mod, "_fetch_sector_main_net", lambda: {})
+
+    # 构造 5 个涨停板块
+    sector_counts = {f"板块{i}": {"limit_up": 10 - i, "limit_down": 0} for i in range(5)}
+    result = _detect_sector_structure(sector_counts)
+    assert len(result.strong) == 3  # 只取 top 3
+
+
+def test_sector_structure_empty_counts(monkeypatch):
+    """sector_counts 为空 + 无外部数据 → available=False."""
+    import stockhot.alert.panic_detector as pd_mod
+    monkeypatch.setattr(pd_mod, "_fetch_sw_daily_pct", lambda: ({}, ""))
+    monkeypatch.setattr(pd_mod, "_fetch_sector_main_net", lambda: {})
+
+    result = _detect_sector_structure({})
+    assert not result.available
+    assert result.strong == []
+    assert result.weak == []
+
+
+def test_sector_structure_merges_pct_change(monkeypatch):
+    """sw_daily 涨跌幅正确合并到对应板块."""
+    import stockhot.alert.panic_detector as pd_mod
+    monkeypatch.setattr(
+        pd_mod, "_fetch_sw_daily_pct",
+        lambda: ({"电子": -7.02, "食品饮料": 2.14}, "07-28"),
+    )
+    monkeypatch.setattr(pd_mod, "_fetch_sector_main_net", lambda: {})
+
+    sector_counts = {
+        "电子": {"limit_up": 6, "limit_down": 1},
+        "食品饮料": {"limit_up": 2, "limit_down": 0},
+    }
+    result = _detect_sector_structure(sector_counts)
+    assert result.pct_change_as_of == "07-28"
+    # 找到电子板块，验证涨跌幅合并
+    dianzi = next(s for s in result.strong if s.name == "电子")
+    assert dianzi.pct_change == -7.02
+
+
+def test_sector_structure_fallback_to_pct_when_no_limits(monkeypatch):
+    """无涨跌停数据时（zt_pool 全失败），回退到按涨跌幅排序."""
+    import stockhot.alert.panic_detector as pd_mod
+    monkeypatch.setattr(
+        pd_mod, "_fetch_sw_daily_pct",
+        lambda: ({"钢铁": -3.0, "电子": 2.5, "食品": 1.0}, "07-28"),
+    )
+    monkeypatch.setattr(pd_mod, "_fetch_sector_main_net", lambda: {})
+
+    # sector_counts 为空，但有 sw_daily 数据
+    result = _detect_sector_structure({})
+    assert result.available
+    # 电子涨幅最大 → strong[0]
+    assert result.strong[0].name == "电子"
+    # 钢铁跌幅最大 → weak[0]
+    assert result.weak[0].name == "钢铁"
+
+
+def test_format_sector_section_renders_strong_weak():
+    """消息格式：含【板块结构】标题 + 强势/弱势子标题."""
+    sectors = SectorStructure(
+        strong=[
+            SectorStrength(name="消费电子", limit_up=8, limit_down=0),
+            SectorStrength(name="半导体", limit_up=6, limit_down=1),
+        ],
+        weak=[
+            SectorStrength(name="房地产", limit_up=0, limit_down=7),
+        ],
+        pct_change_as_of="07-28",
+        available=True,
+    )
+    lines = _format_sector_section(sectors)
+    text = "\n".join(lines)
+    assert "【板块结构】" in text
+    assert "07-28" in text
+    assert "🟢 强势板块" in text
+    assert "🔴 弱势板块" in text
+    assert "消费电子" in text
+    assert "房地产" in text
+
+
+def test_format_sector_section_empty_returns_empty():
+    """available=False 时返回空列表（不渲染章节）."""
+    sectors = SectorStructure(available=False)
+    assert _format_sector_section(sectors) == []
+
+
+def test_format_message_includes_sector_section():
+    """完整消息含板块结构章节（当 sectors 可用时）."""
+    report = _build_report("下跌恐慌")
+    report.sectors = SectorStructure(
+        strong=[SectorStrength(name="消费电子", limit_up=5, limit_down=0)],
+        weak=[SectorStrength(name="房地产", limit_up=0, limit_down=8)],
+        pct_change_as_of="07-28",
+        available=True,
+    )
+    msg = format_alert_message(report)
+    assert "【板块结构】" in msg
+    assert "消费电子" in msg
+    assert "房地产" in msg
+
+
+def test_format_message_no_sector_section_when_unavailable():
+    """sectors 不可用时不渲染板块章节."""
+    report = _build_report("下跌恐慌")
+    report.sectors = None  # 板块检测失败
+    msg = format_alert_message(report)
+    assert "【板块结构】" not in msg

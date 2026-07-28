@@ -119,6 +119,35 @@ class DirectionReading:
 
 
 @dataclass
+class SectorStrength:
+    """单个板块的强弱读数（多源合并）.
+
+    数据来源（时效不同，消息里会标注）：
+    - pct_change: sw_daily 最近可得交易日（盘中可能是昨日，盘后是当日）
+    - limit_up/down/broken: zt_pool 所属行业聚合（盘中实时）
+    - main_net: fund_flow_sector 表（上一交易日，Tushare moneyflow 非实时）
+    """
+
+    name: str                              # 板块名（申万行业）
+    pct_change: float | None = None        # 涨跌幅 %
+    limit_up: int = 0                      # 涨停数（盘中实时）
+    limit_down: int = 0                    # 跌停数
+    broken: int = 0                        # 炸板数
+    main_net: float | None = None          # 主力净额（亿元，截至上一交易日）
+    strength_score: float = 0.0            # 综合强弱分（用于排序，正强负弱）
+
+
+@dataclass
+class SectorStructure:
+    """板块结构读数（top N 强弱排名）."""
+
+    strong: list[SectorStrength] = field(default_factory=list)   # 综合强势 top 3
+    weak: list[SectorStrength] = field(default_factory=list)     # 综合弱势 top 3
+    pct_change_as_of: str = ""            # 涨跌幅数据时效标注（如"07-28"或"上一交易日"）
+    available: bool = False
+
+
+@dataclass
 class SignalResult:
     """单个信号的检测结果."""
 
@@ -143,6 +172,8 @@ class PanicReport:
     quadrant: str = ""                            # "下跌恐慌"/"逼空过热"/"阴跌预警"/"强势上涨"
     intensity_score: float = 0.0                  # 0-100
     intensity_label: str = ""                     # "极低/偏低/中等/偏高/极高"
+    # 板块结构（2026-07-28）：强势/弱势板块 top N
+    sectors: SectorStructure | None = None
 
     @property
     def any_triggered(self) -> bool:
@@ -288,17 +319,23 @@ def _detect_rv_volatility() -> tuple[list[IndexVolatility], SignalResult, dict[s
 # ═══════════════════════════════════════════════════════════════════
 
 
-def _detect_limit_behavior() -> tuple[SignalResult, LimitBehaviorReading]:
+def _detect_limit_behavior() -> tuple[SignalResult, LimitBehaviorReading, dict[str, dict]]:
     """检测涨跌停行为面（盘中实时，AKShare 东财源）.
 
-    返回 (SignalResult, LimitBehaviorReading)：前者用于消息格式化，
-    后者是结构化读数，传给 _detect_direction 复用（避免正则解析 detail 文本）。
+    返回三元组 (SignalResult, LimitBehaviorReading, sector_counts)：
+      - SignalResult: 用于消息格式化
+      - LimitBehaviorReading: 结构化读数，传给 _detect_direction 复用
+      - sector_counts: {板块名: {limit_up, limit_down, broken}} 涨跌停按行业聚合，
+        传给 _detect_sector_structure 复用（零额外 API，源自同一批 pool 接口）
     """
     import akshare as ak
+    from collections import defaultdict
     from stockhot.core.rate_limiter import safe_akshare_call
 
     today = date.today().strftime("%Y%m%d")
     n_up = n_broken = n_down = 0
+    df_up = df_down = df_broken = None
+    sector_counts: dict[str, dict] = defaultdict(lambda: {"limit_up": 0, "limit_down": 0, "broken": 0})
 
     try:
         df_up = safe_akshare_call(ak.stock_zt_pool_em, date=today)
@@ -321,10 +358,29 @@ def _detect_limit_behavior() -> tuple[SignalResult, LimitBehaviorReading]:
     except Exception as e:
         logger.warning(f"[panic] broken_pool failed: {e}")
 
+    # 按所属行业聚合（零额外 API，复用已拉取的 DataFrame）
+    # AKShare zt_pool 系列返回中文列名"所属行业"
+    for df, key in [(df_up, "limit_up"), (df_down, "limit_down"), (df_broken, "broken")]:
+        if df is None or df.empty:
+            continue
+        # 兼容中文字段名"所属行业"和英文字段名"industry"
+        industry_col = None
+        for col in ("所属行业", "industry"):
+            if col in df.columns:
+                industry_col = col
+                break
+        if industry_col is None:
+            continue
+        for val in df[industry_col].dropna():
+            industry = str(val).strip()
+            if industry and industry not in ("None", "nan", "-"):
+                sector_counts[industry][key] += 1
+
     if n_up + n_down == 0:
         return (
             SignalResult(name="行为面恐慌", triggered=False, detail="数据不可用", available=False),
             LimitBehaviorReading(available=False),
+            dict(sector_counts),
         )
 
     ratio = n_up / max(n_down, 1)
@@ -345,7 +401,7 @@ def _detect_limit_behavior() -> tuple[SignalResult, LimitBehaviorReading]:
         up_down_ratio=ratio, down_ratio=down_ratio,
         available=True,
     )
-    return signal, reading
+    return signal, reading, dict(sector_counts)
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -722,6 +778,173 @@ def _compute_intensity(
 
 
 # ═══════════════════════════════════════════════════════════════════
+# 信号 5：板块结构（强势/弱势板块）
+# 三源合并：zt_pool 涨跌停聚合（盘中实时）+ sw_daily 涨跌幅（最近交易日）
+#         + fund_flow_sector 主力净额（上一交易日）
+# ═══════════════════════════════════════════════════════════════════
+
+
+# 板块结构展示的 top N
+_SECTOR_TOP_N = 3
+# 综合强弱分权重（用于 strong/weak 排序）
+# strength_score = 涨停数×1.0 - 跌停数×1.0 + 涨跌幅×0.5 + 主力净额×0.1
+# 涨停/跌停是结构主信号（权重最高），涨跌幅和资金是辅助确认
+_SECTOR_W_LIMIT = 1.0
+_SECTOR_W_PCT = 0.5
+_SECTOR_W_MAIN = 0.1
+
+
+def _fetch_sw_daily_pct() -> tuple[dict[str, float], str]:
+    """从 Tushare sw_daily 拿最近可得交易日的板块涨跌幅.
+
+    返回 (板块涨跌幅字典, 数据日期标注)。
+    盘中调用时当日数据可能未更新，自动回退到上一交易日。
+    只取申万一级（ts_code 格式 801xx0.SI），避免二级三级噪音。
+    """
+    from stockhot.data_layer import get_gateway
+
+    try:
+        gw = get_gateway()
+        # 尝试近 5 天，找到第一个有数据的交易日
+        for back in range(0, 6):
+            d = (date.today() - timedelta(days=back)).strftime("%Y%m%d")
+            df = gw.call("sw_daily", trade_date=d)
+            if df is None or df.empty:
+                continue
+            # 只取申万一级（ts_code 格式 801010.SI：801 + 2位 + 0，共6位数字末位为0）
+            # 申万一级共 31 个，末位固定为 0（农林牧渔801010、基础化工801030、钢铁801040...）
+            # 二级末位非 0（农产品加工801012、饲料801014...）
+            df_l1 = df[df["ts_code"].str.match(r"^801\d{2}0\.SI$")].copy()
+            if df_l1.empty:
+                continue
+            pct_map = {}
+            for _, row in df_l1.iterrows():
+                name = str(row.get("name", "")).strip()
+                pct = row.get("pct_change")
+                if name and pct is not None and not pd.isna(pct):
+                    pct_map[name] = float(pct)
+            if pct_map:
+                # 日期标注：MM-DD 格式
+                label = f"{d[4:6]}-{d[6:8]}"
+                logger.info(f"[panic] sw_daily 板块涨跌幅: {len(pct_map)} 个（{label}）")
+                return pct_map, label
+        logger.warning("[panic] sw_daily 近 6 天无数据")
+        return {}, ""
+    except Exception as e:
+        logger.warning(f"[panic] sw_daily 涨跌幅获取失败: {e}")
+        return {}, ""
+
+
+def _fetch_sector_main_net() -> dict[str, float]:
+    """从 fund_flow_sector 表拿最近交易日的板块主力净额.
+
+    返回 {板块名: 主力净额(亿元)}。数据来源是 Tushare moneyflow 聚合，
+    时效为上一交易日（非实时）。
+    """
+    try:
+        from stockhot.data_layer import get_repository
+        repo = get_repository()
+        # 尝试近 5 天找有数据的交易日
+        for back in range(0, 6):
+            d = (date.today() - timedelta(days=back)).strftime("%Y%m%d")
+            rows = repo.get_fund_flow_sector(d)
+            if not rows:
+                continue
+            net_map = {}
+            for r in rows:
+                name = r.get("sector_name", "").strip()
+                net = r.get("main_net")
+                if name and net is not None:
+                    net_map[name] = float(net)
+            if net_map:
+                return net_map
+        return {}
+    except Exception as e:
+        logger.warning(f"[panic] fund_flow_sector 获取失败: {e}")
+        return {}
+
+
+def _detect_sector_structure(sector_counts: dict[str, dict]) -> SectorStructure:
+    """板块结构检测：三源合并 → top N 强弱排名.
+
+    参数：
+        sector_counts: _detect_limit_behavior 聚合的 {板块: {limit_up, limit_down, broken}}
+
+    返回：
+        SectorStructure，strong/weak 各 top N
+    """
+    # 数据源 1：板块涨跌幅（sw_daily，最近交易日）
+    pct_map, pct_as_of = _fetch_sw_daily_pct()
+    # 数据源 2：板块主力净额（fund_flow_sector，上一交易日）
+    net_map = _fetch_sector_main_net()
+
+    # 合并所有出现过的板块名
+    all_sectors = set(sector_counts.keys()) | set(pct_map.keys()) | set(net_map.keys())
+    if not all_sectors:
+        return SectorStructure(available=False)
+
+    # 构造 SectorStrength 列表
+    strengths: list[SectorStrength] = []
+    for name in all_sectors:
+        counts = sector_counts.get(name, {})
+        lu = counts.get("limit_up", 0)
+        ld = counts.get("limit_down", 0)
+        br = counts.get("broken", 0)
+        pct = pct_map.get(name)
+        net = net_map.get(name)
+
+        # 综合强弱分（用于排序参考）：涨停正、跌停负，涨跌幅和资金辅助
+        score = 0.0
+        score += lu * _SECTOR_W_LIMIT
+        score -= ld * _SECTOR_W_LIMIT
+        if pct is not None:
+            score += pct * _SECTOR_W_PCT
+        if net is not None:
+            score += net * _SECTOR_W_MAIN
+
+        strengths.append(SectorStrength(
+            name=name, pct_change=pct,
+            limit_up=lu, limit_down=ld, broken=br,
+            main_net=net, strength_score=round(score, 2),
+        ))
+
+    # ── 强弱分类：行为信号（涨跌停）优先，避免数据源口径不一致导致误判 ──
+    # 强势：有涨停的板块，按涨停数降序（行为信号最直接）
+    # 弱势：有跌停的板块，按跌停数降序（行为信号最直接）
+    # 若无涨跌停数据（盘中 zt_pool 全失败），回退到 strength_score 排序
+    has_limit_data = any(s.limit_up + s.limit_down > 0 for s in strengths)
+
+    if has_limit_data:
+        strong = sorted(
+            [s for s in strengths if s.limit_up > 0],
+            key=lambda x: (-x.limit_up, -x.strength_score),
+        )[:_SECTOR_TOP_N]
+        weak = sorted(
+            [s for s in strengths if s.limit_down > 0],
+            key=lambda x: (-x.limit_down, x.strength_score),
+        )[:_SECTOR_TOP_N]
+    else:
+        # 回退：纯按涨跌幅排序（盘后或 zt_pool 失败场景）
+        strong = sorted(
+            [s for s in strengths if s.strength_score > 0],
+            key=lambda x: -x.strength_score,
+        )[:_SECTOR_TOP_N]
+        weak = sorted(
+            [s for s in strengths if s.strength_score < 0],
+            key=lambda x: x.strength_score,
+        )[:_SECTOR_TOP_N]
+
+    # 至少要有 1 个 strong 或 1 个 weak 才算 available
+    available = bool(strong or weak)
+
+    return SectorStructure(
+        strong=strong, weak=weak,
+        pct_change_as_of=pct_as_of,
+        available=available,
+    )
+
+
+# ═══════════════════════════════════════════════════════════════════
 # 综合检测 + 消息格式化
 # ═══════════════════════════════════════════════════════════════════
 
@@ -739,6 +962,8 @@ def detect_panic_signals() -> PanicReport:
 
     # 行为面结构化读数（信号 2 内部采集，传给方向维度复用）
     limit_reading = LimitBehaviorReading(available=False)
+    # 板块涨跌停聚合（信号 2 内部采集，传给板块结构检测复用，零额外 API）
+    sector_counts: dict[str, dict] = {}
     # 实时指数价（信号 1 已采集，传给方向维度复用，避免重复拉 AKShare）
     realtime_prices: dict[str, float] = {}
 
@@ -752,9 +977,9 @@ def detect_panic_signals() -> PanicReport:
         logger.error(f"[panic] RV20 detection error: {e}")
         report.signals.append(SignalResult("系统性恐慌", False, f"检测异常: {e}", available=False))
 
-    # 信号 2：涨跌停行为
+    # 信号 2：涨跌停行为（返回 3 元组：信号 + 结构化读数 + 板块聚合）
     try:
-        sig_limit, limit_reading = _detect_limit_behavior()
+        sig_limit, limit_reading, sector_counts = _detect_limit_behavior()
         report.signals.append(sig_limit)
     except Exception as e:
         logger.error(f"[panic] limit behavior error: {e}")
@@ -785,6 +1010,13 @@ def detect_panic_signals() -> PanicReport:
         logger.error(f"[panic] direction detection error: {e}")
         # 方向失败不影响三大信号，但象限会降级为空（按波动率粗分）
         report.quadrant = _classify_quadrant(None, report.volatility_indices)
+
+    # 信号 5：板块结构（强势/弱势 top N）
+    # 复用信号 2 的 sector_counts + sw_daily 涨跌幅 + fund_flow 主力资金
+    try:
+        report.sectors = _detect_sector_structure(sector_counts)
+    except Exception as e:
+        logger.error(f"[panic] sector structure error: {e}")
 
     return report
 
@@ -868,6 +1100,61 @@ def _format_direction_section(direction: DirectionReading) -> list[str]:
     return lines
 
 
+def _format_sector_strength(s: SectorStrength, show_pct: bool) -> str:
+    """格式化单个板块行.
+
+    show_pct: 是否显示涨跌幅列（sw_daily 数据可用时为 True）。
+    """
+    parts = [f"{s.name[:6]:6s}"]  # 板块名截断到 6 字符对齐
+    if show_pct and s.pct_change is not None:
+        parts.append(f"{_format_pct(s.pct_change):>7s}")
+    parts.append(f"涨{s.limit_up}/跌{s.limit_down}")
+    if s.broken:
+        parts.append(f"炸{s.broken}")
+    if s.main_net is not None:
+        parts.append(f"主力{_format_main_net(s.main_net)}")
+    return "  ".join(parts)
+
+
+def _format_main_net(value: float) -> str:
+    """格式化主力净额（亿元，带正负号）."""
+    if value == 0:
+        return "0"
+    sign = "+" if value > 0 else ""
+    return f"{sign}{value:.1f}亿"
+
+
+def _format_sector_section(sectors: SectorStructure) -> list[str]:
+    """格式化板块结构章节.
+
+    布局：
+      【板块结构】（涨跌幅截至 07-28）
+        🟢 强势：消费电子  电子  食品饮料
+        🔴 弱势：房地产  建筑装饰  钢铁
+    """
+    if not sectors.available:
+        return []
+
+    lines = ["【板块结构】"]
+    # 涨跌幅时效标注
+    if sectors.pct_change_as_of:
+        lines[0] += f"（涨跌幅截至 {sectors.pct_change_as_of}）"
+
+    show_pct = bool(sectors.pct_change_as_of)
+
+    if sectors.strong:
+        lines.append("  🟢 强势板块：")
+        for s in sectors.strong:
+            lines.append("    " + _format_sector_strength(s, show_pct))
+    if sectors.weak:
+        lines.append("  🔴 弱势板块：")
+        for s in sectors.weak:
+            lines.append("    " + _format_sector_strength(s, show_pct))
+
+    lines.append("")
+    return lines
+
+
 def format_alert_message(report: PanicReport) -> str:
     """格式化恐慌预警消息（飞书文本）.
 
@@ -910,9 +1197,13 @@ def format_alert_message(report: PanicReport) -> str:
             lines.append(f"  {i.name:8s} RV20={i.rv20:5.1f}% P{i.rv20_pct:2.0f} {bar} {i.panic_level}")
         lines.append("")
 
-    # ── 方向拆解（新增）──
+    # ── 方向拆解 ──
     if report.direction is not None and report.direction.available:
         lines.extend(_format_direction_section(report.direction))
+
+    # ── 板块结构（强势/弱势 top N）──
+    if report.sectors is not None and report.sectors.available:
+        lines.extend(_format_sector_section(report.sectors))
 
     # ── 各信号详情 ──
     for sig in report.signals:
