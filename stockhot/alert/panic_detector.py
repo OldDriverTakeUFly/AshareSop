@@ -49,12 +49,19 @@ _DIR_WEIGHT_CUM5D = 0.3      # 5 日累计（趋势背景）
 # 涨跌停结构比的中性阈值：ratio > 1 偏多，< 1 偏空（与行为面恐慌的 0.5 阈值不冲突）
 _LIMIT_RATIO_NEUTRAL = 1.0
 
-# 强度分权重（_compute_intensity，0-100）
-# panic_score = rv20_max_pct × 0.5 + max(0,-跌幅)×10×0.3 + 跌停占比×100×0.2
-_INTENSITY_WEIGHT_RV = 0.5
-_INTENSITY_WEIGHT_DROP = 0.3
-_INTENSITY_WEIGHT_DOWNRATIO = 0.2
-_INTENSITY_DROP_MULTIPLIER = 10.0  # 把跌幅%放大到与 P 分位可比的量级（-2% → 贡献 6 分）
+# 强度分：象限专属公式（2026-07-28 修订）
+#
+# 设计原则：强度 = 该象限特征的显著程度（与方向无关）
+# - 🔴 下跌恐慌：跌幅 + 跌停占比贡献 → 恐慌显著
+# - 🟠 逼空过热：涨幅 + 涨停占比贡献 → 逼空显著
+# - 🟡 阴跌预警：温和跌幅 + 跌停占比 → 阴跌持续
+# - 🟢 强势上涨：涨幅 + 涨停占比 → 强势确立
+#
+# 每个象限的公式都让"该象限的标志性特征"正向贡献分数。
+# 这样强度高在所有象限都表示"特征显著"，不再有"涨日低分=强势"的歧义。
+_INTENSITY_DROP_MULTIPLIER = 10.0  # 把涨/跌幅%放大到与 P 分位可比的量级
+# 基础分：低波象限（🟡🟢）的 RV 贡献天然低，加 15 分基础分让分数量级可比
+_INTENSITY_LOW_VOL_BASE = 15.0
 
 # 监控的指数（与 volatility 模块一致）
 _INDICES = ["000001.SH", "399001.SZ", "000300.SH", "399006.SZ", "000688.SH"]
@@ -642,35 +649,64 @@ def _classify_quadrant(
 def _compute_intensity(
     indices_vol: list[IndexVolatility],
     direction: DirectionReading | None,
+    quadrant: str = "",
 ) -> tuple[float, str]:
-    """计算强度分（0-100）+ 等级标签.
+    """计算象限专属强度分（0-100）+ 等级标签.
 
-    panic_score = rv20_max_pct × 0.5 + max(0,-跌幅)×5×0.3 + 跌停占比×100×0.2
+    设计原则（2026-07-28 修订）：强度 = 该象限特征的显著程度，与方向无关。
+    每个象限用专属公式，让"标志性特征"正向贡献分数：
+      🔴 下跌恐慌 = RV×0.5 + 跌幅×10×0.3 + 跌停占比×0.2
+      🟠 逼空过热 = RV×0.5 + 涨幅×10×0.3 + 涨停占比×0.2
+      🟡 阴跌预警 = RV×0.3 + 跌幅×10×0.4 + 跌停占比×0.2 + 15基础分
+      🟢 强势上涨 = RV×0.2 + 涨幅×10×0.4 + 涨停占比×0.3 + 15基础分
 
-    特性：涨日跌幅贡献=0，分数自然偏低；跌日三项叠加，分数高。
+    低波象限（🟡🟢）RV 贡献天然低，加 15 分基础分让分数量级可比。
+
+    参数：
+        indices_vol: 各指数 RV20 读数（取最高分位作为波动率基准）
+        direction: 方向维度读数（涨跌幅 + 涨跌停结构）
+        quadrant: 当前象限标签（决定用哪个公式）
+
+    返回：
+        (score 0-100, 等级标签)
     """
-    # 分项 1：波动率分位（取 5 指数最高 RV20 分位）
     rv_max_pct = max((i.rv20_pct for i in indices_vol), default=0.0)
-    rv_contrib = rv_max_pct * _INTENSITY_WEIGHT_RV
-
-    # 分项 2：当日跌幅（涨日为 0）
     sse_chg = direction.sse_pct_chg if direction else None
-    drop_pct = max(0.0, -sse_chg) if sse_chg is not None else 0.0
-    drop_contrib = drop_pct * _INTENSITY_DROP_MULTIPLIER * _INTENSITY_WEIGHT_DROP
-
-    # 分项 3：跌停占比（涨跌停结构）
-    limit_down = direction.limit_down if direction else None
     limit_up = direction.limit_up if direction else None
-    if limit_down is not None and limit_up is not None and (limit_up + limit_down) > 0:
-        down_ratio = limit_down / (limit_up + limit_down)
-        down_contrib = down_ratio * 100 * _INTENSITY_WEIGHT_DOWNRATIO
-    else:
-        down_contrib = 0.0
+    limit_down = direction.limit_down if direction else None
 
-    score = max(0.0, min(100.0, rv_contrib + drop_contrib + down_contrib))
+    # 涨/跌幅贡献（按象限方向取正）
+    chg = sse_chg if sse_chg is not None else 0.0
+    # 涨跌停占比
+    if limit_up is not None and limit_down is not None and (limit_up + limit_down) > 0:
+        total = limit_up + limit_down
+        up_share = limit_up / total * 100
+        down_share = limit_down / total * 100
+    else:
+        up_share = down_share = 0.0
+
+    # ── 按象限选公式 ──
+    if quadrant == "逼空过热":
+        # 🟠 涨幅 + 涨停占比贡献
+        up_contrib = max(0.0, chg) * _INTENSITY_DROP_MULTIPLIER * 0.3
+        score = rv_max_pct * 0.5 + up_contrib + up_share * 0.2
+    elif quadrant == "强势上涨":
+        # 🟢 涨幅 + 涨停占比贡献 + 基础分
+        up_contrib = max(0.0, chg) * _INTENSITY_DROP_MULTIPLIER * 0.4
+        score = rv_max_pct * 0.2 + up_contrib + up_share * 0.3 + _INTENSITY_LOW_VOL_BASE
+    elif quadrant == "阴跌预警":
+        # 🟡 温和跌幅 + 跌停占比贡献 + 基础分
+        drop_contrib = max(0.0, -chg) * _INTENSITY_DROP_MULTIPLIER * 0.4
+        score = rv_max_pct * 0.3 + drop_contrib + down_share * 0.2 + _INTENSITY_LOW_VOL_BASE
+    else:
+        # 🔴 下跌恐慌（默认）：跌幅 + 跌停占比贡献
+        drop_contrib = max(0.0, -chg) * _INTENSITY_DROP_MULTIPLIER * 0.3
+        score = rv_max_pct * 0.5 + drop_contrib + down_share * 0.2
+
+    score = max(0.0, min(100.0, score))
     score = round(score, 1)
 
-    # 等级标签
+    # 等级标签（5 档，跨象限统一）
     if score >= 75:
         label = "极高"
     elif score >= 55:
@@ -739,7 +775,10 @@ def detect_panic_signals() -> PanicReport:
         direction = _detect_direction(limit_reading, realtime_prices)
         report.direction = direction
         report.quadrant = _classify_quadrant(direction, report.volatility_indices)
-        score, label = _compute_intensity(report.volatility_indices, direction)
+        # 强度分用象限专属公式（必须先定象限再算强度）
+        score, label = _compute_intensity(
+            report.volatility_indices, direction, report.quadrant
+        )
         report.intensity_score = score
         report.intensity_label = label
     except Exception as e:
@@ -750,27 +789,31 @@ def detect_panic_signals() -> PanicReport:
     return report
 
 
-# 四象限元数据：emoji + 行动参考文案（用于 format_alert_message）
-# 顺序与 _classify_quadrant 返回值对应
+# 四象限元数据：emoji + 行动参考文案 + 强度词（用于 format_alert_message）
+# intensity_word：强度的主语，明确"什么强"——避免"强度"歧义
 _QUADRANT_META: dict[str, dict[str, str]] = {
     "下跌恐慌": {
         "emoji": "🔴",
         "subtitle": "高波 × 方向↓ → 减仓信号",
+        "intensity_word": "恐慌",   # 强度高 = 恐慌很剧烈
         "disclaimer": "⚠️ 减仓信号：高波 + 下跌共振，减仓决策结合持仓与风控。",
     },
     "逼空过热": {
         "emoji": "🟠",
         "subtitle": "高波 × 方向↑ → 防回撤",
+        "intensity_word": "逼空",   # 强度高 = 逼空很猛烈
         "disclaimer": "⚠️ 高波强势：方向向上但波动大，注意热点轮动和回撤风险。",
     },
     "阴跌预警": {
         "emoji": "🟡",
         "subtitle": "低波 × 方向↓ → 谨慎观望",
+        "intensity_word": "阴跌",   # 强度高 = 阴跌持续性强
         "disclaimer": "⚠️ 风险累积：低波阴跌，趋势偏弱。警惕破位加速下行。",
     },
     "强势上涨": {
         "emoji": "🟢",
         "subtitle": "低波 × 方向↑ → 加仓机会",
+        "intensity_word": "上涨",   # 强度高 = 上涨动能足
         "disclaimer": "⚠️ 加仓机会：方向向上 + 结构健康。注意仓位控制、不盲目追高。",
     },
 }
@@ -833,13 +876,18 @@ def format_alert_message(report: PanicReport) -> str:
     """
     lines: list[str] = []
 
-    # ── 标题：四象限 emoji + 强度 ──
+    # ── 标题：四象限 emoji + 强度（带主语，避免歧义）──
     meta = _QUADRANT_META.get(report.quadrant)
     if meta:
         emoji = meta["emoji"]
         title = report.quadrant
         subtitle = meta["subtitle"]
-        lines.append(f"{emoji} {title} [{report.trade_date} {report.timestamp}]  强度 {report.intensity_score:.0f}/100 {report.intensity_label}")
+        intensity_word = meta["intensity_word"]
+        # 强度带主语：如"逼空 75/100 极高"而不是笼统的"强度 75"
+        lines.append(
+            f"{emoji} {title} [{report.trade_date} {report.timestamp}]  "
+            f"{intensity_word}强度 {report.intensity_score:.0f}/100 {report.intensity_label}"
+        )
         lines.append(f"象限：{subtitle}")
     else:
         # 数据全部不可用降级
