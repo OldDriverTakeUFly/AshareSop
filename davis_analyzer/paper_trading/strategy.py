@@ -84,6 +84,8 @@ class MarketSnapshot:
     dragon_tiger: dict[str, float] = field(default_factory=dict)
     # ── Repurchase positive signal (0-100, higher = more bullish) ──
     repurchase: dict[str, float] = field(default_factory=dict)
+    # ── Intraday amplitude (当日振幅, 0+, higher = more volatile intraday) ──
+    intraday_amplitude: dict[str, float] = field(default_factory=dict)
 
 
 class Strategy(Protocol):
@@ -246,6 +248,16 @@ class FactorThresholdStrategy:
         # 0 = disabled (default). When > 0, stocks with recent large
         # repurchase announcements rank higher (management confidence).
         repurchase_weight: float = 0.0,
+        # ── Intraday amplitude filter ──
+        # When > 0, stocks with daily amplitude > this threshold are excluded
+        # from buy candidates. IC = -0.065 (high amplitude → future reversal).
+        #
+        # A/B result (2026-07-30, 127-day backtest):
+        #   amp=0.00 → Sharpe +1.521 (baseline)
+        #   amp=0.06 → Sharpe +0.677 (too strict, kills momentum stocks)
+        #   amp=0.08 → Sharpe +1.928 (BEST — filters extreme volatility)
+        #   amp=0.10 → Sharpe +0.596 (too loose, adds noise)
+        max_intraday_amplitude: float = 0.08,
         buy_holder_min: float = 40.0,
         buy_dividend_min: float = 55.0,
         buy_forecast_min: float = 70.0,
@@ -344,6 +356,7 @@ class FactorThresholdStrategy:
         self.amihud_weight = amihud_weight
         self.dragon_tiger_weight = dragon_tiger_weight
         self.repurchase_weight = repurchase_weight
+        self.max_intraday_amplitude = max_intraday_amplitude
         self.buy_holder_min = buy_holder_min
         self.buy_dividend_min = buy_dividend_min
         self.buy_forecast_min = buy_forecast_min
@@ -480,6 +493,14 @@ class FactorThresholdStrategy:
                 ev = snapshot.event_signal.get(code)
                 if ev is not None and ev.get("blocked"):
                     continue  # event-blocked, skip buy
+
+            # ── Intraday amplitude filter ──
+            # IC = -0.065: high daily range → future reversal.
+            # Skip stocks with extreme intraday volatility on the buy day.
+            if self.max_intraday_amplitude > 0:
+                amp = snapshot.intraday_amplitude.get(code)
+                if amp is not None and amp > self.max_intraday_amplitude:
+                    continue  # too volatile, skip buy
 
             # Composite score: momentum + best secondary + prosperity + volume-price + tech.
             # Default weights:

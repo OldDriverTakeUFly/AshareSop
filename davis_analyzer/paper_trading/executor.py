@@ -1096,6 +1096,29 @@ def _load_tech_scores(ts_codes: list[str], trade_date: str) -> dict[str, float]:
     return result
 
 
+def _load_intraday_amplitude(ts_codes: list[str], trade_date: str) -> dict[str, float]:
+    """Load intraday amplitude from intraday_feature table.
+
+    Returns ``{ts_code: amplitude}`` where amplitude = (high-low)/pre_close.
+    """
+    if not ts_codes:
+        return {}
+    result: dict[str, float] = {}
+    with get_market_conn() as conn:
+        for i in range(0, len(ts_codes), 500):
+            chunk = ts_codes[i : i + 500]
+            placeholders = ",".join("?" * len(chunk))
+            rows = conn.execute(
+                f"SELECT ts_code, amplitude FROM intraday_feature "
+                f"WHERE trade_date=? AND ts_code IN ({placeholders}) "
+                f"AND amplitude IS NOT NULL",
+                (trade_date, *chunk),
+            ).fetchall()
+            for r in rows:
+                result[r[0]] = float(r[1])
+    return result
+
+
 def _full_market_sector_trends(trade_date: str) -> dict[str, str]:
     """Compute per-industry trend using dual-confirmation: 20d return + MA alignment.
 
@@ -1751,6 +1774,11 @@ class DailyExecutor:
             rep_scores = _compute_repurchase_signal(codes_to_price, trade_date)
         else:
             rep_scores = {}
+        # Intraday amplitude — only loaded when max_intraday_amplitude > 0.
+        if getattr(self.strategy, "max_intraday_amplitude", 0) > 0:
+            intraday_amp = _load_intraday_amplitude(codes_to_price, trade_date)
+        else:
+            intraday_amp = {}
 
         # ── 3a. Risk management: dynamic + vol-adjusted stop-loss/take-profit ──
         risk_signals = self._check_risk_signals(
@@ -1790,6 +1818,7 @@ class DailyExecutor:
             amihud=amihud_scores,
             dragon_tiger=dt_scores,
             repurchase=rep_scores,
+            intraday_amplitude=intraday_amp,
         )
 
         # ── 4. Evaluate strategy ──
