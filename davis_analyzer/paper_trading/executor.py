@@ -2049,6 +2049,7 @@ def _compute_factor_scores_at(
     from davis_analyzer.financial_fetcher import fetch_financial_data
     from davis_analyzer.prosperity import calculate_prosperity_score
     from davis_analyzer.prosperity_sector import classify_stock_stage
+    from davis_analyzer.quality_factor import analyze_quality
 
     scores: dict[str, dict] = {}
     for code in universe:
@@ -2076,6 +2077,12 @@ def _compute_factor_scores_at(
                 entry["stage"] = classify_stock_stage(pscore)
             if div:
                 entry["dividend"] = div.dividend_score
+            # Quality factor — reuse financial data already fetched for prosperity
+            if fin and len(fin) >= 2:
+                from davis_analyzer.quality_factor import compute_quality_from_fin
+                qscore = compute_quality_from_fin(code, fin)
+                if qscore:
+                    entry["quality"] = qscore
             if entry:
                 scores[code] = entry
         except Exception:

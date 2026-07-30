@@ -258,6 +258,9 @@ class FactorThresholdStrategy:
         #   amp=0.08 → Sharpe +1.928 (BEST — filters extreme volatility)
         #   amp=0.10 → Sharpe +0.596 (too loose, adds noise)
         max_intraday_amplitude: float = 0.08,
+        # ── Quality factor weight (QMJ-style: ROE + OCF/NI + leverage) ──
+        # 0 = disabled (default). When > 0, high-quality stocks rank higher.
+        quality_weight: float = 0.0,
         buy_holder_min: float = 40.0,
         buy_dividend_min: float = 55.0,
         buy_forecast_min: float = 70.0,
@@ -357,6 +360,7 @@ class FactorThresholdStrategy:
         self.dragon_tiger_weight = dragon_tiger_weight
         self.repurchase_weight = repurchase_weight
         self.max_intraday_amplitude = max_intraday_amplitude
+        self.quality_weight = quality_weight
         self.buy_holder_min = buy_holder_min
         self.buy_dividend_min = buy_dividend_min
         self.buy_forecast_min = buy_forecast_min
@@ -516,7 +520,8 @@ class FactorThresholdStrategy:
             aw = self.amihud_weight
             dw = self.dragon_tiger_weight
             rw = self.repurchase_weight
-            extras_weight = vw + tw + aw + dw + rw
+            qw = self.quality_weight
+            extras_weight = vw + tw + aw + dw + rw + qw
             legacy_weight = 1.0 - extras_weight
 
             vol_score = snapshot.volume_signal.get(code, {}).get("score", 50.0)
@@ -524,6 +529,8 @@ class FactorThresholdStrategy:
             amihud_s = snapshot.amihud.get(code, 50.0)
             dt_s = snapshot.dragon_tiger.get(code, 50.0)
             rep_s = snapshot.repurchase.get(code, 50.0)
+            quality_raw = factors.get("quality", 50.0)
+            quality_s = quality_raw.quality_score if hasattr(quality_raw, "quality_score") else float(quality_raw)
 
             if extras_weight > 0:
                 composite = (
@@ -535,6 +542,7 @@ class FactorThresholdStrategy:
                     + amihud_s * aw
                     + dt_s * dw
                     + rep_s * rw
+                    + quality_s * qw
                 )
                 detail_str = (
                     f"动量{mom:.0f} " + " ".join(secondary_details)
@@ -543,6 +551,7 @@ class FactorThresholdStrategy:
                     + (f" 流动{amihud_s:.0f}" if aw > 0 else "")
                     + (f" 龙虎{dt_s:.0f}" if dw > 0 else "")
                     + (f" 回购{rep_s:.0f}" if rw > 0 else "")
+                    + (f" 质量{quality_s:.0f}" if qw > 0 else "")
                 )
             else:
                 composite = mom * 0.4 + best_secondary * 0.4 + prosperity_score * 0.2
