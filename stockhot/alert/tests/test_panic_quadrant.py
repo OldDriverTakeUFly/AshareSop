@@ -16,6 +16,7 @@ import pytest
 
 from stockhot.alert.panic_detector import (
     DirectionReading,
+    DoseWarning,
     IndexVolatility,
     LimitBehaviorReading,
     PanicReport,
@@ -24,7 +25,9 @@ from stockhot.alert.panic_detector import (
     SignalResult,
     _classify_quadrant,
     _compute_intensity,
+    _detect_dose_warning,
     _detect_sector_structure,
+    _format_dose_warning_section,
     _format_sector_section,
     _QUADRANT_META,
     format_alert_message,
@@ -528,3 +531,120 @@ def test_format_message_no_sector_section_when_unavailable():
     report.sectors = None  # 板块检测失败
     msg = format_alert_message(report)
     assert "【板块结构】" not in msg
+
+
+# ═══════════════════════════════════════════════════════════════════
+# 剂量效应警示（P99+ 极端高波检测）
+# ═══════════════════════════════════════════════════════════════════
+
+
+def _extreme_vol_indices() -> list[IndexVolatility]:
+    """P99+ 极端高波 × 4（≥3 触发阈值）."""
+    return [
+        IndexVolatility("000001.SH", "上证指数", 60.0, 99, "极度恐慌"),
+        IndexVolatility("399001.SZ", "深证成指", 70.0, 99, "极度恐慌"),
+        IndexVolatility("000300.SH", "沪深300", 55.0, 99, "极度恐慌"),
+        IndexVolatility("399006.SZ", "创业板指", 80.0, 100, "极度恐慌"),
+    ]
+
+
+def _normal_high_vol_indices() -> list[IndexVolatility]:
+    """P90-95 普通高波 × 5（不触发剂量警示）."""
+    return [
+        IndexVolatility("000001.SH", "上证指数", 20.0, 92, "明显恐慌"),
+        IndexVolatility("399001.SZ", "深证成指", 40.0, 93, "极度恐慌"),
+        IndexVolatility("000300.SH", "沪深300", 30.0, 91, "极度恐慌"),
+        IndexVolatility("399006.SZ", "创业板指", 50.0, 94, "极度恐慌"),
+        IndexVolatility("000688.SH", "科创50", 65.0, 95, "极度恐慌"),
+    ]
+
+
+def test_dose_warning_triggered_by_extreme_high_vol(monkeypatch):
+    """P99+ 极端高波（≥3 指数）应触发警示."""
+    # mock 破位检测，隔离 DB 调用（测 P99+ 触发逻辑本身）
+    import stockhot.alert.panic_detector as pd_mod
+    monkeypatch.setattr(
+        pd_mod.DoseWarning, "is_breakdown", False, raising=False
+    )
+    # 让 repo 调用抛异常跳过破位检测，简化测试
+    w = _detect_dose_warning(_extreme_vol_indices(), high_vol=True)
+    assert w.triggered is True
+    assert w.extreme_pct_n == 4
+
+
+def test_dose_warning_not_triggered_by_normal_high_vol():
+    """P90-95 普通高波不应触发（黄金组合区间）."""
+    w = _detect_dose_warning(_normal_high_vol_indices(), high_vol=True)
+    assert w.triggered is False
+    assert w.extreme_pct_n == 0
+
+
+def test_dose_warning_not_triggered_in_low_vol():
+    """低波区间不检测剂量（无剂量问题）."""
+    w = _detect_dose_warning(_extreme_vol_indices(), high_vol=False)
+    assert w.triggered is False
+
+
+def test_dose_warning_partial_extreme_not_triggered():
+    """仅 1-2 个指数 P99+ 不触发（避免单指数噪音）."""
+    indices = [
+        IndexVolatility("000001.SH", "上证指数", 60.0, 99, "极度恐慌"),
+        IndexVolatility("399001.SZ", "深证成指", 40.0, 93, "极度恐慌"),  # 普通
+        IndexVolatility("000300.SH", "沪深300", 30.0, 91, "极度恐慌"),  # 普通
+    ]
+    w = _detect_dose_warning(indices, high_vol=True)
+    assert w.triggered is False  # 仅 1 个 P99+ < 阈值 3
+
+
+def test_format_dose_warning_section_shows_when_triggered():
+    """触发时渲染警示章节（含历史胜率数据）."""
+    warning = DoseWarning(
+        extreme_pct_n=4,
+        triggered=True,
+        is_breakdown=False,
+    )
+    lines = _format_dose_warning_section(warning)
+    text = "\n".join(lines)
+    assert "【剂量警示】" in text
+    assert "P99" in text
+    assert "58%" in text  # 历史胜率
+    assert "88%" in text  # 对比 P90-95
+
+
+def test_format_dose_warning_section_empty_when_not_triggered():
+    """未触发时返回空列表（不渲染）."""
+    warning = DoseWarning(triggered=False)
+    assert _format_dose_warning_section(warning) == []
+
+
+def test_format_dose_warning_breakdown_shows_catching_knife():
+    """P99+ + 破位时显示"接飞刀"警示文案."""
+    warning = DoseWarning(
+        extreme_pct_n=3,
+        breakdown_indices=["深证成指", "创业板指"],
+        triggered=True,
+        is_breakdown=True,
+    )
+    lines = _format_dose_warning_section(warning)
+    text = "\n".join(lines)
+    assert "趋势破位" in text
+    assert "深证成指" in text
+    assert "43%" in text  # 接飞刀胜率
+    assert "接飞刀" in text
+
+
+def test_format_message_includes_dose_warning():
+    """完整消息在 P99+ 触发时含剂量警示章节."""
+    report = _build_report("逼空过热")
+    report.dose_warning = DoseWarning(extreme_pct_n=4, triggered=True)
+    msg = format_alert_message(report)
+    assert "【剂量警示】" in msg
+    assert "P99" in msg
+
+
+def test_format_message_no_dose_warning_when_normal():
+    """普通高波（P90-95）时消息不含剂量警示."""
+    report = _build_report("逼空过热")
+    report.dose_warning = DoseWarning(triggered=False)
+    msg = format_alert_message(report)
+    assert "【剂量警示】" not in msg
