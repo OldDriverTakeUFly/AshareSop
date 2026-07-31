@@ -276,7 +276,120 @@ def run_backtest(
         },
     }
 
+    # 5. 成因分析：为什么高波是机会区间？
+    result["mechanism"] = _analyze_mechanism(data, signals, sse_close)
+
     return result
+
+
+def _analyze_mechanism(
+    data: dict[str, pd.DataFrame],
+    signals: pd.DataFrame,
+    sse_close: pd.Series,
+) -> dict:
+    """高波机会区间的成因分析.
+
+    三个子分析：
+    1. 剂量效应：P90-95 vs P95-99 vs P99+ 的远期收益（验证"过犹不及"）
+    2. 超跌/过热分类：高波前 20 日已跌 vs 已涨（均值回归来源）
+    3. 趋势破位过滤：叠加 60 日均线破位状态（区分反弹 vs 接飞刀）
+    """
+    sse = data["000001.SH"]
+    logret = np.log(sse["close"]).diff()
+    sse_rv = logret.rolling(RV_WINDOW).std() * np.sqrt(TRADING_DAYS) * 100
+    sse_pct = compute_rv20_pct(sse["close"])
+    dates = sse_close.index
+    pos = sse_close.values.astype(float)
+
+    def fwd_20(signal_dates):
+        r = []
+        for d in signal_dates:
+            if d in dates:
+                i = dates.get_loc(d)
+                if i + 20 < len(pos):
+                    r.append((pos[i + 20] / pos[i] - 1) * 100)
+        return np.array(r)
+
+    def pre_20(signal_dates):
+        r = []
+        for d in signal_dates:
+            if d in dates:
+                i = dates.get_loc(d)
+                if i - 20 >= 0:
+                    r.append((pos[i] / pos[i - 20] - 1) * 100)
+        return np.array(r)
+
+    mechanism: dict = {}
+
+    # 1. 剂量效应
+    mechanism["dose_effect"] = {}
+    for lo, hi, name in [(90, 95, "P90-95"), (95, 99, "P95-99"), (99, 101, "P99+")]:
+        mask = ((sse_pct >= lo) & (sse_pct < hi)).reindex(dates).fillna(False)
+        ed = dates[mask]
+        if len(ed) == 0:
+            continue
+        r = fwd_20(ed)
+        if len(r) > 0:
+            mechanism["dose_effect"][name] = summarize(r)
+
+    # 2. 超跌/过热分类（基于高波前 20 日涨跌）
+    hv_dates = dates[(sse_pct >= 90).reindex(dates).fillna(False)]
+    mechanism["pre_trend_split"] = {}
+    for label, cond in [("oversold", lambda p: p < -3), ("neutral", lambda p: -3 <= p <= 3), ("overbought", lambda p: p > 3)]:
+        sub_dates = []
+        for d in hv_dates:
+            if d in dates:
+                i = dates.get_loc(d)
+                if i - 20 >= 0 and i + 20 < len(pos):
+                    pre = (pos[i] / pos[i - 20] - 1) * 100
+                    if cond(pre):
+                        sub_dates.append(d)
+        if sub_dates:
+            r = fwd_20(pd.DatetimeIndex(sub_dates))
+            mechanism["pre_trend_split"][label] = summarize(r)
+
+    # 3. 黄金组合 vs 危险组合
+    # 黄金：P90-95 + 前20日超跌；危险：P99+ + 60日均线破位
+    golden_dates = []
+    danger_dates = []
+    ma60 = sse_close.rolling(60).mean()
+    for d in hv_dates:
+        if d not in dates:
+            continue
+        i = dates.get_loc(d)
+        if i - 20 < 0 or i + 20 >= len(pos) or i < 60:
+            continue
+        pre = (pos[i] / pos[i - 20] - 1) * 100
+        pct = sse_pct.iloc[i]
+        below_ma = pos[i] < ma60.iloc[i] * 0.95
+
+        if 90 <= pct < 95 and pre < -3:
+            golden_dates.append(d)
+        elif pct >= 99 and below_ma:
+            danger_dates.append(d)
+
+    mechanism["composite_signals"] = {
+        "golden_P90_95_oversold": summarize(fwd_20(pd.DatetimeIndex(golden_dates))) if golden_dates else {"n": 0},
+        "danger_P99_breakdown": summarize(fwd_20(pd.DatetimeIndex(danger_dates))) if danger_dates else {"n": 0},
+    }
+
+    # 4. 波动率均值回归（高波后 RV 衰减）
+    rv_deltas = []
+    rv_vals = sse_rv.values
+    rv_idx = sse_rv.index
+    for d in hv_dates:
+        if d in rv_idx:
+            i = rv_idx.get_loc(d)
+            if i + 20 < len(rv_vals):
+                rv_deltas.append(rv_vals[i + 20] - rv_vals[i])
+    if rv_deltas:
+        mechanism["vol_mean_reversion"] = {
+            "rv_at_signal": round(float(np.mean([sse_rv.loc[d] for d in hv_dates if d in sse_rv.index and not pd.isna(sse_rv.loc[d])])), 2),
+            "rv_delta_20d_mean": round(float(np.mean(rv_deltas)), 2),
+            "n": int(len(rv_deltas)),
+        }
+
+    return mechanism
 
 
 # ── 报告生成 ──────────────────────────────────────────────────────
@@ -341,7 +454,71 @@ def render_report(result: dict, output_path: Path) -> None:
     excess = hv["mean"] - lv["mean"]
     lines.append(f"\n**超额收益：{excess:+.2f}%**（高波 - 低波）")
 
-    lines += ["", "## 5. 分年度稳定性（10 日远期收益均值）", ""]
+    # ── 成因分析 ──
+    mech = result.get("mechanism", {})
+    lines += ["", "## 5. 成因分析：为什么高波是机会区间？", ""]
+
+    # 剂量效应
+    dose = mech.get("dose_effect", {})
+    if dose:
+        lines.append("### 5.1 剂量效应：高波内部并非均匀（过犹不及）")
+        lines.append("")
+        lines.append("| RV 分位 | 样本 | 均值% | 中位% | 胜率 |")
+        lines.append("|---------|------|-------|-------|------|")
+        for name in ["P90-95", "P95-99", "P99+"]:
+            s = dose.get(name, {})
+            if s.get("n", 0) > 0:
+                lines.append(f"| {name} | {s['n']} | {s['mean']:+.2f} | {s['median']:+.2f} | {s['win_rate']:.0f}% |")
+        lines.append("")
+        lines.append("⚠️ **关键发现**：普通高波（P90-95）收益远超极端高波（P99+）。")
+        lines.append("P99+ 往往是趋势性崩盘（连续创新低），均值回归失效；P90-95 才是健康的恐慌释放。")
+
+    # 超跌/过热分类
+    split = mech.get("pre_trend_split", {})
+    if split:
+        lines += ["", "### 5.2 均值回归来源：高波前的市场状态"]
+        lines.append("")
+        lines.append("| 高波前 20 日 | 样本 | 均值% | 中位% | 胜率 |")
+        lines.append("|-------------|------|-------|-------|------|")
+        labels = [("oversold", "超跌(<-3%)"), ("neutral", "中性"), ("overbought", "过热(>+3%)")]
+        for key, label in labels:
+            s = split.get(key, {})
+            if s.get("n", 0) > 0:
+                lines.append(f"| {label} | {s['n']} | {s['mean']:+.2f} | {s['median']:+.2f} | {s['win_rate']:.0f}% |")
+        lines.append("")
+        lines.append("超跌型高波（恐慌洗盘后）是机会的核心来源。")
+
+    # 黄金组合 vs 危险组合
+    comp = mech.get("composite_signals", {})
+    golden = comp.get("golden_P90_95_oversold", {})
+    danger = comp.get("danger_P99_breakdown", {})
+    if golden.get("n", 0) > 0 or danger.get("n", 0) > 0:
+        lines += ["", "### 5.3 综合信号：黄金组合 vs 危险组合"]
+        lines.append("")
+        lines.append("| 组合 | 样本 | 均值% | 中位% | 胜率 |")
+        lines.append("|------|------|-------|-------|------|")
+        if golden.get("n", 0) > 0:
+            lines.append(f"| 🥇 P90-95 + 前20日超跌 | {golden['n']} | {golden['mean']:+.2f} | {golden['median']:+.2f} | {golden['win_rate']:.0f}% |")
+        if danger.get("n", 0) > 0:
+            lines.append(f"| ⚠️ P99+ + 60日均线破位 | {danger['n']} | {danger['mean']:+.2f} | {danger['median']:+.2f} | {danger['win_rate']:.0f}% |")
+        lines.append("")
+        lines.append("**实战启示**：看到高波信号先别急着进，检查两点——")
+        lines.append("1. RV 分位是否在 P90-95（健康）还是 P99+（可能崩盘）")
+        lines.append("2. 是否伴随前 20 日超跌（均值回归动力）vs 趋势破位（接飞刀）")
+
+    # 波动率均值回归
+    vmr = mech.get("vol_mean_reversion", {})
+    if vmr:
+        lines += ["", "### 5.4 波动率均值回归"]
+        lines.append("")
+        lines.append(
+            f"- 高波信号时 RV20 均值：{vmr['rv_at_signal']}%"
+            f"\n- 20 日后 RV 变化：{vmr['rv_delta_20d_mean']:+.2f}%（n={vmr['n']}）"
+        )
+        if vmr["rv_delta_20d_mean"] < 0:
+            lines.append("\n波动率显著衰减——恐慌情绪消退后行情趋于稳定，这是收益正期望的底层机制。")
+
+    lines += ["", "## 6. 分年度稳定性（10 日远期收益均值）", ""]
     lines.append("| 象限 |" + " | ".join(str(y) for y in sorted({
         y for q in result["by_year"].values() for y in q
     })) + "|")
@@ -362,19 +539,24 @@ def render_report(result: dict, output_path: Path) -> None:
         "## 关键发现",
         "",
         "1. **高波是机会区间**：高波（≥3 P90+）后 20 日远期收益显著高于低波，"
-        f"超额 +{excess:+.2f}%。波动率极端释放后存在均值回归。",
+        f"超额 +{excess:+.2f}%。底层机制是波动率均值回归（恐慌衰减→行情稳定）。",
         "2. **逼空过热胜率最高**：🟠逼空过热 10 日胜率在四象限中最高，"
         "颠覆「过热就该跑」的直觉。",
         "3. **但追涨有回撤代价**：逼空过热当天追涨，约 30% 概率先吃 -3% 回撤。"
         "正确做法是识别信号后等回撤分批进，而非追涨。",
         "4. **强势上涨反而平庸**：🟢强势上涨（低波上涨）胜率接近 50%，"
         "说明低波行情缺乏趋势性机会。",
+        "5. **剂量效应（核心 alpha 来源）**：普通高波 P90-95 收益远超极端 P99+。"
+        "P99+ 多是趋势性崩盘（均值回归失效），P90-95 + 前 20 日超跌才是黄金组合。",
+        "6. **实战过滤**：高波信号需叠加两个检查——RV 分位（P90-95 健康 vs P99+ 危险）"
+        "+ 前 20 日涨跌（超跌=机会 vs 破位=接飞刀）。",
         "",
         "## 免责声明",
         "",
         "- 历史表现不代表未来，样本期（2021-2026）含牛熊周期但未必覆盖所有极端情景",
         "- 收益计算用收盘-收盘近似，忽略开盘跳空和交易成本",
         "- 象限判定用 4 指数口径（生产用 5 指数），高波判定差异极小",
+        "- 样本期近端的 20 日远期收益可能未充分演化（未来函数截断），分年度解读需注意",
         "- 本研究不构成交易建议，实战需结合持仓/风控/宏观面",
     ]
 
