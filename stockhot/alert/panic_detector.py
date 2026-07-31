@@ -41,6 +41,14 @@ _DOWN_RATIO_THRESHOLD = 0.50  # 跌停占比阈值（> 此值 = 系统性恐慌�
 _IVIX_THRESHOLD = 25.0  # iVIX 明显恐慌上限
 _VR_RATIO_THRESHOLD = 1.3  # V/R 期权极贵阈值
 
+# 剂量效应阈值（2026-07-31 回测固化）
+# 回测发现：P99+ 极端高波后 20 日胜率仅 58%（vs P90-95 的 88%），
+# 尤其叠加 60 日均线破位时接近"接飞刀"。P99+ 触发剂量警示。
+_RV_PCT_EXTREME = 99             # 极端高波分位阈值
+_RV_PCT_EXTREMIN_N = 3          # ≥3 指数 P99+ 才触发（避免单指数噪音）
+_BREAKDOWN_MA_WINDOW = 60        # 趋势破位判定均线窗口
+_BREAKDOWN_THRESHOLD = 0.95     # 收盘 < MA60 × 0.95 视为破位
+
 # 方向维度权重（_detect_direction 综合方向分）
 # direction_score = sign(当日涨跌)×0.4 + sign(涨跌停结构-1)×0.3 + sign(5日累计)×0.3
 _DIR_WEIGHT_TODAY = 0.4      # 当日涨跌（最即时）
@@ -148,6 +156,23 @@ class SectorStructure:
 
 
 @dataclass
+class DoseWarning:
+    """剂量效应警示（2026-07-31 回测固化）.
+
+    回测发现 P99+ 极端高波与 P90-95 普通高波的远期收益差异巨大：
+      P90-95 + 超跌 → 20 日胜率 100%（黄金组合）
+      P99+ + 破位   → 20 日胜率 43%（接飞刀）
+    当检测到 P99+ 极端高波时触发本警示，提示用户区分"健康恐慌释放"
+    与"趋势性崩盘"。
+    """
+
+    extreme_pct_n: int = 0          # P99+ 的指数数量
+    breakdown_indices: list[str] = field(default_factory=list)  # 60日均线破位的指数名
+    triggered: bool = False         # 是否触发警示（P99+ 数 ≥ 阈值）
+    is_breakdown: bool = False      # 是否伴随趋势破位（更危险）
+
+
+@dataclass
 class SignalResult:
     """单个信号的检测结果."""
 
@@ -174,6 +199,8 @@ class PanicReport:
     intensity_label: str = ""                     # "极低/偏低/中等/偏高/极高"
     # 板块结构（2026-07-28）：强势/弱势板块 top N
     sectors: SectorStructure | None = None
+    # 剂量警示（2026-07-31）：P99+ 极端高波 + 趋势破位检测
+    dose_warning: DoseWarning | None = None
 
     @property
     def any_triggered(self) -> bool:
@@ -702,6 +729,63 @@ def _classify_quadrant(
     return "强势上涨"
 
 
+def _detect_dose_warning(
+    indices_vol: list[IndexVolatility],
+    high_vol: bool,
+) -> DoseWarning:
+    """剂量效应警示检测（2026-07-31 回测固化）.
+
+    回测发现高波内部并非均匀：
+      P90-95（普通高波）+ 超跌 → 20 日胜率 100%（黄金组合）
+      P99+（极端高波）+ 破位   → 20 日胜率 43%（接飞刀）
+
+    本函数检测两个危险信号：
+    1. P99+ 极端高波：≥3 指数 P99+ 时触发（均值回归可能失效）
+    2. 60 日均线破位：宽基指数收盘 < MA60 × 0.95（趋势性下跌）
+
+    仅在高波区间（high_vol=True）检测——低波无剂量问题。
+    非高波返回 triggered=False 的空警示。
+
+    参数：
+        indices_vol: 各指数 RV20 读数
+        high_vol: 是否处于高波区间（≥3 指数 P90+）
+
+    返回：
+        DoseWarning，triggered=True 时消息会附加警示文案
+    """
+    warning = DoseWarning()
+
+    # 非高波区间无剂量问题
+    if not high_vol:
+        return warning
+
+    # 1. P99+ 极端高波检测
+    extreme_n = sum(1 for i in indices_vol if i.rv20_pct >= _RV_PCT_EXTREME)
+    warning.extreme_pct_n = extreme_n
+    warning.triggered = extreme_n >= _RV_PCT_EXTREMIN_N
+
+    # 2. 60 日均线破位检测（仅 P99+ 触发时才查，避免额外 DB 调用）
+    if warning.triggered:
+        try:
+            from stockhot.data_layer import get_repository
+            repo = get_repository()
+            end_date = date.today().strftime("%Y%m%d")
+            start_date = (date.today() - timedelta(days=90)).strftime("%Y%m%d")
+            for idx in indices_vol:
+                df = repo.get_index_daily(idx.ts_code, start_date, end_date)
+                if df.empty or len(df) < _BREAKDOWN_MA_WINDOW:
+                    continue
+                ma = df["close"].tail(_BREAKDOWN_MA_WINDOW).mean()
+                latest_close = float(df["close"].iloc[-1])
+                if latest_close < ma * _BREAKDOWN_THRESHOLD:
+                    warning.breakdown_indices.append(idx.name)
+            warning.is_breakdown = bool(warning.breakdown_indices)
+        except Exception as e:
+            logger.warning(f"[panic] dose warning breakdown check failed: {e}")
+
+    return warning
+
+
 def _compute_intensity(
     indices_vol: list[IndexVolatility],
     direction: DirectionReading | None,
@@ -1011,6 +1095,14 @@ def detect_panic_signals() -> PanicReport:
         # 方向失败不影响三大信号，但象限会降级为空（按波动率粗分）
         report.quadrant = _classify_quadrant(None, report.volatility_indices)
 
+    # 信号 4.5：剂量效应警示（仅高波区间检测）
+    # 🟠逼空过热/🔴下跌恐慌 是高波；🟢强势上涨/🟡阴跌预警 是低波
+    is_high_vol = report.quadrant in ("逼空过热", "下跌恐慌")
+    try:
+        report.dose_warning = _detect_dose_warning(report.volatility_indices, is_high_vol)
+    except Exception as e:
+        logger.error(f"[panic] dose warning error: {e}")
+
     # 信号 5：板块结构（强势/弱势 top N）
     # 复用信号 2 的 sector_counts + sw_daily 涨跌幅 + fund_flow 主力资金
     try:
@@ -1155,6 +1247,36 @@ def _format_sector_section(sectors: SectorStructure) -> list[str]:
     return lines
 
 
+def _format_dose_warning_section(warning: DoseWarning) -> list[str]:
+    """格式化剂量效应警示章节.
+
+    仅在 P99+ 极端高波触发时渲染。文案区分两种情况：
+    - 单纯 P99+（无破位）：提示历史胜率低，警惕均值回归失效
+    - P99+ + 破位：强警示"接飞刀"风险
+    """
+    if not warning.triggered:
+        return []
+
+    lines = ["【剂量警示】"]
+
+    # P99+ 计数
+    lines.append(f"  ⚠️ 极端高波：{warning.extreme_pct_n} 个指数 RV20 分位 ≥ P99")
+
+    if warning.is_breakdown:
+        # 最危险组合：P99+ + 趋势破位
+        idx_str = "、".join(warning.breakdown_indices)
+        lines.append(f"  🔴 趋势破位：{idx_str} 收盘 < 60日均线×95%")
+        lines.append("  → 历史回测：P99+ + 破位后 20 日胜率仅 43%（接飞刀）")
+        lines.append("  → 此信号已非「健康恐慌释放」，警惕趋势性崩盘延续")
+    else:
+        # 单纯极端高波（未破位）
+        lines.append("  → 历史回测：P99+ 后 20 日胜率 58%（vs P90-95 的 88%）")
+        lines.append("  → 均值回归动力减弱，不宜机械抄底")
+
+    lines.append("")
+    return lines
+
+
 def format_alert_message(report: PanicReport) -> str:
     """格式化恐慌预警消息（飞书文本）.
 
@@ -1204,6 +1326,10 @@ def format_alert_message(report: PanicReport) -> str:
     # ── 板块结构（强势/弱势 top N）──
     if report.sectors is not None and report.sectors.available:
         lines.extend(_format_sector_section(report.sectors))
+
+    # ── 剂量警示（P99+ 极端高波时才显示）──
+    if report.dose_warning is not None and report.dose_warning.triggered:
+        lines.extend(_format_dose_warning_section(report.dose_warning))
 
     # ── 各信号详情 ──
     for sig in report.signals:
