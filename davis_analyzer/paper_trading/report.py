@@ -2,6 +2,7 @@
 
 Generates a markdown report with:
 - Summary metrics (total return, annualised, max drawdown, Sharpe, win rate)
+- Market-environment context (regime distribution + overseas risk)
 - Equity curve table
 - Current holdings + unrealised P&L
 - Recent trades
@@ -11,6 +12,8 @@ Generates a markdown report with:
 from __future__ import annotations
 
 import math
+import re
+from collections import Counter
 from datetime import datetime
 from typing import Any
 
@@ -54,6 +57,49 @@ def _win_rate(trades: list) -> float:
     # Simple proxy: count sells where signal_reason doesn't contain "止损"
     # True P&L per trade would need matched buy/sell lots
     return round(sum(1 for s in sells if "止损" not in s.signal_reason) / len(sells) * 100, 1)
+
+
+# Matches the "regime/sector" tag embedded in risk-driven signal_reasons,
+# e.g. "硬止损 P&L=-14.4% (止损线14% bull/flat)" → captures "bull", "flat".
+# Anchored to the closing paren so it tolerates the Chinese prefix inside ().
+_REGIME_TAG_RE = re.compile(r"([a-z]+)/(up|down|flat)\)")
+
+
+def _regime_distribution(trades: list) -> dict[str, int]:
+    """Tally how many trades occurred under each market regime.
+
+    Derives the regime from the ``(regime/sector)`` tag that executor embeds
+    in stop-loss / take-profit signal_reasons. Trades without the tag (e.g.
+    buys, T-trades) are skipped. Returns a {regime: count} dict.
+    """
+    counts: Counter = Counter()
+    for t in trades:
+        m = _REGIME_TAG_RE.search(t.signal_reason or "")
+        if m:
+            counts[m.group(1)] += 1
+    return dict(counts)
+
+
+def _latest_overseas_risk(trade_date: str | None) -> tuple[float, str] | None:
+    """Fetch the most recent overseas risk score for display.
+
+    Returns (score, level) or None if no overseas data exists. Looks back
+    up to 7 calendar days from the last trade date to tolerate weekends /
+    data lags. Failures are silent — this is a display-only enhancement.
+    """
+    if not trade_date:
+        return None
+    try:
+        from davis_analyzer.international_overlay import backfill_risk_scores
+
+        # backfill_risk_scores walks calendar days; just take the last one.
+        scores = backfill_risk_scores(trade_date, trade_date)
+        if scores and scores[-1].data_sufficient:
+            s = scores[-1]
+            return (s.composite_score, s.level)
+    except Exception:
+        pass
+    return None
 
 
 def generate_report(account: PaperAccount, current_prices: dict[str, float] | None = None) -> str:
@@ -109,6 +155,31 @@ def generate_report(account: PaperAccount, current_prices: dict[str, float] | No
     lines.append(f"| 总交易笔数 | {len(trades)} |")
     lines.append(f"| 持仓数量 | {len(positions)} |")
     lines.append("")
+
+    # ── Market environment context ──
+    # Shows which regimes the strategy traded through (derived from trade
+    # records) + the latest international resonance risk. Helps the reader
+    # judge whether performance was achieved in bull, bear, or mixed waters.
+    regime_counts = _regime_distribution(trades)
+    latest_risk = _latest_overseas_risk(nav_history[-1].trade_date)
+
+    if regime_counts or latest_risk:
+        lines.append("## 市场环境")
+        lines.append("")
+        if regime_counts:
+            total_tagged = sum(regime_counts.values())
+            emoji = {"bull": "🟢", "bear": "🔴", "mixed": "🟡", "neutral": "🟡"}
+            parts = []
+            for r in ("bull", "mixed", "neutral", "bear"):
+                if r in regime_counts:
+                    pct = regime_counts[r] / total_tagged * 100
+                    parts.append(f"{emoji.get(r, '')} {r} {pct:.0f}%")
+            lines.append(f"- **交易期间 regime 分布**：{' / '.join(parts)}（基于 {total_tagged} 笔风控触发交易）")
+        if latest_risk:
+            score, level = latest_risk
+            risk_emoji = {"极端": "🔴", "偏高": "🟠", "中等": "🟡", "偏低": "🟢"}.get(level, "")
+            lines.append(f"- **最新国际共振风险**：{score:.0f}/100 {risk_emoji}{level}")
+        lines.append("")
 
     # Equity curve (sampled to ≤30 rows)
     lines.append("## 净值曲线")
