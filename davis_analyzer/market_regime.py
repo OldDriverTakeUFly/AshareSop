@@ -256,3 +256,40 @@ def reset_hmm_cache():
     _hmm_state_labels = {}
     _hmm_train_end_date = ""
     _hmm_predictions = {}
+
+
+def get_market_regime_with_overseas(trade_date: str) -> RegimeState:
+    """Enhanced regime detection with international market resonance overlay.
+
+    Combines the base HMM+MA regime with an overseas risk overlay that can
+    *downgrade* (never upgrade) the regime based on US Treasury yields,
+    USD/JPY carry-trade risk, US-VIX, and US equity overnight gaps.
+
+    The overlay is a parallel signal — it never alters the HMM training.
+    When overseas risk is extreme (>=70), regime is forced to bear; when
+    elevated (>=50), bull is demoted to neutral. Below 50, the base regime
+    stands unchanged.
+
+    Use this instead of get_market_regime when international context matters
+    (paper trading, live decisions). The original get_market_regime remains
+    for backward compatibility and backtests that must stay overlay-free.
+    """
+    base = get_market_regime(trade_date)
+
+    try:
+        from davis_analyzer.international_overlay import (
+            apply_overseas_overlay,
+            get_international_risk,
+        )
+
+        risk = get_international_risk(trade_date)
+        adjusted = apply_overseas_overlay(base, risk)
+        if adjusted != base:
+            logger.info(
+                "overseas overlay downgraded {} → {} for {} (risk={:.1f}, {})",
+                base, adjusted, trade_date, risk.composite_score, risk.level,
+            )
+        return adjusted
+    except Exception as exc:
+        logger.debug("overseas overlay failed for {}: {} — using base regime", trade_date, exc)
+        return base

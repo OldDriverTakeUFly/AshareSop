@@ -62,6 +62,7 @@ class MarketSnapshot:
     # ── Smart strategy context (enhancement) ──
     market_regime: str = "neutral"  # "bull" / "bear" / "neutral" (HMM) or "mixed" (legacy)
     vol_mult: float = 1.0           # position size multiplier from market vol regime
+    overseas_risk: float = 0.0      # 国际共振风险分 0-100 (0=未启用/无数据；>=50 触发降级)
     industries: dict[str, str] = field(default_factory=dict)  # ts_code → industry
     industry_trend: dict[str, str] = field(default_factory=dict)  # industry → "up"/"down"/"flat"
     # ── Short-term momentum + valuation (added for quality filtering) ──

@@ -6,7 +6,7 @@ Table: invest_overseas_market
 import argparse
 import os
 import traceback
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import akshare as ak
 import pandas as pd
@@ -113,21 +113,27 @@ def collect_overseas_data(target_date: str) -> dict:
             errors.append(f"{key}: {e}")
             traceback.print_exc()
 
-    # US 10Y yield — bond_zh_us_rate() only takes start_date
+    # US Treasury yields (10Y + 2Y) — Tushare us_tycr (120 pts, reliable).
+    # AKShare bond_zh_us_rate() was used before but never succeeded (0% fill rate),
+    # replaced 2026-07-30. us_tycr returns y10/y2 as decimals (e.g. 4.65 = 4.65%).
     try:
-        df = _call_akshare("bond_zh_us_rate")
-        if df is not None and len(df) >= 2:
-            col = "美国国债收益率10年"
-            current = df[col].iloc[-1]
-            previous = df[col].iloc[-2]
-            if not (pd.isna(current) or pd.isna(previous)):
-                results["us_10y"] = round(float(current), 4)
-                results["us_10y_change_bp"] = round((float(current) - float(previous)) * 100, 2)
-                print(f"  [OK] US 10Y: {results['us_10y']} ({results['us_10y_change_bp']}bp)")
-            else:
-                errors.append("us_10y: NaN values in data")
+        from davis_analyzer.tushare_client import TushareClient
+
+        client = TushareClient()
+        end = target_date.replace("-", "")
+        start = (datetime.strptime(target_date, "%Y-%m-%d") - timedelta(days=10)).strftime("%Y%m%d")
+        df = client._pro.us_tycr(start_date=start, end_date=end)
+        if df is not None and len(df) >= 1:
+            df = df.sort_values("date")
+            cur_10y = float(df["y10"].iloc[-1])
+            results["us_10y"] = round(cur_10y, 4)
+            results["us_2y"] = round(float(df["y2"].iloc[-1]), 4)
+            if len(df) >= 2:
+                prev_10y = float(df["y10"].iloc[-2])
+                results["us_10y_change_bp"] = round((cur_10y - prev_10y) * 100, 2)
+            print(f"  [OK] US 10Y: {results['us_10y']} ({results.get('us_10y_change_bp', 0)}bp), 2Y: {results['us_2y']}")
         else:
-            errors.append("us_10y: insufficient data rows")
+            errors.append("us_10y: us_tycr returned no data")
     except Exception as e:
         errors.append(f"us_10y: {e}")
         traceback.print_exc()
@@ -145,6 +151,26 @@ def collect_overseas_data(target_date: str) -> dict:
             errors.append("usd_cny: no data returned")
     except Exception as e:
         errors.append(f"usd_cny: {e}")
+        traceback.print_exc()
+
+    # USD/JPY — Tushare fx_daily (2000 pts). Yen weakness >160 = carry-trade
+    # unwind risk (the trigger of the 2024-08-05 global crash). Critical for
+    # the international overlay's 套息风险 signal.
+    try:
+        from davis_analyzer.tushare_client import TushareClient
+
+        client = TushareClient()
+        end = target_date.replace("-", "")
+        start = (datetime.strptime(target_date, "%Y-%m-%d") - timedelta(days=7)).strftime("%Y%m%d")
+        df = client._pro.fx_daily(ts_code="USDJPY.FXCM", start_date=start, end_date=end)
+        if df is not None and len(df) >= 1:
+            df = df.sort_values("trade_date")
+            results["usd_jpy"] = round(float(df["bid_close"].iloc[-1]), 4)
+            print(f"  [OK] USD/JPY: {results.get('usd_jpy')}")
+        else:
+            errors.append("usd_jpy: fx_daily returned no data")
+    except Exception as e:
+        errors.append(f"usd_jpy: {e}")
         traceback.print_exc()
 
     # A50 futures

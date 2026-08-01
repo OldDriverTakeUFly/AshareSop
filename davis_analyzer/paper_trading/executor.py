@@ -196,21 +196,40 @@ def _limit_up_fill_probability(pct_chg: float | None) -> float:
 
 
 def _get_market_regime(trade_date: str) -> str:
-    """Determine market regime using HMM + MA confirmation.
+    """Determine market regime using HMM + MA confirmation + overseas overlay.
 
-    Delegates to ``davis_analyzer.market_regime.get_market_regime`` which
-    uses a 3-state Gaussian HMM trained on 5 years of index returns,
-    confirmed by MA20/MA60 alignment.
+    Delegates to ``davis_analyzer.market_regime.get_market_regime_with_overseas``
+    which layers an international resonance overlay on the base HMM+MA regime.
+    The overlay can only *downgrade* (bull→neutral on elevated overseas risk,
+    →bear on extreme risk), never upgrade — so foreign turmoil forces caution.
 
     Returns "bull", "bear", or "neutral".
     Falls back to the old rule-based logic if HMM is unavailable.
     """
     try:
-        from davis_analyzer.market_regime import get_market_regime as hmm_regime
-        return hmm_regime(trade_date)
+        from davis_analyzer.market_regime import (
+            get_market_regime_with_overseas as regime_fn,
+        )
+        return regime_fn(trade_date)
     except Exception:
         logger.debug(f"HMM regime failed for {trade_date}, fallback to rule-based")
         return _get_market_regime_rulebased(trade_date)
+
+
+def _get_overseas_risk(trade_date: str) -> float:
+    """Fetch the international resonance risk score (0-100) for a trade date.
+
+    Returns 0.0 when overseas data is unavailable (fail-safe: missing
+    international data never blocks trading). Used to populate
+    MarketSnapshot.overseas_risk for display and future fine-grained use.
+    """
+    try:
+        from davis_analyzer.international_overlay import get_international_risk
+
+        risk = get_international_risk(trade_date)
+        return risk.composite_score if risk.data_sufficient else 0.0
+    except Exception:
+        return 0.0
 
 
 def _get_market_vol_regime(trade_date: str) -> tuple[str, float]:
@@ -1443,6 +1462,17 @@ class DailyExecutor:
     }
     _DEFAULT_RISK = (0.10, 0.20)
 
+    @staticmethod
+    def _normalize_regime(regime: str) -> str:
+        """Map HMM's 'neutral' onto the risk-table's legacy 'mixed' name.
+
+        _RISK_RULES predates the HMM integration and uses 'mixed'; the HMM
+        + overseas overlay return 'neutral'. Without this, neutral regimes
+        silently fall through to _DEFAULT_RISK instead of the tighter
+        mixed-market thresholds.
+        """
+        return "mixed" if regime == "neutral" else regime
+
     def __init__(self, account: PaperAccount, strategy: Strategy) -> None:
         self.account = account
         self.strategy = strategy
@@ -1469,7 +1499,7 @@ class DailyExecutor:
         Also applies strategy.risk_stop_multiplier (global scaling for sweep).
         """
         base_stop, base_tp = self._RISK_RULES.get(
-            (market_regime, sector_trend), self._DEFAULT_RISK
+            (self._normalize_regime(market_regime), sector_trend), self._DEFAULT_RISK
         )
 
         # Global multiplier from strategy (for parameter sweep)
@@ -1735,6 +1765,10 @@ class DailyExecutor:
 
         # ── 2b. Market regime + industry context ──
         market_regime = _get_market_regime(trade_date)
+        # International resonance risk (0-100). _get_market_regime already
+        # applied any downgrade via the overlay; this score is for display
+        # and future fine-grained use. 0.0 when overseas data is absent.
+        overseas_risk = _get_overseas_risk(trade_date)
         # Market volatility regime (independent of bull/bear) — used for
         # position sizing: high vol = light position + wide stop.
         vol_regime, vol_mult = _get_market_vol_regime(trade_date)
@@ -1790,9 +1824,10 @@ class DailyExecutor:
             volume_signals=volume_signals,
         )
         if risk_signals:
+            overseas_tag = f", 国际风险={overseas_risk:.0f}" if overseas_risk >= 30 else ""
             logger.info(
                 f"[{self.account.name}] {trade_date}: {len(risk_signals)} risk signals "
-                f"(market={market_regime})"
+                f"(market={market_regime}{overseas_tag})"
             )
 
         # ── 3b. Build snapshot with smart context ──
@@ -1807,6 +1842,7 @@ class DailyExecutor:
             stock_names=stock_names,
             market_regime=market_regime,
             vol_mult=vol_mult,
+            overseas_risk=overseas_risk,
             industries=industries,
             industry_trend=industry_trend,
             short_momentum=short_momentum,

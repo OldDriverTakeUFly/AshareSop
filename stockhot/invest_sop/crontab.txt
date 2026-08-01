@@ -66,3 +66,10 @@
 # Intraday holdings alert (Mon–Fri, 4 checks during trading hours)
 # 用 AKShare 实时价检查模拟账户+手动持仓异动（止损/目标/涨跌幅），触发推飞书.
 30 10,11,13,14 * * 1-5 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python stockhot/invest_sop/scripts/intraday_holdings_alert.py >> stockhot/invest_sop/logs/intraday_holdings.log 2>&1
+
+# Davis Double 盘后估值筛选 (Mon–Fri, 20:00; ~60-90min, Tushare 400/min 限流)
+# 放在 18:00 数据刷新 + 19:00 git 提交之后的空闲窗口。
+# 独立于 16:30 的 screen_top20（四因子横截面）；davis 是戴维斯双击估值视角，两套并存。
+# Pipeline 重，避免与 20:30 domestic_events 抢 API 配额——domestic 不调 Tushare，无冲突。
+# Output: studies/output/davis_top_{date}.json + davis_latest.json, Top10 摘要推飞书.
+0 20 * * 1-5 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python scripts/davis_nightly_screen.py >> stockhot/invest_sop/logs/davis_nightly.log 2>&1
