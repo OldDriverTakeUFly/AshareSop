@@ -260,8 +260,13 @@ class FactorThresholdStrategy:
         #   amp=0.10 → Sharpe +0.596 (too loose, adds noise)
         max_intraday_amplitude: float = 0.08,
         # ── Quality factor weight (QMJ-style: ROE + OCF/NI + leverage) ──
-        # 0 = disabled (default). When > 0, high-quality stocks rank higher.
-        quality_weight: float = 0.0,
+        # When > 0, high-quality stocks rank higher.
+        #
+        # A/B result (2026-07-31, 138-day backtest):
+        #   qw=0.00 → Sharpe +1.037 (baseline)
+        #   qw=0.05 → Sharpe +1.198
+        #   qw=0.10 → Sharpe +2.197 (BEST)
+        quality_weight: float = 0.10,
         buy_holder_min: float = 40.0,
         buy_dividend_min: float = 55.0,
         buy_forecast_min: float = 70.0,
