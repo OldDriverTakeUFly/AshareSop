@@ -505,16 +505,34 @@ def _detect_ivix_vr() -> tuple[float | None, float | None, SignalResult]:
     from stockhot.core.rate_limiter import safe_akshare_call
 
     ivix_value = None
+    ivix_source = ""  # 数据来源标注（实时/上一交易日）
 
-    # 分时 iVIX（盘中实时）
+    # 路径 1：分时 iVIX（盘中实时，AKShare index_option_50etf_min_qvix）
     try:
         df = safe_akshare_call(ak.index_option_50etf_min_qvix)
         if df is not None and not df.empty:
             raw = float(df.iloc[-1]["qvix"])
             # AKShare 可能返回 NaN（盘外/数据缺失），过滤
-            ivix_value = raw if not pd.isna(raw) else None
+            if not pd.isna(raw):
+                ivix_value = raw
+                ivix_source = "实时"
     except Exception as e:
         logger.warning(f"[panic] intraday iVIX failed: {e}")
+
+    # 路径 2：历史日线回退（分时失败/NaN 时，用上一交易日收盘 iVIX）
+    # index_option_50etf_qvix 返回 2015 至今完整日频，稳定可靠
+    if ivix_value is None:
+        try:
+            df_hist = safe_akshare_call(ak.index_option_50etf_qvix)
+            if df_hist is not None and not df_hist.empty:
+                # 取最后一行（最新交易日）的 close
+                last_close = pd.to_numeric(df_hist.iloc[-1]["close"], errors="coerce")
+                if not pd.isna(last_close):
+                    ivix_value = float(last_close)
+                    ivix_source = "上一交易日"
+                    logger.info(f"[panic] iVIX 回退到历史日线: {ivix_value} ({ivix_source})")
+        except Exception as e:
+            logger.warning(f"[panic] iVIX history fallback failed: {e}")
 
     # V/R = iVIX / 上证 RV20
     vr_ratio = None
@@ -553,6 +571,8 @@ def _detect_ivix_vr() -> tuple[float | None, float | None, SignalResult]:
     triggered = ivix_triggered or vr_triggered
 
     parts = [f"iVIX={ivix_value:.1f}({_classify_ivix_level(ivix_value)})"]
+    if ivix_source and ivix_source != "实时":
+        parts.append(f"[{ivix_source}]")  # 非实时时标注时效
     if vr_ratio is not None:
         vr_label = "期权极贵" if vr_ratio > _VR_RATIO_THRESHOLD else ("合理" if vr_ratio > 0.9 else "期权便宜")
         parts.append(f"V/R={vr_ratio:.2f}({vr_label})")
@@ -980,14 +1000,23 @@ def _fetch_sector_main_net() -> dict[str, float]:
 
     返回 {板块名: 主力净额(亿元)}。数据来源是 Tushare moneyflow 聚合，
     时效为上一交易日（非实时）。
+
+    注意：fund_flow_sector 表的 trade_date 是 ISO 格式（2026-07-31），
+    与 index_daily 的紧凑格式（20260731）不同。
     """
     try:
         from stockhot.data_layer import get_repository
         repo = get_repository()
-        # 尝试近 5 天找有数据的交易日
+        # 尝试近 6 天找有数据的交易日
         for back in range(0, 6):
-            d = (date.today() - timedelta(days=back)).strftime("%Y%m%d")
-            rows = repo.get_fund_flow_sector(d)
+            d = (date.today() - timedelta(days=back))
+            # fund_flow_sector 表用 ISO 格式（2026-07-31）
+            d_iso = d.isoformat()
+            rows = repo.get_fund_flow_sector(d_iso)
+            if not rows:
+                # 也尝试紧凑格式（兼容其他表）
+                d_compact = d.strftime("%Y%m%d")
+                rows = repo.get_fund_flow_sector(d_compact)
             if not rows:
                 continue
             net_map = {}
@@ -1018,20 +1047,43 @@ def _detect_sector_structure(sector_counts: dict[str, dict]) -> SectorStructure:
     # 数据源 2：板块主力净额（fund_flow_sector，上一交易日）
     net_map = _fetch_sector_main_net()
 
-    # 合并所有出现过的板块名
-    all_sectors = set(sector_counts.keys()) | set(pct_map.keys()) | set(net_map.keys())
+    # ── 板块名归一化：三个数据源统一到申万一级口径 ──
+    # zt_pool 用东财细分（"元件""半导体"），fund_flow 用 Tushare 细分（"化学制药"），
+    # sw_daily 用申万一级（"电子""医药生物"）。归一化后才能按同一板块合并。
+    from stockhot.alert.sector_mapping import normalize_sector_name
+
+    # 按归一化名聚合 sector_counts（多个细分 → 同一一级，涨跌停数累加）
+    norm_counts: dict[str, dict] = {}
+    for raw_name, counts in sector_counts.items():
+        norm = normalize_sector_name(raw_name)
+        if norm not in norm_counts:
+            norm_counts[norm] = {"limit_up": 0, "limit_down": 0, "broken": 0}
+        norm_counts[norm]["limit_up"] += counts.get("limit_up", 0)
+        norm_counts[norm]["limit_down"] += counts.get("limit_down", 0)
+        norm_counts[norm]["broken"] += counts.get("broken", 0)
+
+    # pct_map 和 net_map 的 key 已经是/接近申万一级，直接用归一化名查找
+    # （sw_daily 一级本身就是目标口径；fund_flow 细分需归一化）
+    norm_net: dict[str, float] = {}
+    for raw_name, net in net_map.items():
+        norm = normalize_sector_name(raw_name)
+        # 同一一级下多个细分的净额累加
+        norm_net[norm] = norm_net.get(norm, 0.0) + net
+
+    # 合并所有出现过的归一化板块名
+    all_sectors = set(norm_counts.keys()) | set(pct_map.keys()) | set(norm_net.keys())
     if not all_sectors:
         return SectorStructure(available=False)
 
-    # 构造 SectorStrength 列表
+    # 构造 SectorStrength 列表（用归一化名）
     strengths: list[SectorStrength] = []
     for name in all_sectors:
-        counts = sector_counts.get(name, {})
+        counts = norm_counts.get(name, {})
         lu = counts.get("limit_up", 0)
         ld = counts.get("limit_down", 0)
         br = counts.get("broken", 0)
-        pct = pct_map.get(name)
-        net = net_map.get(name)
+        pct = pct_map.get(name)  # sw_daily 一级名直接匹配
+        net = norm_net.get(name)
 
         # 综合强弱分（用于排序参考）：涨停正、跌停负，涨跌幅和资金辅助
         score = 0.0

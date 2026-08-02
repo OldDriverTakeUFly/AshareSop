@@ -377,27 +377,29 @@ def test_save_panic_history_handles_missing_direction(tmp_path, monkeypatch):
 
 
 def test_sector_structure_strong_sorted_by_limit_up(monkeypatch):
-    """强势板块按涨停数降序（行为信号优先于涨跌幅）."""
-    # mock _fetch_sw_daily_pct 返回空（隔离 sw_daily，只测 sector_counts 逻辑）
+    """强势板块按涨停数降序（行为信号优先于涨跌幅）.
+
+    用不同申万一级的板块（避免归一化合并）：计算机/医药生物/食品饮料。
+    """
     import stockhot.alert.panic_detector as pd_mod
     monkeypatch.setattr(pd_mod, "_fetch_sw_daily_pct", lambda: ({}, ""))
     monkeypatch.setattr(pd_mod, "_fetch_sector_main_net", lambda: {})
 
     sector_counts = {
-        "消费电子": {"limit_up": 8, "limit_down": 0, "broken": 1},
-        "半导体": {"limit_up": 6, "limit_down": 1, "broken": 0},
+        "计算机": {"limit_up": 8, "limit_down": 0, "broken": 1},
+        "医药生物": {"limit_up": 6, "limit_down": 1, "broken": 0},
         "食品饮料": {"limit_up": 2, "limit_down": 0, "broken": 0},
     }
     result = _detect_sector_structure(sector_counts)
     assert result.available
     assert len(result.strong) == 3
     # 按涨停数降序
-    assert result.strong[0].name == "消费电子"
+    assert result.strong[0].name == "计算机"
     assert result.strong[0].limit_up == 8
-    assert result.strong[1].name == "半导体"
-    # 半导体有跌停（1个）→ 出现在 weak 里；消费电子/食品饮料无跌停 → weak 只含半导体
+    assert result.strong[1].name == "医药生物"
+    # 医药生物有跌停（1个）→ 也出现在 weak 里；计算机/食品饮料无跌停 → weak 只含医药生物
     assert len(result.weak) == 1
-    assert result.weak[0].name == "半导体"
+    assert result.weak[0].name == "医药生物"
 
 
 def test_sector_structure_weak_sorted_by_limit_down(monkeypatch):
@@ -461,8 +463,14 @@ def test_sector_structure_top_n_limit(monkeypatch):
     monkeypatch.setattr(pd_mod, "_fetch_sw_daily_pct", lambda: ({}, ""))
     monkeypatch.setattr(pd_mod, "_fetch_sector_main_net", lambda: {})
 
-    # 构造 5 个涨停板块
-    sector_counts = {f"板块{i}": {"limit_up": 10 - i, "limit_down": 0} for i in range(5)}
+    # 构造 5 个不同申万一级的涨停板块
+    sector_counts = {
+        "计算机": {"limit_up": 10, "limit_down": 0},
+        "医药生物": {"limit_up": 9, "limit_down": 0},
+        "食品饮料": {"limit_up": 8, "limit_down": 0},
+        "电子": {"limit_up": 7, "limit_down": 0},
+        "银行": {"limit_up": 6, "limit_down": 0},
+    }
     result = _detect_sector_structure(sector_counts)
     assert len(result.strong) == 3  # 只取 top 3
 
