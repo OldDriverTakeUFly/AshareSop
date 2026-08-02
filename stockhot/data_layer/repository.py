@@ -153,8 +153,13 @@ class MarketDataRepository:
                 start_date=decision.fetch_start, end_date=end_date,
                 fields="ts_code,trade_date,adj_factor",
             )
+            # 仅当拉到的数据真的推进了 max_date 才写入——防止"Tushare 尚未发布
+            # 当日数据、返回的全是已缓存旧数据"时仍刷新 fetched_at，从而污染
+            # 冷却期判定（与 cache.py 的 is_in_cooldown 配套的双保险）。
             if not daily_df.empty:
-                self._save_daily_prices(daily_df, adj_df)
+                fetched_max = str(daily_df["trade_date"].max())
+                if max_date is None or fetched_max > max_date:
+                    self._save_daily_prices(daily_df, adj_df)
 
         # 从缓存读取请求范围
         with closing(get_connection()) as conn:
@@ -264,23 +269,28 @@ class MarketDataRepository:
                 start_date=decision.fetch_start, end_date=end_date,
                 fields="ts_code,trade_date,open,high,low,close,vol,amount,pct_chg",
             )
+            # 仅当拉到的数据真的推进了 max_date 才写入——防止"Tushare 尚未发布
+            # 当日数据、返回的全是已缓存旧数据"时仍刷新 fetched_at，从而污染
+            # 冷却期判定（与 cache.py 的 is_in_cooldown 配套的双保险）。
             if not df.empty:
-                ts = now_ts()
-                records = [
-                    (r.ts_code, r.trade_date, getattr(r, "open", None),
-                     getattr(r, "high", None), getattr(r, "low", None), r.close,
-                     getattr(r, "vol", None), getattr(r, "amount", None),
-                     getattr(r, "pct_chg", None), ts)
-                    for r in df.itertuples()
-                ]
-                with closing(get_connection()) as conn:
-                    conn.executemany(
-                        "INSERT OR REPLACE INTO index_daily "
-                        "(ts_code, trade_date, open, high, low, close, vol, amount, pct_chg, fetched_at) "
-                        "VALUES (?,?,?,?,?,?,?,?,?,?)",
-                        records,
-                    )
-                    conn.commit()
+                fetched_max = str(df["trade_date"].max())
+                if max_date is None or fetched_max > max_date:
+                    ts = now_ts()
+                    records = [
+                        (r.ts_code, r.trade_date, getattr(r, "open", None),
+                         getattr(r, "high", None), getattr(r, "low", None), r.close,
+                         getattr(r, "vol", None), getattr(r, "amount", None),
+                         getattr(r, "pct_chg", None), ts)
+                        for r in df.itertuples()
+                    ]
+                    with closing(get_connection()) as conn:
+                        conn.executemany(
+                            "INSERT OR REPLACE INTO index_daily "
+                            "(ts_code, trade_date, open, high, low, close, vol, amount, pct_chg, fetched_at) "
+                            "VALUES (?,?,?,?,?,?,?,?,?,?)",
+                            records,
+                        )
+                        conn.commit()
 
         with closing(get_connection()) as conn:
             rows = conn.execute(
