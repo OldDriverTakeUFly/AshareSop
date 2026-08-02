@@ -692,13 +692,16 @@ def _build_stock_infos(
         df = client.get_stock_list()
         industry_map: dict[str, str] = {}
         name_map: dict[str, str] = {}
+        list_status_map: dict[str, str] = {}
         if df is not None and not df.empty:
             for _, row in df.iterrows():
                 industry_map[row["ts_code"]] = row.get("industry", "")
                 name_map[row["ts_code"]] = row.get("name", "")
+                list_status_map[row["ts_code"]] = row.get("list_status", "L")
     except Exception:
         industry_map = {}
         name_map = {}
+        list_status_map = {}
 
     from davis_analyzer.constants import CYCLICAL_INDUSTRIES
 
@@ -709,7 +712,7 @@ def _build_stock_infos(
             ts_code=code,
             name=name_map.get(code, ""),
             industry=industry,
-            list_status="L",
+            list_status=list_status_map.get(code, "L"),
             is_cyclical=industry in cyclical_set,
         )
     return infos

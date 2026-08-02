@@ -32,6 +32,14 @@ from davis_analyzer.constants import TUSHARE_RATE_LIMIT
 # 表名去掉 _cache 后缀，对齐 DAL schema（stock_basic → stock_basic 等）。
 from stockhot.data_layer.market_db import MARKET_DB_PATH as _CACHE_DB
 
+# Track which (endpoint, ts_code) combos were already checked today.
+# forecast (业绩预告) is sparse — most quarters have no announcement, so the
+# API returns empty and nothing gets cached. Without this set, the backtest
+# would re-fetch 200 stocks × every day = 270k futile API calls (8.6h waste).
+# Entries are (endpoint, ts_code, "YYYY-MM-DD"); cleared on new day implicitly
+# because the date is part of the key.
+_forecast_checked_today: set[tuple[str, str, str]] = set()
+
 # Per-table TTL (seconds). Financial data is quarterly and immutable once
 # published, so it is cached permanently (no expiry). Dividend history is
 # slow-moving (annual payouts) and the endpoint ignores date filters, so we
@@ -94,6 +102,15 @@ class TushareClient:
         self._request_timestamps: list[float] = []
         self._rate_limit = TUSHARE_RATE_LIMIT
         _init_cache_db(_CACHE_DB)
+        # Persistent read connection for cache lookups.
+        # Opening a new sqlite3.connect() per call costs ~0.1ms each, which
+        # adds up to ~6h over a 1351-day × 200-stock backtest (1400 calls/day).
+        # Reusing one connection cuts this to negligible. check_same_thread=False
+        # is safe because we only read from this connection (writes go through
+        # separate short-lived connections in _financial_insert).
+        self._cache_conn = sqlite3.connect(str(_CACHE_DB), check_same_thread=False)
+        self._cache_conn.execute("PRAGMA journal_mode=WAL")
+        self._cache_conn.execute("PRAGMA query_only=1")
         logger.info("TushareClient initialised (rate_limit={}/min)", self._rate_limit)
 
     # ── rate limiter ──
@@ -150,9 +167,14 @@ class TushareClient:
     # ── public API ──
 
     def get_stock_list(self) -> pd.DataFrame:
-        """Return the A-share stock list with 7-day TTL caching."""
-        with sqlite3.connect(str(_CACHE_DB)) as conn:
-            row = conn.execute("SELECT COUNT(*), MAX(fetched_at) FROM stock_basic").fetchone()
+        """Return the A-share stock list with 7-day TTL caching.
+
+        Includes listed (L), delisted (D), and suspended (P) stocks so the
+        backtest universe correctly contains delisted names (avoids
+        survivorship bias). Downstream callers that only want active stocks
+        can filter ``df[df.list_status == "L"]``.
+        """
+        row = self._cache_conn.execute("SELECT COUNT(*), MAX(fetched_at) FROM stock_basic").fetchone()
 
         count = row[0] if row else 0
         latest = row[1] if row else None
@@ -161,15 +183,21 @@ class TushareClient:
             logger.debug("stock_basic cache fresh ({} rows)", count)
             return self._stock_basic_from_cache()
 
-        df = self._call(
-            "stock_basic",
-            self._pro.stock_basic,
-            {
-                "exchange": "",
-                "list_status": "L",
-                "fields": "ts_code,name,industry,list_status",
-            },
-        )
+        # Fetch all three list_status buckets and concatenate.
+        parts: list[pd.DataFrame] = []
+        for status in ("L", "D", "P"):
+            df_part = self._call(
+                "stock_basic",
+                self._pro.stock_basic,
+                {
+                    "exchange": "",
+                    "list_status": status,
+                    "fields": "ts_code,name,industry,list_status",
+                },
+            )
+            if df_part is not None and not df_part.empty:
+                parts.append(df_part)
+        df = pd.concat(parts, ignore_index=True) if parts else pd.DataFrame()
         if not df.empty:
             self._stock_basic_replace(df)
         return self._stock_basic_from_cache()
@@ -180,11 +208,10 @@ class TushareClient:
         Only trade dates newer than the most recent cached date are requested
         from the API; the full requested range is then served from cache.
         """
-        with sqlite3.connect(str(_CACHE_DB)) as conn:
-            row = conn.execute(
-                "SELECT MAX(trade_date), MAX(fetched_at) FROM daily_basic WHERE ts_code=?",
-                (ts_code,),
-            ).fetchone()
+        row = self._cache_conn.execute(
+            "SELECT MAX(trade_date), MAX(fetched_at) FROM daily_basic WHERE ts_code=?",
+            (ts_code,),
+        ).fetchone()
 
         max_date = row[0] if row else None
         latest_fetched = row[1] if row else None
@@ -273,11 +300,10 @@ class TushareClient:
         Note: rows cached before the ``open`` column was added have
         ``open=None``; they are back-filled on the next incremental refresh.
         """
-        with sqlite3.connect(str(_CACHE_DB)) as conn:
-            row = conn.execute(
-                "SELECT MAX(trade_date), MAX(fetched_at) FROM daily_price WHERE ts_code=?",
-                (ts_code,),
-            ).fetchone()
+        row = self._cache_conn.execute(
+            "SELECT MAX(trade_date), MAX(fetched_at) FROM daily_price WHERE ts_code=?",
+            (ts_code,),
+        ).fetchone()
 
         max_date = row[0] if row else None
         latest_fetched = row[1] if row else None
@@ -334,11 +360,10 @@ class TushareClient:
         when available (see _dedupe_financial_rows).
         """
         # Refresh once per 7 days; dividend history is slow-moving.
-        with sqlite3.connect(str(_CACHE_DB)) as conn:
-            row = conn.execute(
-                "SELECT MAX(fetched_at) FROM financial WHERE ts_code=? AND endpoint='dividend'",
-                (ts_code,),
-            ).fetchone()
+        row = self._cache_conn.execute(
+            "SELECT MAX(fetched_at) FROM financial WHERE ts_code=? AND endpoint='dividend'",
+            (ts_code,),
+        ).fetchone()
         latest_fetched = row[0] if row else None
         now = time.time()
         fresh = (
@@ -543,10 +568,8 @@ class TushareClient:
 
     # ── structured-cache read/write helpers ──
 
-    @staticmethod
-    def _stock_basic_from_cache() -> pd.DataFrame:
-        with sqlite3.connect(str(_CACHE_DB)) as conn:
-            rows = conn.execute(
+    def _stock_basic_from_cache(self) -> pd.DataFrame:
+        rows = self._cache_conn.execute(
                 "SELECT ts_code, name, industry, list_status FROM stock_basic"
             ).fetchall()
         return pd.DataFrame(rows, columns=["ts_code", "name", "industry", "list_status"])
@@ -569,10 +592,8 @@ class TushareClient:
             )
             conn.commit()
 
-    @staticmethod
-    def _daily_basic_from_cache(ts_code: str, start_date: str, end_date: str) -> pd.DataFrame:
-        with sqlite3.connect(str(_CACHE_DB)) as conn:
-            rows = conn.execute(
+    def _daily_basic_from_cache(self, ts_code: str, start_date: str, end_date: str) -> pd.DataFrame:
+        rows = self._cache_conn.execute(
                 """
                 SELECT ts_code, trade_date, pe_ttm, pb, ps, total_mv
                 FROM daily_basic
@@ -614,10 +635,145 @@ class TushareClient:
             )
             conn.commit()
 
+    def backfill_daily_basic_by_date(
+        self, start_date: str, end_date: str
+    ) -> dict[str, int]:
+        """Backfill daily_basic by trade_date (whole-market per call).
+
+        Unlike ``get_daily_basic`` (per-ts_code incremental), this method
+        fetches the entire market for each trade date in one API call.
+        Much faster for bulk historical fill: ~1356 calls for 5.6 years
+        vs ~5534 calls per-ts_code.
+
+        Args:
+            start_date: YYYYMMDD string.
+            end_date:   YYYYMMDD string.
+
+        Returns:
+            Dict with ``days_fetched``, ``rows_inserted``, ``days_skipped``.
+        """
+        # Resolve trade calendar from cached daily_price (the authoritative
+        # set of dates that actually have market data).
+        cal_rows = self._cache_conn.execute(
+            "SELECT DISTINCT trade_date FROM daily_price "
+            "WHERE trade_date >= ? AND trade_date <= ? ORDER BY trade_date",
+            (start_date, end_date),
+        ).fetchall()
+        all_dates = [r[0] for r in cal_rows]
+
+        # Resume from the latest trade_date already in daily_basic.
+        resume_row = self._cache_conn.execute(
+            "SELECT MAX(trade_date) FROM daily_basic "
+            "WHERE trade_date >= ? AND trade_date <= ?",
+            (start_date, end_date),
+        ).fetchone()
+        resume_from = resume_row[0] if resume_row else None
+        if resume_from:
+            fetch_dates = [d for d in all_dates if d > resume_from]
+            logger.info(
+                "daily_basic backfill: resuming after {} (already cached), "
+                "{} dates remaining of {} total",
+                resume_from, len(fetch_dates), len(all_dates),
+            )
+        else:
+            fetch_dates = list(all_dates)
+            logger.info(
+                "daily_basic backfill: {} trade dates [{} → {}]",
+                len(fetch_dates), fetch_dates[0] if fetch_dates else "?",
+                fetch_dates[-1] if fetch_dates else "?",
+            )
+
+        days_fetched = 0
+        rows_inserted = 0
+        days_skipped = 0
+        empty_dates: list[str] = []
+
+        for i, d in enumerate(fetch_dates):
+            try:
+                df = self._call(
+                    "daily_basic",
+                    self._pro.daily_basic,
+                    {
+                        "trade_date": d,
+                        "fields": (
+                            "ts_code,trade_date,pe_ttm,pb,ps,total_mv,"
+                            "turnover_rate,circ_mv,free_share"
+                        ),
+                    },
+                )
+            except Exception as exc:
+                logger.warning("daily_basic backfill: {} failed: {} — skip", d, exc)
+                days_skipped += 1
+                continue
+
+            if df is None or df.empty:
+                empty_dates.append(d)
+                days_skipped += 1
+                continue
+
+            # Bulk insert via OR REPLACE (pk dedup on ts_code+trade_date).
+            self._daily_basic_bulk_insert(df)
+            days_fetched += 1
+            rows_inserted += len(df)
+
+            if (i + 1) % 50 == 0 or (i + 1) == len(fetch_dates):
+                logger.info(
+                    "daily_basic backfill progress: {}/{} ({}%), "
+                    "rows={} latest={}",
+                    i + 1, len(fetch_dates),
+                    round((i + 1) / max(len(fetch_dates), 1) * 100, 1),
+                    rows_inserted, d,
+                )
+
+        if empty_dates:
+            logger.warning(
+                "daily_basic backfill: {} dates returned empty (first 5: {})",
+                len(empty_dates), empty_dates[:5],
+            )
+
+        logger.info(
+            "daily_basic backfill done: fetched={} days, rows_inserted={}, "
+            "skipped={}",
+            days_fetched, rows_inserted, days_skipped,
+        )
+        return {
+            "days_fetched": days_fetched,
+            "rows_inserted": rows_inserted,
+            "days_skipped": days_skipped,
+        }
+
     @staticmethod
-    def _daily_prices_from_cache(ts_code: str, start_date: str, end_date: str) -> pd.DataFrame:
+    def _daily_basic_bulk_insert(df: pd.DataFrame) -> None:
+        """Bulk-insert daily_basic rows (whole-market df, OR REPLACE)."""
+        if df is None or df.empty:
+            return
+        now = time.time()
+        records = []
+        for r in df.to_dict("records"):
+            records.append(
+                (
+                    r.get("ts_code", ""),
+                    str(r.get("trade_date", "")),
+                    r.get("pe_ttm"),
+                    r.get("pb"),
+                    r.get("ps"),
+                    r.get("total_mv"),
+                    now,
+                )
+            )
         with sqlite3.connect(str(_CACHE_DB)) as conn:
-            rows = conn.execute(
+            conn.executemany(
+                """
+                INSERT OR REPLACE INTO daily_basic
+                    (ts_code, trade_date, pe_ttm, pb, ps, total_mv, fetched_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                records,
+            )
+            conn.commit()
+
+    def _daily_prices_from_cache(self, ts_code: str, start_date: str, end_date: str) -> pd.DataFrame:
+        rows = self._cache_conn.execute(
                 """
                 SELECT ts_code, trade_date, open, close, adj_factor
                 FROM daily_price
@@ -680,12 +836,12 @@ class TushareClient:
         end_date: str,
     ) -> pd.DataFrame:
         """Fetch quarterly financial data with incremental (per-report-period) fetch."""
-        with sqlite3.connect(str(_CACHE_DB)) as conn:
-            row = conn.execute(
-                "SELECT MAX(end_date), MAX(fetched_at) FROM financial "
-                "WHERE ts_code=? AND endpoint=?",
-                (ts_code, endpoint),
-            ).fetchone()
+        # Use persistent read connection (24x faster than per-call connect).
+        row = self._cache_conn.execute(
+            "SELECT MAX(end_date), MAX(fetched_at) FROM financial "
+            "WHERE ts_code=? AND endpoint=?",
+            (ts_code, endpoint),
+        ).fetchone()
 
         max_end = row[0] if row else None
         latest_fetched = row[1] if row else None
@@ -693,6 +849,16 @@ class TushareClient:
             latest_fetched is not None
             and datetime.fromtimestamp(latest_fetched).date() == date.today()
         )
+
+        # forecast (业绩预告) is sparse — most quarters have no announcement.
+        # When the cache is empty, _financial_insert writes nothing, so
+        # fetched_at stays NULL forever, making fetched_today always False.
+        # This caused 200 stocks × 1351 days = 270k futile API calls (8.6h
+        # of pure overhead in 5-year backtests). Track checked-today in memory.
+        today_str = date.today().isoformat()
+        cache_key = (endpoint, ts_code, today_str)
+        if cache_key in _forecast_checked_today:
+            return self._financial_from_cache(endpoint, ts_code, start_date, end_date)
 
         # Already have every report period through end_date — data is permanent.
         if max_end is not None and max_end >= end_date:
@@ -718,6 +884,9 @@ class TushareClient:
                 },
             )
             self._financial_insert(endpoint, ts_code, df)
+            # Mark as checked today even if df was empty (e.g. forecast has
+            # no announcement for this period). Prevents futile re-fetching.
+            _forecast_checked_today.add(cache_key)
 
         return self._financial_from_cache(endpoint, ts_code, start_date, end_date)
 
@@ -756,12 +925,11 @@ class TushareClient:
             )
             conn.commit()
 
-    @staticmethod
     def _financial_from_cache(
+        self,
         endpoint: str, ts_code: str, start_date: str, end_date: str
     ) -> pd.DataFrame:
-        with sqlite3.connect(str(_CACHE_DB)) as conn:
-            rows = conn.execute(
+        rows = self._cache_conn.execute(
                 """
                 SELECT payload
                 FROM financial
