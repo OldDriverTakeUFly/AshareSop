@@ -12,9 +12,10 @@
 表结构分三类：
 1. 基础行情表（从 davis tushare_cache.db 继承）：stock_basic / daily_price / daily_basic /
    financial / hk_hold / index_daily
-2. 盘面采集表（从 stockhot.db daily_data JSON blob 结构化）：limit_pool / dragon_tiger /
+2. 离线回填的因子/事件表：corp_event / tech_factor / intraday_feature / top_list
+3. 盘面采集表（从 stockhot.db daily_data JSON blob 结构化）：limit_pool / dragon_tiger /
    fund_flow_sector / fund_flow_market / index_technical
-3. 元数据表：macro_indicator（宏观缓存）/ scan_log（采集日志）
+4. 元数据表：macro_indicator（宏观缓存）/ scan_log（采集日志）
 
 详见 ``docs/方法论/统一市场数据架构.md``。
 """
@@ -152,6 +153,28 @@ _SCHEMA_STATEMENTS: list[str] = [
         lower_shadow    REAL,    -- 下影线: (min(open,close) - low) / (high - low)
         body_ratio      REAL,    -- 实体比: (close - open) / (high - low)
         fetched_at      REAL,
+        PRIMARY KEY (ts_code, trade_date)
+    )""",
+
+    # 龙虎榜明细（Tushare top_list，按 trade_date 全市场批量回填）
+    # 上榜标的的营业部/机构买卖明细，net_amount = 买入额 - 卖出额
+    """CREATE TABLE IF NOT EXISTS top_list (
+        trade_date    TEXT NOT NULL,
+        ts_code       TEXT NOT NULL,
+        name          TEXT,
+        close         REAL,
+        pct_change    REAL,           -- 当日涨跌幅%
+        turnover_rate REAL,           -- 换手率%
+        amount        REAL,           -- 成交额（元）
+        l_sell        REAL,           -- 买入额（元）
+        l_buy         REAL,           -- 卖出额（元）
+        l_amount      REAL,           -- 总成交额（龙虎榜口径，元）
+        net_amount    REAL,           -- 净额 = 买入 - 卖出（正=净买入，负=净卖出）
+        net_rate      REAL,           -- 净额占比%
+        amount_rate   REAL,           -- 龙虎榜成交额 / 总成交额%
+        float_values  REAL,           -- 流通市值（元）
+        reason        TEXT,           -- 上榜原因
+        fetched_at    REAL,
         PRIMARY KEY (ts_code, trade_date)
     )""",
 

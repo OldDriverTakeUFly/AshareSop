@@ -19,31 +19,7 @@ loguru.logger.add(sys.stderr, level="WARNING")
 
 import pandas as pd
 from davis_analyzer.tushare_client import TushareClient, _CACHE_DB
-
-
-def ensure_table(conn):
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS top_list (
-            trade_date    TEXT NOT NULL,
-            ts_code       TEXT NOT NULL,
-            name          TEXT,
-            close         REAL,
-            pct_change    REAL,
-            turnover_rate REAL,
-            amount        REAL,
-            l_sell        REAL,
-            l_buy         REAL,
-            l_amount      REAL,
-            net_amount    REAL,
-            net_rate      REAL,
-            amount_rate   REAL,
-            float_values  REAL,
-            reason        TEXT,
-            fetched_at    REAL,
-            PRIMARY KEY (ts_code, trade_date)
-        )
-    """)
-    conn.commit()
+from stockhot.data_layer.market_db import init_db
 
 
 def main():
@@ -53,9 +29,11 @@ def main():
     client = TushareClient()
     print(f"=== top_list backfill: {start} → {end} ===")
 
+    # Ensure schema is initialized (idempotent, single source of truth in market_db.py)
+    init_db()
+
     # Trade dates from daily_price
     with sqlite3.connect(str(_CACHE_DB)) as conn:
-        ensure_table(conn)
         all_dates = [r[0] for r in conn.execute(
             "SELECT DISTINCT trade_date FROM daily_price WHERE trade_date >= ? AND trade_date <= ? ORDER BY trade_date",
             (start, end),
