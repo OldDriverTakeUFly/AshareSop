@@ -16,9 +16,9 @@ loguru.logger.add(sys.stderr, level="ERROR")
 
 import numpy as np
 import pandas as pd
-import tushare as ts
 from datetime import datetime
-pro = ts.pro_api()
+
+from davis_analyzer.studies.rally_screening.utils import fetch_raw_financials_from_db
 
 PHOTORESIST_STOCKS = {
     "300346.SZ": ("南大光电", "KrF/ArF光刻胶+前驱体", "高端"),
@@ -38,53 +38,8 @@ PHOTORESIST_STOCKS = {
 
 
 def fetch_raw_financials(ts_code, periods=8):
-    """直接从 Tushare income+fina_indicator 拉取，自己算单季同比"""
-    # 拉收入
-    income = pro.income(ts_code=ts_code, fields="ts_code,end_date,ann_date,total_revenue,n_income,n_income_attr_p")
-    if income is None or income.empty:
-        return None
-    income = income.drop_duplicates(subset=["end_date"]).sort_values("end_date", ascending=False).head(periods)
-
-    # 拉指标
-    fina = pro.fina_indicator(ts_code=ts_code, fields="ts_code,end_date,ann_date,roe,grossprofit_margin,dt_roe")
-    if fina is not None and not fina.empty:
-        fina = fina.drop_duplicates(subset=["end_date"]).sort_values("end_date", ascending=False).head(periods)
-    else:
-        fina = pd.DataFrame()
-
-    # 合并
-    df = income.merge(fina[["end_date","roe","grossprofit_margin"]], on="end_date", how="left") if not fina.empty else income
-    df = df.sort_values("end_date", ascending=False).reset_index(drop=True)
-
-    # 计算单季数据（累计 - 上期累计）
-    df = df.sort_values("end_date").reset_index(drop=True)
-    df["quarter_rev"] = df["total_revenue"]
-    df["quarter_np"] = df["n_income_attr_p"]
-
-    # 拆单季：Q1不拆，其他季度 = 本期累计 - 上期累计
-    for i in range(len(df)-1, 0, -1):
-        curr_q = df.loc[i, "end_date"][4:6]
-        if curr_q != "03":  # 非Q1，减去上一期
-            df.loc[i, "quarter_rev"] = df.loc[i, "total_revenue"] - df.loc[i-1, "total_revenue"]
-            df.loc[i, "quarter_np"] = df.loc[i, "n_income_attr_p"] - df.loc[i-1, "n_income_attr_p"]
-
-    # 计算同比（本期单季 vs 去年同期单季）
-    df["rev_yoy"] = np.nan
-    df["np_yoy"] = np.nan
-    for i in range(len(df)):
-        curr_end = df.loc[i, "end_date"]
-        curr_q = curr_end[4:6]
-        # 找去年同季
-        prev_year = str(int(curr_end[:4]) - 1) + curr_q + curr_end[6:]
-        match = df[df["end_date"] == prev_year]
-        if not match.empty:
-            j = match.index[0]
-            if pd.notna(df.loc[i, "quarter_rev"]) and pd.notna(df.loc[j, "quarter_rev"]) and df.loc[j, "quarter_rev"] != 0:
-                df.loc[i, "rev_yoy"] = (df.loc[i, "quarter_rev"] / df.loc[j, "quarter_rev"] - 1) * 100
-            if pd.notna(df.loc[i, "quarter_np"]) and pd.notna(df.loc[j, "quarter_np"]) and abs(df.loc[j, "quarter_np"]) > 1e6:
-                df.loc[i, "np_yoy"] = (df.loc[i, "quarter_np"] / df.loc[j, "quarter_np"] - 1) * 100
-
-    return df.sort_values("end_date", ascending=False).reset_index(drop=True)
+    """从 SQLite 读取利润表+指标（替代 pro.income + pro.fina_indicator）"""
+    return fetch_raw_financials_from_db(ts_code, periods=periods)
 
 
 def main():

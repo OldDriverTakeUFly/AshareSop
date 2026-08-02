@@ -26,9 +26,11 @@ import pandas as pd
 from scipy.stats import spearmanr, ttest_ind
 import sqlite3
 from davis_analyzer.tushare_client import _CACHE_DB
-
-DAILY_CACHE = "/home/leo/Projects/CodeAgentDashboard/davis_analyzer/studies/rally_screening/cache_daily"
-MSG_CACHE = "/home/leo/Projects/CodeAgentDashboard/davis_analyzer/studies/rally_screening/cache_msg"
+from davis_analyzer.studies.rally_screening.utils import (
+    get_trade_dates,
+    load_daily_batch,
+    load_top_list_batch,
+)
 
 
 def load_all_data():
@@ -41,14 +43,8 @@ def load_all_data():
     print(f"  tech_factor: {len(tf):,} 行")
 
     # 2. daily 行情 + 未来收益
-    files = sorted([f for f in os.listdir(DAILY_CACHE) if f.startswith("daily_") and f.endswith(".pkl")])
-    all_dfs = []
-    for f in files:
-        trade_date = f.replace("daily_", "").replace(".pkl", "")
-        df = pd.read_pickle(f"{DAILY_CACHE}/{f}")
-        df["trade_date"] = trade_date
-        all_dfs.append(df[["ts_code", "trade_date", "close", "amount"]])
-    daily = pd.concat(all_dfs, ignore_index=True)
+    dates = get_trade_dates("20251201", "20260725")
+    daily = load_daily_batch(dates)
     daily = daily[daily["ts_code"].str.startswith(("00", "30", "60", "68"))]
     daily = daily[daily["amount"] > 10000]
     daily = daily.sort_values(["ts_code", "trade_date"]).reset_index(drop=True)
@@ -58,19 +54,13 @@ def load_all_data():
     print(f"  daily: {len(daily):,} 行")
 
     # 3. 龙虎榜
-    tl_files = sorted([f for f in os.listdir(MSG_CACHE) if f.startswith("top_list_") and f.endswith(".pkl")])
-    tl_dfs = []
-    for f in tl_files:
-        trade_date = f.replace("top_list_", "").replace(".pkl", "")
-        df = pd.read_pickle(f"{MSG_CACHE}/{f}")
-        if df is not None and not df.empty:
-            df = df[["ts_code", "net_amount"]].copy()
-            df["trade_date"] = trade_date
-            tl_dfs.append(df)
-    tl = pd.concat(tl_dfs, ignore_index=True) if tl_dfs else pd.DataFrame()
-    tl["on_top_list"] = 1
-    tl["top_net_amount"] = tl["net_amount"]
-    tl = tl[["ts_code", "trade_date", "on_top_list", "top_net_amount"]]
+    tl = load_top_list_batch(dates)
+    if not tl.empty:
+        tl["on_top_list"] = 1
+        tl["top_net_amount"] = tl["net_amount"]
+        tl = tl[["ts_code", "trade_date", "on_top_list", "top_net_amount"]]
+    else:
+        tl = pd.DataFrame(columns=["ts_code", "trade_date", "on_top_list", "top_net_amount"])
     print(f"  top_list: {len(tl):,} 行")
 
     # 4. 合并

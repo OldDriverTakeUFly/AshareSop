@@ -25,67 +25,37 @@ loguru.logger.remove()
 import numpy as np
 import pandas as pd
 from scipy.stats import spearmanr, ttest_ind
-import tushare as ts
 
-pro = ts.pro_api()
-
-DAILY_CACHE = "/home/leo/Projects/CodeAgentDashboard/davis_analyzer/studies/rally_screening/cache_daily"
-MSG_CACHE = "/home/leo/Projects/CodeAgentDashboard/davis_analyzer/studies/rally_screening/cache_msg"
+from davis_analyzer.studies.rally_screening.utils import (
+    get_trade_dates,
+    load_daily_batch,
+    load_top_list_batch,
+)
 
 
 def load_daily_data():
-    """加载全市场daily行情，构造 ts_code×trade_date 的 close 矩阵"""
-    files = sorted([f for f in os.listdir(DAILY_CACHE) if f.startswith("daily_") and f.endswith(".pkl")])
-    all_dfs = []
-    for f in files:
-        trade_date = f.replace("daily_", "").replace(".pkl", "")
-        df = pd.read_pickle(f"{DAILY_CACHE}/{f}")
-        df["trade_date"] = trade_date
-        all_dfs.append(df[["ts_code", "trade_date", "close", "pct_chg", "amount"]])
-    big = pd.concat(all_dfs, ignore_index=True)
-    # 过滤
+    """加载全市场daily行情（从SQLite批量读）"""
+    dates = get_trade_dates("20251201", "20260725")
+    big = load_daily_batch(dates)
     big = big[big["ts_code"].str.startswith(("00", "30", "60", "68"))]
-    big = big[big["amount"] > 10000]  # 成交额>1000万
+    big = big[big["amount"] > 10000]
     return big.sort_values(["ts_code", "trade_date"]).reset_index(drop=True)
 
 
-def load_moneyflow():
-    """加载大单/超大单净流入"""
-    files = sorted([f for f in os.listdir(MSG_CACHE) if f.startswith("moneyflow_") and f.endswith(".pkl")])
-    all_dfs = []
-    for f in files:
-        trade_date = f.replace("moneyflow_", "").replace(".pkl", "")
-        df = pd.read_pickle(f"{MSG_CACHE}/{f}")
-        df["trade_date"] = trade_date
-        all_dfs.append(df[["ts_code", "trade_date",
-                           "buy_elg_amount", "sell_elg_amount",
-                           "buy_lg_amount", "sell_lg_amount",
-                           "net_mf_amount"]])
-    big = pd.concat(all_dfs, ignore_index=True)
-    # 计算各因子
-    big["elg_net"] = big["buy_elg_amount"].fillna(0) - big["sell_elg_amount"].fillna(0)
-    big["lg_net"] = big["buy_lg_amount"].fillna(0) - big["sell_lg_amount"].fillna(0)
-    big["big_net_total"] = big["elg_net"] + big["lg_net"]
-    return big
-
-
 def load_top_list():
-    """加载龙虎榜净买入"""
-    files = sorted([f for f in os.listdir(MSG_CACHE) if f.startswith("top_list_") and f.endswith(".pkl")])
-    all_dfs = []
-    for f in files:
-        trade_date = f.replace("top_list_", "").replace(".pkl", "")
-        df = pd.read_pickle(f"{MSG_CACHE}/{f}")
-        if df is not None and not df.empty:
-            df = df[["ts_code", "net_amount"]].copy()
-            df["trade_date"] = trade_date
-            df["on_top_list"] = 1
-            all_dfs.append(df)
-    if not all_dfs:
+    """加载龙虎榜净买入（从SQLite）"""
+    dates = get_trade_dates("20251201", "20260725")
+    big = load_top_list_batch(dates)
+    if big.empty:
         return pd.DataFrame()
-    big = pd.concat(all_dfs, ignore_index=True)
+    big["on_top_list"] = 1
     big["top_net_amount"] = big["net_amount"]
     return big[["ts_code", "trade_date", "on_top_list", "top_net_amount"]]
+
+
+# NOTE: 大单/超大单 moneyflow 因子已移除——5年验证证明 IC≈0（Q5-Q1 仅+0.3%，
+# t<5），不具备预测力。个股级 moneyflow 也不在 market_data.db 里。
+# 如需恢复，需新建 moneyflow 表并回填历史数据。
 
 
 def compute_forward_returns(daily_df, periods=[5, 10, 20]):
@@ -155,17 +125,13 @@ def analyze_factor(factor_df, factor_col, label, periods=[5, 10, 20]):
 
 def main():
     print("=" * 85)
-    print("资金面因子 IC + Quintile 分析")
+    print("资金面因子 IC + Quintile 分析（仅龙虎榜——大单因子已证明 IC≈0 移除）")
     print("=" * 85)
 
     # === 加载数据 ===
     print("\n加载 daily 行情...")
     daily_df = load_daily_data()
     print(f"  {len(daily_df):,} 行")
-
-    print("加载 moneyflow...")
-    mf_df = load_moneyflow()
-    print(f"  {len(mf_df):,} 行")
 
     print("加载龙虎榜...")
     tl_df = load_top_list()
@@ -176,18 +142,9 @@ def main():
     daily_df = compute_forward_returns(daily_df, periods=[5, 10, 20])
     print(f"  完成")
 
-    # === 合并因子 ===
+    # === 合并龙虎榜 ===
     print("合并因子表...")
-    factor_df = daily_df.merge(
-        mf_df[["ts_code", "trade_date", "elg_net", "lg_net", "big_net_total", "net_mf_amount"]],
-        on=["ts_code", "trade_date"], how="left"
-    )
-    factor_df["elg_net"] = factor_df["elg_net"].fillna(0)
-    factor_df["lg_net"] = factor_df["lg_net"].fillna(0)
-    factor_df["big_net_total"] = factor_df["big_net_total"].fillna(0)
-    factor_df["net_mf_amount"] = factor_df["net_mf_amount"].fillna(0)
-
-    # 龙虎榜：不上榜的标的 net_amount=0，on_top_list=0
+    factor_df = daily_df.copy()
     if not tl_df.empty:
         factor_df = factor_df.merge(
             tl_df[["ts_code", "trade_date", "on_top_list", "top_net_amount"]],
@@ -210,21 +167,9 @@ def main():
     if len(on_list) > 1000:
         analyze_factor(on_list, "top_net_amount", "龙虎榜净买入额（仅上榜标的内部排名）")
 
-    # 因子2: 超大单净流入
-    analyze_factor(factor_df, "elg_net", "超大单净流入")
-
-    # 因子3: 大单净流入
-    analyze_factor(factor_df, "lg_net", "大单净流入")
-
-    # 因子4: 超大+大单合计
-    analyze_factor(factor_df, "big_net_total", "超大单+大单合计净流入")
-
-    # 因子5: 全口径净流入
-    analyze_factor(factor_df, "net_mf_amount", "全口径资金净流入(net_mf)")
-
     # === 汇总 ===
     print(f"\n{'='*85}")
-    print("★ 汇总：各因子 20天 Q5-Q1 价差对比")
+    print("★ 汇总：龙虎榜因子 20天 Q5-Q1 价差")
     print(f"{'='*85}")
     print(f"  （对比技术因子基准：RSI +1.98%, boll +1.37%, tech_score +1.14%）")
 

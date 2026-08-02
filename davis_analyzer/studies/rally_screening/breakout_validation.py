@@ -16,20 +16,18 @@ os.environ["PROJECT_ROOT"] = os.getcwd()
 
 import numpy as np
 import pandas as pd
-from datetime import datetime, timedelta
-import tushare as ts
 import sys
 import loguru
 loguru.logger.remove()
 loguru.logger.add(sys.stderr, level="ERROR")
 
+from davis_analyzer.studies.rally_screening.utils import fetch_daily_qfq_from_db
+
 def fetch_daily(ts_code, days=600):
-    end = datetime.now().strftime("%Y%m%d")
-    start = (datetime.now() - timedelta(days=int(days*1.8))).strftime("%Y%m%d")
-    df = ts.pro_bar(ts_code=ts_code, adj="qfq", start_date=start, end_date=end)
-    if df is None or df.empty:
+    """前复权日线（从SQLite读）"""
+    df = fetch_daily_qfq_from_db(ts_code, days=days)
+    if df.empty:
         return pd.DataFrame()
-    df = df.rename(columns={"trade_date":"date","vol":"volume"})
     df["date"] = pd.to_datetime(df["date"], format="%Y%m%d")
     df = df.set_index("date").sort_index()
     return df[["open","high","low","close","volume"]].astype(float)

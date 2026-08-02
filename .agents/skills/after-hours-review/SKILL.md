@@ -144,7 +144,15 @@ iVIX={X}（{level}），V/R={X}（{期权偏贵/合理/便宜}）
 ```python
 from stockhot.alert.vol_streak_analyzer import analyze_vol_streak
 streak = analyze_vol_streak(trade_date)  # trade_date = "2026-07-31"
+# 持续天数 + 历史对比
 # streak.current_days / streak.historical_avg_days / streak.historical_max_days
+# 波动衰减状态（实时可计算的反转信号）
+# streak.rv_decay_ratio  (< 0.8 = 衰减→机会)
+# streak.rv20_peaked     (RV20 是否已见顶)
+# streak.decay_status    ("衰减中(机会)" / "高位震荡(警惕)" / "加速中(危险)" / "骤降中(强反转信号)")
+# streak.sharp_drop      (RV20 单日降幅 > 5% = 事件驱动)
+# streak.rv20_daily_change (RV20 单日变化%)
+# 板块影响
 # streak.impacted_sectors  (受影响最大 top3)
 # streak.resilient_sectors (逆势机会 top3)
 ```
@@ -157,6 +165,15 @@ streak = analyze_vol_streak(trade_date)  # trade_date = "2026-07-31"
 当前处于高波第 **{current_days}** 天（{streak_start} 起，5/5 指数 P90+ 持续）。
 历史对比：5.5 年共 {historical_count} 个高波期，平均 {avg} 天，最长 {max} 天（{note}）。
 当前 {current_rank}。
+
+### 波动衰减状态
+
+| 指标 | 当前值 | 判定 |
+|------|--------|------|
+| RV20 | {rv20}% | {见顶/未止} |
+| RV5/RV20 | {ratio} | {< 0.8 衰减 / ≥ 0.8 高位} |
+| 单日变化 | {daily_change}% | {骤降/正常} |
+| **综合判定** | | **{decay_status}** |
 
 ### 受影响最大板块（跌停密集 + 资金流出）
 
@@ -176,9 +193,22 @@ streak = analyze_vol_streak(trade_date)  # trade_date = "2026-07-31"
 
 **解读要点**：
 1. **持续天数定位**：当前 vs 历史平均/最长，判断"接近尾声"还是"可能延续"
-2. **板块分化**：同时出现在受影响 + 逆势两个榜的板块（`has_divergence=True`）= **内部分歧**，不是单纯的机会或风险
-3. **资金流向**：主力净额的符号和大小揭示资金从哪切向哪（如硬件→软件）
-4. **结合回测**：参考 `docs/回测记录/四象限信号回测_*.md`——高波区间后 20 日系统性正收益（历史均值 +1.4%）
+2. **衰减状态（核心决策信号）**：
+   - `decay_status == "骤降中(强反转信号)"`（`sharp_drop=True`）：RV20 单日骤降 > 5%，疑似事件驱动
+     （政策反转/关税缓和/封控解除）。回测：事件驱动结束后续 60 日 +5.5%，100% 胜率。
+     → **这是最强参与信号**，可考虑加大仓位。
+   - `decay_status == "衰减中(机会)"`：RV5/RV20 < 0.8 + RV20 已见顶。
+     市场自愈型衰减，回测后 60 日 +4.9%。→ 可分批参与。
+   - `decay_status == "高位震荡(警惕)"`：RV5/RV20 ≥ 0.8，波动仍在高位。
+     回测后 20 日 -3.5%（陷阱）。→ **不宜急于抄底**，等衰减确认。
+   - `decay_status == "加速中(危险)"`：RV20 仍在攀升，趋势加剧。→ 减仓/观望。
+3. **事件驱动 vs 市场自愈的区分**：
+   - 骤降（单日 RV20 降幅 > 5%）= 事件驱动 → 强信号，后续最确定
+   - 缓慢衰减（多日逐渐下降）= 市场自愈 → 弱信号，温和正向
+   - 高位维持不降 = 趋势未止 → 陷阱
+4. **板块分化**：同时出现在受影响 + 逆势两个榜的板块（`has_divergence=True`）= **内部分歧**，不是单纯的机会或风险
+5. **资金流向**：主力净额的符号和大小揭示资金从哪切向哪（如硬件→软件）
+6. **结合回测**：参考 `docs/回测记录/四象限信号回测_*.md`——高波区间后 20 日系统性正收益（历史均值 +1.4%），但需衰减确认后才可靠
 
 ### Step 6（新增）：采集宏观景气度背景
 

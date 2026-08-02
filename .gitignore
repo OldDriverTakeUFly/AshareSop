@@ -69,5 +69,8 @@ docs_speech/
 # Studies output (experimental)
 davis_analyzer/studies/output/
 /studies/output/
-# rally_screening 是研究脚本源码，仅忽略其 __pycache__
+# rally_screening 是研究脚本源码，仅忽略其 __pycache__ 和运行时缓存
 davis_analyzer/studies/rally_screening/__pycache__/
+davis_analyzer/studies/rally_screening/cache_daily/
+davis_analyzer/studies/rally_screening/cache_msg/
+davis_analyzer/studies/rally_screening/*_result.txt

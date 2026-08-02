@@ -33,21 +33,23 @@ os.environ["PROJECT_ROOT"] = os.getcwd()
 import numpy as np
 import pandas as pd
 from datetime import datetime, timedelta
-import tushare as ts
 import sys
 import loguru
 loguru.logger.remove()
 loguru.logger.add(sys.stderr, level="ERROR")
-from stockhot.core.tushare_client_safe import safe_tushare_call
+
+from davis_analyzer.studies.rally_screening.utils import (
+    fetch_daily_qfq_from_db,
+    load_daily_basic_by_code,
+    get_stock_basic_df,
+)
 
 
 def fetch_daily(ts_code, days=200):
-    end = datetime.now().strftime("%Y%m%d")
-    start = (datetime.now() - timedelta(days=int(days*1.8))).strftime("%Y%m%d")
-    df = ts.pro_bar(ts_code=ts_code, adj="qfq", start_date=start, end_date=end)
-    if df is None or df.empty:
+    """前复权日线（从SQLite读）"""
+    df = fetch_daily_qfq_from_db(ts_code, days=days)
+    if df.empty:
         return pd.DataFrame()
-    df = df.rename(columns={"trade_date":"date","vol":"volume"})
     df["date"] = pd.to_datetime(df["date"], format="%Y%m%d")
     df = df.set_index("date").sort_index()
     return df[["open","high","low","close","volume"]].astype(float)
@@ -85,14 +87,17 @@ def check_breakout(ts_code, name=""):
     # 检查最近5天是否出现有效突破
     breakouts = []
 
-    # daily_basic 只调一次
-    db = safe_tushare_call("daily_basic", ts_code=ts_code, limit=1)
+    # daily_basic 从 SQLite 读（流通股本代理——用 circ_mv/total_mv）
+    db = load_daily_basic_by_code(ts_code)
     float_share = 0
     if db is not None and not db.empty:
         try:
-            fs = db.iloc[0]["float_share"]
-            if pd.notna(fs) and float(fs) > 0:
-                float_share = float(fs)
+            # daily_basic 没有 float_share 列，用 circ_mv（万元）和最新 close 反推
+            latest_db = db.iloc[-1]
+            circ_mv = float(latest_db.get("circ_mv") or 0)
+            if circ_mv > 0:
+                # circ_mv(万元) / close(元) * 10000 = 流通股本(股) / 10000 = 万股
+                float_share = circ_mv / float(close.iloc[-1]) if float(close.iloc[-1]) > 0 else 0
         except:
             pass
 
@@ -201,9 +206,10 @@ def check_breakout(ts_code, name=""):
 
 
 def get_stock_universe():
-    df = safe_tushare_call("stock_basic", list_status="L", fields="ts_code,symbol,name,industry,list_date")
+    df = get_stock_basic_df()
     if df is None or df.empty:
         return []
+    df = df[df["list_status"] == "L"]
     df = df[~df["name"].str.contains("ST", na=False)]
     df = df[~df["name"].str.contains("退", na=False)]
     df = df[df["ts_code"].str.startswith(("00","30","60","68"))]
