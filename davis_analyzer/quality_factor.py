@@ -62,7 +62,7 @@ def analyze_quality(
 
     ref = today or date.today()
     try:
-        fin = fetch_financial_data(client, ts_code, periods=8)  # 8 quarters = 2 years
+        fin = fetch_financial_data(client, ts_code, periods=8, as_of=ref)  # 8 quarters = 2 years
     except Exception:
         logger.debug("Quality: financial fetch failed for {}", ts_code)
         return None

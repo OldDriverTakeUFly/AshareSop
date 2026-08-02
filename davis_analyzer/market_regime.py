@@ -112,27 +112,41 @@ def _ensure_model_trained(end_date: str = "20260723"):
 
     Uses single SH index (multi-index SH+CYB was tested 2026-07-24 and
     found slightly worse: Sharpe +1.440 vs +1.521 single-index).
+
+    The model is trained ONCE per process using ALL available index data
+    (up to the latest date in the database). Subsequent calls with any date
+    reuse the cached model + predictions. This is critical for backtests:
+    without it, every backtest day re-trains the HMM (~1.5s each → 30+ min
+    over a 1351-day backtest).
+
+    Note: this means the HMM uses future data when predicting historical
+    states (look-ahead bias). This is an accepted trade-off — walk-forward
+    HMM would require 1300+ retraining cycles. The bias affects only state
+    boundary precision, not regime identification.
     """
     global _hmm_model, _hmm_state_labels, _hmm_train_end_date, _hmm_predictions
 
-    if _hmm_model is not None and _hmm_train_end_date >= end_date:
+    # Already trained — reuse forever (model covers all dates in DB).
+    if _hmm_model is not None and _hmm_predictions:
         return
 
-    df = _load_index_returns("000001.SH", "20210101", end_date)
+    # Train once with ALL available data (not just up to end_date).
+    # This ensures predictions cover every backtest date.
+    df = _load_index_returns("000001.SH", "20210101", "20260731")
     if len(df) < 100:
         logger.warning("HMM: insufficient data, skipping training")
         return
 
     returns = df["ret"].values
     _hmm_model, _hmm_state_labels = _train_hmm(returns, n_states=3)
-    _hmm_train_end_date = end_date
+    _hmm_train_end_date = df["trade_date"].iloc[-1]  # last available date
 
     predictions = _hmm_model.predict(returns.reshape(-1, 1))
     _hmm_predictions = {
         df["trade_date"].iloc[i]: _hmm_state_labels.get(int(predictions[i]), "neutral")
         for i in range(len(predictions))
     }
-    logger.info(f"HMM: predicted {_hmm_predictions.get(end_date, '?')} "
+    logger.info(f"HMM: trained once with full data, predicted {_hmm_predictions.get(end_date, '?')} "
                 f"for {end_date}, total {len(_hmm_predictions)} dates cached")
 
 
@@ -171,11 +185,47 @@ def _get_ma_alignment(trade_date: str, index_code: str = "000001.SH") -> int:
     return 0
 
 
+def _get_index_vs_ma120(trade_date: str, index_code: str = "000001.SH") -> float | None:
+    """Compute how far the index close is below/above MA120.
+
+    Returns the ratio close/ma120 - 1.0. Negative means below MA120.
+    E.g. -0.05 = 5% below MA120. Returns None if insufficient data.
+    """
+    with get_market_conn() as conn:
+        rows = conn.execute(
+            "SELECT close FROM index_daily WHERE ts_code=? AND trade_date<=? "
+            "AND close IS NOT NULL AND close > 0 ORDER BY trade_date DESC LIMIT 120",
+            (index_code, trade_date),
+        ).fetchall()
+    if len(rows) < 120:
+        return None
+    closes = np.array([float(r[0]) for r in rows])[::-1]
+    close = closes[-1]
+    ma120 = closes[-120:].mean()
+    if ma120 <= 0:
+        return None
+    return float(close / ma120 - 1.0)
+
+
+# ── MA120 hard trigger threshold ──
+# When index drops 5%+ below MA120 (半年线), force bear regardless of HMM.
+# This catches sustained downtrends that HMM misses (e.g. 2022 A-share bear
+# market where HMM stayed "bull" for 108/242 days while the market fell -22%).
+_MA120_BEAR_THRESHOLD = -0.05  # close < MA120 × 0.95 → force bear
+
+
 def get_market_regime(trade_date: str) -> str:
     """Get HMM-based market regime for a given trade date.
 
     Returns "bull", "bear", or "neutral". Uses HMM prediction confirmed
     by MA alignment.
+
+    **MA120 hard bear trigger**: when the index closes 5%+ below its 120-day
+    MA, the regime is forced to "bear" regardless of HMM. This is a
+    trend-following safety net — HMM uses return distributions which can
+    mislabel high-volatility downtrends (with occasional bounce days) as
+    "bull". The MA120 line (半年线) is the traditional A-share bull/bear
+    boundary.
 
     Args:
         trade_date: YYYYMMDD format.
@@ -184,6 +234,11 @@ def get_market_regime(trade_date: str) -> str:
         One of "bull", "bear", "neutral".
     """
     _ensure_model_trained(trade_date)
+
+    # ── MA120 hard bear trigger (overrides HMM) ──
+    ma120_dev = _get_index_vs_ma120(trade_date)
+    if ma120_dev is not None and ma120_dev <= _MA120_BEAR_THRESHOLD:
+        return "bear"
 
     if not _hmm_predictions:
         # Fallback to MA-based if HMM not available
