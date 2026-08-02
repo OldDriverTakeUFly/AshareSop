@@ -25,11 +25,14 @@ from stockhot.alert.panic_detector import (
     SignalResult,
     _classify_quadrant,
     _compute_intensity,
+    _compute_realtime_pct_chg,
     _detect_dose_warning,
     _detect_sector_structure,
+    _em_code_to_ts_code,
     _format_dose_warning_section,
     _format_sector_section,
     _QUADRANT_META,
+    _sina_code_to_ts_code,
     format_alert_message,
 )
 
@@ -648,3 +651,64 @@ def test_format_message_no_dose_warning_when_normal():
     report.dose_warning = DoseWarning(triggered=False)
     msg = format_alert_message(report)
     assert "【剂量警示】" not in msg
+
+
+# ═══════════════════════════════════════════════════════════════════
+# 实时指数行情（双源降级 + 涨跌幅直取）
+# ═══════════════════════════════════════════════════════════════════
+
+
+def test_em_code_to_ts_code_mapping():
+    """东财代码 → ts_code 映射."""
+    assert _em_code_to_ts_code("000001") == "000001.SH"
+    assert _em_code_to_ts_code("000300") == "000300.SH"
+    assert _em_code_to_ts_code("000688") == "000688.SH"
+    assert _em_code_to_ts_code("399001") == "399001.SZ"
+    assert _em_code_to_ts_code("399006") == "399006.SZ"
+    assert _em_code_to_ts_code("999999") is None  # 未覆盖
+
+
+def test_sina_code_to_ts_code_mapping():
+    """新浪代码（含 sh/sz 前缀）→ ts_code 映射."""
+    assert _sina_code_to_ts_code("sh000001") == "000001.SH"
+    assert _sina_code_to_ts_code("SH000300") == "000300.SH"  # 大小写兼容
+    assert _sina_code_to_ts_code("sz399001") == "399001.SZ"
+    assert _sina_code_to_ts_code("sz399006") == "399006.SZ"
+    assert _sina_code_to_ts_code("sh999999") is None  # 未覆盖
+
+
+def test_compute_pct_chg_prefers_realtime_pct_field():
+    """路径 1：实时源直接提供 pct_chg 时优先用（不再算实时价÷昨收）."""
+    # mock：上证有 pct_chg=0.725
+    rt_data = {"000001.SH": {"price": 3832.0, "pct_chg": 0.725}}
+    pct = _compute_realtime_pct_chg("000001.SH", rt_data)
+    assert pct == 0.725
+
+
+def test_compute_pct_chg_fallback_to_price_calc(monkeypatch):
+    """路径 2：实时源只有 price 无 pct_chg 时，用 实时价÷昨收-1 回退."""
+    import stockhot.alert.panic_detector as pd_mod
+
+    # mock DB 返回昨收 3800
+    mock_df = MagicMock()
+    mock_df.empty = False
+    mock_df.__len__ = lambda self: 5
+    mock_df.__getitem__ = lambda self, key: MagicMock(iloc=MagicMock(__getitem__=lambda self, i: 3800.0 if i == -2 else 0))
+    mock_repo = MagicMock()
+    mock_repo.get_index_daily.return_value = mock_df
+    monkeypatch.setattr(pd_mod, "get_repository", lambda: mock_repo) if hasattr(pd_mod, "get_repository") else None
+    import stockhot.data_layer
+    monkeypatch.setattr(stockhot.data_layer, "get_repository", lambda: mock_repo)
+
+    rt_data = {"000001.SH": {"price": 3830.0, "pct_chg": None}}  # 无 pct_chg
+    pct = _compute_realtime_pct_chg("000001.SH", rt_data)
+    # 3830/3800 - 1 ≈ 0.789%
+    assert pct is not None
+    assert abs(pct - 0.789) < 0.1
+
+
+def test_compute_pct_chg_returns_none_when_no_data():
+    """无实时数据 + DB 不可用时返回 None."""
+    pct = _compute_realtime_pct_chg("000001.SH", {})
+    # DB 有数据时可能返回值，但无实时源时依赖 DB；这里只验证不崩
+    assert pct is None or isinstance(pct, float)

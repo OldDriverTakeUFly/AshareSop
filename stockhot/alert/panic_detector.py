@@ -231,44 +231,88 @@ def _classify_rv_level(pct: float) -> str:
     return "平静"
 
 
-def _fetch_realtime_index_prices() -> dict[str, float]:
-    """从 AKShare 获取实时指数价（盘中用）.
+def _fetch_realtime_index_prices() -> dict[str, dict[str, float]]:
+    """从 AKShare 获取实时指数行情（盘中用）.
 
-    返回 {ts_code: 最新价}。
+    双源降级：东财源（stock_zh_index_spot_em）优先 → 新浪源
+    （stock_zh_index_spot_sina）兜底。东财 push2 主机常被屏蔽，
+    新浪源稳定且直接提供涨跌幅字段。
+
+    返回 {ts_code: {"price": 最新价, "pct_chg": 当日涨跌幅%}}。
+    任一字段不可得时为 None。
     """
     import akshare as ak
     from stockhot.core.rate_limiter import safe_akshare_call
 
-    df = safe_akshare_call(ak.stock_zh_index_spot_em, symbol="沪深重要指数")
-    if df is None or df.empty:
-        return {}
+    result: dict[str, dict[str, float]] = {}
 
-    # AKShare 返回"代码"列如 000001/399001，需映射到 ts_code
-    price_map = {}
-    for _, row in df.iterrows():
-        code = str(row.get("代码", ""))
-        price = pd.to_numeric(row.get("最新价"), errors="coerce")
-        if pd.isna(price):
-            continue
-        # 代码 → ts_code
-        if code.startswith("000300"):
-            price_map["000300.SH"] = float(price)
-        elif code.startswith("000688"):
-            price_map["000688.SH"] = float(price)
-        elif code.startswith("000001") and code not in price_map:
-            price_map["000001.SH"] = float(price)
-        elif code.startswith("399001"):
-            price_map["399001.SZ"] = float(price)
-        elif code.startswith("399006"):
-            price_map["399006.SZ"] = float(price)
-    return price_map
+    # ── 源 1：东财（提供最新价，无涨跌幅）──
+    df_em = safe_akshare_call(ak.stock_zh_index_spot_em, symbol="沪深重要指数")
+    if df_em is not None and not df_em.empty:
+        for _, row in df_em.iterrows():
+            code = str(row.get("代码", ""))
+            price = pd.to_numeric(row.get("最新价"), errors="coerce")
+            if pd.isna(price):
+                continue
+            ts_code = _em_code_to_ts_code(code)
+            if ts_code and ts_code not in result:
+                result[ts_code] = {"price": float(price), "pct_chg": None}
+
+    # ── 源 2：新浪（提供最新价 + 涨跌幅，东财未覆盖时补全）──
+    # 新浪源代码格式：sh000001 / sz399001
+    df_sina = safe_akshare_call(ak.stock_zh_index_spot_sina)
+    if df_sina is not None and not df_sina.empty:
+        for _, row in df_sina.iterrows():
+            sina_code = str(row.get("代码", "")).lower()  # sh000001
+            ts_code = _sina_code_to_ts_code(sina_code)
+            if not ts_code:
+                continue
+            price = pd.to_numeric(row.get("最新价"), errors="coerce")
+            pct = pd.to_numeric(row.get("涨跌幅"), errors="coerce")
+            if ts_code not in result:
+                result[ts_code] = {
+                    "price": float(price) if not pd.isna(price) else None,
+                    "pct_chg": float(pct) if not pd.isna(pct) else None,
+                }
+            else:
+                # 东财已有 price，补全新浪的 pct_chg
+                if result[ts_code].get("pct_chg") is None and not pd.isna(pct):
+                    result[ts_code]["pct_chg"] = float(pct)
+
+    return result
 
 
-def _detect_rv_volatility() -> tuple[list[IndexVolatility], SignalResult, dict[str, float]]:
+def _em_code_to_ts_code(em_code: str) -> str | None:
+    """东财代码（000001/399001）→ ts_code（000001.SH/399001.SZ）."""
+    em_code = em_code.strip()
+    if em_code.startswith("000300"):
+        return "000300.SH"
+    if em_code.startswith("000688"):
+        return "000688.SH"
+    if em_code.startswith("000001"):
+        return "000001.SH"
+    if em_code.startswith("399001"):
+        return "399001.SZ"
+    if em_code.startswith("399006"):
+        return "399006.SZ"
+    return None
+
+
+def _sina_code_to_ts_code(sina_code: str) -> str | None:
+    """新浪代码（sh000001/sz399001）→ ts_code."""
+    sina_code = sina_code.strip().lower()
+    if sina_code in ("sh000001", "sh000300", "sh000688"):
+        return sina_code.replace("sh", "") + ".SH"
+    if sina_code in ("sz399001", "sz399006"):
+        return sina_code.replace("sz", "") + ".SZ"
+    return None
+
+
+def _detect_rv_volatility() -> tuple[list[IndexVolatility], SignalResult, dict[str, dict[str, float]]]:
     """检测 RV20 历史分位（盘中实时）.
 
     用 DAL index_daily 拿历史 250 日 close，最后一点替换为实时价，算 RV20 + 分位。
-    返回 (indices_vol, signal, realtime_prices)：实时价回传给方向维度复用。
+    返回 (indices_vol, signal, realtime_data)：实时行情回传给方向维度复用。
     """
     from stockhot.data_layer import get_repository
 
@@ -276,12 +320,12 @@ def _detect_rv_volatility() -> tuple[list[IndexVolatility], SignalResult, dict[s
     end_date = date.today().strftime("%Y%m%d")
     start_date = (date.today() - timedelta(days=400)).strftime("%Y%m%d")
 
-    # 拿实时价
+    # 拿实时行情（含 price + pct_chg）
     try:
-        realtime_prices = _fetch_realtime_index_prices()
+        realtime_data = _fetch_realtime_index_prices()
     except Exception as e:
         logger.warning(f"[panic] realtime index prices failed: {e}")
-        realtime_prices = {}
+        realtime_data = {}
 
     indices_vol: list[IndexVolatility] = []
 
@@ -293,9 +337,9 @@ def _detect_rv_volatility() -> tuple[list[IndexVolatility], SignalResult, dict[s
             closes = np.array(df["close"].astype(float).values, dtype=float)  # 可写副本
 
             # 盘中：替换最后一点为实时价（若可得）
-            if ts_code in realtime_prices:
-                rt = realtime_prices[ts_code]
-                if rt > 0:
+            if ts_code in realtime_data:
+                rt = realtime_data[ts_code].get("price")
+                if rt is not None and rt > 0:
                     closes[-1] = rt
 
             # 算 RV20：log return 的 20 日滚动 std × √242
@@ -338,7 +382,7 @@ def _detect_rv_volatility() -> tuple[list[IndexVolatility], SignalResult, dict[s
         detail=detail,
         available=bool(indices_vol),
     )
-    return indices_vol, signal, realtime_prices
+    return indices_vol, signal, realtime_data
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -484,10 +528,12 @@ def _detect_ivix_vr() -> tuple[float | None, float | None, SignalResult]:
 
             # 盘中实时价替换
             try:
-                rt_prices = _fetch_realtime_index_prices()
+                rt_data = _fetch_realtime_index_prices()
                 sse_closes = np.array(df_idx["close"].astype(float).values, dtype=float)
-                if "000001.SH" in rt_prices:
-                    sse_closes[-1] = rt_prices["000001.SH"]
+                if "000001.SH" in rt_data:
+                    rt_price = rt_data["000001.SH"].get("price")
+                    if rt_price is not None and rt_price > 0:
+                        sse_closes[-1] = rt_price
             except Exception:
                 sse_closes = np.array(df_idx["close"].astype(float).values, dtype=float)
 
@@ -530,17 +576,27 @@ def _detect_ivix_vr() -> tuple[float | None, float | None, SignalResult]:
 # ═══════════════════════════════════════════════════════════════════
 
 
-def _compute_realtime_pct_chg(ts_code: str, realtime_prices: dict[str, float]) -> float | None:
-    """用 DAL 昨收 + AKShare 实时价算当日涨跌幅（盘中近似）.
+def _compute_realtime_pct_chg(
+    ts_code: str,
+    realtime_data: dict[str, dict[str, float]],
+) -> float | None:
+    """获取当日涨跌幅（盘中优先实时源，盘后回退 DB）.
 
-    优先用 AKShare 实时价 / 昨收 - 1（盘中场景）。
-    AKShare 实时价不可用时，回退到 DB index_daily.pct_chg——但仅当最后一行
-    就是今日时才用，避免数据滞后误判（DB 未更新时取到昨日 pct_chg）。
+    三级优先级：
+    1. 新浪/东财源的 pct_chg 字段（盘中实时，直接提供）
+    2. 实时价 ÷ DB 昨收 - 1（仅有价格时回退计算）
+    3. DB index_daily.pct_chg（仅当最后一行是今日时，盘后场景）
     """
     from stockhot.data_layer import get_repository
 
     today_str = date.today().strftime("%Y%m%d")
     today_iso = date.today().isoformat()
+
+    # 路径 1：实时源直接提供 pct_chg（最优，新浪源稳定）
+    if ts_code in realtime_data:
+        pct = realtime_data[ts_code].get("pct_chg")
+        if pct is not None and not pd.isna(pct):
+            return round(float(pct), 3)
 
     try:
         repo = get_repository()
@@ -550,15 +606,15 @@ def _compute_realtime_pct_chg(ts_code: str, realtime_prices: dict[str, float]) -
         if df.empty:
             return None
 
-        # 路径 1：实时价 / 昨收 - 1（盘中）
-        if ts_code in realtime_prices:
-            rt = realtime_prices[ts_code]
-            if rt > 0 and len(df) >= 2:
+        # 路径 2：实时价 / 昨收 - 1（仅有价格时）
+        if ts_code in realtime_data:
+            rt = realtime_data[ts_code].get("price")
+            if rt is not None and rt > 0 and len(df) >= 2:
                 prev_close = float(df["close"].iloc[-2])
                 if prev_close > 0:
                     return round((rt / prev_close - 1) * 100, 3)
 
-        # 路径 2：DB pct_chg 回退——仅当最后一行 trade_date == 今日时才可信
+        # 路径 3：DB pct_chg 回退——仅当最后一行 trade_date == 今日时才可信
         # 否则 DB 数据滞后（今日 daily_scan 尚未跑），返回 None 比取昨日的值安全
         last_trade_date = str(df["trade_date"].iloc[-1])
         if last_trade_date in (today_str, today_iso):
@@ -625,22 +681,22 @@ def _compute_rv20_delta_5d(ts_code: str) -> float | None:
 
 def _detect_direction(
     limit_reading: LimitBehaviorReading,
-    realtime_prices: dict[str, float] | None = None,
+    realtime_data: dict[str, dict[str, float]] | None = None,
 ) -> DirectionReading:
     """方向维度综合检测（4 维聚合）.
 
     参数：
         limit_reading: 行为面结构化读数（涨跌停数 + 结构比）
-        realtime_prices: AKShare 实时指数价（用于算当日涨跌）；None 时只靠 DB
+        realtime_data: AKShare 实时指数行情（含 price + pct_chg）；None 时只靠 DB
 
     返回：
         DirectionReading，direction_score 聚合三维度符号（负空正多）
     """
-    realtime_prices = realtime_prices or {}
+    realtime_data = realtime_data or {}
 
     # 维度 1：指数当日涨跌幅（上证 + 沪深300）
-    sse_chg = _compute_realtime_pct_chg("000001.SH", realtime_prices)
-    hs300_chg = _compute_realtime_pct_chg("000300.SH", realtime_prices)
+    sse_chg = _compute_realtime_pct_chg("000001.SH", realtime_data)
+    hs300_chg = _compute_realtime_pct_chg("000300.SH", realtime_data)
 
     # 维度 2：涨跌停结构比（已由 _detect_limit_behavior 采集）
     limit_ratio = limit_reading.up_down_ratio if limit_reading.available else None
@@ -1048,15 +1104,15 @@ def detect_panic_signals() -> PanicReport:
     limit_reading = LimitBehaviorReading(available=False)
     # 板块涨跌停聚合（信号 2 内部采集，传给板块结构检测复用，零额外 API）
     sector_counts: dict[str, dict] = {}
-    # 实时指数价（信号 1 已采集，传给方向维度复用，避免重复拉 AKShare）
-    realtime_prices: dict[str, float] = {}
+    # 实时指数行情（信号 1 已采集，传给方向维度复用，避免重复拉 AKShare）
+    realtime_data: dict[str, dict[str, float]] = {}
 
     # 信号 1：RV20
     try:
         indices_vol, sig_rv, rt_prices = _detect_rv_volatility()
         report.volatility_indices = indices_vol
         report.signals.append(sig_rv)
-        realtime_prices = rt_prices
+        realtime_data = rt_prices
     except Exception as e:
         logger.error(f"[panic] RV20 detection error: {e}")
         report.signals.append(SignalResult("系统性恐慌", False, f"检测异常: {e}", available=False))
@@ -1081,7 +1137,7 @@ def detect_panic_signals() -> PanicReport:
 
     # 信号 4：方向维度 → 四象限 + 强度分
     try:
-        direction = _detect_direction(limit_reading, realtime_prices)
+        direction = _detect_direction(limit_reading, realtime_data)
         report.direction = direction
         report.quadrant = _classify_quadrant(direction, report.volatility_indices)
         # 强度分用象限专属公式（必须先定象限再算强度）
