@@ -368,14 +368,72 @@ def fetch_sector_fund_flow(
 
         return rows
 
-    # 3. AkShare empty — use Tushare if available (change_pct=0.0)
+    # 3. AkShare empty — use Tushare if available, then enrich change_pct from sw_daily
     if tushare_rows:
-        logger.info(f"fetch_sector_fund_flow: using Tushare {len(tushare_rows)} rows (change_pct=0.0)")
+        _enrich_change_pct_from_sw_daily(tushare_rows)
+        nonzero = sum(1 for r in tushare_rows if r.get("change_pct", 0) != 0)
+        logger.info(
+            f"fetch_sector_fund_flow: using Tushare {len(tushare_rows)} rows "
+            f"(change_pct enriched from sw_daily: {nonzero}/{len(tushare_rows)})"
+        )
         return tushare_rows
 
     # 4. THS fallback (has change_pct)
     logger.warning("fetch_sector_fund_flow: AkShare+Tushare empty, trying THS fallback")
     return _fetch_sector_fund_flow_ths()
+
+
+def _enrich_change_pct_from_sw_daily(rows: list[dict]) -> None:
+    """用 Tushare sw_daily 板块涨跌幅补全 fund_flow 的 change_pct（AKShare 东财源失败时）.
+
+    Tushare moneyflow 不含涨跌幅（change_pct=0.0）。当 AKShare 东财源
+    不可用时（push2 被屏蔽），用 sw_daily（申万一级，Tushare token 认证）
+    的 pct_change 字段补全。板块名通过 sector_mapping 归一化后匹配。
+
+    直接修改 rows（原地补全 change_pct 字段）。
+    """
+    import pandas as _pd
+    from stockhot.data_layer import get_gateway
+    from stockhot.alert.sector_mapping import normalize_sector_name
+
+    try:
+        gw = get_gateway()
+        # 找最近可得交易日的 sw_daily 数据
+        from datetime import date as _date, timedelta as _timedelta
+        pct_map: dict[str, float] = {}
+        for back in range(0, 6):
+            d = (_date.today() - _timedelta(days=back)).strftime("%Y%m%d")
+            df = gw.call("sw_daily", trade_date=d)
+            if df is None or df.empty:
+                continue
+            # 只取申万一级（ts_code 格式 801xx0.SI）
+            df_l1 = df[df["ts_code"].str.match(r"^801\d{2}0\.SI$")]
+            if df_l1.empty:
+                continue
+            for _, row in df_l1.iterrows():
+                name = str(row.get("name", "")).strip()
+                pct = row.get("pct_change")
+                if name and _pd.notna(pct):
+                    pct_map[normalize_sector_name(name)] = float(pct)
+            if pct_map:
+                break
+
+        if not pct_map:
+            logger.info("fetch_sector_fund_flow: sw_daily 无数据，change_pct 保持 0.0")
+            return
+
+        # 补全 rows（按归一化名匹配）
+        enriched = 0
+        for r in rows:
+            raw_name = r.get("name", "")
+            norm = normalize_sector_name(raw_name)
+            if norm in pct_map:
+                r["change_pct"] = pct_map[norm]
+                enriched += 1
+        logger.info(f"fetch_sector_fund_flow: sw_daily 补全 change_pct {enriched}/{len(rows)} 个板块")
+
+    except Exception as e:
+        logger.warning(f"fetch_sector_fund_flow: sw_daily 补全失败: {e}")
 
 
 def _fetch_individual_fund_flow_tushare(stock: str, market: str = "sh") -> list[dict]:
