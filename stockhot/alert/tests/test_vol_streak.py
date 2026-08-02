@@ -160,3 +160,41 @@ def test_sector_impact_divergence_flag():
     assert s.has_divergence
     s2 = SectorImpact(name="银行", limit_count=5, main_net_total=10.0)
     assert not s2.has_divergence
+
+
+# ═══════════════════════════════════════════════════════════════════
+# 波动衰减状态
+# ═══════════════════════════════════════════════════════════════════
+
+
+def test_rv_decay_status_in_report():
+    """analyze_vol_streak 在高波期应返回衰减状态."""
+    report = analyze_vol_streak("2026-07-31")
+    assert report.is_high_vol
+    assert report.decay_status  # 应有衰减判定
+    assert report.decay_status in (
+        "衰减中(机会)", "高位震荡(警惕)", "加速中(危险)"
+    )
+
+
+def test_rv_decay_ratio_threshold():
+    """RV5/RV20 比率 < 0.8 = 衰减（机会信号）."""
+    report = analyze_vol_streak("2026-07-31")
+    if report.rv_decay_ratio is not None:
+        if report.rv_decay_ratio < 0.8:
+            assert "衰减" in report.decay_status or "机会" in report.decay_status
+        else:
+            # 比率 >= 0.8，不应判定为"衰减中(机会)"
+            assert "机会" not in report.decay_status or report.rv20_peaked
+
+
+def test_format_streak_brief_includes_decay():
+    """摘要行在高波时包含衰减状态."""
+    report = VolStreakReport(
+        current_days=20, is_high_vol=True,
+        historical_count=5, historical_avg_days=18.0, historical_max_days=25,
+        decay_status="衰减中(机会)",
+    )
+    brief = format_streak_brief(report)
+    assert "衰减" in brief
+    assert "20" in brief
