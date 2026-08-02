@@ -198,3 +198,29 @@ def test_format_streak_brief_includes_decay():
     brief = format_streak_brief(report)
     assert "衰减" in brief
     assert "20" in brief
+
+
+def test_format_streak_brief_sharp_drop():
+    """骤降时摘要行显示⚡强反转信号."""
+    report = VolStreakReport(
+        current_days=20, is_high_vol=True,
+        historical_count=5, historical_avg_days=18.0, historical_max_days=25,
+        decay_status="骤降中(强反转信号)",
+        rv20_daily_change=-8.5,
+        sharp_drop=True,
+    )
+    brief = format_streak_brief(report)
+    assert "⚡" in brief
+    assert "-8.5" in brief
+    assert "强反转信号" in brief
+
+
+def test_format_streak_brief_no_sharp_drop():
+    """非骤降时不显示⚡."""
+    report = VolStreakReport(
+        current_days=20, is_high_vol=True,
+        decay_status="高位震荡(警惕)",
+        sharp_drop=False,
+    )
+    brief = format_streak_brief(report)
+    assert "⚡" not in brief
