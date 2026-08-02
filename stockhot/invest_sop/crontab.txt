@@ -73,3 +73,9 @@
 # Pipeline 重，避免与 20:30 domestic_events 抢 API 配额——domestic 不调 Tushare，无冲突。
 # Output: studies/output/davis_top_{date}.json + davis_latest.json, Top10 摘要推飞书.
 0 20 * * 1-5 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python scripts/davis_nightly_screen.py >> stockhot/invest_sop/logs/davis_nightly.log 2>&1
+
+# Sector volatility (Weekly, Sunday 11:00; ~10-15min, 31 sectors × members)
+# 31 个申万一级成分股等权 RV + 板块历史分位。计算量大（首次无缓存更慢），周频足够。
+# 数据写入 daily_sector_volatility 表，供盘后收评 Step 5c「高波持续分析」的板块级 RV 维度。
+# 首次运行后会建立成分股 RV 缓存（storage/files/sector_rv_cache/），后续运行更快。
+0 11 * * 0 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python -m stockhot.sector_volatility analyze >> stockhot/invest_sop/logs/sector_volatility.log 2>&1
