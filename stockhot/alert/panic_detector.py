@@ -1063,6 +1063,21 @@ def _detect_sector_structure(sector_counts: dict[str, dict]) -> SectorStructure:
             [s for s in strengths if s.limit_down > 0],
             key=lambda x: (-x.limit_down, x.strength_score),
         )[:_SECTOR_TOP_N]
+
+        # 回退补全：若 weak 为空（全市场无跌停）但 sw_daily 涨跌幅可用，
+        # 用涨幅最低（跌幅最大）的板块补全，避免"无弱势"信息缺失
+        if not weak and pct_map:
+            weak = sorted(
+                [s for s in strengths if s.pct_change is not None and s.strength_score < 0],
+                key=lambda x: x.strength_score,
+            )[:_SECTOR_TOP_N]
+
+        # 同理：若 strong 为空（全市场无涨停）但涨跌幅可用，用涨幅最大补全
+        if not strong and pct_map:
+            strong = sorted(
+                [s for s in strengths if s.pct_change is not None and s.strength_score > 0],
+                key=lambda x: -x.strength_score,
+            )[:_SECTOR_TOP_N]
     else:
         # 回退：纯按涨跌幅排序（盘后或 zt_pool 失败场景）
         strong = sorted(
@@ -1252,13 +1267,16 @@ def _format_sector_strength(s: SectorStrength, show_pct: bool) -> str:
     """格式化单个板块行.
 
     show_pct: 是否显示涨跌幅列（sw_daily 数据可用时为 True）。
+    当涨跌停数都为 0 时（涨跌幅回退选出的板块），隐藏涨跌停数避免"涨0/跌0"噪音。
     """
     parts = [f"{s.name[:6]:6s}"]  # 板块名截断到 6 字符对齐
     if show_pct and s.pct_change is not None:
         parts.append(f"{_format_pct(s.pct_change):>7s}")
-    parts.append(f"涨{s.limit_up}/跌{s.limit_down}")
-    if s.broken:
-        parts.append(f"炸{s.broken}")
+    # 仅当有实际涨跌停数据时才显示（避免涨跌幅回退场景的"涨0/跌0"噪音）
+    if s.limit_up > 0 or s.limit_down > 0:
+        parts.append(f"涨{s.limit_up}/跌{s.limit_down}")
+        if s.broken:
+            parts.append(f"炸{s.broken}")
     if s.main_net is not None:
         parts.append(f"主力{_format_main_net(s.main_net)}")
     return "  ".join(parts)

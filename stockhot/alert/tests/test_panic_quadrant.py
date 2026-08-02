@@ -422,6 +422,39 @@ def test_sector_structure_weak_sorted_by_limit_down(monkeypatch):
     assert result.strong[0].name == "建筑装饰"
 
 
+def test_sector_structure_weak_fallback_to_pct_when_no_limit_down(monkeypatch):
+    """全市场无跌停时，弱势用 sw_daily 涨跌幅回退补全（不再为空）."""
+    import stockhot.alert.panic_detector as pd_mod
+    monkeypatch.setattr(
+        pd_mod, "_fetch_sw_daily_pct",
+        lambda: ({"银行": -1.5, "食品饮料": -0.8, "钢铁": -0.3, "电子": 2.0}, "07-31"),
+    )
+    monkeypatch.setattr(pd_mod, "_fetch_sector_main_net", lambda: {})
+
+    # 全市场无跌停（只有涨停的电子板块）
+    sector_counts = {"电子": {"limit_up": 5, "limit_down": 0}}
+    result = _detect_sector_structure(sector_counts)
+    # strong 应有电子（涨停5）
+    assert any(s.name == "电子" for s in result.strong)
+    # weak 不应为空——用涨跌幅回退选出银行/食品饮料/钢铁
+    assert len(result.weak) == 3
+    assert result.weak[0].name == "银行"   # 跌幅最大 -1.5%
+    assert result.weak[0].pct_change == -1.5
+    # 回退选出的弱势无涨跌停数据，limit_down 应为 0
+    assert result.weak[0].limit_down == 0
+
+
+def test_format_sector_strength_hides_zero_limit_when_pct_only(monkeypatch):
+    """涨跌幅回退选出的板块（涨跌停都0）格式化时不显示"涨0/跌0"."""
+    from stockhot.alert.panic_detector import _format_sector_strength, SectorStrength
+    # 板块无涨跌停，只有涨跌幅
+    s = SectorStrength(name="银行", pct_change=-1.5, limit_up=0, limit_down=0)
+    line = _format_sector_strength(s, show_pct=True)
+    assert "涨0/跌0" not in line  # 不应显示噪音
+    assert "-1.50%" in line       # 应显示涨跌幅
+    assert "银行" in line
+
+
 def test_sector_structure_top_n_limit(monkeypatch):
     """最多只返回 top N（_SECTOR_TOP_N=3）个."""
     import stockhot.alert.panic_detector as pd_mod
