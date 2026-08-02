@@ -205,13 +205,20 @@ def build_panic_dashboard(report: PanicReport):
 
     # ── 全局布局 ──
     quad_emoji = {"逼空过热": "🟠", "下跌恐慌": "🔴", "强势上涨": "🟢", "阴跌预警": "🟡"}.get(report.quadrant, "⚪")
+    # 标题：象限 + 强度 + 持续天数（高波时）
+    title_parts = [
+        f"{quad_emoji} {report.quadrant or '市场读数'} | "
+        f"强度 {report.intensity_score:.0f}/100 {report.intensity_label}",
+    ]
+    if report.vol_streak_brief:
+        # 去掉 emoji 前缀（标题里不需要重复 📈）
+        streak_text = report.vol_streak_brief.replace("📈 ", "")
+        title_parts.append(streak_text)
+    title_parts.append(f"{report.trade_date} {report.timestamp}")
+
     fig.update_layout(
-        title_text=(
-            f"{quad_emoji} {report.quadrant or '市场读数'} | "
-            f"强度 {report.intensity_score:.0f}/100 {report.intensity_label} | "
-            f"{report.trade_date} {report.timestamp}"
-        ),
-        title_font=dict(size=16, color=quad_color),
+        title_text=" | ".join(title_parts),
+        title_font=dict(size=14, color=quad_color),
         template="plotly_white",
         height=780, width=900,
         showlegend=True,

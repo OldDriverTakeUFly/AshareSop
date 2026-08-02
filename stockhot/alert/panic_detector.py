@@ -201,6 +201,8 @@ class PanicReport:
     sectors: SectorStructure | None = None
     # 剂量警示（2026-07-31）：P99+ 极端高波 + 趋势破位检测
     dose_warning: DoseWarning | None = None
+    # 高波持续天数摘要（2026-08-02）：第 N 天 + 历史对比
+    vol_streak_brief: str = ""
 
     @property
     def any_triggered(self) -> bool:
@@ -1233,6 +1235,16 @@ def detect_panic_signals() -> PanicReport:
     except Exception as e:
         logger.error(f"[panic] sector structure error: {e}")
 
+    # 高波持续天数摘要（仅高波区间计算，非高波跳过）
+    try:
+        from stockhot.alert.vol_streak_analyzer import analyze_vol_streak, format_streak_brief
+        is_high_vol = report.quadrant in ("逼空过热", "下跌恐慌")
+        if is_high_vol:
+            streak_report = analyze_vol_streak(report.trade_date)
+            report.vol_streak_brief = format_streak_brief(streak_report)
+    except Exception as e:
+        logger.error(f"[panic] vol_streak analysis error: {e}")
+
     return report
 
 
@@ -1453,6 +1465,9 @@ def format_alert_message(report: PanicReport) -> str:
                     disclaimer = ("⚠️ 极端恐慌（P99+）：均值回归可能失效。"
                                   "分批而非一把梭，保留弹药等确认。")
         lines.append(disclaimer)
+        # 高波持续天数摘要（仅高波区间显示）
+        if report.vol_streak_brief:
+            lines.append(report.vol_streak_brief)
     else:
         # 数据全部不可用降级
         lines.append(f"⚪ 市场读数 [{report.trade_date} {report.timestamp}]")

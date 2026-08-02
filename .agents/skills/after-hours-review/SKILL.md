@@ -134,6 +134,52 @@ iVIX={X}（{level}），V/R={X}（{期权偏贵/合理/便宜}）
 > - 盘中实时预警（panic_detector）是独立的场景，允许用实时价替换今日点——但那不是盘后分析
 > - 数据完整性 > 数据及时性：宁可少一个维度的数据，也不要用不严谨的数据误导分析
 
+### Step 5c：高波持续分析（仅高波区间渲染）
+
+当 Step 5b 判定为系统性高波（≥3 指数 RV20 P90+）时，**必须**生成此章节。
+低波区间（<3 指数 P90+）跳过本步骤。
+
+调用 `stockhot.alert.vol_streak_analyzer.analyze_vol_streak(date)` 获取三维度分析：
+
+```python
+from stockhot.alert.vol_streak_analyzer import analyze_vol_streak
+streak = analyze_vol_streak(trade_date)  # trade_date = "2026-07-31"
+# streak.current_days / streak.historical_avg_days / streak.historical_max_days
+# streak.impacted_sectors  (受影响最大 top3)
+# streak.resilient_sectors (逆势机会 top3)
+```
+
+**输出格式**（插入报告"二、情绪面分析"后、"三、板块涨幅排名"前）：
+
+```markdown
+## 三、高波持续分析
+
+当前处于高波第 **{current_days}** 天（{streak_start} 起，5/5 指数 P90+ 持续）。
+历史对比：5.5 年共 {historical_count} 个高波期，平均 {avg} 天，最长 {max} 天（{note}）。
+当前 {current_rank}。
+
+### 受影响最大板块（跌停密集 + 资金流出）
+
+| 板块 | 跌停次数 | 累计主力净额 | 细分构成 |
+|------|---------|------------|---------|
+| {name} | {n} | {net}亿 | {detail} |
+
+### 逆势机会板块（涨停密集 + 资金流入）
+
+| 板块 | 涨停次数 | 累计主力净额 | 备注 |
+|------|---------|------------|------|
+| {name} | {n} | {net}亿 | {分歧标注} |
+
+### 解读
+（基于上述数据的定性分析：哪些板块受冲击、哪些逆势、资金流向揭示什么结构变化）
+```
+
+**解读要点**：
+1. **持续天数定位**：当前 vs 历史平均/最长，判断"接近尾声"还是"可能延续"
+2. **板块分化**：同时出现在受影响 + 逆势两个榜的板块（`has_divergence=True`）= **内部分歧**，不是单纯的机会或风险
+3. **资金流向**：主力净额的符号和大小揭示资金从哪切向哪（如硬件→软件）
+4. **结合回测**：参考 `docs/回测记录/四象限信号回测_*.md`——高波区间后 20 日系统性正收益（历史均值 +1.4%）
+
 ### Step 6（新增）：采集宏观景气度背景
 
 调用 `stockhot.macro` 模块拉取 Tushare 宏观数据（PMI/CPI/PPI/M2/Shibor/LPR），
