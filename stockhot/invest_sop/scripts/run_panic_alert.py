@@ -88,6 +88,11 @@ def main(argv: list[str] | None = None) -> int:
     # 推送
     pushed = asyncio.run(_push_feishu(msg))
     _log_panic_scan(report, "triggered_pushed" if pushed else "triggered_push_failed")
+
+    # 追加图片仪表盘推送（文本 + 图片双消息）
+    if pushed:
+        _push_dashboard_image(report)
+
     return 0 if pushed else 1
 
 
@@ -198,6 +203,72 @@ async def _push_feishu(message: str) -> bool:
         return True
     except Exception as e:
         print(f"[ERROR] 飞书推送失败: {type(e).__name__}: {e}")
+        return False
+
+
+def _push_dashboard_image(report) -> None:
+    """生成仪表盘图片并推送到飞书（文本消息的补充）.
+
+    失败不阻断主流程（文本已推送成功，图片是锦上添花）。
+    """
+    try:
+        from stockhot.alert.panic_chart_builder import (
+            build_panic_dashboard, render_dashboard_png, add_trend_data,
+        )
+        import sqlite3
+        from stockhot.data_layer import MARKET_DB_PATH
+
+        # 构建图表
+        fig = build_panic_dashboard(report)
+
+        # 注入趋势数据（近 5 日跌停 + iVIX）
+        with sqlite3.connect(str(MARKET_DB_PATH)) as conn:
+            rows = conn.execute(
+                "SELECT trade_date, limit_down, ivix_current "
+                "FROM daily_volatility_market ORDER BY trade_date DESC LIMIT 5"
+            ).fetchall()
+        if rows:
+            rows = list(reversed(rows))  # 正序
+            dates = [r[0][5:] for r in rows]  # MM-DD
+            limit_downs = [r[1] or 0 for r in rows]
+            ivix_vals = [r[2] or 0 for r in rows]
+            add_trend_data(fig, dates, limit_downs, ivix_vals)
+
+        # 渲染 PNG
+        png_path = render_dashboard_png(fig)
+
+        # 推送图片（复用 _push_feishu 的 notifier）
+        pushed = asyncio.run(_push_image_feishu(png_path))
+        if pushed:
+            print("[OK] 仪表盘图片推送成功")
+        else:
+            print("[WARN] 仪表盘图片推送失败（文本已成功，不影响）")
+
+        # 清理临时文件
+        import os
+        if png_path.startswith("/tmp/") or png_path.startswith(tempfile.gettempdir() if hasattr(__import__('tempfile'), 'gettempdir') else "/tmp"):
+            os.unlink(png_path)
+
+    except ImportError as e:
+        print(f"[WARN] 图片生成依赖未安装（plotly/kaleido）: {e}")
+    except Exception as e:
+        print(f"[WARN] 仪表盘图片生成/推送失败: {type(e).__name__}: {e}")
+
+
+async def _push_image_feishu(image_path: str) -> bool:
+    """推送图片到飞书，返回是否成功."""
+    try:
+        from stockhot.notification.feishu_bot import get_feishu_notifier
+        notifier = get_feishu_notifier()
+        if notifier is None:
+            return False
+        if not hasattr(notifier, "send_image"):
+            print("[WARN] 当前 notifier 不支持图片推送（仅企业自建应用支持）")
+            return False
+        await notifier.send_image(image_path)
+        return True
+    except Exception as e:
+        print(f"[ERROR] 图片推送失败: {type(e).__name__}: {e}")
         return False
 
 

@@ -31,6 +31,12 @@ dev = [
     "black>=24.2.0",
     "ruff>=0.2.0",
 ]
+# 图表生成（panic_alert 仪表盘图片推送）
+# 需额外运行 `kaleido_get_chrome` 安装 chromium 内核
+chart = [
+    "plotly>=6.0.0",
+    "kaleido>=1.0.0",
+]
 
 [build-system]
 requires = ["setuptools>=61.0"]

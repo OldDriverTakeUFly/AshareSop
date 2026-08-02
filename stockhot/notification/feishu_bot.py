@@ -278,6 +278,110 @@ class EnterpriseFeishuNotifier:
             raise last_exc
         raise RuntimeError("Feishu send failed for unknown reason")
 
+    async def _upload_image(self, image_path: str) -> str:
+        """上传图片到飞书获取 image_key（发送图片消息的前置步骤）.
+
+        接口：POST /open-apis/im/v1/images（multipart/form-data）
+        参数：image_type=message, 图片文件
+        返回：image_key（用于 send_image 发送）
+        """
+        import time as _time
+        from pathlib import Path
+
+        path = Path(image_path)
+        if not path.exists():
+            raise FileNotFoundError(f"图片不存在: {image_path}")
+
+        # 上传图片需用 multipart，不能复用 _transport（MockTransport 不支持文件）
+        token = await self._get_token()
+        async with httpx.AsyncClient() as client:
+            with open(path, "rb") as f:
+                resp = await client.post(
+                    "https://open.feishu.cn/open-apis/im/v1/images",
+                    headers={"Authorization": f"Bearer {token}"},
+                    data={"image_type": "message"},
+                    files={"image": (path.name, f, "image/png")},
+                    timeout=30,
+                )
+        result = resp.json()
+        code = result.get("code", -1)
+        if code != 0:
+            # token 过期，清缓存让下次重试
+            if code == 99991663:
+                self._cached_token = None
+                self._token_expire = 0
+            raise RuntimeError(f"上传图片失败 (code={code}): {result.get('msg')}")
+        image_key = result.get("data", {}).get("image_key")
+        if not image_key:
+            raise RuntimeError(f"上传图片返回无 image_key: {result}")
+        logger.info(f"Feishu image uploaded: {image_key} ({path.stat().st_size / 1024:.0f} KB)")
+        return image_key
+
+    async def send_image(self, image_path: str) -> dict[str, Any]:
+        """发送图片消息到 chat_id 指定的群.
+
+        流程：1. 上传图片获取 image_key → 2. 发送 image 类型消息
+        失败重试最多 _MAX_RETRIES 次（token 过期自动刷新）。
+        """
+        import json as _json
+
+        last_exc: Exception | None = None
+
+        for attempt in range(1, _MAX_RETRIES + 1):
+            try:
+                # 步骤 1：上传图片
+                image_key = await self._upload_image(image_path)
+
+                # 步骤 2：发送图片消息
+                token = await self._get_token()
+                payload = {
+                    "receive_id": self._chat_id,
+                    "msg_type": "image",
+                    "content": _json.dumps({"image_key": image_key}),
+                }
+                async with httpx.AsyncClient(transport=self._transport) as client:
+                    resp = await client.post(
+                        self._MSG_URL,
+                        headers={"Authorization": f"Bearer {token}"},
+                        json=payload,
+                        timeout=10,
+                    )
+                result = resp.json()
+                code = result.get("code", -1)
+                if code == 0:
+                    logger.info("Feishu image message sent successfully")
+                    return result
+
+                if code == 99991663:
+                    self._cached_token = None
+                    self._token_expire = 0
+                    logger.warning(f"Feishu token expired, retrying {attempt}/{_MAX_RETRIES}")
+                elif code == 130102:
+                    logger.warning(f"Feishu rate limited, retry {attempt}/{_MAX_RETRIES}")
+                    last_exc = RuntimeError(f"rate limited: {result.get('msg')}")
+                else:
+                    logger.error(f"Feishu send_image failed (code={code}): {result.get('msg')}")
+                    return result
+
+            except (httpx.HTTPStatusError, httpx.RequestError, RuntimeError) as exc:
+                last_exc = exc
+                logger.warning(
+                    f"Feishu image send error (attempt {attempt}): {type(exc).__name__}: {exc}"
+                )
+
+            if attempt < _MAX_RETRIES:
+                delay = (
+                    self._backoff_override(attempt)
+                    if self._backoff_override
+                    else _BACKOFF_BASE * (2 ** (attempt - 1))
+                )
+                await asyncio.sleep(delay)
+
+        logger.error(f"Feishu send_image failed after {_MAX_RETRIES} retries")
+        if last_exc:
+            raise last_exc
+        raise RuntimeError("Feishu send_image failed for unknown reason")
+
 
 def get_feishu_notifier() -> FeishuNotifier | EnterpriseFeishuNotifier | None:
     """从环境变量构造飞书 notifier（生产用），自动选择模式.
