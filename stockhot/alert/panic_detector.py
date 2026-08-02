@@ -1283,9 +1283,21 @@ def _format_direction_section(direction: DirectionReading) -> list[str]:
     hs300 = _format_pct(direction.hs300_pct_chg)
     lines.append(f"  上证当日  {sse:8s}  沪深300  {hs300}")
 
-    # 5 日累计
+    # 5 日累计 + 方向 label（短期/中期分歧时细化展示）
     cum5 = _format_pct(direction.cum_5d_pct)
-    lines.append(f"  上证5日  {cum5:8s}  ({direction.direction_label})")
+    label = direction.direction_label
+    # 检测短期（当日）vs 中期（5日）方向分歧
+    sse_chg = direction.sse_pct_chg
+    cum_5d = direction.cum_5d_pct
+    if sse_chg is not None and cum_5d is not None:
+        short_up = sse_chg > 0
+        mid_up = cum_5d > 0
+        if short_up != mid_up:
+            # 方向分歧：短期上涨/中期下跌 或 短期下跌/中期上涨
+            short_word = "上涨" if short_up else "下跌"
+            mid_word = "上涨" if mid_up else "下跌"
+            label = f"短期{short_word}/中期{mid_word}"
+    lines.append(f"  上证5日  {cum5:8s}  ({label})")
 
     # 涨跌停结构
     if direction.limit_up is not None and direction.limit_down is not None:
@@ -1427,7 +1439,20 @@ def format_alert_message(report: PanicReport) -> str:
         triggered = "/".join(report.triggered_names) if report.triggered_names else "无信号触发"
         lines.append(f"象限：{subtitle} ｜ 信号：{triggered}")
         # 行动参考前置（结论先行）：盘中扫一眼即知该怎么做，数据详情在后支撑
-        lines.append(meta["disclaimer"])
+        # 剂量效应：P99+ 极端高波时用更保守的文案（回测胜率仅 58% vs P90-95 的 88%）
+        disclaimer = meta["disclaimer"]
+        if report.dose_warning and report.dose_warning.triggered:
+            if report.quadrant == "逼空过热":
+                disclaimer = ("⚠️ 极端逼空（P99+）：历史胜率仅 58%，"
+                              "均值回归动力弱。不建议追涨，等回落分批进。")
+            elif report.quadrant == "下跌恐慌":
+                if report.dose_warning.is_breakdown:
+                    disclaimer = ("⚠️ 极端恐慌 + 趋势破位：历史胜率仅 43%（接飞刀）。"
+                                  "不急于抄底，等 RV 见顶回落确认。")
+                else:
+                    disclaimer = ("⚠️ 极端恐慌（P99+）：均值回归可能失效。"
+                                  "分批而非一把梭，保留弹药等确认。")
+        lines.append(disclaimer)
     else:
         # 数据全部不可用降级
         lines.append(f"⚪ 市场读数 [{report.trade_date} {report.timestamp}]")
