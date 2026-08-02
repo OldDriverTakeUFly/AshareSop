@@ -1356,10 +1356,13 @@ def format_alert_message(report: PanicReport) -> str:
         # 触发信号名合并到副标题行（紧凑展示，省一行）
         triggered = "/".join(report.triggered_names) if report.triggered_names else "无信号触发"
         lines.append(f"象限：{subtitle} ｜ 信号：{triggered}")
+        # 行动参考前置（结论先行）：盘中扫一眼即知该怎么做，数据详情在后支撑
+        lines.append(meta["disclaimer"])
     else:
         # 数据全部不可用降级
         lines.append(f"⚪ 市场读数 [{report.trade_date} {report.timestamp}]")
         lines.append("（数据不足，无法判定象限）")
+        lines.append("⚠️ 信号仅提示市场状态，不构成交易建议。")
     lines.append("")
 
     # ── 波动率温度 ──
@@ -1382,11 +1385,6 @@ def format_alert_message(report: PanicReport) -> str:
     if report.dose_warning is not None and report.dose_warning.triggered:
         lines.extend(_format_dose_warning_section(report.dose_warning))
 
-    # ── 行动参考（按象限）──
-    if meta:
-        lines.append(meta["disclaimer"])
-    else:
-        lines.append("⚠️ 信号仅提示市场状态，不构成交易建议。")
     return "\n".join(lines)
 
 
