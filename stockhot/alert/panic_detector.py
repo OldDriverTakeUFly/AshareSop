@@ -1365,12 +1365,27 @@ def format_alert_message(report: PanicReport) -> str:
         lines.append("⚠️ 信号仅提示市场状态，不构成交易建议。")
     lines.append("")
 
-    # ── 波动率温度 ──
+    # ── 波动率温度（紧凑 2 行格式，省 4 行）──
+    # 去掉 RV20 绝对值和等级标签（与 P分位 + 柱状条信息重复）
+    # 保留 P分位（核心数值）+ 简化柱状条（视觉冲击）
     if report.volatility_indices:
+        # 指数简称映射（避免机械截断）
+        short_names = {
+            "上证指数": "上证", "深证成指": "深成指", "沪深300": "沪深300",
+            "创业板指": "创业板", "科创50": "科创50",
+        }
+        sorted_vol = sorted(report.volatility_indices, key=lambda x: -x.rv20_pct)
         lines.append("【波动率温度】")
-        for i in sorted(report.volatility_indices, key=lambda x: -x.rv20_pct):
+        items = []
+        for i in sorted_vol:
+            short = short_names.get(i.name, i.name[:3])
             bar = "█" * max(1, int(i.rv20_pct / 25))
-            lines.append(f"  {i.name:8s} RV20={i.rv20:5.1f}% P{i.rv20_pct:2.0f} {bar} {i.panic_level}")
+            items.append(f"{short}P{i.rv20_pct:.0f} {bar}")
+        # 分 2 行展示（前 3 + 后 2）
+        mid = (len(items) + 1) // 2
+        lines.append("  " + "  ".join(items[:mid]))
+        if len(items) > mid:
+            lines.append("  " + "  ".join(items[mid:]))
         lines.append("")
 
     # ── 方向拆解 ──
