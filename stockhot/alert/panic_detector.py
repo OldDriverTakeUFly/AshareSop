@@ -1297,18 +1297,13 @@ def format_alert_message(report: PanicReport) -> str:
             f"{emoji} {title} [{report.trade_date} {report.timestamp}]  "
             f"{intensity_word}强度 {report.intensity_score:.0f}/100 {report.intensity_label}"
         )
-        lines.append(f"象限：{subtitle}")
+        # 触发信号名合并到副标题行（紧凑展示，省一行）
+        triggered = "/".join(report.triggered_names) if report.triggered_names else "无信号触发"
+        lines.append(f"象限：{subtitle} ｜ 信号：{triggered}")
     else:
         # 数据全部不可用降级
         lines.append(f"⚪ 市场读数 [{report.trade_date} {report.timestamp}]")
         lines.append("（数据不足，无法判定象限）")
-    lines.append("")
-
-    # ── 触发条件（原三大信号）──
-    if report.triggered_names:
-        lines.append(f"触发信号：{' / '.join(report.triggered_names)}")
-    elif report.signals:
-        lines.append("（无传统恐慌信号触发）")
     lines.append("")
 
     # ── 波动率温度 ──
@@ -1330,12 +1325,6 @@ def format_alert_message(report: PanicReport) -> str:
     # ── 剂量警示（P99+ 极端高波时才显示）──
     if report.dose_warning is not None and report.dose_warning.triggered:
         lines.extend(_format_dose_warning_section(report.dose_warning))
-
-    # ── 各信号详情 ──
-    for sig in report.signals:
-        mark = "🔴" if sig.triggered else ("⚪" if not sig.available else "🟢")
-        lines.append(f"{mark} {sig.name}：{sig.detail}")
-    lines.append("")
 
     # ── 行动参考（按象限）──
     if meta:
