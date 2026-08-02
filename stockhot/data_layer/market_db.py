@@ -178,6 +178,24 @@ _SCHEMA_STATEMENTS: list[str] = [
         PRIMARY KEY (ts_code, trade_date)
     )""",
 
+    # 个股资金流（Tushare moneyflow，按 trade_date 全市场批量回填）
+    # 大单/超大单买卖明细，net_mf_amount = 全口径净流入
+    """CREATE TABLE IF NOT EXISTS moneyflow (
+        trade_date      TEXT NOT NULL,
+        ts_code         TEXT NOT NULL,
+        buy_sm_amount   REAL,
+        sell_sm_amount  REAL,
+        buy_md_amount   REAL,
+        sell_md_amount  REAL,
+        buy_lg_amount   REAL,            -- 大单买入额
+        sell_lg_amount  REAL,            -- 大单卖出额
+        buy_elg_amount  REAL,            -- 超大单买入额
+        sell_elg_amount REAL,            -- 超大单卖出额
+        net_mf_amount   REAL,            -- 全口径净流入
+        fetched_at      REAL,
+        PRIMARY KEY (ts_code, trade_date)
+    )""",
+
     # ═══ 盘面采集表（从 stockhot.db daily_data JSON blob 结构化）═══════
     # 统一涨停/炸板/跌停池（pool_kind 鉴别列）
     """CREATE TABLE IF NOT EXISTS limit_pool (
@@ -427,6 +445,9 @@ _COLUMN_MIGRATIONS: list[tuple[str, str, str]] = [
     ("panic_history", "quadrant", "TEXT"),
     ("panic_history", "intensity_score", "REAL"),
     ("panic_history", "direction_score", "REAL"),
+    ("panic_history", "sse_pct_chg", "REAL"),
+    # stock_basic 补充列（2026-08-02）：上市日期（用于排除次新股）
+    ("stock_basic", "list_date", "TEXT"),
     ("panic_history", "sse_pct_chg", "REAL"),
 ]
 

@@ -30,18 +30,20 @@ os.environ["PROJECT_ROOT"] = os.getcwd()
 import numpy as np
 import pandas as pd
 from datetime import datetime, timedelta
-import tushare as ts
-from stockhot.core.tushare_client_safe import safe_tushare_call
 
-pro = ts.pro_api()
+from davis_analyzer.studies.rally_screening.utils import (
+    fetch_daily_qfq_from_db,
+    load_daily_basic_by_code,
+    get_stock_basic_df,
+    get_stk_holdernumber,
+    _conn,
+)
 
 def fetch_daily(ts_code, days=350):
-    end = datetime.now().strftime("%Y%m%d")
-    start = (datetime.now() - timedelta(days=int(days*1.8))).strftime("%Y%m%d")
-    df = ts.pro_bar(ts_code=ts_code, adj="qfq", start_date=start, end_date=end)
-    if df is None or df.empty:
+    """前复权日线（从SQLite读）"""
+    df = fetch_daily_qfq_from_db(ts_code, days=days)
+    if df.empty:
         return pd.DataFrame()
-    df = df.rename(columns={"trade_date":"date","vol":"volume"})
     df["date"] = pd.to_datetime(df["date"], format="%Y%m%d")
     df = df.set_index("date").sort_index()
     return df[["open","high","low","close","volume"]].astype(float)
@@ -70,19 +72,21 @@ def screen_v2(ts_code, name=""):
     # === 硬条件 ===
 
     # T1: 累计换手>80%
-    db = safe_tushare_call("daily_basic", ts_code=ts_code, limit=1)
+    db = load_daily_basic_by_code(ts_code)
     turnover_120 = 0
     avg_amount = 0
     float_share = 0
     if db is not None and not db.empty:
         try:
-            fs_val = db.iloc[0]["float_share"]
-            if pd.notna(fs_val) and float(fs_val) > 0:
-                float_share = float(fs_val)
+            # 用 circ_mv（流通市值万元）和最新 close 反推 float_share
+            latest_db = db.iloc[-1]
+            circ_mv = float(latest_db.get("circ_mv") or 0)
+            latest_close = float(close.iloc[-1])
+            if circ_mv > 0 and latest_close > 0:
+                float_share = circ_mv / latest_close  # 万股
             total_vol = float(volume.tail(120).sum())
             if float_share > 0:
                 turnover_120 = total_vol * 100 / (float_share * 10000) * 100
-            avg_amount = float(db.iloc[0].get("amount", 0)) * 10  # 千元→万元
         except:
             pass
     # 用成交量×收盘价估算日均成交额（万元）
@@ -104,12 +108,11 @@ def screen_v2(ts_code, name=""):
     # === 排除条件 ===
     gain_60d = float(close.iloc[-1] / close.iloc[-60] - 1) * 100 if len(close) >= 60 else 0
 
-    listing_info = safe_tushare_call("stock_basic", ts_code=ts_code, fields="ts_code,list_date,name")
+    listing_info = _get_listing_date(ts_code)
     list_days = 999
-    if listing_info is not None and not listing_info.empty:
+    if listing_info:
         try:
-            ld = str(listing_info.iloc[0]["list_date"])
-            list_date = datetime.strptime(ld, "%Y%m%d")
+            list_date = datetime.strptime(listing_info, "%Y%m%d")
             list_days = (datetime.now() - list_date).days
         except:
             pass
@@ -161,14 +164,13 @@ def screen_v2(ts_code, name=""):
         prior_8w = float(weekly_vol.iloc[-12:-4].mean())
         vol_ratio = recent_4w / prior_8w if prior_8w > 0 else 0
 
-    # B4: 股东人数
-    hn = safe_tushare_call("stk_holdernumber", ts_code=ts_code, fields="ts_code,end_date,holder_num")
+    # B4: 股东人数（从 financial 表读）
+    hn_list = get_stk_holdernumber(ts_code, periods=4)
     holder_trend = 0
-    if hn is not None and not hn.empty:
-        hn = hn.dropna(subset=["holder_num"]).sort_values("end_date").tail(4)
-        if len(hn) >= 2:
-            latest = int(hn.iloc[-1]["holder_num"])
-            prev = int(hn.iloc[-2]["holder_num"])
+    if len(hn_list) >= 2:
+        latest = hn_list[0]["holder_num"]
+        prev = hn_list[1]["holder_num"]
+        if prev > 0:
             holder_trend = (latest - prev) / prev * 100
 
     # B5: 日线 MACD DIF 零轴附近
@@ -220,11 +222,19 @@ def screen_v2(ts_code, name=""):
     }
 
 
+def _get_listing_date(ts_code: str) -> str:
+    """从 stock_basic 读上市日期"""
+    with _conn() as conn:
+        row = conn.execute("SELECT list_date FROM stock_basic WHERE ts_code=?", (ts_code,)).fetchone()
+    return row[0] if row and row[0] else ""
+
+
 def get_stock_universe():
-    """获取全市场股票池"""
-    df = safe_tushare_call("stock_basic", list_status="L", fields="ts_code,symbol,name,industry,list_date")
+    """获取全市场股票池（从SQLite读）"""
+    df = get_stock_basic_df()
     if df is None or df.empty:
         return []
+    df = df[df["list_status"] == "L"]
     df = df[~df["name"].str.contains("ST", na=False)]
     df = df[~df["name"].str.contains("退", na=False)]
     df = df[df["ts_code"].str.startswith(("00","30","60","68"))]

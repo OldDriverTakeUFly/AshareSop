@@ -54,10 +54,10 @@ def get_industry_map() -> dict[str, str]:
 
 
 def get_stock_basic_df() -> pd.DataFrame:
-    """全量 stock_basic DataFrame."""
+    """全量 stock_basic DataFrame（含 list_date）."""
     with _conn() as conn:
         return pd.read_sql(
-            "SELECT ts_code, name, industry, list_status FROM stock_basic",
+            "SELECT ts_code, name, industry, list_status, list_date FROM stock_basic",
             conn,
         )
 
@@ -371,3 +371,55 @@ def load_tech_factor(start: str = "", end: str = "") -> pd.DataFrame:
         query += " WHERE " + " AND ".join(conditions)
     with _conn() as conn:
         return pd.read_sql(query, conn, params=params)
+
+
+# ── 个股资金流 ──────────────────────────────────────────────────────
+
+
+def load_moneyflow_batch(trade_dates: list[str]) -> pd.DataFrame:
+    """批量加载个股资金流（替代 pro.moneyflow）."""
+    if not trade_dates:
+        return pd.DataFrame()
+    placeholders = ",".join("?" * len(trade_dates))
+    with _conn() as conn:
+        df = pd.read_sql(
+            f"SELECT ts_code, trade_date, buy_lg_amount, sell_lg_amount, "
+            f"buy_elg_amount, sell_elg_amount, net_mf_amount "
+            f"FROM moneyflow WHERE trade_date IN ({placeholders})",
+            conn,
+            params=trade_dates,
+        )
+    if df.empty:
+        return df
+    df["elg_net"] = df["buy_elg_amount"].fillna(0) - df["sell_elg_amount"].fillna(0)
+    df["lg_net"] = df["buy_lg_amount"].fillna(0) - df["sell_lg_amount"].fillna(0)
+    df["big_net_total"] = df["elg_net"] + df["lg_net"]
+    return df
+
+
+# ── 股东户数 ────────────────────────────────────────────────────────
+
+
+def get_stk_holdernumber(ts_code: str, periods: int = 4) -> list[dict]:
+    """获取最近N期股东户数（从 financial 表 stk_holdernumber endpoint）.
+
+    Returns:
+        list of {"end_date": str, "holder_num": int}，按报告期降序.
+    """
+    with _conn() as conn:
+        rows = conn.execute(
+            "SELECT end_date, payload FROM financial "
+            "WHERE ts_code = ? AND endpoint = 'stk_holdernumber' "
+            "ORDER BY end_date DESC LIMIT ?",
+            (ts_code, periods),
+        ).fetchall()
+    results = []
+    for end_date, payload in rows:
+        try:
+            data = json.loads(payload) if isinstance(payload, str) else payload
+            holder_num = data.get("holder_num")
+            if holder_num is not None:
+                results.append({"end_date": end_date, "holder_num": int(holder_num)})
+        except (json.JSONDecodeError, TypeError, ValueError):
+            pass
+    return results

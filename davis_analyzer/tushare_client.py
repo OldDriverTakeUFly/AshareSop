@@ -192,7 +192,7 @@ class TushareClient:
                 {
                     "exchange": "",
                     "list_status": status,
-                    "fields": "ts_code,name,industry,list_status",
+                    "fields": "ts_code,name,industry,list_status,list_date",
                 },
             )
             if df_part is not None and not df_part.empty:
@@ -577,16 +577,16 @@ class TushareClient:
     def _stock_basic_replace(self, df: pd.DataFrame) -> None:
         now = time.time()
         records = [
-            (r["ts_code"], r["name"], r["industry"], r.get("list_status", "L"), now)
+            (r["ts_code"], r["name"], r["industry"], r.get("list_status", "L"),
+             str(r.get("list_date", "")) if r.get("list_date") else "", now)
             for r in df.to_dict("records")
         ]
         with sqlite3.connect(str(_CACHE_DB)) as conn:
-            conn.execute("DELETE FROM stock_basic")
             conn.executemany(
                 """
                 INSERT OR REPLACE INTO stock_basic
-                    (ts_code, name, industry, list_status, fetched_at)
-                VALUES (?, ?, ?, ?, ?)
+                    (ts_code, name, industry, list_status, list_date, fetched_at)
+                VALUES (?, ?, ?, ?, ?, ?)
                 """,
                 records,
             )
