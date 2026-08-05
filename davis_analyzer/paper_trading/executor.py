@@ -396,6 +396,110 @@ def _get_ivix_percentile(trade_date: str) -> float | None:
         return round(pct, 1)
 
 
+def _compute_rv_decay_ratio(trade_date: str) -> float | None:
+    """Compute RV5/RV20 ratio for 上证指数 (oversold bounce trigger).
+
+    Returns ratio < 0.8 when short-term vol has decayed, > 1.0 when surging.
+    None when insufficient data. Only computed when oversold bounce is enabled
+    (caller checks strategy.enable_oversold_bounce before calling).
+    """
+    import numpy as np
+    try:
+        with get_market_conn() as conn:
+            rows = conn.execute(
+                "SELECT close FROM index_daily WHERE ts_code='000001.SH' "
+                "AND trade_date <= ? AND close > 0 ORDER BY trade_date DESC LIMIT 25",
+                (trade_date,),
+            ).fetchall()
+        if len(rows) < 21:
+            logger.debug(f"rv_decay: only {len(rows)} rows for {trade_date}")
+            return None
+        closes = np.array([float(r[0]) for r in rows])[::-1]  # chronological
+        log_ret = np.diff(np.log(closes))
+        if len(log_ret) < 20:
+            logger.debug(f"rv_decay: only {len(log_ret)} log_returns")
+            return None
+        rv5 = float(np.std(log_ret[-5:]) * np.sqrt(242) * 100)
+        rv20 = float(np.std(log_ret[-20:]) * np.sqrt(242) * 100)
+        if rv20 <= 0:
+            return None
+        return round(rv5 / rv20, 3)
+    except Exception as e:
+        logger.debug(f"rv_decay_ratio failed for {trade_date}: {e}")
+        return None
+    except Exception:
+        return None
+
+
+def _compute_index_20d_drop(trade_date: str) -> float | None:
+    """Compute 上证指数 20-day return (%) for oversold trigger."""
+    try:
+        with get_market_conn() as conn:
+            rows = conn.execute(
+                "SELECT close FROM index_daily WHERE ts_code='000001.SH' "
+                "AND trade_date <= ? AND close > 0 ORDER BY trade_date DESC LIMIT 21",
+                (trade_date,),
+            ).fetchall()
+        if len(rows) < 21:
+            return None
+        curr = float(rows[0][0])
+        past = float(rows[20][0])
+        if past <= 0:
+            return None
+        return round((curr / past - 1) * 100, 2)
+    except Exception:
+        return None
+
+
+def _compute_stock_20d_drops(ts_codes: list[str], trade_date: str) -> dict[str, float]:
+    """Compute 20-day return (%) for each stock (for oversold bounce selection).
+
+    Only called when oversold bounce is enabled. Returns {ts_code: return_pct}.
+    """
+    result: dict[str, float] = {}
+    if not ts_codes:
+        return result
+    try:
+        with get_market_conn() as conn:
+            # Batch query: get close prices 20 trading days ago and today
+            # for all stocks in one go (much faster than per-stock queries)
+            placeholders = ",".join("?" * len(ts_codes))
+            # Latest price for each stock on or before trade_date
+            curr_rows = conn.execute(
+                f"""SELECT ts_code, close FROM daily_price
+                    WHERE trade_date = (
+                        SELECT MAX(trade_date) FROM daily_price
+                        WHERE trade_date <= ? AND vol > 0
+                    ) AND ts_code IN ({placeholders})
+                    AND close > 0""",
+                [trade_date] + ts_codes,
+            ).fetchall()
+            # Price ~20 trading days ago
+            past_date_row = conn.execute(
+                """SELECT DISTINCT trade_date FROM daily_price
+                   WHERE trade_date <= ? ORDER BY trade_date DESC LIMIT 21""",
+                (trade_date,),
+            ).fetchall()
+            if len(past_date_row) < 21:
+                return result
+            past_date = past_date_row[20][0]
+            past_rows = conn.execute(
+                f"""SELECT ts_code, close FROM daily_price
+                    WHERE trade_date = ? AND ts_code IN ({placeholders})
+                    AND close > 0""",
+                [past_date] + ts_codes,
+            ).fetchall()
+
+        curr_map = {r[0]: float(r[1]) for r in curr_rows}
+        past_map = {r[0]: float(r[1]) for r in past_rows}
+        for code in ts_codes:
+            if code in curr_map and code in past_map and past_map[code] > 0:
+                result[code] = round((curr_map[code] / past_map[code] - 1) * 100, 2)
+    except Exception:
+        pass
+    return result
+
+
 def _get_industries(ts_codes: list[str]) -> dict[str, str]:
     """Build ts_code → industry lookup from stock_basic table."""
     if not ts_codes:
@@ -1823,6 +1927,18 @@ class DailyExecutor:
         # applied any downgrade via the overlay; this score is for display
         # and future fine-grained use. 0.0 when overseas data is absent.
         overseas_risk = _get_overseas_risk(trade_date)
+        # iVIX (中国 VIX) for panic-pause filter. 0.0 when no data.
+        ivix_val = 0.0
+        try:
+            with get_market_conn() as conn:
+                row = conn.execute(
+                    "SELECT close FROM ivix_history WHERE trade_date <= ? ORDER BY trade_date DESC LIMIT 1",
+                    (trade_date,),
+                ).fetchone()
+                if row and row[0] is not None:
+                    ivix_val = float(row[0])
+        except Exception:
+            pass
         # Market volatility regime (independent of bull/bear) — used for
         # position sizing: high vol = light position + wide stop.
         vol_regime, vol_mult = _get_market_vol_regime(trade_date)
@@ -1902,6 +2018,10 @@ class DailyExecutor:
             market_regime=market_regime,
             vol_mult=vol_mult,
             overseas_risk=overseas_risk,
+            ivix=ivix_val,
+            rv_decay_ratio=_compute_rv_decay_ratio(trade_date),
+            index_20d_drop=_compute_index_20d_drop(trade_date),
+            stock_20d_drops=_compute_stock_20d_drops(codes_to_price, trade_date),
             industries=industries,
             industry_trend=industry_trend,
             short_momentum=short_momentum,
@@ -2045,6 +2165,14 @@ class DailyExecutor:
             "trades": len(trades),
             "nav": nav.total_equity,
             "daily_return": nav.daily_return,
+            # 买入详情（供 inject_screen_to_paper 推飞书通知用）
+            "buy_trades": [
+                {
+                    "ts_code": t.ts_code, "name": t.name, "price": t.price,
+                    "shares": t.shares, "signal_reason": t.signal_reason,
+                }
+                for t in trades if t.action == "BUY"
+            ],
         }
 
 

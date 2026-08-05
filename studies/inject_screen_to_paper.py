@@ -118,6 +118,11 @@ def main(argv: list[str] | None = None) -> int:
             sells = result.get("sells", 0)
             nav = result.get("nav")
             print(f"  买入 {buys} 只, 卖出 {sells} 只" + (f", NAV {nav}" if nav else ""))
+
+            # 有买入时推飞书通知（供实盘参考）
+            buy_trades = result.get("buy_trades", [])
+            if buy_trades:
+                _push_buy_notification(args.name, buy_trades, as_of)
         return 0 if status != "no_prices" else 1
     except FileNotFoundError as e:
         print(f"[ERROR] {e}")
@@ -128,6 +133,61 @@ def main(argv: list[str] | None = None) -> int:
         print(f"[ERROR] 注入失败: {type(e).__name__}: {e}")
         traceback.print_exc()
         return 1
+
+
+def _push_buy_notification(account_name: str, buy_trades: list[dict], as_of: str) -> None:
+    """推飞书通知——模拟账户买入信号（供实盘参考）.
+
+    格式：
+    📊 因子选股买入信号 [2026-08-04]
+    账户：live_factor_test
+
+    睿创微纳 688002  @141.56  因子71.9 top5
+    扬杰科技 300373  @96.30   因子68.2 top5
+
+    ⚠️ 模拟账户信号，非实盘指令。仅供参考，跟单风险自负。
+    """
+    try:
+        import asyncio
+        from stockhot.notification.feishu_bot import get_feishu_notifier
+
+        lines = [f"📊 因子选股买入信号 [{as_of}]"]
+        lines.append(f"账户：{account_name}")
+        lines.append("")
+
+        for t in buy_trades[:8]:  # 最多展示 8 只
+            code6 = t["ts_code"].split(".")[0]
+            reason = t.get("signal_reason", "")
+            # 提取因子评分（简短展示）
+            score_str = ""
+            if "final_score=" in reason:
+                import re
+                m = re.search(r"final_score=([\d.]+)", reason)
+                if m:
+                    score_str = f"  因子{m.group(1)}"
+            elif reason:
+                score_str = f"  {reason[:20]}"
+
+            lines.append(f"  {t['name']:6s} {code6}  @{t['price']:.2f}{score_str}")
+
+        if len(buy_trades) > 8:
+            lines.append(f"  ... 共 {len(buy_trades)} 只")
+
+        lines.append("")
+        lines.append("⚠️ 模拟账户信号，非实盘指令。仅供参考，跟单风险自负。")
+        lines.append("买入价已登记到 watchlist notes 字段，盘前报告可引用。")
+
+        msg = "\n".join(lines)
+        print(msg)
+
+        notifier = get_feishu_notifier()
+        if notifier is None:
+            print("[WARN] 飞书未配置，跳过推送")
+            return
+        asyncio.run(notifier.send_text(msg))
+        print("[OK] 买入信号推送成功")
+    except Exception as e:
+        print(f"[WARN] 买入信号推送失败: {type(e).__name__}: {e}")
 
 
 if __name__ == "__main__":

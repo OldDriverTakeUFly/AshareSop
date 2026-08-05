@@ -256,7 +256,49 @@ class PaperAccount:
         )
         self._record_trade(trade)
         self._conn.commit()
+
+        # 登记 到 watchlist（供盘前报告/飞书推送引用实盘参考价）
+        # 仅对新开仓登记（加仓不重复更新），记录买入价 + 日期 + 信号
+        if not existing:
+            self._register_buy_to_watchlist(
+                ts_code=ts_code, name=name, price=price,
+                trade_date=trade_date, signal_reason=signal_reason,
+            )
+
         return trade
+
+    def _register_buy_to_watchlist(
+        self, ts_code: str, name: str, price: float,
+        trade_date: str, signal_reason: str,
+    ) -> None:
+        """把模拟买入价登记到 invest_watchlist（供实盘参考）.
+
+        在 notes 字段追加格式化记录（不改 schema）：
+        "📊 模拟买入@141.56(20260804) 因子71.9"
+        盘前报告 / intraday_holdings_alert 可读此字段展示参考价。
+
+        仅在前向测试账户（非回测）生效——回测账户名含 'backtest'/'abtest' 时跳过。
+        """
+        # 回测账户跳过（避免高频写入）
+        if any(tag in self.name.lower() for tag in ("backtest", "abtest", "shadow")):
+            return
+        try:
+            from stockhot.core.config import DB_PATH
+            import sqlite3 as _sqlite3
+            with _sqlite3.connect(str(DB_PATH)) as wl_conn:
+                code6 = ts_code.split(".")[0]
+                note = f"📊 模拟买入@{price:.2f}({trade_date})"
+                if signal_reason:
+                    # 提取因子评分（如 "final_score=71.9 top5"）
+                    note += f" {signal_reason[:30]}"
+                wl_conn.execute(
+                    "UPDATE invest_watchlist SET notes=COALESCE(notes, '') || ? "
+                    "WHERE code=?",
+                    (f" {note}" if True else note, code6),
+                )
+                wl_conn.commit()
+        except Exception:
+            pass  # watchlist 登记失败不影响买入执行
 
     def sell(
         self,
