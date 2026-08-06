@@ -41,11 +41,15 @@ PAPER_ACCOUNT = "live_factor_test"
 # 轮询间隔（秒）
 DEFAULT_INTERVAL = 120
 
-# 交易时段（24h 制）
-TRADING_START = "09:25"
-TRADING_END = "15:05"
-LUNCH_START = "11:30"
-LUNCH_END = "13:00"
+# 交易时段（A 股：09:30~11:30 + 13:00~15:00）
+# 进程运行窗口：09:25 启动（含集合竞价准备）~ 15:05 退出（收盘后推汇总）
+# 实际轮询窗口：09:30~11:30 + 13:00~15:00（午休跳过）
+TRADING_START = "09:25"   # 进程启动（集合竞价阶段，9:30 前不拉价）
+TRADING_END = "15:05"     # 进程退出（收盘后 5 分钟，推汇总后退出）
+LUNCH_START = "11:30"     # 午休开始（11:30~13:00 不轮询）
+LUNCH_END = "13:00"       # 午休结束
+MARKET_OPEN = "09:30"     # 开盘（此前不拉实时价）
+MARKET_CLOSE = "15:00"    # 收盘（此后不拉实时价）
 
 # 信号阈值（与 executor / premarket_strategy 一致）
 TAKE_PROFIT_PCT = 0.20
@@ -59,13 +63,20 @@ BOARD_LOT = 100
 
 
 def _in_trading_hours() -> bool:
-    """判断当前是否在交易时段（含集合竞价)."""
+    """判断当前是否在进程运行窗口（09:25~15:05，含启动/退出缓冲）."""
     now = datetime.now()
-    # 周末跳过
     if now.weekday() >= 5:
         return False
     t = now.strftime("%H:%M")
     return TRADING_START <= t <= TRADING_END
+
+
+def _is_market_open() -> bool:
+    """判断当前是否在 A 股实际交易时段（09:30~11:30 + 13:00~15:00）."""
+    t = datetime.now().strftime("%H:%M")
+    if LUNCH_START <= t < LUNCH_END:
+        return False
+    return MARKET_OPEN <= t <= MARKET_CLOSE
 
 
 def _is_lunch_break() -> bool:
@@ -434,8 +445,17 @@ def run_intraday_loop(interval: int = DEFAULT_INTERVAL, dry_run: bool = False) -
     daily_stats = {"cycles": 0, "executed": 0, "warnings": 0}
 
     while _in_trading_hours():
+        # 午休时段（11:30~13:00）：低频等待，不轮询
         if _is_lunch_break():
             time.sleep(30)
+            continue
+
+        # 集合竞价阶段（09:25~09:30）：等开盘，不拉价
+        if not _is_market_open():
+            now_str = datetime.now().strftime("%H:%M")
+            if now_str < MARKET_OPEN:
+                print(f"  [{now_str}] 等待开盘（集合竞价中）...")
+            time.sleep(15)
             continue
 
         daily_stats["cycles"] += 1
