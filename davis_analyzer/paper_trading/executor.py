@@ -2165,7 +2165,7 @@ class DailyExecutor:
             "trades": len(trades),
             "nav": nav.total_equity,
             "daily_return": nav.daily_return,
-            # 买入详情（供 inject_screen_to_paper 推飞书通知用）
+            # 买入/卖出详情（供 inject_screen_to_paper 推飞书通知用）
             "buy_trades": [
                 {
                     "ts_code": t.ts_code, "name": t.name, "price": t.price,
@@ -2173,6 +2173,22 @@ class DailyExecutor:
                 }
                 for t in trades if t.action == "BUY"
             ],
+            "sell_trades": [
+                {
+                    "ts_code": t.ts_code, "name": t.name, "price": t.price,
+                    "shares": t.shares, "signal_reason": t.signal_reason,
+                }
+                for t in trades if t.action == "SELL"
+            ],
+            # 账户净值详情（供调仓报告展示整体仓位+盈亏）
+            "account_summary": {
+                "initial_capital": self.account.initial_capital,
+                "total_equity": nav.total_equity,
+                "cash": nav.cash,
+                "positions_value": nav.positions_value,
+                "position_count": len(final_positions),
+                "daily_return": nav.daily_return,
+            },
         }
 
 

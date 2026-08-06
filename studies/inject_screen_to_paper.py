@@ -119,10 +119,14 @@ def main(argv: list[str] | None = None) -> int:
             nav = result.get("nav")
             print(f"  买入 {buys} 只, 卖出 {sells} 只" + (f", NAV {nav}" if nav else ""))
 
-            # 有买入时推飞书通知（供实盘参考）
+            # 有交易时推飞书调仓报告
             buy_trades = result.get("buy_trades", [])
-            if buy_trades:
-                _push_buy_notification(args.name, buy_trades, as_of)
+            sell_trades = result.get("sell_trades", [])
+            account_summary = result.get("account_summary")
+            if buy_trades or sell_trades:
+                _push_rebalance_report(
+                    args.name, buy_trades, sell_trades, account_summary, as_of,
+                )
         return 0 if status != "no_prices" else 1
     except FileNotFoundError as e:
         print(f"[ERROR] {e}")
@@ -135,47 +139,87 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
 
-def _push_buy_notification(account_name: str, buy_trades: list[dict], as_of: str) -> None:
-    """推飞书通知——模拟账户买入信号（供实盘参考）.
+def _push_rebalance_report(
+    account_name: str,
+    buy_trades: list[dict],
+    sell_trades: list[dict],
+    account_summary: dict | None,
+    as_of: str,
+) -> None:
+    """推飞书调仓报告——买入+卖出+整体仓位+盈亏（供实盘参考）.
 
     格式：
-    📊 因子选股买入信号 [2026-08-04]
+    📊 因子选股调仓 [2026-08-06]
     账户：live_factor_test
 
-    睿创微纳 688002  @141.56  因子71.9 top5
-    扬杰科技 300373  @96.30   因子68.2 top5
+    🟢 买入：
+      兆易创新 603986  @385.00  因子68.9 top5
+      光迅科技 002281  @175.49  因子67.7 top5
+    🔴 卖出：
+      睿创微纳 688002  @155.51  跌出top5
+      澜起科技 688008  @155.51  T+减仓33% P&L=+9.9%
 
-    ⚠️ 模拟账户信号，非实盘指令。仅供参考，跟单风险自负。
+    💰 账户状态：
+      总权益 89.2万 | 仓位 86%（5只） | 当日 +2.3%
+      总盈亏 -10.8%（初始 100万）
+
+    ⚠️ 模拟账户信号，非实盘指令。仅供参考。
     """
     try:
         import asyncio
         from stockhot.notification.feishu_bot import get_feishu_notifier
 
-        lines = [f"📊 因子选股买入信号 [{as_of}]"]
+        lines = [f"📊 因子选股调仓 [{as_of}]"]
         lines.append(f"账户：{account_name}")
         lines.append("")
 
-        for t in buy_trades[:8]:  # 最多展示 8 只
-            code6 = t["ts_code"].split(".")[0]
-            reason = t.get("signal_reason", "")
-            # 提取因子评分（简短展示）
-            score_str = ""
-            if "final_score=" in reason:
-                import re
-                m = re.search(r"final_score=([\d.]+)", reason)
-                if m:
-                    score_str = f"  因子{m.group(1)}"
-            elif reason:
-                score_str = f"  {reason[:20]}"
+        # 买入
+        if buy_trades:
+            lines.append("🟢 买入：")
+            for t in buy_trades[:8]:
+                code6 = t["ts_code"].split(".")[0]
+                reason = _format_signal_short(t.get("signal_reason", ""))
+                lines.append(f"  {t['name']:6s} {code6}  @{t['price']:.2f}  {reason}")
+            if len(buy_trades) > 8:
+                lines.append(f"  ... 共 {len(buy_trades)} 只")
+            lines.append("")
 
-            lines.append(f"  {t['name']:6s} {code6}  @{t['price']:.2f}{score_str}")
+        # 卖出
+        if sell_trades:
+            lines.append("🔴 卖出：")
+            for t in sell_trades[:8]:
+                code6 = t["ts_code"].split(".")[0]
+                reason = _format_signal_short(t.get("signal_reason", ""))
+                lines.append(f"  {t['name']:6s} {code6}  @{t['price']:.2f}  {reason}")
+            if len(sell_trades) > 8:
+                lines.append(f"  ... 共 {len(sell_trades)} 只")
+            lines.append("")
 
-        if len(buy_trades) > 8:
-            lines.append(f"  ... 共 {len(buy_trades)} 只")
+        # 账户状态
+        if account_summary:
+            equity = account_summary.get("total_equity", 0)
+            initial = account_summary.get("initial_capital", 0)
+            cash = account_summary.get("cash", 0)
+            pos_val = account_summary.get("positions_value", 0)
+            pos_count = account_summary.get("position_count", 0)
+            daily_ret = account_summary.get("daily_return", 0)
 
-        lines.append("")
+            total_pnl_pct = (equity / initial - 1) * 100 if initial > 0 else 0
+            position_pct = (pos_val / equity * 100) if equity > 0 else 0
+
+            lines.append("💰 账户状态：")
+            lines.append(
+                f"  总权益 {equity/1e4:.1f}万 | 仓位 {position_pct:.0f}%（{pos_count}只）"
+                f" | 当日 {'+' if daily_ret >= 0 else ''}{daily_ret:.1f}%"
+            )
+            lines.append(
+                f"  总盈亏 {'+' if total_pnl_pct >= 0 else ''}{total_pnl_pct:.1f}%"
+                f"（初始 {initial/1e4:.0f}万）"
+            )
+            lines.append("")
+
         lines.append("⚠️ 模拟账户信号，非实盘指令。仅供参考，跟单风险自负。")
-        lines.append("买入价已登记到 watchlist notes 字段，盘前报告可引用。")
+        lines.append("买入价已登记到 watchlist，盘前报告可引用。")
 
         msg = "\n".join(lines)
         print(msg)
@@ -185,9 +229,22 @@ def _push_buy_notification(account_name: str, buy_trades: list[dict], as_of: str
             print("[WARN] 飞书未配置，跳过推送")
             return
         asyncio.run(notifier.send_text(msg))
-        print("[OK] 买入信号推送成功")
+        print("[OK] 调仓报告推送成功")
     except Exception as e:
-        print(f"[WARN] 买入信号推送失败: {type(e).__name__}: {e}")
+        print(f"[WARN] 调仓报告推送失败: {type(e).__name__}: {e}")
+
+
+def _format_signal_short(reason: str) -> str:
+    """把 signal_reason 格式化为简短展示."""
+    import re
+    if not reason:
+        return ""
+    # 提取因子评分
+    m = re.search(r"final_score=([\d.]+)", reason)
+    if m:
+        return f"因子{m.group(1)}"
+    # T+减仓/止盈/止损等直接展示（截断到 30 字符）
+    return reason[:30]
 
 
 if __name__ == "__main__":
