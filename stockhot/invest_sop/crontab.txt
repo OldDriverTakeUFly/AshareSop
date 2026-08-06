@@ -79,3 +79,12 @@
 # 数据写入 daily_sector_volatility 表，供盘后收评 Step 5c「高波持续分析」的板块级 RV 维度。
 # 首次运行后会建立成分股 RV 缓存（storage/files/sector_rv_cache/），后续运行更快。
 0 11 * * 0 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python -m stockhot.sector_volatility analyze >> stockhot/invest_sop/logs/sector_volatility.log 2>&1
+
+# Pre-market strategy report (Mon–Fri, 08:15)
+# 推送持仓+top20操作策略表：止损价/止盈价/T+减仓线/操作建议 + 账户状态
+15 8 * * 1-5 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python stockhot/invest_sop/scripts/premarket_strategy.py >> stockhot/invest_sop/logs/premarket_strategy.log 2>&1
+
+# Intraday position manager (Mon–Fri, 09:25 start,常驻进程 15:05 自动退出)
+# 每 2 分钟轮询实时价 → 止损/止盈/T+减仓/加仓信号 → 执行模拟交易 + 即时推送
+# 原有的 intraday_holdings_alert（4次定时）保留作为降级兜底
+25 9 * * 1-5 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python stockhot/invest_sop/scripts/intraday_manager.py >> stockhot/invest_sop/logs/intraday_manager.log 2>&1
