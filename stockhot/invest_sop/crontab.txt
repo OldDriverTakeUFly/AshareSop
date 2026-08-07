@@ -2,6 +2,9 @@
 # Project: CodeAgentDashboard / stockhot/invest_sop
 # Venv:    .venv/bin/python (akshare requires venv)
 # Logs:    stockhot/invest_sop/logs/
+#
+# ⚠️ 修改本文件后必须运行：bash stockhot/invest_sop/install.sh
+#    否则改动不会生效（crontab.txt 只是定义，install.sh 才同步到系统 crontab）
 # ──────────────────────────────────────────────────────────────────────
 
 # Weekday data collection (Mon–Fri)
