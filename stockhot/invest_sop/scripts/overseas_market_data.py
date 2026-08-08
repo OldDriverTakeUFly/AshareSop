@@ -240,6 +240,21 @@ def main():
     if not args.dry_run:
         upsert_record(TABLE, clean, unique_keys=["date"])
         print(f"[SAVED] {len(clean)} fields to {TABLE}")
+
+        # Economic calendar (nonfarm/CPI/FOMC surprises) — feeds the
+        # international overlay's 5th signal. Runs after overseas data
+        # so the overlay can read both in the same nightly cycle.
+        try:
+            from stockhot.invest_sop.scripts.economic_calendar import (
+                collect_economic_calendar,
+                _ensure_table,
+            )
+            _ensure_table()
+            n_events = collect_economic_calendar(args.date)
+            if n_events:
+                print(f"[SAVED] {n_events} key economic events to calendar")
+        except Exception as e:
+            print(f"[WARN] economic_calendar failed: {e}")
     else:
         print("[DRY-RUN] Skipping DB write")
 

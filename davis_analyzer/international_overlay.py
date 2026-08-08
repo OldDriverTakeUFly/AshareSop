@@ -39,10 +39,13 @@ RegimeState = Literal["bull", "bear", "neutral"]
 # ── Signal weights (sum to 1.0) ────────────────────────────────────────
 # Tuned by macro reasoning, not optimization — these reflect the relative
 # importance of each chain in the current regime (滞胀 + yen carry risk).
-WEIGHT_BOND_YIELD = 0.30   # rate-driven valuation compression
-WEIGHT_US_VIX = 0.25       # equity panic leading indicator
-WEIGHT_USDJPY = 0.25       # liquidity/carry unwind trigger
-WEIGHT_US_EQUITY = 0.20    # overnight contagion
+# Event surprise (weight 5) is sparse — 0 on most days, dominant on
+# nonfarm/CPI/FOMC release days. The other four are rescaled to 0.8 total.
+WEIGHT_BOND_YIELD = 0.24   # rate-driven valuation compression (was 0.30)
+WEIGHT_US_VIX = 0.20       # equity panic leading indicator (was 0.25)
+WEIGHT_USDJPY = 0.20       # liquidity/carry unwind trigger (was 0.25)
+WEIGHT_US_EQUITY = 0.16    # overnight contagion (was 0.20)
+WEIGHT_EVENT_SURPRISE = 0.20  # macro data surprise: nonfarm/CPI/FOMC (NEW)
 
 # ── Absolute thresholds ────────────────────────────────────────────────
 # 10Y daily move (bp). +10bp/day = meaningful rate surge; +20bp = violent.
@@ -62,6 +65,20 @@ USDJPY_EXTREME = 165.0
 # US equity overnight drop (%). -2% = notable, -4% = crash signal.
 US_EQUITY_DROP_WARN = -2.0
 US_EQUITY_DROP_CRASH = -4.0
+
+# Event surprise thresholds (for rule ⑤). On nonfarm/CPI/FOMC days, the
+# surprise = actual - expected. A big negative surprise on nonfarm = weak
+# economy = rate-cut hopes = RISK-ON (low score). A big positive surprise
+# = strong economy = rate-hike fears = RISK-OFF (high score).
+# This is counter-intuitive (bad data = low risk score) but correct: the
+# overlay measures *downgrade risk for equities*, and weak data that
+# triggers rate-cut hopes is bullish for stocks short-term.
+# NOTE: nonfarm surprise is in 万人 (10k units) — Baidu calendar reports
+# payrolls in 万. So -10.3 = -103k jobs, which is a huge miss.
+EVENT_NONFARM_SURPRISE_BIG = 5.0       # ±5万 jobs = ±50k = significant
+EVENT_NONFARM_SURPRISE_HUGE = 10.0     # ±10万 = ±100k = extreme
+EVENT_CPI_SURPRISE_BIG = 0.2           # ±0.2pp = significant
+EVENT_RATE_SURPRISE_BIG = 0.25         # ±0.25% rate decision surprise
 
 # ── Downgrade thresholds (applied to the composite 0–100 score) ───────
 # >= FORCE_BEAR  → override to bear regardless of HMM
@@ -231,6 +248,96 @@ def _score_us_equity(row: dict) -> SubSignal:
     return SubSignal("us_equity", score, worst, detail)
 
 
+def _load_event_surprises(trade_date_dash: str) -> list[dict]:
+    """Load key economic events for a date from invest_economic_calendar.
+
+    Returns list of dicts with event_type, surprise, actual, expected.
+    Returns [] if no events (most trading days have none).
+    """
+    try:
+        with get_stockhot_conn() as conn:
+            rows = conn.execute(
+                "SELECT event, actual, expected, surprise FROM invest_economic_calendar "
+                "WHERE date = ? AND surprise IS NOT NULL",
+                (trade_date_dash,),
+            ).fetchall()
+        from stockhot.invest_sop.scripts.economic_calendar import _classify_event
+        results = []
+        for r in rows:
+            etype = _classify_event(r["event"])
+            if etype:
+                results.append({
+                    "type": etype,
+                    "event": r["event"],
+                    "actual": r["actual"],
+                    "expected": r["expected"],
+                    "surprise": r["surprise"],
+                })
+        return results
+    except Exception:
+        return []
+
+
+def _score_event_surprise(trade_date_dash: str) -> SubSignal:
+    """Score macro event surprises (nonfarm/CPI/FOMC).
+
+    Counter-intuitive by design: WEAK data (negative surprise) → LOW risk
+    score (rate-cut hopes = bullish for equities short-term). STRONG data
+    → HIGH risk score (rate-hike fears = bearish for equities).
+
+    The "bad news is good news" paradox only holds in the mild-slowdown
+    zone (unemployment <5%). In a hard recession the logic flips — but
+    that flip is handled by the VIX and equity sub-signals (which would
+    both spike), not by this signal.
+    """
+    events = _load_event_surprises(trade_date_dash)
+    if not events:
+        return SubSignal("event", 0.0, None, "无重大经济数据发布")
+
+    # Find the most impactful surprise (nonfarm > CPI > unemployment > others)
+    priority = {"nonfarm": 4, "cpi": 3, "rate_decision": 3, "unemployment": 2,
+                "gdp": 2, "pmi": 1}
+    events.sort(key=lambda e: priority.get(e["type"], 0), reverse=True)
+    top = events[0]
+
+    surprise = top["surprise"]
+    etype = top["type"]
+
+    # Score: negative surprise (weak data) → low risk (rate-cut hopes)
+    #         positive surprise (strong data) → high risk (rate-hike fears)
+    if etype == "nonfarm":
+        # surprise in 10k units. -50k = significant cut-hope; +50k = hike fear
+        if surprise <= -EVENT_NONFARM_SURPRISE_HUGE:
+            score = 0.0   # huge miss → strong rate-cut hope → bullish
+        elif surprise <= -EVENT_NONFARM_SURPRISE_BIG:
+            score = 20.0
+        elif surprise >= EVENT_NONFARM_SURPRISE_HUGE:
+            score = 100.0  # huge beat → strong hike fear → bearish
+        elif surprise >= EVENT_NONFARM_SURPRISE_BIG:
+            score = 80.0
+        else:
+            score = 50.0  # mild surprise → neutral
+    elif etype in ("cpi", "rate_decision"):
+        big = EVENT_CPI_SURPRISE_BIG if etype == "cpi" else EVENT_RATE_SURPRISE_BIG
+        if surprise <= -big * 2:
+            score = 0.0
+        elif surprise <= -big:
+            score = 20.0
+        elif surprise >= big * 2:
+            score = 100.0
+        elif surprise >= big:
+            score = 80.0
+        else:
+            score = 50.0
+    else:
+        # unemployment/gdp/pmi: weaker = lower risk (cut-hope)
+        score = max(0.0, min(100.0, 50.0 + surprise * 200))
+
+    direction = "弱于预期→降息预期↑→利多股市" if surprise < 0 else "强于预期→加息预期↑→利空股市"
+    detail = f"{etype}偏差{surprise:+.1f} {direction}"
+    return SubSignal("event", score, surprise, detail)
+
+
 # ── Public API ─────────────────────────────────────────────────────────
 
 
@@ -264,6 +371,7 @@ def get_international_risk(trade_date: str) -> InternationalRisk:
         _score_us_vix(row, prev),
         _score_usdjpy(row),
         _score_us_equity(row),
+        _score_event_surprise(dash),  # rule ⑤: nonfarm/CPI/FOMC surprise
     ]
 
     # Weighted composite. Missing sub-signals contribute 0 (fail-safe).
@@ -272,22 +380,31 @@ def get_international_risk(trade_date: str) -> InternationalRisk:
         "us_vix": WEIGHT_US_VIX,
         "usd_jpy": WEIGHT_USDJPY,
         "us_equity": WEIGHT_US_EQUITY,
+        "event": WEIGHT_EVENT_SURPRISE,
     }
-    composite = sum(s.score * weights[s.name] for s in subs)
+    # On non-event days (raw_value is None), redistribute event weight to
+    # the other 4 proportionally — otherwise non-event days would be stuck
+    # at 80% of the true score.
+    if subs[4].raw_value is None:  # no event today
+        scale = 1.0 / (1.0 - WEIGHT_EVENT_SURPRISE)  # 1/0.8 = 1.25
+        composite = sum(s.score * weights[s.name] * scale for s in subs[:4])
+    else:
+        composite = sum(s.score * weights[s.name] for s in subs)
 
-    # Data sufficiency: if >=3 of 4 sub-signals have no data, mark insufficient.
-    missing = sum(1 for s in subs if s.raw_value is None)
+    # Data sufficiency: if >=3 of 4 real-time sub-signals have no data, mark insufficient.
+    # Event signal doesn't count toward sufficiency (absent on most days).
+    missing = sum(1 for s in subs[:4] if s.raw_value is None)
     sufficient = missing < 3
 
-    note = f"{['bond','vix','jpy','eq'][0]}→" if False else ""
     conf = "高" if missing == 0 else ("中" if missing <= 1 else "低")
+    event_tag = "+事件" if subs[4].raw_value is not None else ""
 
     risk = InternationalRisk(
         trade_date=trade_date,
         composite_score=round(composite, 1),
         sub_signals=subs,
         data_sufficient=sufficient,
-        confidence_note=f"置信度{conf}({4-missing}/4信号可用)",
+        confidence_note=f"置信度{conf}({4-missing}/4信号{event_tag})",
     )
     logger.info("overseas risk {} = {:.1f} [{}]", trade_date, composite, risk.level)
     return risk

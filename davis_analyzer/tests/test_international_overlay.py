@@ -16,6 +16,7 @@ from davis_analyzer.international_overlay import (
     _score_us_vix,
     _score_usdjpy,
     _score_us_equity,
+    _score_event_surprise,
     apply_overseas_overlay,
     get_international_risk,
 )
@@ -177,3 +178,102 @@ class TestGetInternationalRisk:
         risk = get_international_risk("20260701")
         assert risk.composite_score < DOWNGRADE_SCORE
         assert risk.level == "偏低"
+
+
+# ── Event surprise signal (rule ⑤) ────────────────────────────────────
+
+
+class TestEventSurpriseSignal:
+    """Tests for the 5th signal: macro event surprises (nonfarm/CPI/FOMC)."""
+
+    def test_no_event_day(self, monkeypatch):
+        """Non-event days: event signal returns 0, weight redistributed."""
+        monkeypatch.setattr(
+            "davis_analyzer.international_overlay._load_event_surprises",
+            lambda d: [],
+        )
+        sig = _score_event_surprise("2026-08-06")
+        assert sig.score == 0.0
+        assert sig.raw_value is None
+
+    def test_nonfarm_huge_miss(self, monkeypatch):
+        """Nonfarm -10.3万 = huge miss → score 0 (rate-cut hope = bullish)."""
+        monkeypatch.setattr(
+            "davis_analyzer.international_overlay._load_event_surprises",
+            lambda d: [{"type": "nonfarm", "surprise": -10.3, "actual": -2.3, "expected": 8.0}],
+        )
+        sig = _score_event_surprise("2026-08-07")
+        assert sig.score == 0.0  # huge miss → strong rate-cut hope
+        assert "降息预期" in sig.detail
+
+    def test_nonfarm_huge_beat(self, monkeypatch):
+        """Nonfarm +15万 = huge beat → score 100 (rate-hike fear = bearish)."""
+        monkeypatch.setattr(
+            "davis_analyzer.international_overlay._load_event_surprises",
+            lambda d: [{"type": "nonfarm", "surprise": 15.0, "actual": 20.0, "expected": 5.0}],
+        )
+        sig = _score_event_surprise("2026-08-07")
+        assert sig.score == 100.0  # huge beat → hike fear
+        assert "加息预期" in sig.detail
+
+    def test_nonfarm_mild_surprise(self, monkeypatch):
+        """Nonfarm -3万 = mild surprise → score 50 (neutral zone)."""
+        monkeypatch.setattr(
+            "davis_analyzer.international_overlay._load_event_surprises",
+            lambda d: [{"type": "nonfarm", "surprise": -3.0, "actual": 5.0, "expected": 8.0}],
+        )
+        sig = _score_event_surprise("2026-08-07")
+        assert 40 <= sig.score <= 60  # neutral
+
+    def test_cpi_surprise(self, monkeypatch):
+        """CPI -0.5pp = significant miss → low score."""
+        monkeypatch.setattr(
+            "davis_analyzer.international_overlay._load_event_surprises",
+            lambda d: [{"type": "cpi", "surprise": -0.5, "actual": 2.0, "expected": 2.5}],
+        )
+        sig = _score_event_surprise("2026-08-13")
+        assert sig.score <= 20.0  # big CPI miss → rate-cut hope
+
+    def test_event_priority(self, monkeypatch):
+        """When multiple events fire, nonfarm takes priority over unemployment."""
+        monkeypatch.setattr(
+            "davis_analyzer.international_overlay._load_event_surprises",
+            lambda d: [
+                {"type": "unemployment", "surprise": 0.5, "actual": 4.5, "expected": 4.0},
+                {"type": "nonfarm", "surprise": -10.0, "actual": 0, "expected": 10.0},
+            ],
+        )
+        sig = _score_event_surprise("2026-08-07")
+        assert sig.score == 0.0  # nonfarm dominates, not unemployment
+        assert "nonfarm" in sig.detail
+
+    def test_event_lowers_composite_on_nonfarm_day(self, monkeypatch):
+        """Full pipeline: nonfarm huge miss should lower composite (Risk-On)."""
+        # Simulate an otherwise moderate-risk day
+        monkeypatch.setattr(
+            "davis_analyzer.international_overlay._load_overseas_row",
+            lambda d: {
+                "us_10y": 4.6, "us_10y_change_bp": 6,
+                "us_vix": 20, "usd_jpy": 160,
+                "sp500_pct": -0.5, "nasdaq_pct": -0.3, "dow_pct": -0.2,
+            },
+        )
+        monkeypatch.setattr(
+            "davis_analyzer.international_overlay._load_prev_overseas", lambda d, **k: None
+        )
+        # With event (nonfarm miss)
+        monkeypatch.setattr(
+            "davis_analyzer.international_overlay._load_event_surprises",
+            lambda d: [{"type": "nonfarm", "surprise": -10.0, "actual": 0, "expected": 10.0}],
+        )
+        risk_with_event = get_international_risk("20260807")
+
+        # Without event (same day, no nonfarm)
+        monkeypatch.setattr(
+            "davis_analyzer.international_overlay._load_event_surprises",
+            lambda d: [],
+        )
+        risk_no_event = get_international_risk("20260807")
+
+        # Event signal (score 0) should lower the composite
+        assert risk_with_event.composite_score < risk_no_event.composite_score
