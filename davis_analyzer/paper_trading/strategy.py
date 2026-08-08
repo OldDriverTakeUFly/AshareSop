@@ -21,6 +21,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
+from loguru import logger
+
 from davis_analyzer.paper_trading.account import Position
 
 
@@ -63,6 +65,10 @@ class MarketSnapshot:
     market_regime: str = "neutral"  # "bull" / "bear" / "neutral" (HMM) or "mixed" (legacy)
     vol_mult: float = 1.0           # position size multiplier from market vol regime
     overseas_risk: float = 0.0      # 国际共振风险分 0-100 (0=未启用/无数据；>=50 触发降级)
+    ivix: float = 0.0               # 中国 VIX (iVIX), 0 = 无数据；>25 = 高恐慌
+    rv_decay_ratio: float | None = None  # RV5/RV20 比率 (上证), None=无数据
+    index_20d_drop: float | None = None  # 上证前20日涨跌幅 (%), None=无数据
+    stock_20d_drops: dict = field(default_factory=dict)  # ts_code → 前20日涨跌幅 (%)
     industries: dict[str, str] = field(default_factory=dict)  # ts_code → industry
     industry_trend: dict[str, str] = field(default_factory=dict)  # industry → "up"/"down"/"flat"
     # ── Short-term momentum + valuation (added for quality filtering) ──
@@ -288,6 +294,51 @@ class FactorThresholdStrategy:
         require_short_momentum: bool = True,  # 5-day return must be > 0
         max_pe_percentile: float = 80.0,      # PE must be below 80th percentile
         vol_adjusted_stops: bool = True,      # Adjust stop-loss by individual volatility
+        # ── Momentum-Holder synergy boost ──
+        # When > 0, stocks with BOTH high momentum AND high holder concentration
+        # get a composite-score boost. Empirical basis (83433 stock-quarter
+        # samples, 2021-2025):
+        #   高动量+筹码集中 → +4.77% / 20d (胜率53%)
+        #   高动量+筹码分散 → +1.24% / 20d (胜率42%)
+        # The spread is +3.5pp — institutions accumulating in trending stocks
+        # is the strongest confirmation signal. Without this, momentum and
+        # holder are scored independently, missing the interaction effect.
+        #   0.0 = disabled (default)
+        #   0.05-0.10 = recommended range
+        holder_momentum_synergy: float = 0.0,
+        # ── iVIX panic pause ──
+        # When > 0, suspends NEW buys when iVIX > this threshold AND the market
+        # is in an uptrend (bull/neutral). Empirical basis: buying in uptrends
+        # during high VIX (>25) yields -0.42% / 5d vs -0.03% in normal VIX —
+        # high-VIX uptrends are unstable (假突破). NOTE: high VIX in downtrends
+        # is NOT paused — that's when panic reversals happen (+2.29% / 5d).
+        #   0  = disabled
+        #   25 = pause buys when VIX > 25 and market not in bear
+        # Production default: 25.0 (C3 verified 2026-08-06: +5.4pp vs baseline)
+        ivix_pause_threshold: float = 25.0,
+        # ── Oversold bounce sub-strategy (独立子策略) ──
+        # When True, activates a parallel "panic bottom fishing" module that
+        # buys deeply oversold stocks when the MARKET is also in panic.
+        #
+        # Empirical basis (5-year, 2021-2026):
+        #   Market layer: 上证前20d跌幅<-5% + RV5/RV20>0.8 → 20d +4-5%
+        #   Stock layer:  在触发日选跌幅最深 → Q5-Q1 = +4.41%
+        #   Sell signal:  RV5/RV20 < 0.8 (波动衰减 = 反弹走完)
+        #
+        # This runs INDEPENDENTLY of the trend-following logic. It bypasses
+        # the normal buy_momentum/holder/PE filters because oversold stocks
+        # by definition have low momentum. Instead it uses its own entry
+        # (deepest drop + alive), holding (max 20 days), and exit (vol decay).
+        # Allocated a fixed number of "bounce slots" separate from max_positions.
+        # Production default: True (C3 verified 2026-08-06: +7.3pp vs baseline,
+        # 2022 bear market +3.1pp improvement, 133 bounce trades over 5 years)
+        enable_oversold_bounce: bool = True,
+        oversold_bounce_slots: int = 2,        # 独立于 max_positions 的额外仓位
+        oversold_market_drop: float = -5.0,     # 上证前20d跌幅阈值
+        oversold_rv_ratio_min: float = 0.8,     # RV5/RV20 最小值（未衰减）
+        oversold_rv_ratio_sell: float = 0.8,    # RV5/RV20 卖出阈值（衰减即卖）
+        oversold_max_hold_days: int = 20,       # 最大持有天数
+        oversold_stop_loss: float = 0.08,       # 硬止损 8%
         # ── PE exemption for volume-price signals ──
         # When True, stocks with platform_breakout or low_vol volume signal
         # bypass the max_pe_percentile cap. Rationale: technically-driven buys
@@ -336,6 +387,10 @@ class FactorThresholdStrategy:
         # strong-momentum universe (减持后继续上涨的强势股被误杀).
         # Default OFF — prefer event_penalty_weight (soft-gate) below.
         enable_event_filter: bool = False,
+        # ── Negative-factor veto (2026-08-06) ──
+        # One-strike filter blocking known loss-making patterns before buy,
+        # + force-sell for zombie holdings. Default ON.
+        enable_negative_factors: bool = True,
         # ── Event soft penalty (减持/解禁 扣分) ──
         # When > 0, stocks with event signals receive a composite-score penalty
         # proportional to event severity (0-30 points), weighted by this factor.
@@ -389,11 +444,26 @@ class FactorThresholdStrategy:
         self.require_short_momentum = require_short_momentum
         self.max_pe_percentile = max_pe_percentile
         self.vol_adjusted_stops = vol_adjusted_stops
+        self.holder_momentum_synergy = holder_momentum_synergy
+        self.ivix_pause_threshold = ivix_pause_threshold
+        self.enable_oversold_bounce = enable_oversold_bounce
+        self.oversold_bounce_slots = oversold_bounce_slots
+        self.oversold_market_drop = oversold_market_drop
+        self.oversold_rv_ratio_min = oversold_rv_ratio_min
+        self.oversold_rv_ratio_sell = oversold_rv_ratio_sell
+        self.oversold_max_hold_days = oversold_max_hold_days
+        self.oversold_stop_loss = oversold_stop_loss
+        # Track bounce positions: {ts_code: buy_date} for hold-day tracking
+        self._bounce_positions: dict[str, str] = {}
         self.pe_exemption_for_volume = pe_exemption_for_volume
         self.low_vol_stop_exemption = low_vol_stop_exemption
         self.volume_weight = volume_weight
         self.enable_volume_risk = enable_volume_risk
         self.enable_event_filter = enable_event_filter
+        # Negative-factor veto (2026-08-06 post-mortem): one-strike filter
+        # that blocks known loss-making patterns before buy + force-sells
+        # zombie holdings. See docs/方法论/负因子选股方法论_20260806.md.
+        self.enable_negative_factors = enable_negative_factors
         self.event_penalty_weight = event_penalty_weight
         self.tech_weight = tech_weight
         self.risk_stop_multiplier = risk_stop_multiplier
@@ -402,6 +472,88 @@ class FactorThresholdStrategy:
         # Track recently sold codes to enforce cooldown (ts_code → trade_date)
         self._cooldown: dict[str, str] = {}
         self._cooldown_days = 5  # don't rebuy within 5 trading days of selling
+
+    def _oversold_bounce_evaluate(
+        self, positions, snapshot, signals, total_equity,
+        held_codes: set | None = None,
+    ) -> list:
+        """Oversold bounce sub-strategy: buy deepest-oversold stocks in panic.
+
+        Activated when market 20-day drop < threshold AND RV5/RV20 > threshold
+        (volatility hasn't decayed = panic still alive = bounce opportunity).
+
+        Empirical basis:
+          Market: 上证跌>5% + RV未衰减 → 20d +4-5%
+          Stock:  跌幅最深的Q5 vs 最抗跌Q1 = +4.41% spread
+          Exit:   RV5/RV20 < 0.8 (衰减即卖)
+
+        This bypasses normal buy filters (momentum/holder/PE) because oversold
+        stocks by definition have low momentum. Uses dedicated slots separate
+        from max_positions.
+        """
+        if held_codes is None:
+            held_codes = {p.ts_code for p in positions}
+
+        # Check market-level trigger from snapshot
+        market_drop = getattr(snapshot, "index_20d_drop", None)
+        rv_ratio = getattr(snapshot, "rv_decay_ratio", None)
+
+        if market_drop is None or rv_ratio is None:
+            return signals  # no market data for bounce trigger
+
+        # Trigger: market oversold + vol not decayed
+        if market_drop > self.oversold_market_drop:
+            return signals  # not oversold enough
+        if rv_ratio < self.oversold_rv_ratio_min:
+            return signals  # vol already decayed, bounce opportunity passed
+
+        # Count active bounce positions
+        active_bounce = sum(
+            1 for p in positions
+            if p.ts_code in self._bounce_positions
+        )
+        available_slots = self.oversold_bounce_slots - active_bounce
+        if available_slots <= 0:
+            return signals  # bounce slots full
+
+        # Rank candidates by 20-day drop (deepest first)
+        # Use short_momentum as proxy if available, otherwise skip
+        candidates = []
+        for code, sm in snapshot.short_momentum.items():
+            if code in held_codes:
+                continue
+            if code not in snapshot.prices or snapshot.prices[code] <= 0:
+                continue
+            # short_momentum is 5-day return; we want 20-day drop
+            # Use the precomputed value from executor if available
+            drop_20d = getattr(snapshot, "stock_20d_drops", {}).get(code)
+            if drop_20d is None:
+                continue
+            if drop_20d > -3.0:  # must be at least -3% drop (not just any stock)
+                continue
+            candidates.append((code, drop_20d))
+
+        # Sort by deepest drop first
+        candidates.sort(key=lambda x: x[1])  # most negative first
+
+        bounce_weight = 1.0 / (self.oversold_bounce_slots + self.max_positions)  # ~12%
+
+        for code, drop in candidates[:available_slots]:
+            name = snapshot.stock_names.get(code, code)
+            signals.append(Signal(
+                ts_code=code,
+                name=name,
+                action="BUY",
+                target_weight=bounce_weight,
+                signal_reason=(
+                    f"超跌反弹：上证{market_drop:.1f}% RV比率{rv_ratio:.2f} "
+                    f"个股20d跌幅{drop:.1f}%"
+                ),
+            ))
+            self._bounce_positions[code] = snapshot.trade_date
+            held_codes.add(code)
+
+        return signals
 
     def _effective_max_positions(self, market_regime: str,
                                  vol_mult: float = 1.0) -> int:
@@ -522,6 +674,33 @@ class FactorThresholdStrategy:
                 if amp is not None and amp > self.max_intraday_amplitude:
                     continue  # too volatile, skip buy
 
+            # ── Negative-factor veto (2026-08-06 post-mortem) ──
+            # One-strike filter: blocks known loss-making patterns before buy.
+            # Rules ①③⑤ (topchase / concentration / cyclical-PE-trap).
+            # Rules ②④ (zombie / absolute-stop) fire in the holding scan below.
+            if self.enable_negative_factors:
+                from davis_analyzer.paper_trading.negative_factors import check_buy as _nf_check_buy
+                veto = _nf_check_buy(
+                    code, factors, snapshot,
+                    portfolio_concentration=getattr(self, "_current_concentration", None),
+                )
+                if veto.vetoed:
+                    logger.debug(f"负因子否决 {code}: {veto.reason}")
+                    continue
+
+            # ── iVIX panic pause ──
+            # When VIX is high AND market is not in bear, buying in uptrends is
+            # likely to fail (empirical: -0.42% / 5d vs -0.03% normally). The
+            # high volatility means breakouts are unreliable. But we do NOT
+            # pause in bear markets — high-VIX downtrends are where panic
+            # reversals happen (+2.29% / 5d), exactly when value buyers step in.
+            if self.ivix_pause_threshold > 0:
+                ivix = getattr(snapshot, "ivix", 0.0)
+                if ivix > self.ivix_pause_threshold:
+                    regime = snapshot.market_regime
+                    if regime not in ("bear", "panic"):
+                        continue  # high VIX in uptrend — pause buy
+
             # Composite score: momentum + best secondary + prosperity + volume-price + tech.
             # Default weights:
             #   动量 35% + 次维度 35% + 景气 17.5% + 量价 5% + 技术 7.5%
@@ -538,7 +717,8 @@ class FactorThresholdStrategy:
             rw = self.repurchase_weight
             qw = self.quality_weight
             gw = self.gap_weight
-            extras_weight = vw + tw + aw + dw + rw + qw + gw
+            hw = self.holder_momentum_synergy
+            extras_weight = vw + tw + aw + dw + rw + qw + gw + hw
             legacy_weight = 1.0 - extras_weight
 
             vol_score = snapshot.volume_signal.get(code, {}).get("score", 50.0)
@@ -553,6 +733,18 @@ class FactorThresholdStrategy:
             gap_s = max(0.0, min(100.0, 50.0 + gap_pct * 10.0))
 
             if extras_weight > 0:
+                # Holder-Momentum synergy: only fires when BOTH are high.
+                # synergy = (holder_norm × mom_norm) scaled to 0-100, but only
+                # contributes when both exceed 0.7 (otherwise capped low).
+                # This captures the empirical finding that 高动量+筹码集中 = +4.77%/20d.
+                if hw > 0 and holder is not None:
+                    h_norm = max(0.0, min(1.0, holder / 100.0))
+                    m_norm = max(0.0, min(1.0, mom / 100.0))
+                    # Nonlinear: only rewards when BOTH are high
+                    synergy_s = h_norm * m_norm * 100.0
+                else:
+                    synergy_s = 0.0
+
                 composite = (
                     mom * 0.40 * legacy_weight
                     + best_secondary * 0.40 * legacy_weight
@@ -564,6 +756,7 @@ class FactorThresholdStrategy:
                     + rep_s * rw
                     + quality_s * qw
                     + gap_s * gw
+                    + synergy_s * hw
                 )
                 detail_str = (
                     f"动量{mom:.0f} " + " ".join(secondary_details)
@@ -573,6 +766,7 @@ class FactorThresholdStrategy:
                     + (f" 龙虎{dt_s:.0f}" if dw > 0 else "")
                     + (f" 回购{rep_s:.0f}" if rw > 0 else "")
                     + (f" 质量{quality_s:.0f}" if qw > 0 else "")
+                    + (f" 共振{synergy_s:.0f}" if hw > 0 else "")
                 )
             else:
                 composite = mom * 0.4 + best_secondary * 0.4 + prosperity_score * 0.2
@@ -595,10 +789,35 @@ class FactorThresholdStrategy:
         # Rank by composite score descending
         all_qualified.sort(key=lambda x: x[1], reverse=True)
 
+        # Pre-compute portfolio industry concentration for negative-factor
+        # rule ③ (used during buy-candidate check above).
+        if self.enable_negative_factors:
+            from davis_analyzer.paper_trading.negative_factors import compute_concentration
+            self._current_concentration = compute_concentration(positions, snapshot.prices)
+
         # ── 2. Check existing positions for sell signals ──
         for pos in positions:
             factors = snapshot.factor_scores.get(pos.ts_code, {})
             mom = factors.get("momentum")
+
+            # ── Negative-factor holding check (rules ②④) ──
+            # Force-sell zombie holdings + absolute-stop deeply underwater
+            # positions that the executor's stop-loss can't reach.
+            if self.enable_negative_factors:
+                from davis_analyzer.paper_trading.negative_factors import check_holding as _nf_check_holding
+                cur_px = snapshot.prices.get(pos.ts_code, pos.avg_cost)
+                veto = _nf_check_holding(pos, cur_px, snapshot.trade_date)
+                if veto.vetoed and veto.action == "FORCE_SELL":
+                    signals.append(Signal(
+                        ts_code=pos.ts_code, name=pos.name,
+                        action="SELL", shares=pos.shares, price=cur_px,
+                        score=0,
+                        signal_reason=f"负因子[{veto.rule}] {veto.reason}",
+                    ))
+                    logger.info(
+                        f"[{snapshot.trade_date}] 负因子强制卖出 {pos.ts_code}: {veto.reason}"
+                    )
+                    continue  # skip normal sell checks — already force-selling
             holder = factors.get("holder")
             holder_trend = factors.get("holder_trend", "")
             dividend = factors.get("dividend")
@@ -670,12 +889,54 @@ class FactorThresholdStrategy:
                     )
                 )
                 self._cooldown[pos.ts_code] = snapshot.trade_date
+                # Remove from bounce tracking if it was a bounce position
+                self._bounce_positions.pop(pos.ts_code, None)
+
+        # ── 2b. Oversold bounce: sell on volatility decay ──
+        # Bounce positions exit when RV5/RV20 drops below threshold (波动衰减=
+        # 反弹走完), or after max hold days, or hard stop-loss.
+        if self.enable_oversold_bounce and self._bounce_positions:
+            for pos in positions:
+                if pos.ts_code not in self._bounce_positions:
+                    continue
+                buy_date = self._bounce_positions[pos.ts_code]
+                px = snapshot.prices.get(pos.ts_code, 0)
+                pnl_pct = (px / pos.avg_cost - 1) if pos.avg_cost > 0 and px > 0 else 0
+
+                # Hold days
+                hold_days = _days_between(buy_date, snapshot.trade_date)
+
+                # RV ratio (from snapshot — set by executor)
+                rv_ratio = getattr(snapshot, "rv_decay_ratio", None)
+
+                bounce_reasons = []
+                if rv_ratio is not None and rv_ratio < self.oversold_rv_ratio_sell:
+                    bounce_reasons.append(f"波动衰减(RV5/RV20={rv_ratio:.2f}<{self.oversold_rv_ratio_sell})")
+                if hold_days >= self.oversold_max_hold_days:
+                    bounce_reasons.append(f"持有{hold_days}天到期")
+                if pnl_pct <= -self.oversold_stop_loss:
+                    bounce_reasons.append(f"硬止损{pnl_pct*100:.1f}%")
+
+                if bounce_reasons:
+                    signals.append(Signal(
+                        ts_code=pos.ts_code,
+                        name=pos.name,
+                        action="SELL",
+                        signal_reason="超跌反弹卖出：" + "；".join(bounce_reasons),
+                    ))
+                    self._bounce_positions.pop(pos.ts_code, None)
 
         # ── 3. Market gate ──
         effective_max = self._effective_max_positions(
             snapshot.market_regime, getattr(snapshot, "vol_mult", 1.0)
         )
         if effective_max == 0:
+            # Trend strategy is closed (bear market). But oversold bounce
+            # sub-strategy can still operate — panic bottoms happen in bear.
+            if self.enable_oversold_bounce:
+                return self._oversold_bounce_evaluate(
+                    positions, snapshot, signals, total_equity
+                )
             return signals
 
         # ── 4. Tiered holding: 60% core (locked) + 40% rotatable ──
@@ -823,6 +1084,15 @@ class FactorThresholdStrategy:
                 )
                 held_codes.add(code)
                 bought += 1
+
+        # ── 5. Oversold bounce sub-strategy (parallel to trend) ──
+        # Activates when market is in panic (上证跌幅>5% + RV未衰减).
+        # Buys the deepest-oversold stocks regardless of momentum/filters.
+        if self.enable_oversold_bounce:
+            self._oversold_bounce_evaluate(
+                positions, snapshot, signals, total_equity,
+                held_codes=held_codes,
+            )
 
         return signals
 
