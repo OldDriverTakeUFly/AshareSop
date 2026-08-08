@@ -41,6 +41,14 @@ PAPER_ACCOUNT = "live_factor_test"
 # 轮询间隔（秒）
 DEFAULT_INTERVAL = 120
 
+# 恐慌信号阈值触发配置
+PANIC_INTENSITY_JUMP = 15     # 强度跳变阈值（±15 才推）
+_panic_state = {              # 恐慌状态缓存（检测变化才推）
+    "quadrant": "",           # 上次象限
+    "intensity": 0,           # 上次强度
+    "last_push_time": "",     # 上次推送时间
+}
+
 # 交易时段（A 股：09:30~11:30 + 13:00~15:00）
 # 进程运行窗口：09:25 启动（含集合竞价准备）~ 15:05 退出（收盘后推汇总）
 # 实际轮询窗口：09:30~11:30 + 13:00~15:00（午休跳过）
@@ -358,6 +366,69 @@ def _format_execution_report(executed: list[dict], warnings: list[dict], account
     return "\n".join(lines)
 
 
+def _check_panic_signal(dry_run: bool = False) -> str:
+    """检测恐慌信号，仅状态变化时返回推送文本.
+
+    推送条件（满足任一）：
+    1. 象限切换（如🟠逼空→🔴恐慌）
+    2. 强度跳变 ≥ PANIC_INTENSITY_JUMP（±15）
+
+    同一状态连续维持不推送（避免每2分钟刷屏）。
+    返回空串 = 不推送，非空 = 推送文本。
+    """
+    try:
+        from stockhot.alert.panic_detector import detect_panic_signals, format_alert_message
+        from stockhot.alert.vol_streak_analyzer import analyze_vol_streak, format_streak_brief
+
+        report = detect_panic_signals()
+
+        # 高波持续天数
+        if report.quadrant in ("逼空过热", "下跌恐慌"):
+            streak = analyze_vol_streak(report.trade_date)
+            report.vol_streak_brief = format_streak_brief(streak)
+
+        # 检测状态变化
+        curr_quad = report.quadrant or ""
+        curr_int = report.intensity_score
+        prev_quad = _panic_state["quadrant"]
+        prev_int = _panic_state["intensity"]
+
+        should_push = False
+        reason = ""
+
+        if curr_quad and not prev_quad:
+            # 首次推送（开盘后第一条）
+            should_push = True
+            reason = "开盘首推"
+        elif curr_quad != prev_quad and curr_quad:
+            # 象限切换
+            should_push = True
+            reason = f"象限切换 {prev_quad}→{curr_quad}"
+        elif curr_quad and abs(curr_int - prev_int) >= PANIC_INTENSITY_JUMP:
+            # 强度跳变
+            should_push = True
+            direction = "飙升" if curr_int > prev_int else "下降"
+            reason = f"强度{direction} {prev_int:.0f}→{curr_int:.0f}"
+
+        if not should_push:
+            return ""
+
+        # 更新状态
+        _panic_state["quadrant"] = curr_quad
+        _panic_state["intensity"] = curr_int
+        _panic_state["last_push_time"] = datetime.now().strftime("%H:%M")
+
+        # 格式化消息
+        msg = format_alert_message(report)
+        # 追加触发原因标注
+        msg += f"\n\n📌 触发原因：{reason}"
+        return msg
+
+    except Exception as e:
+        print(f"[WARN] 恐慌信号检测失败: {e}")
+        return ""
+
+
 def run_one_cycle(dry_run: bool = False) -> dict:
     """执行一轮监控（单次），返回执行统计."""
     trade_date = date.today().strftime("%Y%m%d")
@@ -407,8 +478,10 @@ def run_one_cycle(dry_run: bool = False) -> dict:
                         executed_codes_today.add(h["code"])
                         print(f"  执行: {result['type']} {result['name']} @{result['price']:.2f}")
 
-    # 推送（有执行或预警时）
-    if executed or warnings:
+    # 推送（有持仓执行/预警 或 恐慌状态变化时）
+    panic_msg = _check_panic_signal(dry_run=dry_run)
+
+    if executed or warnings or panic_msg:
         # 计算账户状态
         account_info = {}
         if initial_capital > 0:
@@ -423,15 +496,24 @@ def run_one_cycle(dry_run: bool = False) -> dict:
                 "pos_pct": pos_value / equity * 100 if equity > 0 else 0,
             }
 
-        msg = _format_execution_report(executed, warnings, account_info)
+        # 合并持仓信号 + 恐慌信号到一条消息
+        parts = []
+        if executed or warnings:
+            parts.append(_format_execution_report(executed, warnings, account_info))
+        if panic_msg:
+            parts.append(panic_msg)
+
+        msg = "\n\n".join(parts)
         print(msg)
         if not dry_run:
             asyncio.run(_push_message(msg))
 
+    panic_pushed = 1 if panic_msg else 0
     return {
         "checked": len(holdings),
         "executed": len(executed),
         "warnings": len(warnings),
+        "panic_pushed": panic_pushed,
     }
 
 
@@ -442,7 +524,7 @@ def run_intraday_loop(interval: int = DEFAULT_INTERVAL, dry_run: bool = False) -
     if dry_run:
         print("  [DRY-RUN] 只检测不执行不推送")
 
-    daily_stats = {"cycles": 0, "executed": 0, "warnings": 0}
+    daily_stats = {"cycles": 0, "executed": 0, "warnings": 0, "panic_pushed": 0}
 
     while _in_trading_hours():
         # 午休时段（11:30~13:00）：低频等待，不轮询
@@ -464,22 +546,24 @@ def run_intraday_loop(interval: int = DEFAULT_INTERVAL, dry_run: bool = False) -
         result = run_one_cycle(dry_run=dry_run)
         daily_stats["executed"] += result.get("executed", 0)
         daily_stats["warnings"] += result.get("warnings", 0)
+        daily_stats["panic_pushed"] += result.get("panic_pushed", 0)
 
         if result.get("price_failed"):
             print(f"  [{now}] 轮询 #{daily_stats['cycles']} 价格不可用，跳过")
-        elif result["executed"] == 0 and result["warnings"] == 0:
+        elif result["executed"] == 0 and result["warnings"] == 0 and result.get("panic_pushed", 0) == 0:
             print(f"  [{now}] 轮询 #{daily_stats['cycles']} 正常（{result['checked']}只持仓）")
 
         time.sleep(interval)
 
     # 收盘摘要
     print(f"\n[{date.today().isoformat()}] === 盘中监控结束 ===")
-    print(f"  总轮询: {daily_stats['cycles']} | 执行: {daily_stats['executed']} | 预警: {daily_stats['warnings']}")
+    print(f"  总轮询: {daily_stats['cycles']} | 执行: {daily_stats['executed']} | 预警: {daily_stats['warnings']} | 恐慌推送: {daily_stats['panic_pushed']}")
 
-    if daily_stats["executed"] > 0 or daily_stats["warnings"] > 0:
+    if daily_stats["executed"] > 0 or daily_stats["warnings"] > 0 or daily_stats["panic_pushed"] > 0:
         summary = (
             f"📊 盘中监控结束 [{date.today().isoformat()}]\n"
             f"当日交易：{daily_stats['executed']}笔 | 预警：{daily_stats['warnings']}条\n"
+            f"恐慌推送：{daily_stats['panic_pushed']}次\n"
             f"总轮询：{daily_stats['cycles']}次"
         )
         print(summary)

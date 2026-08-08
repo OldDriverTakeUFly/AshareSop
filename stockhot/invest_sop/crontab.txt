@@ -5,89 +5,73 @@
 #
 # ⚠️ 修改本文件后必须运行：bash stockhot/invest_sop/install.sh
 #    否则改动不会生效（crontab.txt 只是定义，install.sh 才同步到系统 crontab）
+#
+# 精简说明（2026-08-07）：
+#   - run_panic_alert cron 移除 → 恐慌检测融合到 intraday_manager（阈值触发）
+#   - intraday_holdings_alert cron 移除 → 被 intraday_manager 完全覆盖
+#   - 图片仪表盘暂停 → run_panic_alert 内已注释（飞书端显示受限）
 # ──────────────────────────────────────────────────────────────────────
 
-# Weekday data collection (Mon–Fri)
-# 20:00 – Overseas market data (US/EU indices, futures, VIX)
-0 20 * * * cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python stockhot/invest_sop/scripts/overseas_market_data.py >> stockhot/invest_sop/logs/overseas.log 2>&1
+# ═══ 盘前（Mon–Fri）══════════════════════════════════════════════════
 
-# 20:30 – Domestic events (policy, sector news, A-share calendar)
-30 20 * * * cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python stockhot/invest_sop/scripts/domestic_events.py >> stockhot/invest_sop/logs/domestic.log 2>&1
+# 08:00 – Pre-market strategy report (量化操作策略表)
+# 持仓止损/止盈/T+减仓线 + top20候选 + 账户状态
+0 8 * * 1-5 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python stockhot/invest_sop/scripts/premarket_strategy.py >> stockhot/invest_sop/logs/premarket_strategy.log 2>&1
 
-# 21:00 – Supply chain tracking (commodity prices, shipping indices)
-0 21 * * * cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python stockhot/invest_sop/scripts/supply_chain.py >> stockhot/invest_sop/logs/supply_chain.log 2>&1
-
-# 21:30 – Futures & sentiment (futures data, market sentiment indicators)
-30 21 * * * cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python stockhot/invest_sop/scripts/futures_sentiment.py >> stockhot/invest_sop/logs/futures.log 2>&1
-
-# 08:15 – AI Trading Advisor (run advisor for all holdings + watchlist, generate report)
+# 08:15 – AI Trading Advisor (盘前报告 + AI建议)
 15 8 * * 1-5 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python stockhot/invest_sop/scripts/run_daily_advisor.py >> stockhot/invest_sop/logs/advisor.log 2>&1
 
-# 08:30 – Morning confirmation (pre-open data check, position review)
-30 8 * * * cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python stockhot/invest_sop/scripts/morning_confirm.py >> stockhot/invest_sop/logs/morning.log 2>&1
+# 08:30 – Morning confirmation (盘前数据完整性检查)
+30 8 * * 1-5 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python stockhot/invest_sop/scripts/morning_confirm.py >> stockhot/invest_sop/logs/morning.log 2>&1
 
-# Weekly cycle (Sunday only)
-# 10:00 – Weekly report generation & portfolio review
-0 10 * * 0 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python stockhot/invest_sop/scripts/weekly_cycle.py >> stockhot/invest_sop/logs/weekly.log 2>&1
+# ═══ 盘中（Mon–Fri，09:25 启动常驻进程，15:05 自动退出）════════════
 
-# After-hours market scan (Mon–Fri, after close + dragon-tiger list)
-# 18:00 起跑（17:30 太早，Tushare index_daily 常未更新 → 指数日线缺失回退用旧数据）
-# Runs all 4 modules: limit_up → dragon_tiger + fund_flow → risk_alert
-# Data feeds the after-hours-review skill (盘后总结，18:30 定时任务消费)
-0 18 * * 1-5 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python stockhot/invest_sop/scripts/run_daily_scan.py >> stockhot/invest_sop/logs/daily_scan.log 2>&1
+# 09:25 – Intraday position manager (常驻进程)
+# 每 2 分钟轮询实时价 → 持仓止损/止盈/T+减仓/加仓执行 + 恐慌信号检测
+# 恐慌信号仅状态切换或强度跳变 ±15 时推送（避免刷屏）
+25 9 * * 1-5 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python stockhot/invest_sop/scripts/intraday_manager.py >> stockhot/invest_sop/logs/intraday_manager.log 2>&1
 
-# Intraday panic alert (Mon–Fri, 4 checks during trading hours)
-# Detects systemic panic (RV P90+), behavioral panic (limit-up/down ratio <0.5),
-# and iVIX/V-R extremes. Pushes to Feishu only when triggered.
-# Requires FEISHU_WEBHOOK_URL in .env
-30 10,11,13,14 * * 1-5 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python stockhot/invest_sop/scripts/run_panic_alert.py >> stockhot/invest_sop/logs/panic_alert.log 2>&1
+# ═══ 盘后（Mon–Fri）══════════════════════════════════════════════════
 
-# Auto-sync reports to GitHub (Mon–Fri, after reports generated)
-# Scans report dirs for uncommitted changes, commits & pushes if any (idempotent).
-# Monitored: 盘后总结/盘后复盘/回测记录/invest_sop 盘前报告/深度研报. SSH key auth (no password).
-0 19 * * 1-5 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python stockhot/invest_sop/scripts/auto_commit_push.py >> stockhot/invest_sop/logs/auto_sync.log 2>&1
-
-# Update holdings with latest prices (Mon–Fri, after market close)
-# Refreshes current_price/stop_loss/target/position_pct from AKShare.
-# Required by 盘前报告 §3 + sell_monitor 卖出信号（不跑则现价过期）.
+# 16:00 – Update holdings prices (AKShare 刷新现价)
 0 16 * * 1-5 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python stockhot/invest_sop/scripts/update_holdings.py >> stockhot/invest_sop/logs/update_holdings.log 2>&1
 
-# Multi-factor stock screening Top-20 (Mon–Fri, after-market; ~45min Tushare-heavy)
-# Stage1 估值预筛 → Stage2 四因子打分 → top20.
-# Output: studies/output/top20_screen_<date>.json + docs/回测记录/全A股四因子top20筛选_<date>.md
+# 16:30 – Multi-factor screening Top-20 (~45min Tushare-heavy)
 30 16 * * 1-5 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python studies/screen_top20.py >> stockhot/invest_sop/logs/screen_top20.log 2>&1
 
-# Sync screen top20 → watchlist 候选池 (Mon–Fri, after screen completes)
-# 选股结果写入 invest_watchlist（source=screen_top20），advisor 自动给候选出建议.
-# 跌出 top20 的旧候选自动归档（status=archived），不碰实盘 invest_holdings.
+# 17:20 – Sync top20 → watchlist 候选池
 20 17 * * 1-5 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python studies/sync_screen_to_watchlist.py >> stockhot/invest_sop/logs/screen_sync.log 2>&1
 
-# Inject screen signals → paper_trading forward test account (Mon–Fri, after sync)
-# 选股信号注入 executor，驱动 DavisDoubleStrategy 自动调仓（复用全部安全阀）.
+# 17:25 – Inject signals → paper_trading (收盘调仓 + 调仓报告推送)
 25 17 * * 1-5 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python studies/inject_screen_to_paper.py >> stockhot/invest_sop/logs/paper_inject.log 2>&1
 
-# Intraday holdings alert (Mon–Fri, 4 checks during trading hours)
-# 用 AKShare 实时价检查模拟账户+手动持仓异动（止损/目标/涨跌幅），触发推飞书.
-30 10,11,13,14 * * 1-5 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python stockhot/invest_sop/scripts/intraday_holdings_alert.py >> stockhot/invest_sop/logs/intraday_holdings.log 2>&1
+# 18:00 – Daily market scan (涨停/龙虎榜/资金流/风险提示)
+0 18 * * 1-5 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python stockhot/invest_sop/scripts/run_daily_scan.py >> stockhot/invest_sop/logs/daily_scan.log 2>&1
 
-# Davis Double 盘后估值筛选 (Mon–Fri, 20:00; ~60-90min, Tushare 400/min 限流)
-# 放在 18:00 数据刷新 + 19:00 git 提交之后的空闲窗口。
-# 独立于 16:30 的 screen_top20（四因子横截面）；davis 是戴维斯双击估值视角，两套并存。
-# Pipeline 重，避免与 20:30 domestic_events 抢 API 配额——domestic 不调 Tushare，无冲突。
-# Output: studies/output/davis_top_{date}.json + davis_latest.json, Top10 摘要推飞书.
+# 19:00 – Auto git commit & push (报告同步到 GitHub)
+0 19 * * 1-5 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python stockhot/invest_sop/scripts/auto_commit_push.py >> stockhot/invest_sop/logs/auto_sync.log 2>&1
+
+# 20:00 – Davis Double 估值筛选 (~60-90min)
 0 20 * * 1-5 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python scripts/davis_nightly_screen.py >> stockhot/invest_sop/logs/davis_nightly.log 2>&1
 
-# Sector volatility (Weekly, Sunday 11:00; ~10-15min, 31 sectors × members)
-# 31 个申万一级成分股等权 RV + 板块历史分位。计算量大（首次无缓存更慢），周频足够。
-# 数据写入 daily_sector_volatility 表，供盘后收评 Step 5c「高波持续分析」的板块级 RV 维度。
-# 首次运行后会建立成分股 RV 缓存（storage/files/sector_rv_cache/），后续运行更快。
+# ═══ 数据采集（每天含周末）════════════════════════════════════════════
+
+# 20:00 – Overseas market data (美欧指数/VIX)
+0 20 * * * cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python stockhot/invest_sop/scripts/overseas_market_data.py >> stockhot/invest_sop/logs/overseas.log 2>&1
+
+# 20:30 – Domestic events (政策/行业新闻)
+30 20 * * * cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python stockhot/invest_sop/scripts/domestic_events.py >> stockhot/invest_sop/logs/domestic.log 2>&1
+
+# 21:00 – Supply chain tracking (商品/航运)
+0 21 * * * cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python stockhot/invest_sop/scripts/supply_chain.py >> stockhot/invest_sop/logs/supply_chain.log 2>&1
+
+# 21:30 – Futures & sentiment (期货/情绪指标)
+30 21 * * * cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python stockhot/invest_sop/scripts/futures_sentiment.py >> stockhot/invest_sop/logs/futures.log 2>&1
+
+# ═══ 周频（Sunday）══════════════════════════════════════════════════
+
+# 周日 10:00 – Weekly cycle (周报 + 组合回顾)
+0 10 * * 0 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python stockhot/invest_sop/scripts/weekly_cycle.py >> stockhot/invest_sop/logs/weekly.log 2>&1
+
+# 周日 11:00 – Sector volatility (31板块成分股等权RV)
 0 11 * * 0 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python -m stockhot.sector_volatility analyze >> stockhot/invest_sop/logs/sector_volatility.log 2>&1
-
-# Pre-market strategy report (Mon–Fri, 08:15)
-# 推送持仓+top20操作策略表：止损价/止盈价/T+减仓线/操作建议 + 账户状态
-15 8 * * 1-5 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python stockhot/invest_sop/scripts/premarket_strategy.py >> stockhot/invest_sop/logs/premarket_strategy.log 2>&1
-
-# Intraday position manager (Mon–Fri, 09:25 start,常驻进程 15:05 自动退出)
-# 每 2 分钟轮询实时价 → 止损/止盈/T+减仓/加仓信号 → 执行模拟交易 + 即时推送
-# 原有的 intraday_holdings_alert（4次定时）保留作为降级兜底
-25 9 * * 1-5 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python stockhot/invest_sop/scripts/intraday_manager.py >> stockhot/invest_sop/logs/intraday_manager.log 2>&1

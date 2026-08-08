@@ -89,9 +89,9 @@ def main(argv: list[str] | None = None) -> int:
     pushed = asyncio.run(_push_feishu(msg))
     _log_panic_scan(report, "triggered_pushed" if pushed else "triggered_push_failed")
 
-    # 追加图片仪表盘推送（文本 + 图片双消息）
-    if pushed:
-        _push_dashboard_image(report)
+    # 图片仪表盘推送暂时禁用（2026-08-07：飞书端图片显示受限，后续优化后恢复）
+    # if pushed:
+    #     _push_dashboard_image(report)
 
     return 0 if pushed else 1
 
