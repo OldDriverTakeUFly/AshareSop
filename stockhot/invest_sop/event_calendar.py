@@ -81,7 +81,8 @@ def generate_events(
         if start <= cpi_date <= end:
             events.append(MarketEvent(
                 cpi_date, f"CPI/PPI 公布（{m-1}月数据）" if m > 1 else f"CPI/PPI 公布（上年12月）",
-                "宏观", "高", "国家统计局公布 CPI/PPI，通胀数据影响货币政策预期"
+                "宏观", "高",
+                "通胀数据影响货币政策预期 | 回测：CPI日大涨(≥1%)后3日-0.60%，大跌(≤-1%)后3日+0.61%（反转效应）"
             ))
 
         # 社融/M2: 每月10-15日
@@ -89,7 +90,8 @@ def generate_events(
         if start <= shrz_date <= end:
             events.append(MarketEvent(
                 shrz_date, f"社融/M2 公布（{m-1}月数据）" if m > 1 else f"社融/M2 公布（上年12月）",
-                "宏观", "高", "央行公布社融和 M2，反映流动性变化"
+                "宏观", "高",
+                "流动性数据 | 回测：社融后3日均-0.21%胜率43%，不宜追涨"
             ))
 
         # PMI: 每月最后一天（公布当月数据，实际在月末或次月1日）
@@ -97,7 +99,8 @@ def generate_events(
         if start <= pmi_date <= end:
             events.append(MarketEvent(
                 pmi_date, f"PMI 公布（{m}月数据）",
-                "宏观", "高", "国家统计局公布制造业 PMI，景气度风向标"
+                "宏观", "高",
+                "景气度风向标 | 回测：PMI后1日均+0.27%胜率61%，最佳事件参与窗口"
             ))
 
         # ── 央行政策 ──
@@ -119,7 +122,7 @@ def generate_events(
         if start <= nfp_date <= end:
             events.append(MarketEvent(
                 nfp_date, "🇺🇸 NFP 非农就业（美）",
-                "国际", "高", "美国非农公布，A 股次日波动放大 1.3x"
+                "国际", "高", "美非农公布 | 回测：A股次日波动1.3x，但后3日+0.19%胜率57%，偏正面"
             ))
 
         # 美国 CPI: 每月10-13日左右（影响 A 股次日）
@@ -127,7 +130,7 @@ def generate_events(
         if start <= us_cpi_date <= end:
             events.append(MarketEvent(
                 us_cpi_date, "🇺🇸 美国 CPI 公布",
-                "国际", "中", "美国通胀数据，影响美联储政策预期"
+                "国际", "中", "美通胀数据 | 回测：A股影响中性，超预期利空成长股"
             ))
 
         # ── 期货期权交割 ──
@@ -136,7 +139,7 @@ def generate_events(
         if start <= fri3 <= end:
             events.append(MarketEvent(
                 fri3, "股指期货交割日",
-                "交割", "中", "IF/IH/IC 股指期货交割，可能加剧指数波动"
+                "交割", "中", "IF/IH/IC 交割 | 回测：波动1.4x但后1日+0.16%胜率61%，偏正面"
             ))
 
         # 股指期权：第4个周三
@@ -144,7 +147,7 @@ def generate_events(
         if start <= wed4 <= end:
             events.append(MarketEvent(
                 wed4, "股指期权交割日",
-                "交割", "中", "50ETF/300ETF 期权交割，末日期权波动加大"
+                "交割", "中", "50ETF/300ETF 期权交割 | 回测：后3日均-0.38%胜率45%，后续最弱⚠️"
             ))
 
         # A50：月末倒数第2个工作日（简化推算）
