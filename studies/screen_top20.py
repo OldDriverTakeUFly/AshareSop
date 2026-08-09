@@ -63,6 +63,16 @@ from davis_analyzer.price_estimator import (
     estimate_technical_stop,
 )
 
+
+def _get_macro_fitness_label(industry: str) -> str:
+    """获取行业的宏观适配度标注（从 macro_indicator 表读当前 PMI/M2）."""
+    try:
+        from stockhot.macro_fitness import format_macro_fitness
+        return format_macro_fitness(industry)
+    except Exception:
+        return ""
+
+
 # ── Config ──
 VALUATION_PREFILTER = 50.0          # pipeline default
 TOP_N = 20
@@ -271,6 +281,7 @@ def run_screening(as_of: date) -> dict:
                 "target_price": target_price,
                 "target_method": target_method,
                 "stop_loss_technical": stop_loss_tech,
+                "macro_fitness": _get_macro_fitness_label(info.industry),
             })
         except Exception:
             pass
@@ -382,16 +393,17 @@ def generate_report(data: dict) -> str:
         "",
         "## 二、Top-20 排名总表",
         "",
-        f"| 排名 | 代码 | 名称 | 综合分 | 动量 | 估值 | 景气度 | 困境 | ΔG | 行业 |",
-        f"|------|------|------|--------|------|------|--------|------|-----|------|",
+        f"| 排名 | 代码 | 名称 | 综合分 | 动量 | 估值 | 景气度 | 困境 | ΔG | 行业 | 宏观 |",
+        f"|------|------|------|--------|------|------|--------|------|-----|------|------|",
     ]
 
     for i, r in enumerate(top20, 1):
+        mf = r.get("macro_fitness", "")
         lines.append(
             f"| {i} | {r['ts_code']} | {r['name']} | **{r['composite']:.1f}** "
             f"| {r['momentum'] or '—'} | {r['valuation'] or '—'} "
             f"| {r['prosperity'] or '—'} | {r['distress'] or '—'} "
-            f"| {r['delta_g'] or '—'} | {r['industry']} |"
+            f"| {r['delta_g'] or '—'} | {r['industry']} | {mf} |"
         )
 
     lines += [
