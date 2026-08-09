@@ -72,6 +72,7 @@ data = get_daily_data(date)
 2. **板块涨停密度**：从 `limit_up_analysis.sector_correlation` 按 `count` 降序 → 涨停数最多的板块
 3. **交叉比对**：将涨幅 Top 板块与涨停密度 Top 板块交叉——**同时出现在两个榜的板块**是当日核心热点。选出 2-3 个核心热点方向。
 4. **领涨个股提取**：对每个热点方向，从 `limit_up_pool` 中按 sector 过滤出该板块的涨停个股，优先展示连板股（consecutive_boards > 1）和大封单股。
+5. **概念板块**（可选）：调用 `stockhot.concept_board.fetch_concept_top5()` 获取同花顺概念板块涨跌幅 top5，展示当日热门细分概念（如 CPO/存储/PCB/磷化工等）。概念跨行业，独立于申万板块体系。格式化用 `format_concept_section(top5_up, top5_dn)`。
 
 ### Step 3：web 搜索催化原因
 

@@ -136,13 +136,14 @@ class SectorStrength:
     - main_net: fund_flow_sector 表（上一交易日，Tushare moneyflow 非实时）
     """
 
-    name: str                              # 板块名（申万行业）
+    name: str                              # 板块名（申万一级）
     pct_change: float | None = None        # 涨跌幅 %
     limit_up: int = 0                      # 涨停数（盘中实时）
     limit_down: int = 0                    # 跌停数
     broken: int = 0                        # 炸板数
     main_net: float | None = None          # 主力净额（亿元，截至上一交易日）
     strength_score: float = 0.0            # 综合强弱分（用于排序，正强负弱）
+    sub_sectors: dict[str, int] = field(default_factory=dict)  # L2 细分：{原始名: 涨停数}
 
 
 @dataclass
@@ -1055,14 +1056,21 @@ def _detect_sector_structure(sector_counts: dict[str, dict]) -> SectorStructure:
     from stockhot.alert.sector_mapping import normalize_sector_name
 
     # 按归一化名聚合 sector_counts（多个细分 → 同一一级，涨跌停数累加）
+    # 同时保留 L2 细分（原始东财行业名 → 涨停数），用于双级展示
     norm_counts: dict[str, dict] = {}
+    norm_sub_sectors: dict[str, dict[str, int]] = {}  # {L1名: {L2原始名: 涨停数}}
     for raw_name, counts in sector_counts.items():
         norm = normalize_sector_name(raw_name)
         if norm not in norm_counts:
             norm_counts[norm] = {"limit_up": 0, "limit_down": 0, "broken": 0}
+            norm_sub_sectors[norm] = {}
         norm_counts[norm]["limit_up"] += counts.get("limit_up", 0)
         norm_counts[norm]["limit_down"] += counts.get("limit_down", 0)
         norm_counts[norm]["broken"] += counts.get("broken", 0)
+        # L2 细分：记录原始名 → 涨停数（用于展示"元件8/半导体2"）
+        lu = counts.get("limit_up", 0)
+        if lu > 0 and raw_name != norm:  # 只记录与一级名不同的细分
+            norm_sub_sectors[norm][raw_name] = norm_sub_sectors[norm].get(raw_name, 0) + lu
 
     # pct_map 和 net_map 的 key 已经是/接近申万一级，直接用归一化名查找
     # （sw_daily 一级本身就是目标口径；fund_flow 细分需归一化）
@@ -1100,6 +1108,7 @@ def _detect_sector_structure(sector_counts: dict[str, dict]) -> SectorStructure:
             name=name, pct_change=pct,
             limit_up=lu, limit_down=ld, broken=br,
             main_net=net, strength_score=round(score, 2),
+            sub_sectors=norm_sub_sectors.get(name, {}),
         ))
 
     # ── 强弱分类：行为信号（涨跌停）优先，避免数据源口径不一致导致误判 ──
@@ -1340,10 +1349,11 @@ def _format_direction_section(direction: DirectionReading) -> list[str]:
 
 
 def _format_sector_strength(s: SectorStrength, show_pct: bool) -> str:
-    """格式化单个板块行.
+    """格式化单个板块行（含 L2 细分）.
 
     show_pct: 是否显示涨跌幅列（sw_daily 数据可用时为 True）。
     当涨跌停数都为 0 时（涨跌幅回退选出的板块），隐藏涨跌停数避免"涨0/跌0"噪音。
+    L2 细分：在有涨停数据时，追加 top3 细分行业（如"元件8/半导体2"）。
     """
     parts = [f"{s.name[:6]:6s}"]  # 板块名截断到 6 字符对齐
     if show_pct and s.pct_change is not None:
@@ -1355,6 +1365,11 @@ def _format_sector_strength(s: SectorStrength, show_pct: bool) -> str:
             parts.append(f"炸{s.broken}")
     if s.main_net is not None:
         parts.append(f"主力{_format_main_net(s.main_net)}")
+    # L2 细分（top3 涨停最多的子行业）
+    if s.sub_sectors:
+        sub_sorted = sorted(s.sub_sectors.items(), key=lambda x: -x[1])[:3]
+        sub_str = "/".join(f"{k[:4]}{v}" for k, v in sub_sorted)
+        parts.append(f"({sub_str})")
     return "  ".join(parts)
 
 

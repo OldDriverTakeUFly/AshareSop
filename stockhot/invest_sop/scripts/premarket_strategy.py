@@ -309,6 +309,18 @@ def generate_strategy_report() -> str:
     except Exception as e:
         print(f"[WARN] 宏观数据加载失败: {e}")
 
+    # ── 概念板块 top5 ──
+    try:
+        from stockhot.concept_board import fetch_concept_top5, format_concept_section
+
+        top5_up, top5_dn = fetch_concept_top5()
+        concept_text = format_concept_section(top5_up, top5_dn)
+        if concept_text:
+            lines.append("")
+            lines.append(concept_text)
+    except Exception as e:
+        print(f"[WARN] 概念板块加载失败: {e}")
+
     # ── 近期事件提醒 ──
     try:
         from stockhot.invest_sop.event_calendar import get_upcoming_events, format_events_for_report
