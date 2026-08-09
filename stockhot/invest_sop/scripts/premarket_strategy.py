@@ -288,6 +288,18 @@ def generate_strategy_report() -> str:
         lines.append(f"  总盈亏 {total_pnl:+.1f}%（初始 {initial_capital/1e4:.0f}万）")
         lines.append("")
 
+    # ── 近期事件提醒 ──
+    try:
+        from stockhot.invest_sop.event_calendar import get_upcoming_events, format_events_for_report
+
+        events = get_upcoming_events(5)  # 未来 5 天
+        if events:
+            lines.append("")
+            lines.append(format_events_for_report(events))
+    except Exception as e:
+        print(f"[WARN] 事件日历加载失败: {e}")
+
+    lines.append("")
     lines.append("⚠️ 模拟账户策略参考，非实盘指令。")
     return "\n".join(lines)
 
