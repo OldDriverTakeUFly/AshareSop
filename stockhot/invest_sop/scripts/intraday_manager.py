@@ -66,8 +66,26 @@ T_TRIM_RATIO = 1 / 3
 PULLBACK_ADD_THRESHOLD = -0.05
 WARN_PROXIMITY = 0.01  # 接近预警 1%
 
+# 事件日阈值收窄（CPI/交割日等波动大的日子，更快落袋为安）
+T_TRIM_THRESHOLD_EVENT = 0.05  # 事件日 T+减仓从 +8% 收窄到 +5%
+
 # 板手（A 股最小交易单位）
 BOARD_LOT = 100
+
+# 模块级缓存：当天是否是事件日
+_today_is_event_day: bool | None = None
+
+
+def _is_event_day() -> bool:
+    """判断今天是否是事件日（CPI/PMI/FOMC/交割日等），结果缓存."""
+    global _today_is_event_day
+    if _today_is_event_day is None:
+        try:
+            from stockhot.invest_sop.event_calendar import get_events_on_date
+            _today_is_event_day = len(get_events_on_date(date.today())) > 0
+        except Exception:
+            _today_is_event_day = False
+    return _today_is_event_day
 
 
 def _in_trading_hours() -> bool:
@@ -223,9 +241,12 @@ def _check_signals(h: dict, current_price: float) -> list[dict]:
     cost = h["avg_cost"]
     pnl_pct = (current_price / cost - 1) if cost > 0 else 0
 
+    # 事件日收窄 T+减仓阈值（+8% → +5%），更快落袋为安
+    trim_threshold = T_TRIM_THRESHOLD_EVENT if _is_event_day() else T_TRIM_THRESHOLD
+
     stop_price = cost * (1 + h.get("stop_pct", -0.12))
     take_profit_price = cost * (1 + TAKE_PROFIT_PCT)
-    t_trim_price = cost * (1 + T_TRIM_THRESHOLD)
+    t_trim_price = cost * (1 + trim_threshold)
     add_price = cost * (1 + PULLBACK_ADD_THRESHOLD)
 
     # 止损
@@ -256,8 +277,8 @@ def _check_signals(h: dict, current_price: float) -> list[dict]:
             "pnl_pct": pnl_pct * 100,
             "target_price": take_profit_price,
         })
-    # T+减仓
-    elif pnl_pct >= T_TRIM_THRESHOLD:
+    # T+减仓（事件日阈值收窄）
+    elif pnl_pct >= trim_threshold:
         trim_shares = int(h["shares"] * T_TRIM_RATIO // BOARD_LOT) * BOARD_LOT
         if trim_shares >= BOARD_LOT:
             signals.append({
@@ -422,6 +443,17 @@ def _check_panic_signal(dry_run: bool = False) -> str:
         msg = format_alert_message(report)
         # 追加触发原因标注
         msg += f"\n\n📌 触发原因：{reason}"
+
+        # 首推时附加当天事件提醒
+        if reason == "开盘首推":
+            try:
+                from stockhot.invest_sop.event_calendar import get_events_on_date, format_events_for_report
+                today_events = get_events_on_date(date.today())
+                if today_events:
+                    msg += "\n\n" + format_events_for_report(today_events)
+            except Exception:
+                pass
+
         return msg
 
     except Exception as e:

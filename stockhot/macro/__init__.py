@@ -212,7 +212,55 @@ def collect_macro_snapshot(pro=None) -> MacroSnapshot:
     if snap.m1_yoy is not None and snap.m2_yoy is not None:
         snap.m1_m2_gap = snap.m1_yoy - snap.m2_yoy
 
+    # 持久化到 macro_indicator 表（每日 UPSERT，供历史趋势分析）
+    _persist_snapshot(snap)
+
     return snap
+
+
+def _persist_snapshot(snap: MacroSnapshot) -> None:
+    """把宏观快照写入 macro_indicator 表（UPSERT）.
+
+    每个 indicator_name + report_date 唯一，重复调用覆盖。
+    供历史趋势分析（如 PMI 是否连续回升）。
+    """
+    try:
+        import time as _time
+        from stockhot.data_layer.market_db import get_connection
+
+        today = _time.strftime("%Y-%m-%d")
+        now = _time.time()
+
+        # 要持久化的指标列表
+        indicators = []
+        if snap.pmi is not None:
+            indicators.append(("PMI", today, snap.pmi, "", now))
+        if snap.cpi_yoy is not None:
+            indicators.append(("CPI_YoY", today, snap.cpi_yoy, "%", now))
+        if snap.ppi_yoy is not None:
+            indicators.append(("PPI_YoY", today, snap.ppi_yoy, "%", now))
+        if snap.m1_yoy is not None:
+            indicators.append(("M1_YoY", today, snap.m1_yoy, "%", now))
+        if snap.m2_yoy is not None:
+            indicators.append(("M2_YoY", today, snap.m2_yoy, "%", now))
+        if snap.shibor_on is not None:
+            indicators.append(("Shibor_ON", today, snap.shibor_on, "%", now))
+        if snap.lpr_1y is not None:
+            indicators.append(("LPR_1Y", today, snap.lpr_1y, "%", now))
+        indicators.append(("prosperity_score", today, snap.prosperity_score, "", now))
+
+        with get_connection() as conn:
+            for name, rdate, value, unit, ts in indicators:
+                conn.execute(
+                    "INSERT OR REPLACE INTO macro_indicator "
+                    "(indicator_name, report_date, value, unit, fetched_at) "
+                    "VALUES (?, ?, ?, ?, ?)",
+                    (name, rdate, value, unit, ts),
+                )
+            conn.commit()
+        logger.info(f"macro: persisted {len(indicators)} indicators to macro_indicator")
+    except Exception as e:
+        logger.warning(f"macro: persist failed (non-fatal): {e}")
 
 
 def _compute_prosperity_score(snap: MacroSnapshot) -> tuple[float, list[str]]:
