@@ -288,6 +288,27 @@ def generate_strategy_report() -> str:
         lines.append(f"  总盈亏 {total_pnl:+.1f}%（初始 {initial_capital/1e4:.0f}万）")
         lines.append("")
 
+    # ── 宏观景气度摘要 ──
+    try:
+        from stockhot.macro import collect_macro_snapshot
+
+        snap = collect_macro_snapshot()
+        score = snap.prosperity_score
+        label = snap.prosperity_label
+        lines.append("")
+        lines.append(f"🏛️ 宏观景气度：{score:.0f}/100（{label}）")
+        macro_parts = []
+        macro_parts.append(f"PMI {snap.pmi:.1f}{'⚠️低于荣枯线' if snap.pmi < 50 else ''}")
+        macro_parts.append(f"CPI {snap.cpi_yoy:+.1f}%")
+        macro_parts.append(f"M2 {snap.m2_yoy:.1f}%")
+        macro_parts.append(f"Shibor隔夜 {snap.shibor_on:.2f}%")
+        lines.append(f"  {' | '.join(macro_parts)}")
+        if snap.signals:
+            for sig in snap.signals[:2]:
+                lines.append(f"  💡 {sig}")
+    except Exception as e:
+        print(f"[WARN] 宏观数据加载失败: {e}")
+
     # ── 近期事件提醒 ──
     try:
         from stockhot.invest_sop.event_calendar import get_upcoming_events, format_events_for_report
