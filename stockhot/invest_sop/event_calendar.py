@@ -109,6 +109,27 @@ def generate_events(
                 "央行", "高", "央行公布贷款市场报价利率，直接影响利率预期"
             ))
 
+        # ── 国际宏观（北京时间次日影响 A 股）──
+        # 美国 NFP(非农): 每月第一个周五（北京时间晚8:30）
+        cal_m = calendar.monthcalendar(y, m)
+        nfp_fri = cal_m[0][calendar.FRIDAY]
+        if nfp_fri == 0:
+            nfp_fri = cal_m[1][calendar.FRIDAY]
+        nfp_date = date(y, m, nfp_fri)
+        if start <= nfp_date <= end:
+            events.append(MarketEvent(
+                nfp_date, "🇺🇸 NFP 非农就业（美）",
+                "国际", "高", "美国非农公布，A 股次日波动放大 1.3x"
+            ))
+
+        # 美国 CPI: 每月10-13日左右（影响 A 股次日）
+        us_cpi_date = _adjust_weekend(date(y, m, 13))
+        if start <= us_cpi_date <= end:
+            events.append(MarketEvent(
+                us_cpi_date, "🇺🇸 美国 CPI 公布",
+                "国际", "中", "美国通胀数据，影响美联储政策预期"
+            ))
+
         # ── 期货期权交割 ──
         # 股指期货：第3个周五
         fri3 = _nth_weekday(y, m, calendar.FRIDAY, 3)
