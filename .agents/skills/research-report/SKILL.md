@@ -120,21 +120,15 @@ description: A 股研报写作流程 skill。当用户要求写研报、深度�
     Co-authored-by: Sisyphus <clio-agent@sisyphuslabs.ai>
     ```
 23. **push 到 `origin/master`**——确认 push 成功后才算完成。"A report is not done until it is on GitHub."
-24. **语音化**（可选但推荐）——md 报告是给「看」设计的，表格/ASCII 框图/百分位数字直接朗读无法听懂。语音化分两步，**先转口语化文本，再（可选）转音频**：
+24. **语音化**（可选）——md 报告是给「看」设计的，表格/ASCII 框图/百分位数字直接朗读无法听懂。可转口语化文本辅助阅读：
 
-    **步骤 A（推荐）：转口语化文本**——把表格转成"净利润走过一个完整周期，从 0.2 亿反弹至 1.95 亿又跌回 0.6 亿"这样的叙述，而非逐行流水账：
+    **转口语化文本**——把表格转成"净利润走过一个完整周期，从 0.2 亿反弹至 1.95 亿又跌回 0.6 亿"这样的叙述，而非逐行流水账：
     ```bash
     .venv/bin/python scripts/report_to_speech_text.py "docs/个股研报/.../某某深度研报.md"
     ```
     默认用 GLM（glm-4-flash）叙述化表格，LLM 不可用时自动降级规则版。输出到 `docs_speech/` 镜像目录（.txt，已 gitignore）。**完整转换规则、表格策略、防幻觉机制、踩坑速查见 `references/speech-conversion.md`。** `--no-llm` 可走纯规则降级（离线/省成本）。
 
-    **步骤 B（可选）：转 MP3 音频**——把文本转语音：
-    ```bash
-    .venv/bin/python scripts/report_to_audio.py "docs/个股研报/.../某某深度研报.md"
-    ```
-    默认女声晓晓（zh-CN-XiaoxiaoNeural），语速 +10%，输出到 `docs_audio/` 镜像目录（MP3 不提交 git）。
-
-    ⚠️ **注意**：`report_to_audio.py` 内置的 `clean_markdown()` 对表格只做逐行流水账处理（听感差）。要听口语化版本，应先用 `report_to_speech_text.py` 生成 .txt，再让 `report_to_audio.py` 处理该 .txt。
+    > ⏸️ **MP3 音频输出已暂停**（2026-08-09）：`scripts/report_to_audio.py`（edge-tts 合成）实用价值有限且生成时占用大量 CPU，暂时从流程中移除。如需恢复，重新调用该脚本即可，输出到 `docs_audio/`（MP3 不提交 git）。
 
 ### 踩坑反馈（持续改进本 skill）
 
@@ -143,7 +137,7 @@ description: A 股研报写作流程 skill。当用户要求写研报、深度�
 - **引擎调用坑** → 在 `references/engine-usage.md` §8 常见错误速查表加一行（报错信息 → 原因 → 解法）
 - **模板/章节坑** → 在 `references/report-templates.md` 对应模板处加约束说明
 - **数据源坑** → 在 `references/data-sourcing.md` 补充来源限制或 fallback 方法
-- **语音化坑** → 在 `references/speech-conversion.md` §7 踩坑速查表加一行（现象 → 原因 → 解法）
+- **语音化坑** → 在 `references/speech-conversion.md` §7 踩坑速查表加一行（现象 → 原因 → 解法）。注：MP3 音频输出已暂停，仅口语化文本（`report_to_speech_text.py`）在流程内。
 - **checklist 坑** → 在 `checklists/report-quality.md` 调整措辞或分类型
 
 报告提交时，在 commit message 里注明是否更新了 skill 文件（如"附带更新 engine-usage.md 速查表"）。**绕过坑而不记录，等于让每个 agent 重新踩一遍。**
