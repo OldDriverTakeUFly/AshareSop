@@ -381,32 +381,23 @@ async def _push_message(msg: str) -> bool:
 
 
 def _format_execution_report(executed: list[dict], warnings: list[dict], account_info: dict) -> str:
-    """格式化盘中执行报告."""
+    """格式化盘中调仓报告（精简版：只带调仓理由）."""
     now = datetime.now().strftime("%H:%M")
-    lines = [f"⚡ 盘中调仓执行 [{now}]", ""]
+    lines = [f"⚡ 盘中调仓 [{now}]"]
 
     for ex in executed:
-        tag = "📊" if ex.get("source") == "paper" else "💼"
         if ex["type"] == "stop_loss":
-            lines.append(f"🔴 止损卖出：{ex['name']} {ex['code']} @{ex['price']:.2f}（清仓 {ex['pnl_pct']:+.1f}%）")
+            lines.append(f"🔴 {ex['name']} 清仓 @{ex['price']:.2f} 止损({ex['pnl_pct']:+.1f}%)")
         elif ex["type"] == "take_profit":
-            lines.append(f"🟢 止盈减仓：{ex['name']} {ex['code']} @{ex['price']:.2f}（卖{ex['shares']}股 剩{ex['remaining']}股 +{ex['pnl_pct']:.1f}%）")
+            lines.append(f"🟢 {ex['name']} 减仓{ex['shares']}股 @{ex['price']:.2f} 止盈({ex['pnl_pct']:+.1f}%)")
         elif ex["type"] == "t_trim":
-            lines.append(f"🟠 T+减仓：{ex['name']} {ex['code']} @{ex['price']:.2f}（卖{ex['shares']}股 剩{ex['remaining']}股 +{ex['pnl_pct']:.1f}%）")
+            lines.append(f"🟠 {ex['name']} 减仓{ex['shares']}股 @{ex['price']:.2f} T+减仓({ex['pnl_pct']:+.1f}%)")
         elif ex["type"] == "pullback_add":
-            lines.append(f"🔵 回调加仓：{ex['name']} {ex['code']} @{ex['price']:.2f}（买{ex['shares']}股 {ex['pnl_pct']:+.1f}%）")
+            lines.append(f"🔵 {ex['name']} 加仓{ex['shares']}股 @{ex['price']:.2f} 回调加仓({ex['pnl_pct']:+.1f}%)")
 
     for w in warnings:
         if w["type"] == "warn_stop":
-            lines.append(f"⚠️ 接近止损：{w['name']} {w['code']} 现价{w['price']:.2f} 距止损{w['stop_price']:.2f}仅{w['proximity_pct']:.1f}%")
-
-    if account_info:
-        lines.append("")
-        equity = account_info.get("equity", 0)
-        cash = account_info.get("cash", 0)
-        pos_count = account_info.get("pos_count", 0)
-        pos_pct = account_info.get("pos_pct", 0)
-        lines.append(f"💰 仓位 {pos_pct:.0f}%（{pos_count}只）| 权益 {equity/1e4:.1f}万 | 可用 {cash/1e4:.1f}万")
+            lines.append(f"⚠️ {w['name']} 接近止损 距{w['stop_price']:.2f}仅{w['proximity_pct']:.1f}%")
 
     return "\n".join(lines)
 
