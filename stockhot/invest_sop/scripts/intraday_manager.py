@@ -114,32 +114,56 @@ def _is_lunch_break() -> bool:
 def _fetch_realtime_prices(codes: set[str]) -> dict[str, dict] | None:
     """拉全市场实时价，过滤出需要的 codes.
 
-    返回 {code6: {"price": float, "pct_chg": float}} 或 None（失败时）。
+    双源降级：东财 stock_zh_a_spot_em → 新浪 stock_zh_a_spot。
+    返回 {code6: {"price": float, "pct_chg": float}} 或 None（全部失败时）。
     """
     import akshare as ak
     import pandas as pd
     from stockhot.core.rate_limiter import safe_akshare_call
 
+    # 源 1：东财（全市场快照）
     try:
         df = safe_akshare_call(ak.stock_zh_a_spot_em)
-        if df is None or df.empty:
-            return None
-    except Exception as e:
-        print(f"[WARN] 实时价拉取失败: {e}")
-        return None
+        if df is not None and not df.empty:
+            result = {}
+            for _, row in df.iterrows():
+                code = str(row.get("代码", ""))
+                if code in codes:
+                    price = pd.to_numeric(row.get("最新价"), errors="coerce")
+                    pct = pd.to_numeric(row.get("涨跌幅"), errors="coerce")
+                    if not pd.isna(price) and price > 0:
+                        result[code] = {
+                            "price": float(price),
+                            "pct_chg": float(pct) if not pd.isna(pct) else 0.0,
+                        }
+            if result:
+                return result
+    except Exception:
+        pass
 
-    result = {}
-    for _, row in df.iterrows():
-        code = str(row.get("代码", ""))
-        if code in codes:
-            price = pd.to_numeric(row.get("最新价"), errors="coerce")
-            pct = pd.to_numeric(row.get("涨跌幅"), errors="coerce")
-            if not pd.isna(price) and price > 0:
-                result[code] = {
-                    "price": float(price),
-                    "pct_chg": float(pct) if not pd.isna(pct) else 0.0,
-                }
-    return result if result else None
+    # 源 2：新浪（东财失败时降级）
+    try:
+        df = safe_akshare_call(ak.stock_zh_a_spot)
+        if df is not None and not df.empty:
+            result = {}
+            for _, row in df.iterrows():
+                # 新浪格式：code 带 sh/sz 前缀（如 sh600000）
+                raw_code = str(row.get("代码", row.get("symbol", "")))
+                code = raw_code.lstrip("shzsSHZS").zfill(6)
+                if code in codes:
+                    price = pd.to_numeric(row.get("最新价", row.get("trade", 0)), errors="coerce")
+                    pct = pd.to_numeric(row.get("涨跌幅", row.get("changepercent", 0)), errors="coerce")
+                    if not pd.isna(price) and price > 0:
+                        result[code] = {
+                            "price": float(price),
+                            "pct_chg": float(pct) if not pd.isna(pct) else 0.0,
+                        }
+            if result:
+                return result
+    except Exception as e:
+        print(f"[WARN] 新浪实时价也失败: {e}")
+
+    return None
 
 
 def _collect_holdings() -> tuple[list[dict], object | None, float, float]:
