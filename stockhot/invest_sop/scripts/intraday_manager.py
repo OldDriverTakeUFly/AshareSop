@@ -214,7 +214,7 @@ def _collect_holdings() -> tuple[list[dict], object | None, float, float]:
                 "composite": wl.get("composite_score"),
                 "can_execute": True,  # 模拟账户可执行
             })
-        account.close()
+        # 不 close account——run_one_cycle 后续的 _execute_signal 需要它活着
     except Exception as e:
         print(f"[WARN] 模拟账户加载失败: {e}")
 
