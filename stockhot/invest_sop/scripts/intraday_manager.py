@@ -381,7 +381,7 @@ async def _push_message(msg: str) -> bool:
 
 
 def _format_execution_report(executed: list[dict], warnings: list[dict], account_info: dict) -> str:
-    """格式化盘中调仓报告（精简版：只带调仓理由）."""
+    """格式化盘中调仓报告."""
     now = datetime.now().strftime("%H:%M")
     lines = [f"⚡ 盘中调仓 [{now}]"]
 
@@ -398,6 +398,13 @@ def _format_execution_report(executed: list[dict], warnings: list[dict], account
     for w in warnings:
         if w["type"] == "warn_stop":
             lines.append(f"⚠️ {w['name']} 接近止损 距{w['stop_price']:.2f}仅{w['proximity_pct']:.1f}%")
+
+    if account_info:
+        equity = account_info.get("equity", 0)
+        cash = account_info.get("cash", 0)
+        pos_count = account_info.get("pos_count", 0)
+        pos_pct = account_info.get("pos_pct", 0)
+        lines.append(f"💰 仓位{pos_pct:.0f}%（{pos_count}只）| 权益{equity/1e4:.1f}万 | 可用{cash/1e4:.1f}万")
 
     return "\n".join(lines)
 
@@ -528,8 +535,8 @@ def run_one_cycle(dry_run: bool = False) -> dict:
     # 推送（有持仓执行/预警 或 恐慌状态变化时）
     panic_msg = _check_panic_signal(dry_run=dry_run)
 
-    if executed or warnings or panic_msg:
-        # 计算账户状态
+    # 调仓信号和恐慌信号分开推送（不拼接在一起）
+    if executed or warnings:
         account_info = {}
         if initial_capital > 0:
             pos_value = sum(
@@ -543,17 +550,15 @@ def run_one_cycle(dry_run: bool = False) -> dict:
                 "pos_pct": pos_value / equity * 100 if equity > 0 else 0,
             }
 
-        # 合并持仓信号 + 恐慌信号到一条消息
-        parts = []
-        if executed or warnings:
-            parts.append(_format_execution_report(executed, warnings, account_info))
-        if panic_msg:
-            parts.append(panic_msg)
-
-        msg = "\n\n".join(parts)
+        msg = _format_execution_report(executed, warnings, account_info)
         print(msg)
         if not dry_run:
             asyncio.run(_push_message(msg))
+
+    if panic_msg:
+        print(panic_msg)
+        if not dry_run:
+            asyncio.run(_push_message(panic_msg))
 
     panic_pushed = 1 if panic_msg else 0
     return {
