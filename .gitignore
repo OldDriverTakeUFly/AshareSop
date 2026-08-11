@@ -74,3 +74,6 @@ davis_analyzer/studies/rally_screening/__pycache__/
 davis_analyzer/studies/rally_screening/cache_daily/
 davis_analyzer/studies/rally_screening/cache_msg/
 davis_analyzer/studies/rally_screening/*_result.txt
+davis_analyzer/run_output.log
+.coverage
+storage/sector_rv_cache/
