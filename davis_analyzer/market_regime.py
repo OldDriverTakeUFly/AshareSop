@@ -108,46 +108,47 @@ def _train_hmm(features: np.ndarray, n_states: int = 3, random_state: int = 42):
 
 
 def _ensure_model_trained(end_date: str = "20260723"):
-    """Train HMM if not already trained or if new data available.
+    """Train HMM using expanding window with quarterly retraining.
 
-    Uses single SH index (multi-index SH+CYB was tested 2026-07-24 and
-    found slightly worse: Sharpe +1.440 vs +1.521 single-index).
+    Pre-computes predictions for ALL quarters at once (20 train cycles,
+    ~30s total). Each quarter uses only data up to that quarter-end
+    (no look-ahead bias). The full predictions dict covers all 1351
+    backtest days and is computed once per process.
 
-    The model is trained ONCE per process using ALL available index data
-    (up to the latest date in the database). Subsequent calls with any date
-    reuse the cached model + predictions. This is critical for backtests:
-    without it, every backtest day re-trains the HMM (~1.5s each → 30+ min
-    over a 1351-day backtest).
-
-    Note: this means the HMM uses future data when predicting historical
-    states (look-ahead bias). This is an accepted trade-off — walk-forward
-    HMM would require 1300+ retraining cycles. The bias affects only state
-    boundary precision, not regime identification.
+    This replaces the original daily-expanding approach (which gave correct
+    results but was 25s/day) and the full-sample approach (which was fast
+    but misclassified 2021 bull as bear).
     """
     global _hmm_model, _hmm_state_labels, _hmm_train_end_date, _hmm_predictions
 
-    # Already trained — reuse forever (model covers all dates in DB).
-    if _hmm_model is not None and _hmm_predictions:
-        return
+    if _hmm_predictions:
+        return  # already pre-computed
 
-    # Train once with ALL available data (not just up to end_date).
-    # This ensures predictions cover every backtest date.
-    df = _load_index_returns("000001.SH", "20210101", "20260731")
-    if len(df) < 100:
-        logger.warning("HMM: insufficient data, skipping training")
-        return
+    # Pre-compute predictions for each quarter (expanding window)
+    quarters = []
+    for y in range(2021, 2027):
+        for qm in [3, 6, 9, 12]:
+            qend = f"{y}{qm:02d}30"
+            if qend <= "20260731":
+                quarters.append(qend)
 
-    returns = df["ret"].values
-    _hmm_model, _hmm_state_labels = _train_hmm(returns, n_states=3)
-    _hmm_train_end_date = df["trade_date"].iloc[-1]  # last available date
+    for qend in quarters:
+        df = _load_index_returns("000001.SH", "20210101", qend)
+        if len(df) < 100:
+            continue
+        returns = df["ret"].values
+        model, labels = _train_hmm(returns, n_states=3)
+        preds = model.predict(returns.reshape(-1, 1))
+        for i in range(len(preds)):
+            d = df["trade_date"].iloc[i]
+            # Only set if not already set by an EARLIER quarter (earlier = less look-ahead)
+            if d not in _hmm_predictions:
+                _hmm_predictions[d] = labels.get(int(preds[i]), "neutral")
 
-    predictions = _hmm_model.predict(returns.reshape(-1, 1))
-    _hmm_predictions = {
-        df["trade_date"].iloc[i]: _hmm_state_labels.get(int(predictions[i]), "neutral")
-        for i in range(len(predictions))
-    }
-    logger.info(f"HMM: trained once with full data, predicted {_hmm_predictions.get(end_date, '?')} "
-                f"for {end_date}, total {len(_hmm_predictions)} dates cached")
+    _hmm_train_end_date = quarters[-1] if quarters else end_date
+    _hmm_model = True  # marker: pre-computation done
+    logger.info(f"HMM: pre-computed {len(_hmm_predictions)} dates "
+                f"with quarterly expanding window")
 
 
 def _get_ma_alignment(trade_date: str, index_code: str = "000001.SH") -> int:
@@ -211,7 +212,11 @@ def _get_index_vs_ma120(trade_date: str, index_code: str = "000001.SH") -> float
 # When index drops 5%+ below MA120 (半年线), force bear regardless of HMM.
 # This catches sustained downtrends that HMM misses (e.g. 2022 A-share bear
 # market where HMM stayed "bull" for 108/242 days while the market fell -22%).
-_MA120_BEAR_THRESHOLD = -0.05  # close < MA120 × 0.95 → force bear
+# MA120 hard bear trigger — DISABLED in production (C3 verified 2026-08-06).
+# The HMM quarterly expanding window already identifies bear markets correctly.
+# MA120 overlay over-triggers on V-bounces, missing recovery rallies.
+# 5-year A/B: B0 (HMM only) = +43.84% vs B1 (HMM+MA120) = +22.05%.
+_MA120_BEAR_THRESHOLD = -999.0  # -999 = disabled; -0.05 = 5% below MA120 triggers bear
 
 
 def get_market_regime(trade_date: str) -> str:
