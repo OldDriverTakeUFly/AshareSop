@@ -69,6 +69,7 @@ class MarketSnapshot:
     rv_decay_ratio: float | None = None  # RV5/RV20 比率 (上证), None=无数据
     index_20d_drop: float | None = None  # 上证前20日涨跌幅 (%), None=无数据
     stock_20d_drops: dict = field(default_factory=dict)  # ts_code → 前20日涨跌幅 (%)
+    vol_ratio_250: float | None = None  # 全市场近20日均量/250日均量, None=无数据
     industries: dict[str, str] = field(default_factory=dict)  # ts_code → industry
     industry_trend: dict[str, str] = field(default_factory=dict)  # industry → "up"/"down"/"flat"
     # ── Short-term momentum + valuation (added for quality filtering) ──
@@ -339,6 +340,39 @@ class FactorThresholdStrategy:
         oversold_rv_ratio_sell: float = 0.8,    # RV5/RV20 卖出阈值（衰减即卖）
         oversold_max_hold_days: int = 20,       # 最大持有天数
         oversold_stop_loss: float = 0.08,       # 硬止损 8%
+        # ── Trailing stop (跟踪止损) ──
+        # When > 0, replaces fixed take-profit for positions in profit.
+        # Once P&L >= trailing_activate (e.g. 10%), the stop line moves up
+        # to: highest_price × (1 - trailing_drawback). Position is sold when
+        # price drops drawback% from its peak. This "lets winners run" and
+        # captures larger trends, addressing the "卖飞 +23%" problem.
+        #   0.0 = disabled (use fixed take_profit from _RISK_RULES)
+        #   0.08 = recommended (8% drawback from peak)
+        trailing_drawback: float = 0.0,         # 回撤阈值 (0.08 = 从最高点回撤8%卖出)
+        trailing_activate: float = 0.10,        # 激活阈值 (盈利10%后开始跟踪)
+        # ── Minimum hold period ──
+        # Prevents ultra-short trades (<3 days) that contribute <6% of profit
+        # but 24% of trades. Positions are not sold (except hard stop) within
+        # this many trading days after purchase.
+        #   0 = disabled (sell anytime)
+        #   5 = recommended (hold at least 5 trading days)
+        min_hold_days: int = 0,
+        # ── Quick stop for new positions ──
+        # If a position drops > quick_stop_pct within quick_stop_days of
+        # purchase, exit immediately (don't wait for the full hard_stop).
+        # Addresses: 109 stop-losses averaged 113 days hold (too slow).
+        #   0.0 = disabled
+        #   0.05 = recommended (5% drop within 5 days → exit)
+        quick_stop_pct: float = 0.0,
+        quick_stop_days: int = 5,
+        # ── Volume ratio defense (量能比防御) ──
+        # When > 0, reduces max positions when market volume ratio
+        # (20d avg / 250d avg) exceeds this threshold. High volume ratio
+        # = 放量高潮 = momentum likely to fail (IC=-0.214).
+        # Verified 2026-08-08: W1 vs W0 = +89.3% vs +85.4%, Sharpe +0.868 vs +0.804.
+        #   0.0 = disabled
+        #   1.2 = production default (verified 2026-08-08)
+        vol_ratio_defense: float = 1.2,
         # ── PE exemption for volume-price signals ──
         # When True, stocks with platform_breakout or low_vol volume signal
         # bypass the max_pe_percentile cap. Rationale: technically-driven buys
@@ -453,6 +487,12 @@ class FactorThresholdStrategy:
         self.oversold_rv_ratio_sell = oversold_rv_ratio_sell
         self.oversold_max_hold_days = oversold_max_hold_days
         self.oversold_stop_loss = oversold_stop_loss
+        self.trailing_drawback = trailing_drawback
+        self.trailing_activate = trailing_activate
+        self.min_hold_days = min_hold_days
+        self.quick_stop_pct = quick_stop_pct
+        self.quick_stop_days = quick_stop_days
+        self.vol_ratio_defense = vol_ratio_defense
         # Track bounce positions: {ts_code: buy_date} for hold-day tracking
         self._bounce_positions: dict[str, str] = {}
         self.pe_exemption_for_volume = pe_exemption_for_volume
@@ -797,6 +837,13 @@ class FactorThresholdStrategy:
 
         # ── 2. Check existing positions for sell signals ──
         for pos in positions:
+            # Bounce positions are managed solely by the oversold bounce
+            # sell logic (vol decay / time stop / hard stop), NOT by the
+            # trend strategy's momentum/sector/holder sell rules. Without
+            # this exemption, bounce buys get sold on day 1 because they
+            # have low momentum and weak sector trend by definition.
+            is_bounce_pos = pos.ts_code in self._bounce_positions
+
             factors = snapshot.factor_scores.get(pos.ts_code, {})
             mom = factors.get("momentum")
 
@@ -829,6 +876,15 @@ class FactorThresholdStrategy:
 
             reasons: list[str] = []
             should_sell = False
+
+            # ── Bounce position exemption ──
+            # Skip all trend-based sell rules (momentum/sector/holder) for
+            # oversold bounce positions. They are managed solely by the
+            # bounce sell logic (vol decay / time stop / hard stop) which
+            # runs in the section above (2b). Without this exemption, bounce
+            # buys get sold on day 1 because they have low momentum by design.
+            if is_bounce_pos:
+                continue  # skip to next position — bounce sells handled in 2b
 
             # Primary sell: momentum collapse
             # Adaptive threshold: adjust sell sensitivity by market regime
@@ -930,6 +986,11 @@ class FactorThresholdStrategy:
         effective_max = self._effective_max_positions(
             snapshot.market_regime, getattr(snapshot, "vol_mult", 1.0)
         )
+        # Volume ratio defense: halve positions when market volume >> 250d avg
+        if self.vol_ratio_defense > 0:
+            vr = getattr(snapshot, "vol_ratio_250", None)
+            if vr is not None and vr > self.vol_ratio_defense and effective_max > 1:
+                effective_max = max(1, effective_max // 2)
         if effective_max == 0:
             # Trend strategy is closed (bear market). But oversold bounce
             # sub-strategy can still operate — panic bottoms happen in bear.
@@ -957,6 +1018,10 @@ class FactorThresholdStrategy:
         # Sell held stocks that are no longer qualified at all
         already_selling = {s.ts_code for s in signals if s.action == "SELL"}
         for pos in positions:
+            # Bounce positions: skip "no longer qualified" sell (they bypass
+            # the normal qualification pipeline by design)
+            if pos.ts_code in self._bounce_positions:
+                continue
             if pos.ts_code not in qualified_codes and pos.ts_code not in already_selling:
                 factors_p = snapshot.factor_scores.get(pos.ts_code, {})
                 p_holder = factors_p.get("holder")

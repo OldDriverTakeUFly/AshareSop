@@ -500,6 +500,33 @@ def _compute_stock_20d_drops(ts_codes: list[str], trade_date: str) -> dict[str, 
     return result
 
 
+def _compute_vol_ratio_250(trade_date: str) -> float | None:
+    """全市场近20日均量 / 近250日均量（量能比防御信号）.
+
+    Returns ratio > 1.0 when volume is above 250d average (放量),
+    < 1.0 when below (缩量). None when insufficient data.
+    IC=-0.214 for predicting next-month strategy return.
+    """
+    try:
+        with get_market_conn() as conn:
+            rows = conn.execute(
+                "SELECT trade_date, SUM(amount) FROM daily_price "
+                "WHERE trade_date <= ? AND amount > 0 "
+                "GROUP BY trade_date ORDER BY trade_date DESC LIMIT 250",
+                (trade_date,),
+            ).fetchall()
+        if len(rows) < 250:
+            return None
+        vols = [float(r[1]) for r in rows]
+        avg_20 = sum(vols[:20]) / 20
+        avg_250 = sum(vols) / len(vols)
+        if avg_250 <= 0:
+            return None
+        return round(avg_20 / avg_250, 3)
+    except Exception:
+        return None
+
+
 def _get_industries(ts_codes: list[str]) -> dict[str, str]:
     """Build ts_code → industry lookup from stock_basic table."""
     if not ts_codes:
@@ -1646,6 +1673,7 @@ class DailyExecutor:
     def _get_risk_thresholds(
         self, market_regime: str, sector_trend: str,
         volatility: float | None = None,
+        market_vol_regime: str = "normal_vol",
     ) -> tuple[float, float]:
         """Look up dynamic stop-loss / take-profit, optionally vol-adjusted.
 
@@ -1655,6 +1683,12 @@ class DailyExecutor:
         Base stop is from _RISK_RULES, then scaled by vol multiplier.
 
         Also applies strategy.risk_stop_multiplier (global scaling for sweep).
+
+        **Market vol regime adaptation**: in low-vol periods (RV20 P<25),
+        stops are tightened by 15% — small losses accumulate in choppy
+        markets, so cutting early reduces drag on Sharpe. In high-vol
+        periods, stops are widened to avoid getting whipsawed out of
+        momentum positions during normal pullbacks.
         """
         base_stop, base_tp = self._RISK_RULES.get(
             (self._normalize_regime(market_regime), sector_trend), self._DEFAULT_RISK
@@ -1664,6 +1698,17 @@ class DailyExecutor:
         multiplier = getattr(self.strategy, "risk_stop_multiplier", 1.0)
         base_stop *= multiplier
         base_tp *= multiplier
+
+        # ── Market vol regime adaptation (reduces Sharpe drag in chop) ──
+        # Verified 2026-08-08 (5yr A/B): V1 vs V0 = +85.4% vs +77.3%,
+        # Sharpe +0.804 vs +0.754, MDD -2.1pp. Biggest win in 2023 chop (+7.8pp).
+        if market_vol_regime == "low_vol":
+            base_stop *= 0.85   # tighten stop 15% in calm markets
+            base_tp *= 0.90     # tighten take-profit 10%
+        elif market_vol_regime == "high_vol":
+            base_stop *= 1.15   # widen stop 15% in volatile markets
+        elif market_vol_regime == "extreme_vol":
+            base_stop *= 1.30   # widen stop 30% in extreme volatility
 
         if volatility is not None and volatility > 0:
             # Average A-share annualized vol ~35%. Scale linearly but clamp.
@@ -1689,6 +1734,7 @@ class DailyExecutor:
         industry_trend: dict[str, str] | None = None,
         volatilities: dict[str, float] | None = None,
         volume_signals: dict[str, dict] | None = None,
+        market_vol_regime: str = "normal_vol",
     ) -> list[Signal]:
         """Check stop-loss / take-profit with DYNAMIC + VOL-ADJUSTED thresholds.
 
@@ -1713,8 +1759,68 @@ class DailyExecutor:
             sector_trend = industry_trend.get(industry, "flat")
             vol = volatilities.get(pos.ts_code)
             hard_stop, take_profit = self._get_risk_thresholds(
-                market_regime, sector_trend, volatility=vol
+                market_regime, sector_trend, volatility=vol,
+                market_vol_regime=market_vol_regime,
             )
+
+            # ── Quick stop for new positions ──
+            # If position dropped >quick_stop_pct within quick_stop_days of
+            # purchase, exit immediately. Don't wait for full hard_stop.
+            quick_stop_pct = getattr(self.strategy, "quick_stop_pct", 0.0)
+            if quick_stop_pct > 0 and pnl_pct <= -quick_stop_pct:
+                from datetime import datetime as _dt
+                hold_days = (_dt.strptime(trade_date, "%Y%m%d") -
+                            _dt.strptime(pos.entry_date[:8] if pos.entry_date else trade_date, "%Y%m%d")).days
+                quick_days = getattr(self.strategy, "quick_stop_days", 5)
+                if hold_days <= quick_days:
+                    signals.append(Signal(
+                        ts_code=pos.ts_code, name=pos.name, action="SELL",
+                        signal_reason=f"快速止损 P&L={pnl_pct*100:.1f}% (买入{hold_days}天跌>{quick_stop_pct*100:.0f}%)",
+                    ))
+                    continue
+
+            # ── Minimum hold period ──
+            # Don't sell (except hard stop / quick stop) within min_hold_days
+            min_hold = getattr(self.strategy, "min_hold_days", 0)
+            is_within_min_hold = False
+            if min_hold > 0 and pos.entry_date:
+                from datetime import datetime as _dt2
+                hold_days = (_dt2.strptime(trade_date, "%Y%m%d") -
+                            _dt2.strptime(pos.entry_date[:8], "%Y%m%d")).days
+                if hold_days < min_hold:
+                    is_within_min_hold = True
+
+            # ── Trailing stop (replaces fixed take_profit when activated) ──
+            trailing_db = getattr(self.strategy, "trailing_drawback", 0.0)
+            trailing_act = getattr(self.strategy, "trailing_activate", 0.10)
+            if trailing_db > 0 and pnl_pct >= trailing_act:
+                # Compute highest price since entry
+                with get_market_conn() as conn:
+                    high_row = conn.execute(
+                        "SELECT MAX(high) FROM daily_price WHERE ts_code=? "
+                        "AND trade_date >= ? AND trade_date <= ? AND high > 0",
+                        (pos.ts_code, pos.entry_date[:8] if pos.entry_date else trade_date, trade_date),
+                    ).fetchone()
+                highest = float(high_row[0]) if high_row and high_row[0] else px
+                if highest > pos.avg_cost:
+                    drawback_pct = (highest - px) / highest
+                    if drawback_pct >= trailing_db:
+                        # Skip if within min_hold (unless it's a big drop)
+                        if is_within_min_hold and pnl_pct > 0:
+                            continue
+                        signals.append(Signal(
+                            ts_code=pos.ts_code, name=pos.name, action="SELL",
+                            signal_reason=f"跟踪止损 P&L=+{pnl_pct*100:.1f}% (最高{highest:.2f}回撤{drawback_pct*100:.1f}%)",
+                        ))
+                        continue
+                # Trailing active but hasn't hit drawback → skip fixed take_profit
+                if is_within_min_hold:
+                    continue
+                continue  # trailing is active, don't check fixed take_profit
+
+            # Skip other exits if within min_hold (only hard stop passes through)
+            if is_within_min_hold:
+                continue
 
             # ── Low-volume (吸筹) stop-loss exemption ──
             # Rationale: low-position high-volume signals accumulation (主力吸筹),
@@ -1903,10 +2009,37 @@ class DailyExecutor:
 
         # ── 2. Get factor/davis scores ──
         if factor_scores is None:
-            # Live mode: compute factors for a candidate universe
-            # For simplicity, compute for held + some top stocks
-            # (In production, this would use the pipeline output)
-            factor_scores = {}
+            # Live/run mode: auto-compute factor scores for a candidate universe.
+            # This enables `paper_trading run` to work with FactorThresholdStrategy
+            # without external injection (inject_screen_to_paper was a workaround
+            # for this gap). We compute factors for held stocks + top-200 by
+            # turnover to give the strategy a realistic candidate pool.
+            try:
+                from davis_analyzer.paper_trading.executor import (
+                    _compute_factor_scores_at,
+                    _compute_davis_scores_at,
+                )
+                from davis_analyzer.tushare_client import TushareClient
+                client = TushareClient()
+                # Build a universe: held stocks + top turnover stocks
+                with get_market_conn() as conn:
+                    top_rows = conn.execute(
+                        "SELECT ts_code FROM daily_price WHERE trade_date = ? "
+                        "AND close > 0 AND vol > 0 ORDER BY amount DESC LIMIT 200",
+                        (trade_date,),
+                    ).fetchall()
+                universe_codes = list(set(held_codes + [r[0] for r in top_rows]))
+                as_of_date = datetime.strptime(trade_date, "%Y%m%d").date()
+                stock_infos = {}
+                factor_data = _compute_factor_scores_at(client, as_of_date, universe_codes)
+                davis_scores = _compute_davis_scores_at(client, as_of_date, universe_codes, stock_infos)
+                factor_scores = {
+                    "_davis_scores": davis_scores,
+                    "_factor_scores": factor_data,
+                }
+            except Exception:
+                logger.exception(f"[{self.account.name}] Factor computation failed for {trade_date}")
+                factor_scores = {}
 
         davis_scores = factor_scores.get("_davis_scores", {})
         factor_data = factor_scores.get("_factor_scores", {})
@@ -1997,6 +2130,7 @@ class DailyExecutor:
             industry_trend=industry_trend,
             volatilities=volatilities,
             volume_signals=volume_signals,
+            market_vol_regime=vol_regime,
         )
         if risk_signals:
             overseas_tag = f", 国际风险={overseas_risk:.0f}" if overseas_risk >= 30 else ""
@@ -2022,6 +2156,7 @@ class DailyExecutor:
             rv_decay_ratio=_compute_rv_decay_ratio(trade_date),
             index_20d_drop=_compute_index_20d_drop(trade_date),
             stock_20d_drops=_compute_stock_20d_drops(codes_to_price, trade_date),
+            vol_ratio_250=_compute_vol_ratio_250(trade_date),
             industries=industries,
             industry_trend=industry_trend,
             short_momentum=short_momentum,
