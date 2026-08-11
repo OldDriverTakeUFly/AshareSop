@@ -1,14 +1,15 @@
-"""注入选股 top20 信号到前向实盘测试账户（paper_trading）.
+"""注入 screen_top20 选股信号到 FactorThreshold 模拟盘账户.
 
-读当日 ``studies/output/top20_screen_<date>.json``，桥接字段后注入
-``executor.run_day(factor_scores=...)``，驱动 DavisDoubleStrategy 自动调仓。
+读当日 ``studies/output/top20_screen_<date>.json``，桥接成 davis_scores，
+然后用 FactorThresholdStrategy 执行调仓（复用全部风控安全阀）。
 
-⚠️ 绕过 paper_trading `run` 命令的残缺路径（run 不传 factor_scores → 跑不出 BUY）。
-   本脚本直接把 screen 信号注入 executor，复用全部 14 个安全阀
-   （max_positions/bear门控/止损/整手/cash管理/NAV）。
+2026-08-06 重构：从 DavisDoubleStrategy 改为 FactorThresholdStrategy。
+- run_day 现在自动计算 factor_scores（不再需要外部注入 factor_data）
+- davis_scores 从 screen_top20 注入（作为 DavisDouble 维度的补充）
+- 策略切换：账户需要用 strategy_name=factor_threshold
 
 Usage:
-    .venv/bin/python studies/inject_screen_to_paper.py [--date YYYY-MM-DD] [--dry-run] [--name live_factor_test]
+    .venv/bin/python studies/inject_screen_to_paper.py [--date YYYY-MM-DD] [--dry-run] [--name production_forward]
 
 Crontab (screen 跑完后):
     25 17 * * 1-5 cd /path && PYTHONPATH=/path \\
@@ -25,7 +26,7 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 OUTPUT_DIR = PROJECT_ROOT / "studies" / "output"
-DEFAULT_ACCOUNT = "live_factor_test"
+DEFAULT_ACCOUNT = "production_forward"
 
 
 def load_top20(as_of: str) -> list[dict]:
@@ -86,7 +87,8 @@ def inject(as_of: str, account_name: str, dry_run: bool = False) -> dict:
     strategy = create_strategy(account.strategy_name, account.config)
     executor = DailyExecutor(account, strategy)
 
-    # 注入选股信号，复用 executor 全部安全阀
+    # 注入 davis_scores（FactorThreshold 自动计算 factor_scores），
+    # davis_scores 作为 DavisDouble 维度的补充评分传入
     result = executor.run_day(
         trade_date,
         factor_scores={"_davis_scores": davis_scores},
