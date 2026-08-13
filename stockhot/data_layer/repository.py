@@ -414,7 +414,12 @@ class MarketDataRepository:
         return [dict(zip(cols, r)) for r in rows]
 
     def get_fund_flow_sector(self, trade_date: str) -> list[dict]:
-        """读取板块资金流（结构化）."""
+        """读取板块资金流（结构化）.
+
+        同时返回 ``name`` 与 ``sector_name`` 两个 key（同值）：
+        ``name`` 与 JSON fallback（get_daily_data）的 fund_flow_sector 格式对齐，
+        ``sector_name`` 兼容既有消费方（panic_detector 等直读列名的调用点）。
+        """
         with closing(get_connection()) as conn:
             rows = conn.execute(
                 "SELECT sector_name, change_pct, main_net, main_pct, huge_net, "
@@ -424,7 +429,12 @@ class MarketDataRepository:
             ).fetchall()
         cols = ["sector_name", "change_pct", "main_net", "main_pct", "huge_net",
                 "large_net", "medium_net", "small_net"]
-        return [dict(zip(cols, r)) for r in rows]
+        result = []
+        for r in rows:
+            item = dict(zip(cols, r))
+            item["name"] = item["sector_name"]
+            result.append(item)
+        return result
 
     # ═══════════════════════════════════════════════════════════════════
     # iVIX/QVIX 历史（中国 50ETF 波动率指数，AKShare 唯一源，跨模块共享缓存）

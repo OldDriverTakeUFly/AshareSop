@@ -14,8 +14,39 @@
 
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass
+from typing import Callable, TypeVar
+
 from loguru import logger
+
+# 瞬时故障（RemoteDisconnected 等）重试：首次 + 2 次重试，退避 1s / 3s
+_RETRY_DELAYS: tuple[float, ...] = (1.0, 3.0)
+
+T = TypeVar("T")
+
+
+def _with_retry(fn: Callable[[], T], source: str) -> T | None:
+    """带指数退避的重试包装（仅重试异常，不重试空结果）.
+
+    行情接口偶发 RemoteDisconnected（服务端瞬断连接），一次抖动
+    不应导致整段数据缺失；重试后仍失败则返回 None 由调用方降级。
+    """
+    delays: list[float] = [0.0, *_RETRY_DELAYS]
+    for attempt, delay in enumerate(delays):
+        if delay:
+            time.sleep(delay)
+        try:
+            return fn()
+        except Exception as e:
+            if attempt < len(delays) - 1:
+                logger.warning(
+                    f"concept_board: {source} 第{attempt + 1}次拉取失败（{e}），"
+                    f"{delays[attempt + 1]:.0f}s 后重试"
+                )
+            else:
+                logger.warning(f"concept_board: {source} 重试耗尽仍失败: {e}")
+    return None
 
 
 @dataclass
@@ -49,11 +80,11 @@ def _fetch_sina_concepts() -> tuple[list[ConceptStat], list[ConceptStat]]:
     import akshare as ak
     import pandas as pd
 
-    try:
-        df = ak.stock_sector_spot(indicator="概念")
-        if df is None or df.empty:
-            return [], []
+    df = _with_retry(lambda: ak.stock_sector_spot(indicator="概念"), "新浪概念")
+    if df is None or df.empty:
+        return [], []
 
+    try:
         df["涨跌幅"] = pd.to_numeric(df["涨跌幅"], errors="coerce")
         df = df.dropna(subset=["涨跌幅"])
 
@@ -69,7 +100,7 @@ def _fetch_sina_concepts() -> tuple[list[ConceptStat], list[ConceptStat]]:
         logger.info(f"concept_board: 新浪概念 {len(df)} 个，top5 已获取")
         return top5_up, top5_dn
     except Exception as e:
-        logger.warning(f"concept_board: 新浪概念失败: {e}")
+        logger.warning(f"concept_board: 新浪概念解析失败: {e}")
         return [], []
 
 
@@ -78,11 +109,11 @@ def _fetch_em_concepts() -> tuple[list[ConceptStat], list[ConceptStat]]:
     import akshare as ak
     import pandas as pd
 
-    try:
-        df = ak.stock_board_concept_name_em()
-        if df is None or df.empty:
-            return [], []
+    df = _with_retry(ak.stock_board_concept_name_em, "东财概念")
+    if df is None or df.empty:
+        return [], []
 
+    try:
         col_name = "板块名称" if "板块名称" in df.columns else df.columns[1]
         col_pct = "涨跌幅" if "涨跌幅" in df.columns else None
         if not col_pct:
@@ -103,7 +134,7 @@ def _fetch_em_concepts() -> tuple[list[ConceptStat], list[ConceptStat]]:
         logger.info(f"concept_board: 东财概念 {len(df)} 个，top5 已获取")
         return top5_up, top5_dn
     except Exception as e:
-        logger.warning(f"concept_board: 东财概念失败: {e}")
+        logger.warning(f"concept_board: 东财概念解析失败: {e}")
         return [], []
 
 
