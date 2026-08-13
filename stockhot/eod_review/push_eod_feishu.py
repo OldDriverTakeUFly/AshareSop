@@ -11,7 +11,10 @@
 本脚本只负责「搬运已生成的 md + 推送摘要」，不重新生成报告。
 
 Usage:
-    .venv/bin/python -m stockhot.eod_review.push_eod_feishu [--date YYYY-MM-DD] [--no-feishu]
+    .venv/bin/python -m stockhot.eod_review.push_eod_feishu [--date YYYY-MM-DD] [--no-feishu] [--force]
+
+幂等：git 提交与飞书推送均按交易日去重。当日已推过飞书则跳过（--force 可强制重推），
+避免 agent 在一个 session 内反复调用导致飞书群被刷屏。
 """
 
 from __future__ import annotations
@@ -23,6 +26,11 @@ import sys
 from datetime import date, datetime
 from pathlib import Path
 
+# 副作用 import：配置 loguru 文件 sink，使 feishu_bot 的 send_text 日志写入
+# logs/stockhot_*.log（否则只进 stderr，飞书发送不可追溯）。必须在 feishu_bot 使用
+# logger 之前完成——loguru 的 logger 是进程级全局单例。
+from stockhot.core.logging import logger  # noqa: F401
+
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 PYTHON = str(PROJECT_ROOT / ".venv" / "bin" / "python")
 
@@ -30,6 +38,11 @@ PYTHON = str(PROJECT_ROOT / ".venv" / "bin" / "python")
 _REPORT_PATHSPEC = "docs/盘后总结/"
 _GITHUB_REPO = "OldDriverTakeUFly/AshareSop"
 _GITHUB_BRANCH = "master"
+
+# 飞书推送幂等锁目录：每个交易日一个 marker 文件，防止 agent 在一个 session 内
+# 重复调用本脚本导致飞书群被刷屏（git 提交幂等，但飞书发送原本不幂等）。
+# 放在 logs/ 下（已被 .gitignore），不污染仓库。
+_PUSH_LOCK_DIR = PROJECT_ROOT / "logs" / ".eod_feishu_push"
 
 
 def commit_push_report(trade_date: str) -> bool:
@@ -196,12 +209,39 @@ def build_eod_feishu_summary(trade_date: str) -> str:
     return "\n".join(lines)
 
 
-def push_eod_feishu(trade_date: str) -> bool:
-    """生成盘后摘要并推送到飞书群.
+def _push_marker_path(trade_date: str) -> Path:
+    """当日飞书推送幂等锁 marker 文件路径."""
+    return _PUSH_LOCK_DIR / f"{trade_date}.ok"
+
+
+def _is_feishu_pushed(trade_date: str) -> bool:
+    """当日飞书摘要是否已成功推送过."""
+    return _push_marker_path(trade_date).exists()
+
+
+def _mark_feishu_pushed(trade_date: str) -> None:
+    """记录当日飞书推送成功（仅在 send_text 成功后调用，失败不落锁以便重试）."""
+    marker = _push_marker_path(trade_date)
+    marker.parent.mkdir(parents=True, exist_ok=True)
+    marker.write_text(f"pushed at {datetime.now().isoformat()}\n", encoding="utf-8")
+
+
+def push_eod_feishu(trade_date: str, *, force: bool = False) -> bool:
+    """生成盘后摘要并推送到飞书群（幂等：当日已推过则跳过）.
+
+    幂等保护使每个交易日只推一次飞书。即使 agent 在一个 session 内反复调用本脚本
+    （历史上发生过 14 次循环），也只会发出一条消息——与 commit_push_report 的 git
+    幂等行为对齐。force=True 可强制重推（数据刷新后手动触发）。
 
     Returns:
-        True 表示推送成功或飞书未配置（静默跳过），False 表示推送失败。
+        True 表示推送成功、当日已推过（跳过）或飞书未配置（静默跳过）；
+        False 表示推送失败。
     """
+    # 幂等检查：当日已成功推送过则跳过（除非 force）
+    if not force and _is_feishu_pushed(trade_date):
+        print(f"[{trade_date}] 当日飞书摘要已推送过，跳过（--force 可强制重推）")
+        return True
+
     try:
         from stockhot.notification.feishu_bot import get_feishu_notifier
     except Exception as e:
@@ -211,11 +251,12 @@ def push_eod_feishu(trade_date: str) -> bool:
     notifier = get_feishu_notifier()
     if notifier is None:
         print(f"[{trade_date}] 飞书未配置，跳过推送")
-        return True  # 未配置不算失败
+        return True  # 未配置不算失败（也不落 marker，配置后仍可推）
 
     try:
         summary = build_eod_feishu_summary(trade_date)
         asyncio.run(notifier.send_text(summary))
+        _mark_feishu_pushed(trade_date)  # 只在发送成功后落锁
         print(f"[{trade_date}] ✓ 盘后摘要已推送到飞书（{len(summary)} 字符）")
         return True
     except Exception as e:
@@ -231,6 +272,10 @@ def main(argv: list[str] | None = None) -> int:
         "--no-feishu", action="store_true",
         help="跳过飞书推送（默认推送，飞书未配置时自动跳过）",
     )
+    parser.add_argument(
+        "--force", action="store_true",
+        help="强制重推飞书摘要（默认当日已推过则跳过，幂等保护）",
+    )
     args = parser.parse_args(argv)
 
     trade_date = args.date or date.today().isoformat()
@@ -240,7 +285,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if not args.no_feishu:
         print(f"[{trade_date}] Pushing 盘后摘要 to Feishu...")
-        push_eod_feishu(trade_date)
+        push_eod_feishu(trade_date, force=args.force)
     else:
         print(f"[{trade_date}] --no-feishu，跳过飞书推送")
 
