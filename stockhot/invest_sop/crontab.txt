@@ -42,8 +42,10 @@
 # 17:20 – Sync top20 → watchlist 候选池
 20 17 * * 1-5 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python studies/sync_screen_to_watchlist.py >> stockhot/invest_sop/logs/screen_sync.log 2>&1
 
-# 17:25 – Inject signals → paper_trading (收盘调仓 + 调仓报告推送)
-25 17 * * 1-5 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python studies/inject_screen_to_paper.py >> stockhot/invest_sop/logs/paper_inject.log 2>&1
+# 19:00 – Inject signals → paper_trading (收盘调仓 + 调仓报告推送)
+# 放在 19:00：screen_top20 (16:30) 受 Tushare 限流影响可能跑到 18:30+，
+# 17:25 启动会因选股结果未生成而报错
+0 19 * * 1-5 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python studies/inject_screen_to_paper.py >> stockhot/invest_sop/logs/paper_inject.log 2>&1
 
 # 18:00 – Daily market scan (涨停/龙虎榜/资金流/风险提示)
 0 18 * * 1-5 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python stockhot/invest_sop/scripts/run_daily_scan.py >> stockhot/invest_sop/logs/daily_scan.log 2>&1
