@@ -14,16 +14,48 @@ def _make_st_df():
     )
 
 
+def _make_stock_basic_df():
+    """Tushare stock_basic 格式（fetch_st_stocks 自 2026-07-07 起 Tushare 优先，
+    按 name 含 ST 过滤；Tushare 路径无实时行情，最新价/涨跌幅置 0）."""
+    return pd.DataFrame(
+        {
+            "ts_code": ["000001.SZ", "000002.SZ", "600000.SH"],
+            "name": ["ST平安", "ST万科", "浦发银行"],
+        }
+    )
+
+
+def _patch_tushare(monkeypatch, responder):
+    """打桩 Tushare 数据源.
+
+    responder: callable(endpoint, **kw) -> DataFrame | None
+    """
+    monkeypatch.setattr(
+        "stockhot.core.tushare_client_safe.safe_tushare_call", responder
+    )
+
+
 def test_fetch_st_stocks_with_mock(monkeypatch):
+    _patch_tushare(monkeypatch, lambda endpoint, **kw: _make_stock_basic_df())
+
+    result = ra.fetch_st_stocks()
+
+    assert len(result) == 2  # 非 ST 的浦发银行被过滤
+    assert result[0]["代码"] == "000001.SZ"
+    assert result[0]["名称"] == "ST平安"
+    assert result[0]["最新价"] == 0.0  # Tushare 路径无实时价
+    assert result[0]["涨跌幅"] == 0.0
+
+
+def test_fetch_st_stocks_tushare_down_falls_back_to_akshare(monkeypatch):
+    """Tushare 失败时走 AKShare fallback，保留实时价字段."""
+    _patch_tushare(monkeypatch, lambda endpoint, **kw: None)
     monkeypatch.setattr(ra.ak, "stock_zh_a_st_em", _make_st_df)
 
     result = ra.fetch_st_stocks()
 
     assert len(result) == 2
-    assert result[0]["代码"] == "000001"
-    assert result[0]["名称"] == "ST平安"
     assert result[0]["最新价"] == 10.5
-    assert result[0]["涨跌幅"] == -2.5
 
 
 def test_detect_abnormal_volatility_filters_reasons():
@@ -96,7 +128,7 @@ def test_generate_summary():
 
 
 def test_run_risk_alert_analysis_full(monkeypatch):
-    monkeypatch.setattr(ra.ak, "stock_zh_a_st_em", _make_st_df)
+    _patch_tushare(monkeypatch, lambda endpoint, **kw: _make_stock_basic_df())
     monkeypatch.setattr(
         ra.ak, "stock_zh_a_stop_em", lambda: pd.DataFrame({"代码": ["600000"], "名称": ["ST浦发"]})
     )

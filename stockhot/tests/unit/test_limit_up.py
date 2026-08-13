@@ -2,6 +2,35 @@ import pandas as pd
 import stockhot.limit_up as lu
 
 
+def _patch_tushare(monkeypatch, responder):
+    """打桩 Tushare 数据源（limit_up 各池自 2026-07-07 起 Tushare limit_list_d 优先）.
+
+    responder: callable(endpoint, **kw) -> DataFrame | None
+    """
+    monkeypatch.setattr(
+        "stockhot.core.tushare_client_safe.safe_tushare_call", responder
+    )
+
+
+def _ts_limit_df():
+    """limit_list_d 格式：U/D/Z 混合返回，客户端按 limit 列过滤."""
+    return pd.DataFrame(
+        {
+            "ts_code": ["000001.SZ", "000003.SZ", "000004.SZ"],
+            "name": ["平安银行", "某炸板股", "某跌停股"],
+            "pct_chg": [10.0, 5.2, -10.0],
+            "fd_amount": [5.0e8, None, None],
+            "limit_times": [3, None, None],
+            "industry": ["银行", "电子", "房地产"],
+            "open_times": [0, 2, None],
+            "first_time": ["093000", None, None],
+            "last_time": ["093000", None, None],
+            "turnover_ratio": [2.5, None, None],
+            "limit": ["U", "Z", "D"],
+        }
+    )
+
+
 def _zt_df():
     return pd.DataFrame(
         {
@@ -44,10 +73,10 @@ def _limit_down_df():
 
 
 def test_fetch_limit_up_pool_with_mocked_data(monkeypatch):
-    monkeypatch.setattr(lu.ak, "stock_zt_pool_em", lambda date: _zt_df())
+    _patch_tushare(monkeypatch, lambda endpoint, **kw: _ts_limit_df())
     result = lu.fetch_limit_up_pool("2026-05-12")
-    assert len(result) == 4
-    assert result[0]["code"] == "000001"
+    assert len(result) == 1  # 混合池中仅 1 只 U（涨停）
+    assert result[0]["code"] == "000001.SZ"
     assert result[0]["name"] == "平安银行"
     assert result[0]["change_pct"] == 10.0
     assert result[0]["seal_amount"] == 5.0e8
@@ -57,7 +86,18 @@ def test_fetch_limit_up_pool_with_mocked_data(monkeypatch):
     assert result[0]["turnover_rate"] == 2.5
 
 
+def test_fetch_limit_up_pool_tushare_down_falls_back_to_akshare(monkeypatch):
+    """Tushare 失败（None）时走 AKShare fallback，中文字段映射不回退."""
+    _patch_tushare(monkeypatch, lambda endpoint, **kw: None)
+    monkeypatch.setattr(lu.ak, "stock_zt_pool_em", lambda date: _zt_df())
+    result = lu.fetch_limit_up_pool("2026-05-12")
+    assert len(result) == 4
+    assert result[0]["code"] == "000001"
+    assert result[0]["consecutive_boards"] == 3.0
+
+
 def test_fetch_limit_up_pool_empty_on_non_trading_day(monkeypatch):
+    _patch_tushare(monkeypatch, lambda endpoint, **kw: None)
     monkeypatch.setattr(lu.ak, "stock_zt_pool_em", lambda date: pd.DataFrame())
     result = lu.fetch_limit_up_pool("2026-05-10")
     assert result == []
@@ -133,6 +173,7 @@ def test_run_limit_up_analysis_full_pipeline(monkeypatch):
     saved_daily = {}
     saved_analysis = {}
 
+    _patch_tushare(monkeypatch, lambda endpoint, **kw: _ts_limit_df())
     monkeypatch.setattr(lu.ak, "stock_zt_pool_em", lambda date: _zt_df())
     monkeypatch.setattr(lu.ak, "stock_zt_pool_zbgc_em", lambda date: _broken_df())
     monkeypatch.setattr(lu.ak, "stock_zt_pool_dtgc_em", lambda date: _limit_down_df())
@@ -149,7 +190,7 @@ def test_run_limit_up_analysis_full_pipeline(monkeypatch):
 
     assert result["status"] == "success"
     assert result["date"] == "2026-05-12"
-    assert len(result["data"]["limit_up_pool"]) == 4
+    assert len(result["data"]["limit_up_pool"]) == 1
     assert len(result["data"]["broken_pool"]) == 1
     assert len(result["data"]["limit_down_pool"]) == 1
     assert "consecutive_boards" in result["data"]
@@ -163,6 +204,7 @@ def test_run_limit_up_analysis_full_pipeline(monkeypatch):
 
 
 def test_run_limit_up_analysis_no_data(monkeypatch):
+    _patch_tushare(monkeypatch, lambda endpoint, **kw: None)
     monkeypatch.setattr(lu.ak, "stock_zt_pool_em", lambda date: pd.DataFrame())
     monkeypatch.setattr(lu.ak, "stock_zt_pool_zbgc_em", lambda date: pd.DataFrame())
     monkeypatch.setattr(lu.ak, "stock_zt_pool_dtgc_em", lambda date: pd.DataFrame())

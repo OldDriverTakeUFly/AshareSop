@@ -2,6 +2,32 @@ import pandas as pd
 
 import stockhot.dragon_tiger as dt
 
+# Tushare top_list 格式（2026-07-07 起 fetch_lhb_detail 走 Tushare 优先）
+_DETAIL_DF_TS = pd.DataFrame(
+    {
+        "ts_code": ["000001.SZ", "600519.SH"],
+        "name": ["平安银行", "贵州茅台"],
+        "reason": ["涨幅偏离", "换手率达标的证券"],
+        "close": [12.50, 1680.00],
+        "pct_change": [10.01, -5.23],
+        "net_amount": [5000000.0, -3000000.0],
+        "l_buy": [8000000.0, 2000000.0],
+        "l_sell": [3000000.0, 5000000.0],
+        "trade_date": ["20260512", "20260512"],
+    }
+)
+
+# Tushare top_inst 格式（exile 列为机构名称）
+_INST_DF_TS = pd.DataFrame(
+    {
+        "ts_code": ["INST001", "INST002"],
+        "exile": ["机构A", "机构B"],
+        "buy": [10000000.0, 5000000.0],
+        "sell": [3000000.0, 8000000.0],
+        "net": [7000000.0, -3000000.0],
+    }
+)
+
 _DETAIL_DF = pd.DataFrame(
     {
         "代码": ["000001", "600519"],
@@ -36,19 +62,42 @@ _BROKER_DF = pd.DataFrame(
 )
 
 
+def _patch_tushare(monkeypatch, responder):
+    """打桩 Tushare 数据源（fetch_lhb_detail / fetch_institutional_trading 自
+    2026-07-07 起 Tushare top_list / top_inst 优先，AKShare 仅兜底）.
+
+    responder: callable(endpoint, **kw) -> DataFrame | None
+    """
+    monkeypatch.setattr(
+        "stockhot.core.tushare_client_safe.safe_tushare_call", responder
+    )
+
+
 def test_fetch_lhb_detail_with_mock(monkeypatch):
+    _patch_tushare(monkeypatch, lambda endpoint, **kw: _DETAIL_DF_TS)
+
+    result = dt.fetch_lhb_detail("2026-05-12", "2026-05-12")
+
+    assert len(result) == 2
+    assert result[0]["code"] == "000001.SZ"
+    assert result[0]["name"] == "平安银行"
+    assert result[0]["change_pct"] == 10.01
+    assert result[1]["code"] == "600519.SH"
+
+
+def test_fetch_lhb_detail_tushare_down_falls_back_to_akshare(monkeypatch):
+    """Tushare 失败时走 AKShare fallback，中文字段映射不回退."""
+    _patch_tushare(monkeypatch, lambda endpoint, **kw: None)
     monkeypatch.setattr(dt, "safe_akshare_call", lambda fn, **kw: _DETAIL_DF)
 
     result = dt.fetch_lhb_detail("2026-05-12", "2026-05-12")
 
     assert len(result) == 2
     assert result[0]["code"] == "000001"
-    assert result[0]["name"] == "平安银行"
-    assert result[0]["change_pct"] == 10.01
-    assert result[1]["code"] == "600519"
 
 
 def test_fetch_lhb_detail_empty(monkeypatch):
+    _patch_tushare(monkeypatch, lambda endpoint, **kw: None)
     monkeypatch.setattr(dt, "safe_akshare_call", lambda fn, **kw: pd.DataFrame())
 
     result = dt.fetch_lhb_detail("2026-05-12", "2026-05-12")
@@ -110,15 +159,16 @@ def test_run_dragon_tiger_analysis_full(monkeypatch):
     saved_daily = {}
     saved_analysis = []
 
-    _call_count = {"n": 0}
-    _responses = [_DETAIL_DF, _INST_DF, _BROKER_DF]
+    def _ts_responder(endpoint, **kw):
+        if endpoint == "top_list":
+            return _DETAIL_DF_TS
+        if endpoint == "top_inst":
+            return _INST_DF_TS
+        return None
 
-    def _mock_safe_call(fn, **kw):
-        idx = _call_count["n"]
-        _call_count["n"] += 1
-        return _responses[idx] if idx < len(_responses) else pd.DataFrame()
-
-    monkeypatch.setattr(dt, "safe_akshare_call", _mock_safe_call)
+    _patch_tushare(monkeypatch, _ts_responder)
+    # brokers（营业部）仍走 AKShare stock_lhb_hyyyb_em
+    monkeypatch.setattr(dt, "safe_akshare_call", lambda fn, **kw: _BROKER_DF)
     monkeypatch.setattr(dt, "save_daily_data", lambda d: saved_daily.update(d))
     monkeypatch.setattr(
         dt,
@@ -139,6 +189,7 @@ def test_run_dragon_tiger_analysis_full(monkeypatch):
 
 
 def test_non_trading_day_graceful(monkeypatch):
+    _patch_tushare(monkeypatch, lambda endpoint, **kw: None)
     monkeypatch.setattr(dt, "safe_akshare_call", lambda fn, **kw: pd.DataFrame())
     monkeypatch.setattr(
         dt.ak,
