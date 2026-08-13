@@ -98,11 +98,21 @@ def _get_latest_close(client, ts_code: str, as_of: date) -> float | None:
 
     用未复权 close（真实交易价），不用 close×adj_factor（那是绝对前复权，
     对长期分红股会失真几倍）。选股流程的 momentum 已预热缓存，通常零额外 API。
+    Tushare 限流断连时重试 2 次（避免 30% 候选因暂时失败被浪费）。
     """
     end = as_of.strftime("%Y%m%d")
     start = (as_of - timedelta(days=30)).strftime("%Y%m%d")
+    df = None
+    for attempt in range(3):
+        try:
+            df = client.get_daily_prices(ts_code, start, end)
+            if df is not None and not df.empty:
+                break
+        except Exception:
+            df = None
+        if attempt < 2:
+            time.sleep(2 * (attempt + 1))  # 2s, 4s 退避
     try:
-        df = client.get_daily_prices(ts_code, start, end)
         if df is None or df.empty:
             return None
         df = df[df["trade_date"] <= end].sort_values("trade_date")
