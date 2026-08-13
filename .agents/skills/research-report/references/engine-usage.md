@@ -303,6 +303,8 @@ pq = analyze_profitability_quality(fin_list)        # ProfitabilityQuality (纯�
 
 > **坑点 13（forecast 传参）**：`analyze_forecast(client, ts_code, prosperity_score)` 的第三参签名虽叫 `prosperity_score`，但**实际期望传入 `ProsperityScore` dataclass 对象**（内部访问 `.delta_g`），**不是 `pscore.composite_score` 浮点数**。若传 float 会报 `'float' object has no attribute 'delta_g'`。调用前必须先 `pscore = calculate_prosperity_score(fin)` 拿到 ProsperityScore 对象，再传入。智度股份研报（2026-07）首次踩到此坑。
 
+> **坑点 14（forecast 单位是万元）**：`pro.forecast()` 返回的 `net_profit_min` / `net_profit_max` 字段单位是**万元**，不是元。如果直接 `/1e8` 转亿元，数值会偏小 10000 倍（如陕西煤业 H1 预增 112 亿显示为 0.01 亿）。正确转换：`net_profit_min / 1e4` 转亿元，或 `net_profit_min / 1e8` 转亿元后乘 1 万修正。煤炭/钢铁周期研报（2026-08）首次踩到此坑。**批量取数脚本务必验证一个已知标的的预告金额是否合理**。
+
 ## 10. 数据时效性校验（写报告前必做）
 
 **坑点 11（时效性盲区）**：报告写「研究日期 6/27」但财务数据其实是 Q1（4 月底披露），若不标注，读者会误以为是当周数据。半年报 8 月底、年报 4 月底才披露——中途财务快照只能到上一季报，这是结构性上限，不是缺陷，但**必须诚实标注时效边界**。此外，`forecast`（业绩预告）常先于正式财报披露（如 1 月底预告全年首亏、4 月预告 Q1），是更早的领先信号，不能漏。
