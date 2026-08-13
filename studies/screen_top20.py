@@ -73,6 +73,26 @@ def _get_macro_fitness_label(industry: str) -> str:
         return ""
 
 
+def _build_selection_reason(
+    momentum, valuation, prosperity, distress, delta_g, domain,
+) -> str:
+    """根据因子结构生成简短的入选原因（如"景气75 + 动量78 + 估值80"）."""
+    parts = []
+    if prosperity and prosperity >= 70:
+        parts.append(f"景气{prosperity:.0f}")
+    if delta_g and delta_g > 5:
+        parts.append(f"ΔG{delta_g:+.1f}pp")
+    if momentum and momentum >= 70:
+        parts.append(f"动量{momentum:.0f}")
+    if valuation and valuation >= 70:
+        parts.append(f"估值{valuation:.0f}")
+    if distress and distress >= 70:
+        parts.append(f"困境反转{distress:.0f}")
+    if domain == "super_cycle":
+        parts.append("超周期")
+    return " + ".join(parts[:3]) if parts else "均衡"
+
+
 # ── Config ──
 VALUATION_PREFILTER = 50.0          # pipeline default
 TOP_N = 20
@@ -292,6 +312,10 @@ def run_screening(as_of: date) -> dict:
                 "target_method": target_method,
                 "stop_loss_technical": stop_loss_tech,
                 "macro_fitness": _get_macro_fitness_label(info.industry),
+                "selection_reason": _build_selection_reason(
+                    momentum_score, valuation_score, prosperity_score,
+                    distress_score, delta_g, domain,
+                ),
             })
         except Exception:
             pass
@@ -403,17 +427,18 @@ def generate_report(data: dict) -> str:
         "",
         "## 二、Top-20 排名总表",
         "",
-        f"| 排名 | 代码 | 名称 | 综合分 | 动量 | 估值 | 景气度 | 困境 | ΔG | 行业 | 宏观 |",
-        f"|------|------|------|--------|------|------|--------|------|-----|------|------|",
+        f"| 排名 | 代码 | 名称 | 综合分 | 动量 | 估值 | 景气度 | 困境 | ΔG | 行业 | 宏观 | 入选原因 |",
+        f"|------|------|------|--------|------|------|--------|------|-----|------|------|----------|",
     ]
 
     for i, r in enumerate(top20, 1):
         mf = r.get("macro_fitness", "")
+        reason = r.get("selection_reason", "")
         lines.append(
             f"| {i} | {r['ts_code']} | {r['name']} | **{r['composite']:.1f}** "
             f"| {r['momentum'] or '—'} | {r['valuation'] or '—'} "
             f"| {r['prosperity'] or '—'} | {r['distress'] or '—'} "
-            f"| {r['delta_g'] or '—'} | {r['industry']} | {mf} |"
+            f"| {r['delta_g'] or '—'} | {r['industry']} | {mf} | {reason} |"
         )
 
     lines += [
