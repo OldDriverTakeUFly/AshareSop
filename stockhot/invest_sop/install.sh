@@ -68,8 +68,22 @@ echo ""
 echo "4. Installing cron entries..."
 
 # Check if already installed by looking for our marker
+# ⚠️ crontab -l 失败（权限/空）时必须中止——否则会在已有 block 的情况下
+#    追加新 block 导致所有 cron 条目重复（消息双发 bug 的根因）
 EXISTING=$(crontab -l 2>/dev/null || true)
+if [ -z "$EXISTING" ] && ! crontab -l >/dev/null 2>&1; then
+    echo "   ✗ ERROR: 无法读取 crontab（权限不足）。请用 sudo 运行："
+    echo "     sudo bash $0"
+    exit 1
+fi
 if echo "$EXISTING" | grep -qF "$MARKER"; then
+    # 检测重复 block（marker 出现多次 = 之前的 bug）
+    MARKER_N=$(echo "$EXISTING" | grep -cF "$MARKER" || true)
+    if [ "$MARKER_N" -gt 1 ]; then
+        echo "   ⚠ 检测到 $MARKER_N 个重复 block！先运行去重："
+        echo "     bash $(dirname "$0")/dedup_crontab.sh"
+        exit 1
+    fi
     echo "   ⚠ Invest SOP cron entries already installed (marker found). Skipping."
     echo "   To reinstall, remove the block between $MARKER and $MARKER_END from your crontab first."
 else
