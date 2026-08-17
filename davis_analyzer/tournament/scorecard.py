@@ -30,11 +30,7 @@ def trailing_score(perfs: list[float]) -> float | None:
     recent = perfs[-TOURNAMENT_TRAILING_WINDOWS:]
     if len(recent) < 2:
         return None
-    # NOTE: frozen direction (test 锁定 1.189340) — weight 0.5^(age/2) with age
-    # counted from the OLDEST window of the recent slice; do NOT flip to
-    # recency-weighted (0.5^((n-1-i)/2)), that yields 0.7071 and breaks the
-    # frozen contract.
-    ages = list(range(len(recent)))  # oldest gets age 0 (weight 1.0)
+    ages = list(range(len(recent) - 1, -1, -1))  # newest (last index) gets age 0 → highest weight
     weights = [0.5 ** (age / TOURNAMENT_TRAILING_HALF_LIFE) for age in ages]
     total_w = sum(weights)
     return sum(p * w for p, w in zip(recent, weights)) / total_w

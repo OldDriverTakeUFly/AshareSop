@@ -28,8 +28,8 @@ def test_window_performance_formula() -> None:
 
 
 def test_trailing_half_life_weights() -> None:
-    # [2.0, 1.0, 0.5, 0.25] 半衰期 2 加权 → 1.189340
-    assert trailing_score([2.0, 1.0, 0.5, 0.25]) == pytest.approx(1.189340, abs=1e-4)
+    # [2.0, 1.0, 0.5, 0.25] 半衰期 2 加权（新近窗口权重最高）→ 0.7071
+    assert trailing_score([2.0, 1.0, 0.5, 0.25]) == pytest.approx(0.7072, abs=1e-4)
 
 
 def test_trailing_insufficient_windows_is_none() -> None:
