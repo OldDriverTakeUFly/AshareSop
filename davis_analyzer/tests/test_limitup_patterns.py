@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import sqlite3
+from collections.abc import Callable
+from datetime import datetime
 
 import numpy as np
 import pandas as pd
+from pytest import MonkeyPatch
 
 from davis_analyzer.limitup import patterns
 
@@ -62,3 +65,29 @@ def test_attach_kline_and_bands(limitup_db: sqlite3.Connection) -> None:
     assert out.iloc[0]["k_body_ratio"] == 0.7
     assert out.iloc[0]["first_seal_band"] == "尾盘"
     assert bool(out.iloc[0]["late_reseal"])
+
+
+def test_price_buffer_covers_120d_window(
+    monkeypatch: MonkeyPatch, limitup_db: sqlite3.Connection
+) -> None:
+    """read_daily_prices 请求的 start 须比事件最小日期早 ≥190 自然日（120 交易日窗口）."""
+    captured: dict[str, str] = {}
+
+    def _fake_read_daily_prices(
+        conn: sqlite3.Connection, ts_codes: list[str], start: str, end: str
+    ) -> pd.DataFrame:
+        captured["start"] = start
+        captured["end"] = end
+        return pd.DataFrame()
+
+    fake: Callable[..., pd.DataFrame] = _fake_read_daily_prices
+    monkeypatch.setattr(patterns.db, "read_daily_prices", fake)
+    ev = pd.DataFrame([{
+        "ts_code": "600100.SH", "trade_date": "20240102",
+        "first_seal_time": "093000", "last_seal_time": "093500",
+    }])
+    patterns.attach_pattern_features(ev, limitup_db, "20240102", "20240102")
+
+    buffer_start = datetime.strptime(captured["start"], "%Y%m%d")
+    min_event = datetime.strptime(str(ev["trade_date"].min()), "%Y%m%d")
+    assert (min_event - buffer_start).days >= 190

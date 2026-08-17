@@ -104,8 +104,14 @@ def classify_from_prices(events: pd.DataFrame, prices: pd.DataFrame) -> pd.DataF
 def attach_pattern_features(
     events: pd.DataFrame, conn: sqlite3.Connection, start: str, end: str
 ) -> pd.DataFrame:
+    """Attach K线 + 位置形态特征（组合入口）.
+
+    价格缓冲取 start-200 自然日（≈135 交易日）：位置形态最长窗口为
+    120 交易日（range120p）+ rolling 计算行，30 自然日缓冲会使研究区间
+    头部事件的横盘/突破特征因窗口不足静默退化（数据充分性，非调参）。
+    """
     ev = attach_kline_features(events, conn, start, end)
-    buffer_start = _shift(db.normalize_date(start), -30)
+    buffer_start = _shift(db.normalize_date(start), -200)
     buffer_end = _shift(db.normalize_date(end), 15)
     prices = db.read_daily_prices(
         conn, sorted(ev["ts_code"].unique()), buffer_start, buffer_end
