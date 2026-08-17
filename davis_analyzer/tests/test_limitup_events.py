@@ -5,7 +5,6 @@ from __future__ import annotations
 import sqlite3
 
 import numpy as np
-import pandas as pd
 
 from davis_analyzer.limitup import events
 
@@ -82,3 +81,40 @@ def test_build_events_filters(limitup_db: sqlite3.Connection) -> None:
     # 首板事件的 60 日前置涨停计数
     first = df[(df.ts_code == "600001.SH") & (df.trade_date == "20240102")].iloc[0]
     assert first["prev_limit_count_60"] == 0
+
+
+def _seed_ex_dividend(conn: sqlite3.Connection) -> None:
+    rows = [
+        # (code, date, open, high, low, close, pre_close, adj)
+        ("600005.SH", "20240102", 9.8, 11.0, 9.8, 11.0, 10.0, 1.0),   # 真涨停 +10%
+        ("600005.SH", "20240103", 11.0, 12.1, 11.0, 12.1, 11.0, 2.0),  # 真涨停但除权
+    ]
+    conn.executemany(
+        "INSERT INTO daily_price VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+        [(c, d, o, h, l, cl, pc, (cl/pc-1)*100, 0.0, 0.0, a, None)
+         for c, d, o, h, l, cl, pc, a in rows],
+    )
+    conn.executemany(
+        "INSERT INTO limit_pool VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        [
+            ("2024-01-02", "600005", "limit_up", "戊", "V业", 10.0, 1e8, 1, 0,
+             "093000", "093000", 5.0, None),
+            ("2024-01-03", "600005", "limit_up", "戊", "V业", 10.0, 1e8, 2, 0,
+             "093000", "093000", 5.0, None),
+        ],
+    )
+    conn.execute(
+        "INSERT INTO stock_basic VALUES (?,?,?,?,?,?)",
+        ("600005.SH", "戊", "V业", "L", None, "20000101"),
+    )
+    conn.commit()
+
+
+def test_ex_dividend_event_removed(limitup_db: sqlite3.Connection) -> None:
+    _seed_ex_dividend(limitup_db)
+    df = events.build_events(limitup_db, "20240101", "20240110")
+    # 除权日（adj_factor 1.0 → 2.0）事件剔除，宁少勿错；前一日涨停保留
+    assert set(df["trade_date"]) == {"20240102"}
+    row = df.iloc[0]
+    assert row["ts_code"] == "600005.SH"
+    assert row["limit_price"] == 11.0
