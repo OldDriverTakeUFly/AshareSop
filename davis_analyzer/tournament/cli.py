@@ -20,6 +20,12 @@ def _build_parser() -> argparse.ArgumentParser:
     p_evolve.add_argument("--start", required=True, help="YYYYMMDD")
     p_evolve.add_argument("--end", required=True, help="YYYYMMDD")
     p_evolve.add_argument("--seed", type=int, default=None, help="随机种子（可复现）")
+    p_ch = sub.add_parser("champions", help="冠军存档管理")
+    ch_sub = p_ch.add_subparsers(dest="ch_command", required=True)
+    ch_sub.add_parser("list", help="列出冠军")
+    ch_sub.add_parser("promote", help="从台账晋升最近一次通过的战役为冠军")
+    ch_sub.add_parser("deploy", help="生成部署说明（人工同步 constants.py）")
+    ch_sub.add_parser("verify", help="校验 CHAMPION_PRESETS 与 DB 现任一致")
     return parser
 
 
@@ -158,4 +164,42 @@ def main(argv: list[str] | None = None) -> int:
         print(f"最优参数: {best}")
         print("结果已记入 tournament_ledger（通过后由 champions 流程存档）")
         return 0 if decision.ok else 2
+    if args.command == "champions":
+        from davis_analyzer import constants as C
+        from davis_analyzer.config import TOURNAMENT_REPORTS_DIR
+        from davis_analyzer.tournament.champions import (
+            incumbents, render_deploy_note, verify_sync,
+        )
+        from davis_analyzer.tournament.ledger import open_db
+
+        conn = open_db()
+        from davis_analyzer.tournament.champions import ensure_tables as ensure_ch
+        ensure_ch(conn)
+        if args.ch_command == "list":
+            for c in incumbents(conn):
+                print(f"{c.participant:<20} regime={c.regime:<10} gen={c.generation} params={c.params}")
+            return 0
+        if args.ch_command == "promote":
+            from davis_analyzer.tournament.champions import promote_from_ledger
+            rec = promote_from_ledger(conn)
+            if rec is None:
+                print("没有可晋升的战役（台账中无 ok=true 的 evolve 记录）")
+                return 1
+            print(f"已晋升: {rec.participant} gen={rec.generation} params={rec.params}")
+            return 0
+        if args.ch_command == "deploy":
+            recs = incumbents(conn)
+            note = render_deploy_note(recs)
+            path = TOURNAMENT_REPORTS_DIR / "champion_deploy_note.md"
+            path.write_text(note, encoding="utf-8")
+            print(f"部署说明已生成: {path}（请人工同步 constants.py 与 SOP.md）")
+            return 0
+        if args.ch_command == "verify":
+            problems = verify_sync(conn, dict(C.CHAMPION_PRESETS))
+            if problems:
+                for p in problems:
+                    print(f"不一致: {p}")
+                return 1
+            print("CHAMPION_PRESETS 与 DB 现任冠军一致")
+            return 0
     return 1

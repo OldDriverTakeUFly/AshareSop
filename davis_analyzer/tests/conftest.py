@@ -163,5 +163,8 @@ def tournament_db() -> Iterator[sqlite3.Connection]:
     from davis_analyzer.tournament.ledger import ensure_tables
     conn = sqlite3.connect(":memory:")
     ensure_tables(conn)
+    from davis_analyzer.tournament.champions import CHAMPIONS_DDL
+    conn.executescript(CHAMPIONS_DDL)
+    conn.commit()
     yield conn
     conn.close()
