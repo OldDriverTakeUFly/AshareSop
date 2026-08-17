@@ -13,6 +13,10 @@
 
 数据源：仅使用 Tushare Pro API。
 
+### 策略锦标赛模块（tournament/）
+
+基于周期再平衡回测引擎的多策略竞赛与参数进化子系统。`run` 以统一滚动窗口对各参赛策略（内置 davis 预设、指数基准、已部署冠军）打分并生成权重建议报告；`replay` 输出历史 meta 序列与前向模拟曲线；`evolve` 在 CPCV-lite 随机段验证下执行参数变异-选择循环，通过四条晋升门槛（随机段胜率、中位与尾部改进、扰动稳健性、决赛窗口）后才可由 `champions` 存档为冠军并人工同步部署。所有评估写入 OOS 台账（tournament_ledger 表）以保证版本纪律。入口：`python -m davis_analyzer.tournament --help`。
+
 ---
 
 ## 第二章：快速开始

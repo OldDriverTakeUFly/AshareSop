@@ -137,6 +137,9 @@ def main(argv: list[str] | None = None) -> int:
             return 1
 
         adapters = {a.name: a for a in default_participants()}
+        if args.participant not in adapters:
+            print(f"未知参赛者: {args.participant}（可用: {', '.join(sorted(adapters))}）")
+            return 2
         adapter = adapters[args.participant]
         # 空预设参与者以引擎默认值补全种子，否则 mutate 跳过缺失键 → 进化惰性
         incumbent = {

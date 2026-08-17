@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 from davis_analyzer import config, constants
 from davis_analyzer.tournament.cli import main
 

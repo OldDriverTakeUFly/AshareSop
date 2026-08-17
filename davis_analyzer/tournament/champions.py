@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import sqlite3
 import uuid
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import date
 
 from loguru import logger
@@ -113,15 +113,17 @@ def promote_from_ledger(conn: sqlite3.Connection) -> ChampionRecord | None:
             if inc.participant == name and inc.regime == regime and inc.params == params:
                 return inc  # already promoted — idempotent
         gen_row = conn.execute(
-            "SELECT COUNT(*) FROM tournament_champions WHERE participant=? AND regime=?",
+            "SELECT COALESCE(MAX(generation), 0) FROM tournament_champions "
+            "WHERE participant=? AND regime=?",
             (name, regime),
         ).fetchone()
+        gen = int(gen_row[0]) + 1  # MAX+1：满槽淘汰历史冠军后仍单调递增，不复用代数
         rec = ChampionRecord(
             champion_id=uuid.uuid4().hex[:12],
             participant=name, regime=regime,
             params=params,
-            version=f"gen{int(gen_row[0]) + 1}",
-            generation=int(gen_row[0]) + 1,
+            version=f"gen{gen}",
+            generation=gen,
             evidence={k: detail.get(k) for k in
                       ("improvements", "decay", "finals_pass", "reasons")},
             promoted_at=date.today(), oos_consumed=1, is_incumbent=True,
@@ -136,23 +138,22 @@ def promote_from_ledger(conn: sqlite3.Connection) -> ChampionRecord | None:
     return None
 
 
+def _params_key(params: dict) -> str:
+    """Canonical comparable form: both sides numeric-normalised (float), key-sorted."""
+    return json.dumps({k: float(v) for k, v in sorted(params.items())}, sort_keys=True)
+
+
 def verify_sync(conn: sqlite3.Connection, presets: dict[str, dict]) -> list[str]:
     """Champions deployed in constants.CHAMPION_PRESETS must match DB incumbents."""
     problems: list[str] = []
-    db_incumbents = {(c.participant, json.dumps(c.params, sort_keys=True)) for c in incumbents(conn)}
-    deployed = {name for name in presets}
-    for c in incumbents(conn):
-        key = (c.participant, json.dumps(c.params, sort_keys=True))
-        if key not in db_incumbents:
-            continue  # defensive, never happens
+    current = incumbents(conn)  # 只取一次，比较与遍历共用
+    deployed = set(presets)
+    for c in current:
         if c.participant not in deployed:
             problems.append(f"{c.participant}: DB 现任冠军未部署到 CHAMPION_PRESETS")
     for name, params in presets.items():
-        match = any(
-            c.participant == name and json.dumps(c.params, sort_keys=True) == json.dumps(params, sort_keys=True)
-            for c in incumbents(conn)
-        )
-        if not match:
+        key = _params_key(params)
+        if not any(c.participant == name and _params_key(c.params) == key for c in current):
             problems.append(f"{name}: CHAMPION_PRESETS 参数与 DB 现任冠军不一致")
     return problems
 

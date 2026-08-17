@@ -7,7 +7,7 @@ Genome and raises on anything undeclared (logic can never ride along).
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 
 # ── parameter specification ──

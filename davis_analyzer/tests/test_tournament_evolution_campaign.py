@@ -220,3 +220,17 @@ def test_evolve_cli_short_calendar_guard(monkeypatch: pytest.MonkeyPatch, capsys
         assert "日历长度不足" in capsys.readouterr().out
     finally:
         conn.close()
+
+
+def test_evolve_cli_unknown_participant(monkeypatch: pytest.MonkeyPatch, capsys) -> None:
+    # M7：未知参赛者列出可用名单并返回 2，不再裸抛 KeyError
+    conn = _patch_evolve_env(monkeypatch)
+    try:
+        rc = main(["evolve", "--participant", "no_such_preset",
+                   "--start", "20230101", "--end", "20251231"])
+        assert rc == 2
+        out = capsys.readouterr().out
+        assert "未知参赛者" in out and "davis_balanced" in out
+        assert conn.execute("SELECT COUNT(*) FROM tournament_ledger").fetchone()[0] == 0
+    finally:
+        conn.close()
