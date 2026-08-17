@@ -150,13 +150,58 @@ class DavisPresetAdapter:
         )
 
 
-def default_participants() -> list[ModuleAdapter]:
-    """Frozen registry: davis presets + index benchmark + deployed champions."""
+# ── universe builders（--universe 工程修复）──
+
+
+def liquidity_universe(n: int, conn: "sqlite3.Connection | None" = None) -> list[str]:
+    """按最近 20 个交易日的成交额中位数取前 N 只（可交易性过滤）.
+
+    全市场单日因子打分 >280s 不可行（2026-08-17 实测），锦标赛以流动性
+    前缀宇宙运行（u200 ≈ 1.9s/日，与 backtest_5yr_u200 惯例一致）。
+    conn 可注入供测试；默认走 davis 缓存库。
+    """
+    import sqlite3
+    import statistics
+    from collections import defaultdict
+
+    if conn is None:
+        from davis_analyzer.tushare_client import _CACHE_DB
+        conn = sqlite3.connect(str(_CACHE_DB))
+    rows = conn.execute(
+        "SELECT ts_code, amount FROM daily_price "
+        "WHERE trade_date >= (SELECT DISTINCT trade_date FROM daily_price "
+        "ORDER BY trade_date DESC LIMIT 1 OFFSET 19) AND amount > 0"
+    ).fetchall()
+    buckets: dict[str, list[float]] = defaultdict(list)
+    for code, amt in rows:
+        buckets[code].append(float(amt))
+    ranked = sorted(buckets, key=lambda c: -statistics.median(buckets[c]))
+    return ranked[:n]
+
+
+def resolve_universe(spec: str, conn: "sqlite3.Connection | None" = None) -> list[str] | None:
+    """宇宙口径解析: 'all' → None（全缓存）; 'u<N>' → 流动性前 N; 其余 → 文件路径."""
+    if spec == "all":
+        return None
+    if spec.startswith("u") and spec[1:].isdigit():
+        return liquidity_universe(int(spec[1:]), conn)
+    from pathlib import Path
+
+    text = Path(spec).read_text(encoding="utf-8")
+    return [t for t in (x.strip() for x in text.replace(",", "\n").split("\n")) if t]
+
+
+def default_participants(universe: list[str] | None = None) -> list[ModuleAdapter]:
+    """Frozen registry: davis presets + index benchmark + deployed champions.
+
+    *universe* 限定 davis 系参赛者的股票池（None = 全缓存，仅适用于
+    短窗口/小宇宙——见 :func:`liquidity_universe`）；基准不受影响。
+    """
     participants: list[ModuleAdapter] = [
-        DavisPresetAdapter(name, dict(params))
+        DavisPresetAdapter(name, dict(params), universe=universe)
         for name, params in TOURNAMENT_DAVIS_PRESETS.items()
     ]
     participants.append(IndexBenchmarkAdapter())
     for name, params in CHAMPION_PRESETS.items():
-        participants.append(DavisPresetAdapter(f"champion_{name}", dict(params)))
+        participants.append(DavisPresetAdapter(f"champion_{name}", dict(params), universe=universe))
     return participants

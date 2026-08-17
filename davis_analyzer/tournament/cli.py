@@ -12,14 +12,18 @@ def _build_parser() -> argparse.ArgumentParser:
     p_run = sub.add_parser("run", help="运行当期锦标赛并出报告")
     p_run.add_argument("--start", required=True, help="YYYYMMDD")
     p_run.add_argument("--end", required=True, help="YYYYMMDD")
+    p_run.add_argument("--universe", default="u200",
+                       help="宇宙口径: all=全缓存 / u200 u500=流动性前N / 文件路径（默认 u200，全市场单日打分>280s 不可行）")
     p_replay = sub.add_parser("replay", help="历史回放（meta 序列+前向模拟曲线）")
     p_replay.add_argument("--start", required=True, help="YYYYMMDD")
     p_replay.add_argument("--end", required=True, help="YYYYMMDD")
+    p_replay.add_argument("--universe", default="u200", help="同 run")
     p_evolve = sub.add_parser("evolve", help="进化战役（变异-选择循环+晋升门槛，年度限额）")
     p_evolve.add_argument("--participant", required=True, help="参赛者名，如 davis_balanced")
     p_evolve.add_argument("--start", required=True, help="YYYYMMDD")
     p_evolve.add_argument("--end", required=True, help="YYYYMMDD")
     p_evolve.add_argument("--seed", type=int, default=None, help="随机种子（可复现）")
+    p_evolve.add_argument("--universe", default="u200", help="同 run")
     p_ch = sub.add_parser("champions", help="冠军存档管理")
     ch_sub = p_ch.add_subparsers(dest="ch_command", required=True)
     ch_sub.add_parser("list", help="列出冠军")
@@ -38,7 +42,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "run":
         from datetime import datetime
-        from davis_analyzer.tournament.adapters import default_participants
+        from davis_analyzer.tournament.adapters import default_participants, resolve_universe
         from davis_analyzer.tournament.judge import JudgeHarness, trading_calendar
         from davis_analyzer.tournament.report import render_report, write_report
         from davis_analyzer.tournament.scorecard import score_participant
@@ -47,7 +51,7 @@ def main(argv: list[str] | None = None) -> int:
         client = TushareClient()
         start = datetime.strptime(args.start, "%Y%m%d").date()
         end = datetime.strptime(args.end, "%Y%m%d").date()
-        adapters = default_participants()
+        adapters = default_participants(resolve_universe(args.universe))
         judge = JudgeHarness(adapters, client)
         calendar = trading_calendar(client, start, end)
         snap = judge.snapshot(end, calendar)
@@ -75,7 +79,8 @@ def main(argv: list[str] | None = None) -> int:
             op_type="run", run_date=end,
             participants=[(a.name, a.version) for a in adapters],
             params_version="TOURNAMENT-v1",
-            oos_windows_used=len(snap), detail={"report": str(path)},
+            oos_windows_used=len(snap),
+            detail={"report": str(path), "universe": args.universe},
         ))
         conn.close()
         print(f"锦标赛报告已写入: {path}")
@@ -83,7 +88,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "replay":
         from datetime import datetime
         from davis_analyzer.config import TOURNAMENT_REPORTS_DIR
-        from davis_analyzer.tournament.adapters import default_participants
+        from davis_analyzer.tournament.adapters import default_participants, resolve_universe
         from davis_analyzer.tournament.judge import JudgeHarness, trading_calendar
         from davis_analyzer.tournament.ledger import LedgerRecord, append_record, open_db
         from davis_analyzer.tournament.replay import export_replay, replay
@@ -92,7 +97,7 @@ def main(argv: list[str] | None = None) -> int:
         client = TushareClient()
         start = datetime.strptime(args.start, "%Y%m%d").date()
         end = datetime.strptime(args.end, "%Y%m%d").date()
-        adapters = default_participants()
+        adapters = default_participants(resolve_universe(args.universe))
         judge = JudgeHarness(adapters, client)
         calendar = trading_calendar(client, start, end)
         windows = judge.build_windows(calendar)
@@ -107,7 +112,8 @@ def main(argv: list[str] | None = None) -> int:
             participants=[(a.name, a.version) for a in adapters],
             params_version="TOURNAMENT-v1",
             oos_windows_used=len(windows),
-            detail={"meta_csv": str(meta_path), "forward_csv": str(forward_path)},
+            detail={"meta_csv": str(meta_path), "forward_csv": str(forward_path),
+                    "universe": args.universe},
         ))
         conn.close()
         print(f"meta 序列: {meta_path}\n前向曲线: {forward_path}")
@@ -117,7 +123,7 @@ def main(argv: list[str] | None = None) -> int:
         from datetime import date, datetime
 
         from davis_analyzer import constants as C
-        from davis_analyzer.tournament.adapters import default_participants
+        from davis_analyzer.tournament.adapters import default_participants, resolve_universe
         from davis_analyzer.tournament.evolution import (
             DAVIS_SEED_DEFAULTS, build_score_fn, check_promotion, draw_segments,
             improvement_distribution, mutate, perturb_decay,
@@ -136,7 +142,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"进化战役年度限额已满（{C.TOURNAMENT_CAMPAIGNS_PER_YEAR}/年），拒绝执行")
             return 1
 
-        adapters = {a.name: a for a in default_participants()}
+        adapters = {a.name: a for a in default_participants(resolve_universe(args.universe))}
         if args.participant not in adapters:
             print(f"未知参赛者: {args.participant}（可用: {', '.join(sorted(adapters))}）")
             return 2
@@ -207,7 +213,8 @@ def main(argv: list[str] | None = None) -> int:
             detail={"improvements": [round(x, 4) for x in improvements],
                     "decay": round(decay, 4), "finals_pass": finals_pass,
                     "ok": decision.ok, "reasons": decision.reasons,
-                    "best_params": {k: float(v) for k, v in best.items()}},
+                    "best_params": {k: float(v) for k, v in best.items()},
+                    "universe": args.universe},
         ))
         print(f"晋升判定: {'通过' if decision.ok else '未通过'}")
         for r in decision.reasons:

@@ -134,6 +134,8 @@ def _patch_evolve_env(monkeypatch: pytest.MonkeyPatch, n_days: int = 900) -> sql
     ledger_mod.ensure_tables(conn)
     monkeypatch.setattr(ledger_mod, "open_db", lambda: conn)
     monkeypatch.setattr(tushare_client_mod, "TushareClient", MagicMock)
+    import davis_analyzer.tournament.adapters as adapters_mod
+    monkeypatch.setattr(adapters_mod, "resolve_universe", lambda spec, conn=None: None)
     calendar = [date(2023, 1, 2) + timedelta(days=i) for i in range(n_days)]
     monkeypatch.setattr(judge_mod, "trading_calendar", lambda client, start, end: calendar)
     monkeypatch.setattr(
@@ -156,7 +158,8 @@ def test_evolve_cli_contract(monkeypatch: pytest.MonkeyPatch) -> None:
         assert len(rows) == 1  # 恰好追加一条 evolve 台账记录
         detail = json.loads(rows[0][0])
         assert set(detail.keys()) == {
-            "improvements", "decay", "finals_pass", "ok", "reasons", "best_params",
+            "improvements", "decay", "finals_pass", "ok", "reasons",
+            "best_params", "universe",
         }
         assert (rc == 0) == (detail["ok"] is True)  # 退出码与晋升判定一致
     finally:

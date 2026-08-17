@@ -15,6 +15,7 @@ from unittest.mock import MagicMock
 import pytest
 
 import davis_analyzer.market_regime as market_regime_mod
+import davis_analyzer.tournament.adapters as adapters_mod
 import davis_analyzer.tournament.judge as judge_mod
 import davis_analyzer.tournament.ledger as ledger_mod
 import davis_analyzer.tournament.report as report_mod
@@ -65,6 +66,8 @@ def cli_env(tmp_path, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr(tushare_client_mod, "TushareClient", MagicMock)
     monkeypatch.setattr(judge_mod, "trading_calendar", lambda client, start, end: calendar)
     monkeypatch.setattr(judge_mod.JudgeHarness, "evaluate_window", _fake_evaluate_window)
+    # --universe 默认 u200（会查真实缓存库）→ 测试统一替身为全缓存
+    monkeypatch.setattr(adapters_mod, "resolve_universe", lambda spec, conn=None: None)
     monkeypatch.setattr(
         market_regime_mod, "get_market_regime_with_confirm",
         lambda trade_date, confirm_days=3: "risk_on",
@@ -109,6 +112,7 @@ def test_run_cli_writes_report_and_ledger(cli_env, monkeypatch, tmp_path, capsys
     assert params_version == "TOURNAMENT-v1"
     assert oos_used > 0
     assert json.loads(detail_json)["report"].endswith("2025-08-21_tournament.md")
+    assert json.loads(detail_json)["universe"] == "u200"  # 宇宙口径必须入台账
     assert "锦标赛报告已写入" in capsys.readouterr().out
 
 
