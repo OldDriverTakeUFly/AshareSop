@@ -74,6 +74,7 @@ class MarketSnapshot:
     industry_trend: dict[str, str] = field(default_factory=dict)  # industry → "up"/"down"/"flat"
     # ── Short-term momentum + valuation (added for quality filtering) ──
     short_momentum: dict[str, float] = field(default_factory=dict)  # ts_code → 5-day return %
+    mom60: dict[str, float] = field(default_factory=dict)  # ts_code → 60-day return % (妖股检测)
     pe_percentile: dict[str, float] = field(default_factory=dict)  # ts_code → PE historical percentile (0-100)
     volatility: dict[str, float] = field(default_factory=dict)  # ts_code → 20-day annualized vol %
     # ── Volume-price signal (added for composite rating) ──
@@ -334,12 +335,48 @@ class FactorThresholdStrategy:
         # Production default: True (C3 verified 2026-08-06: +7.3pp vs baseline,
         # 2022 bear market +3.1pp improvement, 133 bounce trades over 5 years)
         enable_oversold_bounce: bool = True,
-        oversold_bounce_slots: int = 2,        # 独立于 max_positions 的额外仓位
+        # Sweep 2026-08-10: slots 3/2/1 → Sharpe 0.720/0.753/0.886 (1 is best —
+        # concentrated best-opportunity bounce beats diversification).
+        oversold_bounce_slots: int = 1,        # 独立于 max_positions 的额外仓位
+        # ── Cyclical stock holding rules (周期股持仓辅助) ──
+        # Cyclical stocks have a bimodal return structure: fast death or
+        # super-cycle. The 31-60 day zone with small P&L is the worst area
+        # (avg -1.25%, win rate 33% in 5-yr backtest). Rules:
+        #   1. Exit cyclical positions held >30d with P&L < 3% (cycle missed)
+        #   2. Widen stop for cyclical positions with P&L > 15% (super-cycle
+        #      protection — these average +41.5% when held 60d+)
+        #   0 = disabled
+        enable_cyclical_rules: bool = False,
+        cyclical_exit_days: int = 30,          # 持仓超过此天数
+        cyclical_exit_min_pnl: float = 0.03,   # 且浮盈低于此值 → 清仓
+        cyclical_super_cycle_pnl: float = 0.15, # 浮盈超过此值 → 宽止损保护
         oversold_market_drop: float = -5.0,     # 上证前20d跌幅阈值
         oversold_rv_ratio_min: float = 0.8,     # RV5/RV20 最小值（未衰减）
         oversold_rv_ratio_sell: float = 0.8,    # RV5/RV20 卖出阈值（衰减即卖）
         oversold_max_hold_days: int = 20,       # 最大持有天数
         oversold_stop_loss: float = 0.08,       # 硬止损 8%
+        # ── Bounce candidate depth threshold (反弹选股跌幅门槛) ──
+        # Full-market study (66 trigger days × 500 stocks, 24k samples):
+        #   drop -3~-10%  → +3.77% / 20d, win 63%
+        #   drop -10~-20% → +4.58% / 20d, win 69%
+        #   drop < -20%   → +10.54% / 20d, win 78%  ← golden zone
+        # Deeper drops bounce harder (monotonic). Old hardcoded -3% admits
+        # shallow-dip noise; a stricter floor concentrates on real panic.
+        oversold_candidate_min_drop: float = -3.0,
+        # ── Bounce fallen pool (反弹全市场暴跌池) ──
+        # When > 0, on bounce trigger days the executor expands the candidate
+        # pool with the market-wide N deepest-fallen stocks (ex- ST). The
+        # main pool (top turnover) rarely contains true panic drops. Set to
+        # 0 to keep bounce selection within the main universe.
+        oversold_fallen_pool_size: int = 0,
+        # ── Demon stock filter (妖股过滤/反因子应用) ──
+        # Anti-factor study (31k samples, 2021-2026): mom60 IC=-0.074 — the
+        # top mom60 quintile averages -0.56% over the next 20d (mean reversion
+        # of extreme winners). When > 0, reject buying stocks whose 60d return
+        # exceeds this cap (e.g. 1.5 = reject stocks up >150% in 3 months).
+        #   0.0 = disabled
+        #   1.5 = recommended (3个月涨幅超150%不追)
+        max_mom60: float = 0.0,
         # ── Trailing stop (跟踪止损) ──
         # When > 0, replaces fixed take-profit for positions in profit.
         # Once P&L >= trailing_activate (e.g. 10%), the stop line moves up
@@ -482,11 +519,18 @@ class FactorThresholdStrategy:
         self.ivix_pause_threshold = ivix_pause_threshold
         self.enable_oversold_bounce = enable_oversold_bounce
         self.oversold_bounce_slots = oversold_bounce_slots
+        self.enable_cyclical_rules = enable_cyclical_rules
+        self.cyclical_exit_days = cyclical_exit_days
+        self.cyclical_exit_min_pnl = cyclical_exit_min_pnl
+        self.cyclical_super_cycle_pnl = cyclical_super_cycle_pnl
         self.oversold_market_drop = oversold_market_drop
         self.oversold_rv_ratio_min = oversold_rv_ratio_min
         self.oversold_rv_ratio_sell = oversold_rv_ratio_sell
         self.oversold_max_hold_days = oversold_max_hold_days
         self.oversold_stop_loss = oversold_stop_loss
+        self.oversold_candidate_min_drop = oversold_candidate_min_drop
+        self.oversold_fallen_pool_size = oversold_fallen_pool_size
+        self.max_mom60 = max_mom60
         self.trailing_drawback = trailing_drawback
         self.trailing_activate = trailing_activate
         self.min_hold_days = min_hold_days
@@ -569,7 +613,7 @@ class FactorThresholdStrategy:
             drop_20d = getattr(snapshot, "stock_20d_drops", {}).get(code)
             if drop_20d is None:
                 continue
-            if drop_20d > -3.0:  # must be at least -3% drop (not just any stock)
+            if drop_20d > self.oversold_candidate_min_drop:  # depth floor
                 continue
             candidates.append((code, drop_20d))
 
@@ -740,6 +784,15 @@ class FactorThresholdStrategy:
                     regime = snapshot.market_regime
                     if regime not in ("bear", "panic"):
                         continue  # high VIX in uptrend — pause buy
+
+            # ── Demon stock filter (妖股过滤) ──
+            # Extreme 60d winners mean-revert (IC=-0.074, top quintile -0.56%/20d).
+            # Reject buying stocks that already surged past max_mom60 — chasing
+            # 3-month doublers is buying the top of the distribution.
+            if self.max_mom60 > 0:
+                m60 = snapshot.mom60.get(code)
+                if m60 is not None and m60 > self.max_mom60 * 100:
+                    continue  # too extended — mean reversion risk
 
             # Composite score: momentum + best secondary + prosperity + volume-price + tech.
             # Default weights:
@@ -981,6 +1034,39 @@ class FactorThresholdStrategy:
                         signal_reason="超跌反弹卖出：" + "；".join(bounce_reasons),
                     ))
                     self._bounce_positions.pop(pos.ts_code, None)
+
+        # ── 2c. Cyclical stock holding rules (周期股持仓辅助) ──
+        # Rule 1: cyclical + held >30d + P&L < 3% → exit (cycle missed).
+        # Empirical: this zone averages -1.25% with 33% win rate — holding
+        # a cyclical that hasn't moved in a month is dead capital.
+        # Rule 2 is implemented in executor's risk layer (super-cycle stop
+        # widening) since it needs to interact with hard_stop thresholds.
+        if self.enable_cyclical_rules:
+            try:
+                from davis_analyzer.cyclical import is_cyclical_by_code
+                from datetime import datetime as _dtc
+                for pos in positions:
+                    if pos.ts_code in self._bounce_positions:
+                        continue  # bounce positions managed separately
+                    if not is_cyclical_by_code(pos.ts_code):
+                        continue
+                    px = snapshot.prices.get(pos.ts_code)
+                    if px is None or px <= 0 or not pos.avg_cost or pos.avg_cost <= 0:
+                        continue
+                    pnl = px / pos.avg_cost - 1
+                    if not pos.entry_date:
+                        continue
+                    hold_days = (_dtc.strptime(snapshot.trade_date, "%Y%m%d")
+                                 - _dtc.strptime(pos.entry_date[:8], "%Y%m%d")).days
+                    if hold_days > self.cyclical_exit_days and pnl < self.cyclical_exit_min_pnl:
+                        signals.append(Signal(
+                            ts_code=pos.ts_code,
+                            name=pos.name,
+                            action="SELL",
+                            signal_reason=f"周期股清理：持仓{hold_days}天浮盈{pnl*100:.1f}%<{self.cyclical_exit_min_pnl*100:.0f}%（周期已过）",
+                        ))
+            except Exception:
+                pass  # cyclical rules are best-effort
 
         # ── 3. Market gate ──
         effective_max = self._effective_max_positions(

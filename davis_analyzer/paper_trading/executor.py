@@ -500,6 +500,56 @@ def _compute_stock_20d_drops(ts_codes: list[str], trade_date: str) -> dict[str, 
     return result
 
 
+def _build_fallen_pool(trade_date: str, size: int = 100) -> list[str]:
+    """Build the market-wide deepest-fallen stock pool (排除ST/停牌).
+
+    Ranks all tradeable stocks by 20-day return ascending (most negative
+    first) on the latest trade date on/before *trade_date*, excluding ST
+    stocks. These are the golden-zone bounce candidates (<-20% drops
+    average +10.5% / 20d with 78% win rate in the 5-yr study).
+
+    Returns up to *size* ts_codes.
+    """
+    try:
+        with get_market_conn() as conn:
+            # Latest trade date with data (point-in-time safe)
+            d_row = conn.execute(
+                "SELECT MAX(trade_date) FROM daily_price WHERE trade_date <= ? AND vol > 0",
+                (trade_date,),
+            ).fetchone()
+            if not d_row or not d_row[0]:
+                return []
+            latest = d_row[0]
+
+            # ~20 trading days ago for the 20d return
+            past_row = conn.execute(
+                "SELECT DISTINCT trade_date FROM daily_price "
+                "WHERE trade_date <= ? AND vol > 0 ORDER BY trade_date DESC LIMIT 21",
+                (trade_date,),
+            ).fetchall()
+            if len(past_row) < 21:
+                return []
+            past_date = past_row[20][0]
+
+            rows = conn.execute(
+                """
+                SELECT a.ts_code
+                FROM daily_price a
+                JOIN daily_price b ON a.ts_code = b.ts_code
+                LEFT JOIN stock_basic sb ON a.ts_code = sb.ts_code
+                WHERE a.trade_date = ? AND a.close > 0 AND a.vol > 0
+                  AND b.trade_date = ? AND b.close > 0
+                  AND (sb.name IS NULL OR sb.name NOT LIKE '%ST%')
+                ORDER BY (a.close / b.close - 1) ASC
+                LIMIT ?
+                """,
+                (latest, past_date, size),
+            ).fetchall()
+        return [r[0] for r in rows]
+    except Exception:
+        return []
+
+
 def _compute_vol_ratio_250(trade_date: str) -> float | None:
     """全市场近20日均量 / 近250日均量（量能比防御信号）.
 
@@ -553,6 +603,41 @@ def _compute_short_momentum(ts_codes: list[str], trade_date: str) -> dict[str, f
     if len(dates) < 2:
         return {}
     today_str, past_str = dates[0], dates[-1]
+
+    result: dict[str, float] = {}
+    with get_market_conn() as conn:
+        curr = {r[0]: float(r[1]) for r in conn.execute(
+            "SELECT ts_code, close FROM daily_price WHERE trade_date=? AND close IS NOT NULL", (today_str,)
+        ).fetchall()}
+        past = {r[0]: float(r[1]) for r in conn.execute(
+            "SELECT ts_code, close FROM daily_price WHERE trade_date=? AND close IS NOT NULL", (past_str,)
+        ).fetchall()}
+    for code in ts_codes:
+        c = curr.get(code)
+        p = past.get(code)
+        if c and p and p > 0:
+            result[code] = round((c / p - 1) * 100, 2)
+    return result
+
+
+def _compute_mom60(ts_codes: list[str], trade_date: str) -> dict[str, float]:
+    """Compute 60-day return % for each stock (妖股检测用).
+
+    Anti-factor study (31k samples): mom60 IC=-0.074 — extreme 60d winners
+    mean-revert over the next 20d (top quintile averages -0.56%). Used by
+    the strategy to reject buying stocks that already more than doubled.
+    """
+    if not ts_codes:
+        return {}
+    with get_market_conn() as conn:
+        dates_row = conn.execute(
+            "SELECT DISTINCT trade_date FROM daily_price WHERE trade_date <= ? ORDER BY trade_date DESC LIMIT 61",
+            (trade_date,),
+        ).fetchall()
+    dates = [r[0] for r in dates_row]
+    if len(dates) < 61:
+        return {}
+    today_str, past_str = dates[0], dates[60]
 
     result: dict[str, float] = {}
     with get_market_conn() as conn:
@@ -1822,6 +1907,19 @@ class DailyExecutor:
             if is_within_min_hold:
                 continue
 
+            # ── Cyclical super-cycle stop widening (周期股超级周期保护) ──
+            # Cyclical positions with P&L > 15% get a wider stop (×2) — these
+            # are potential super-cycle runners (avg +41.5% when held 60d+).
+            # A normal 7-9% pullback stop would kill them mid-trend.
+            if getattr(self.strategy, "enable_cyclical_rules", False):
+                try:
+                    from davis_analyzer.cyclical import is_cyclical_by_code
+                    super_pnl = getattr(self.strategy, "cyclical_super_cycle_pnl", 0.15)
+                    if pnl_pct >= super_pnl and is_cyclical_by_code(pos.ts_code):
+                        hard_stop = min(hard_stop * 2.0, 0.25)  # widen ×2, cap 25%
+                except Exception:
+                    pass
+
             # ── Low-volume (吸筹) stop-loss exemption ──
             # Rationale: low-position high-volume signals accumulation (主力吸筹),
             # which often involves shake-outs (洗盘) before the real move.
@@ -2049,6 +2147,31 @@ class DailyExecutor:
             if code not in codes_to_price:
                 codes_to_price.append(code)
 
+        # ── 2a. Bounce pool expansion (反弹专用全市场暴跌池) ──
+        # On oversold-bounce trigger days (上证跌>5% + RV未衰减), expand the
+        # candidate pool with the market-wide deepest-fallen stocks. The main
+        # pool (top turnover) rarely contains true panic drops; the golden
+        # zone (<-20% drop → +10.5%/20d, 78% win) lives in the full market.
+        # Controlled by strategy.oversold_fallen_pool_size (0 = off).
+        fallen_pool_size = getattr(self.strategy, "oversold_fallen_pool_size", 0)
+        if fallen_pool_size > 0 and getattr(self.strategy, "enable_oversold_bounce", False):
+            try:
+                idx_drop = _compute_index_20d_drop(trade_date)
+                rv_ratio = _compute_rv_decay_ratio(trade_date)
+                if (idx_drop is not None and rv_ratio is not None
+                        and idx_drop < getattr(self.strategy, "oversold_market_drop", -5.0)
+                        and rv_ratio >= getattr(self.strategy, "oversold_rv_ratio_min", 0.8)):
+                    fallen = _build_fallen_pool(trade_date, fallen_pool_size)
+                    added = 0
+                    for code in fallen:
+                        if code not in codes_to_price:
+                            codes_to_price.append(code)
+                            added += 1
+                    if added:
+                        logger.info(f"[{self.account.name}] {trade_date}: bounce pool +{added} fallen stocks")
+            except Exception:
+                pass  # best-effort expansion
+
         prices = _get_close_prices(codes_to_price, trade_date)
         if not prices:
             logger.warning(f"[{self.account.name}] {trade_date}: no prices available")
@@ -2080,6 +2203,7 @@ class DailyExecutor:
 
         # ── 2c. Quality data: short momentum, PE percentile, volatility ──
         short_momentum = _compute_short_momentum(codes_to_price, trade_date)
+        mom60 = _compute_mom60(codes_to_price, trade_date)
         pe_percentiles = _compute_pe_percentiles(codes_to_price, trade_date)
         volatilities = _compute_volatilities(codes_to_price, trade_date)
         # Volume-price signal — used both by the strategy (composite rating)
@@ -2160,6 +2284,7 @@ class DailyExecutor:
             industries=industries,
             industry_trend=industry_trend,
             short_momentum=short_momentum,
+            mom60=mom60,
             pe_percentile=pe_percentiles,
             volatility=volatilities,
             volume_signal=volume_signals,
