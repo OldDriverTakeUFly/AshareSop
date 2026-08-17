@@ -44,6 +44,20 @@ def _safe(v: object, default: object = None) -> object:
         return default
 
 
+def _pick(rec: pd.Series, *names: str) -> object:
+    """Return the first column value that exists and is not NaN.
+
+    Real limit_list_d payloads use `float_mv`/`turnover_ratio` while the
+    Tushare doc names them `float_market_value`/`turnover_rate`; accept
+    both, real name first.
+    """
+    for name in names:
+        v = rec.get(name)
+        if v is not None and not pd.isna(v):
+            return v
+    return None
+
+
 def backfill(
     conn: sqlite3.Connection, start: str, end: str, fetch_fn: FetchFn
 ) -> dict:
@@ -74,14 +88,14 @@ def backfill(
                         int(_safe(rec.get("limit_times"), 0) or 0),
                         int(_safe(rec.get("open_times"), 0) or 0),
                         str(rec.get("first_time") or ""), str(rec.get("last_time") or ""),
-                        _safe(rec.get("turnover_rate")),
+                        _safe(_pick(rec, "turnover_ratio", "turnover_rate")),
                     ),
                 )
                 conn.execute(
                     "INSERT OR REPLACE INTO limit_pool_ext "
                     "(trade_date, ts_code, pool_kind, float_mv) VALUES (?,?,?,?)",
                     (dash, db.strip_code_suffix(str(rec.get("ts_code", ""))),
-                     pool_kind, _safe(rec.get("float_market_value"))),
+                     pool_kind, _safe(_pick(rec, "float_mv", "float_market_value"))),
                 )
                 rows_written += 1
         conn.commit()

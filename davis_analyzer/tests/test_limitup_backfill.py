@@ -12,12 +12,18 @@ from davis_analyzer.limitup import backfill, cli
 
 
 def _raw_df() -> pd.DataFrame:
+    """Real limit_list_d payload shape (verified live 2026-08-14).
+
+    Market cap column is `float_mv` and turnover is `turnover_ratio`;
+    the Tushare doc names (float_market_value / turnover_rate) do NOT
+    appear in actual responses.
+    """
     return pd.DataFrame(
         [{
             "trade_date": "20240102", "ts_code": "603311.SH", "industry": "家电",
             "name": "金海高科", "pct_chg": 10.0, "close": 10.01, "amount": 5e8,
-            "limit_times": 2, "float_market_value": 8e9, "total_market_value": 1e10,
-            "turnover_rate": 12.5, "fd_amount": 5e7, "first_time": "093000",
+            "limit_times": 2, "float_mv": 8e9, "total_mv": 1e10,
+            "turnover_ratio": 12.5, "fd_amount": 5e7, "first_time": "093000",
             "last_time": "145500", "open_times": 0, "limit": "U",
         }]
     )
@@ -47,11 +53,12 @@ def test_backfill_writes_and_maps(limitup_db: sqlite3.Connection) -> None:
     assert result["days_done"] == 1 and result["rows_written"] == 1
     assert len(calls) == 3  # U/Z/D 三次
     row = limitup_db.execute(
-        "SELECT ts_code, pool_kind, seal_amount, consecutive_boards, sector "
-        "FROM limit_pool"
+        "SELECT ts_code, pool_kind, seal_amount, consecutive_boards, sector, "
+        "turnover_rate FROM limit_pool"
     ).fetchone()
     assert row[0] == "603311" and row[1] == "limit_up"
     assert row[2] == 5e7 and row[3] == 2 and row[4] == "家电"
+    assert row[5] == 12.5  # turnover_ratio -> limit_pool.turnover_rate
     ext = limitup_db.execute("SELECT float_mv FROM limit_pool_ext").fetchone()
     assert ext[0] == 8e9
 
