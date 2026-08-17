@@ -182,8 +182,10 @@ def analyze_momentum(
     start = (ref - pd.Timedelta(days=_LOOKBACK_DAYS)).strftime("%Y%m%d")
 
     # ── Fast path: direct SQLite + pure Python (no pandas) ──
+    # Guard against MagicMock clients (tests): only real sqlite3 connections.
+    import sqlite3 as _sq3
     cache_conn = getattr(client, "_cache_conn", None)
-    if cache_conn is not None:
+    if cache_conn is not None and isinstance(cache_conn, _sq3.Connection):
         try:
             rows = cache_conn.execute(
                 "SELECT trade_date, close, adj_factor FROM daily_price "
