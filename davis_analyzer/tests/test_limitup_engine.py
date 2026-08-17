@@ -104,3 +104,27 @@ def test_pessimistic_scenario_reduces_fills() -> None:
         n_pess += len(tp)
         n_opt += len(to)
     assert n_pess <= n_opt
+
+
+def test_compute_limitup_performance() -> None:
+    import pytest
+
+    from davis_analyzer.backtest_report import PerformanceStats
+    from davis_analyzer.limitup.engine import compute_limitup_performance
+
+    nav = pd.DataFrame({
+        "date": ["20240102", "20240103", "20240104"],
+        "cash": [1e6, 1e6, 1e6], "equity": [1e6, 1.01e6, 1.02e6],
+    })
+    trades = [
+        TradeRecord("A", "20240102", 10.0, 100, "20240103", 10.5, "规则卖出",
+                    "base", 40.0, 6.0, 0.04),
+        TradeRecord("B", "20240102", 10.0, 100, "20240103", 9.5, "规则卖出",
+                    "base", -60.0, 6.0, -0.06),
+    ]
+    stats = compute_limitup_performance(nav, trades, n_signal_days=2)
+    assert isinstance(stats, PerformanceStats)
+    assert stats.num_trades == 2
+    assert stats.win_rate_pct == 50.0
+    assert stats.total_return_pct == pytest.approx(2.0)
+    assert stats.num_rebalances == 2

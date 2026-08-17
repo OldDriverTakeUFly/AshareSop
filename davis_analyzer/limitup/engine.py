@@ -237,3 +237,50 @@ def _close_position(
     )
     pos["_cash_credit"] = net
     del positions[code]
+
+
+# ── performance & sensitivity ──
+
+def compute_limitup_performance(
+    nav: pd.DataFrame, trades: list[TradeRecord], n_signal_days: int
+) -> "PerformanceStats":
+    from davis_analyzer.backtest_report import PerformanceStats
+
+    eq = nav["equity"].astype(float)
+    total_ret = eq.iloc[-1] / eq.iloc[0] - 1
+    n_days = max(len(eq) - 1, 1)
+    ann = (1 + total_ret) ** (252 / n_days) - 1 if total_ret > -1 else -1.0
+    daily = eq.pct_change().dropna()
+    sharpe = (
+        float(daily.mean() / daily.std() * np.sqrt(252))
+        if len(daily) > 1 and daily.std() > 0 else 0.0
+    )
+    drawdown = eq / eq.cummax() - 1
+    wins = [t for t in trades if t.ret_pct > 0]
+    total_cost = sum(t.fees for t in trades)
+    return PerformanceStats(
+        total_return_pct=total_ret * 100,
+        annualized_return_pct=ann * 100,
+        sharpe_ratio=sharpe,
+        max_drawdown_pct=float(drawdown.min()) * 100,
+        win_rate_pct=len(wins) / len(trades) * 100 if trades else 0.0,
+        turnover_per_rebalance=0.0,
+        num_trades=len(trades),
+        num_rebalances=n_signal_days,
+        avg_holding_count=0.0,
+        total_cost=total_cost,
+    )
+
+
+def run_sensitivity(
+    candidates: pd.DataFrame, prices: pd.DataFrame, preset: StrategyPreset,
+    config: LimitupBacktestConfig, seed: int = 42,
+) -> dict[str, "PerformanceStats"]:
+    out: dict[str, PerformanceStats] = {}
+    n_signal_days = candidates["trade_date"].nunique() if len(candidates) else 0
+    for scenario in ("pessimistic", "base", "optimistic", "always"):
+        trades, nav = run_backtest(
+            candidates, prices, preset, config, scenario=scenario, seed=seed
+        )
+        out[scenario] = compute_limitup_performance(nav, trades, n_signal_days)
+    return out

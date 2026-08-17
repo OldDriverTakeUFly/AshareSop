@@ -47,6 +47,8 @@ scoring.py                    ← 4 维综合 → 最终戴维斯双击分
 tushare_client.py             ← 数据层(API + SQLite 缓存 + 限流 400/min + 重试)
 ```
 
+涨停研究子系统(独立):`limitup/`(backfill 数据回补 → events/patterns/sentiment 事件与形态 → study 事件研究 → engine 事件驱动打板回测,CLI: python -m davis_analyzer.limitup)。
+
 **回测子系统**(相对独立):`backtest.py`(周期再平衡主循环) → `backtest_factors.py`(横截面因子评分) → `backtest_report.py`(收益/夏普/回撤 + CSV 导出)。
 
 **输出层**:`report_generator.py` + `templates.py`(模板化研报,无 LLM);`checklist_generator.py` + `rescorer.py`(深度调研清单循环,人工定性调整)。

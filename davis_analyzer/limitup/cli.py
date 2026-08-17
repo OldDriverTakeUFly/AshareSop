@@ -94,6 +94,66 @@ def cmd_study(args: argparse.Namespace) -> None:
         conn.close()
 
 
+def cmd_backtest(args: argparse.Namespace) -> None:
+    import pandas as pd
+
+    from davis_analyzer import config
+    from davis_analyzer.limitup import db, engine, patterns, report
+    from davis_analyzer.limitup.engine import LimitupBacktestConfig, run_sensitivity
+    from davis_analyzer.limitup.events import build_events
+    from davis_analyzer.limitup.robustness import split_is_oos
+    from davis_analyzer.limitup.sentiment import build_market_regime
+    from davis_analyzer.limitup.strategies import PRESETS, apply_preset
+
+    conn = db.connect()
+    try:
+        events = build_events(conn, args.start, args.end)
+        events = patterns.attach_pattern_features(events, conn, args.start, args.end)
+        regime = build_market_regime(conn, args.start, args.end)
+        is_ev, _ = split_is_oos(events, args.oos_start)
+        preset = PRESETS[args.preset]
+        seal_med = float(is_ev["seal_ratio"].median()) if len(is_ev) else None
+        candidates = apply_preset(
+            events, preset, regime=regime, seal_ratio_median=seal_med
+        )
+        prices = db.read_daily_prices(
+            conn, sorted(candidates["ts_code"].unique()),
+            args.start, args.end,
+        )
+        cfg = LimitupBacktestConfig(initial_capital=args.capital)
+        sens = run_sensitivity(candidates, prices, preset, cfg, seed=args.seed)
+        rows = pd.DataFrame(
+            [{**{"scenario": k}, **vars(v)} for k, v in sens.items()]
+        )
+        base_trades, base_nav = engine.run_backtest(
+            candidates, prices, preset, cfg, scenario=args.fill_scenario,
+            seed=args.seed,
+        )
+        n_days = max(len(base_nav) - 1, 1)
+        daily_signal = len(candidates) / max(n_days, 1)
+        sections = [
+            ("策略与参数", f"预设={args.preset}（{preset.name}）；窗口 "
+                        f"{args.start}→{args.end}；IS 中位 seal_ratio={seal_med}；"
+                        f"日均信号数={daily_signal:.2f}"
+                        + ("（⚠ 过稀疏）" if daily_signal < 0.5 else "")),
+            ("三档成交敏感性", report.df_to_md_table(rows)),
+            ("结论纪律",
+             "三档方向不一致时结论必须写\"不确定\"（规格 §14.3）；"
+             "样本门槛：收益类≥30、晋级率类≥50。"),
+        ]
+        out_md = report.write_report(
+            config.LIMITUP_REPORTS_DIR
+            / f"{args.preset}_{args.start}-{args.end}_backtest.md",
+            f"打板回测 [{preset.name}]（{args.fill_scenario} 档明细）",
+            sections,
+        )
+        out_csv = config.LIMITUP_REPORTS_DIR / f"{args.preset}_trades.csv"
+        pd.DataFrame([vars(t) for t in base_trades]).to_csv(out_csv, index=False)
+        print(f"回测报告: {out_md}\n交易明细: {out_csv}")
+    finally:
+        conn.close()
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="davis_analyzer.limitup",
@@ -113,6 +173,18 @@ def _build_parser() -> argparse.ArgumentParser:
     p_st.add_argument("--oos-start", default="20250701",
                       help="IS/OOS 切分日（默认 20250701）")
     p_st.set_defaults(func=cmd_study)
+
+    p_bt = sub.add_parser("backtest", help="事件驱动打板回测（Phase 2）")
+    p_bt.add_argument("--preset", required=True,
+                      choices=["first_board", "relay_2", "relay_3"])
+    p_bt.add_argument("--start", required=True, help="YYYYMMDD")
+    p_bt.add_argument("--end", required=True, help="YYYYMMDD")
+    p_bt.add_argument("--oos-start", default="20250701")
+    p_bt.add_argument("--fill-scenario", default="base",
+                      choices=["base", "optimistic", "pessimistic", "always"])
+    p_bt.add_argument("--capital", type=float, default=1_000_000.0)
+    p_bt.add_argument("--seed", type=int, default=42)
+    p_bt.set_defaults(func=cmd_backtest)
 
     return parser
 
