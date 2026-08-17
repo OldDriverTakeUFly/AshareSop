@@ -452,7 +452,7 @@ git commit -m "feat(limitup): 共享数据读取层（日期/代码归一+分块
   - `FetchFn = Callable[[str, str], pd.DataFrame | None]`（参数 `trade_date: YYYYMMDD, limit_type: U/Z/D`，返回 Tushare `limit_list_d` 原始 DataFrame）
   - `ensure_ext_table(conn) -> None`
   - `backfill(conn, start: str, end: str, fetch_fn: FetchFn) -> dict`（返回 `{"days_done", "rows_written", "days_skipped"}`；按日幂等，已有 `limit_pool` 记录的日期跳过）
-  - `probe_earliest(fetch_fn: FetchFn, upper: str = "20200101") -> str | None`（探测 limit_list_d 最早可用日期）
+  - `probe_earliest(conn, fetch_fn: FetchFn, upper: str = "20200101") -> str | None`（基于 daily_price 交易日历二分探测，保证探测日均为真实交易日）
   - CLI：`python -m davis_analyzer.limitup backfill --start 20230101 [--end 20260814] [--probe]`
 
 - [ ] **Step 1: 写失败测试**
@@ -483,7 +483,17 @@ def _raw_df() -> pd.DataFrame:
     )
 
 
+def _seed_cal(conn: sqlite3.Connection, *dates: str) -> None:
+    conn.executemany(
+        "INSERT INTO daily_price VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+        [("000001.SH", d, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0, None)
+         for d in dates],
+    )
+    conn.commit()
+
+
 def test_backfill_writes_and_maps(limitup_db: sqlite3.Connection) -> None:
+    _seed_cal(limitup_db, "20240102")
     backfill.ensure_ext_table(limitup_db)
     calls: list[tuple[str, str]] = []
 
@@ -507,6 +517,7 @@ def test_backfill_writes_and_maps(limitup_db: sqlite3.Connection) -> None:
 
 
 def test_backfill_idempotent_skips_done_day(limitup_db: sqlite3.Connection) -> None:
+    _seed_cal(limitup_db, "20240102")
     backfill.ensure_ext_table(limitup_db)
     backfill.backfill(limitup_db, "20240102", "20240102", lambda d, t: _raw_df())
     result = backfill.backfill(limitup_db, "20240102", "20240102", lambda d, t: _raw_df())
@@ -514,15 +525,21 @@ def test_backfill_idempotent_skips_done_day(limitup_db: sqlite3.Connection) -> N
 
 
 def test_backfill_handles_none_fetch(limitup_db: sqlite3.Connection) -> None:
+    _seed_cal(limitup_db, "20240102")
     backfill.ensure_ext_table(limitup_db)
-    limitup_db.execute(
-        "INSERT INTO daily_price VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
-        ("000001.SH", "20240102", 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0, None),
-    )
-    limitup_db.commit()
     result = backfill.backfill(limitup_db, "20240102", "20240102",
                                lambda d, t: None)
     assert result["days_done"] == 0 and result["rows_written"] == 0
+
+
+def test_probe_earliest_binary_search(limitup_db: sqlite3.Connection) -> None:
+    _seed_cal(limitup_db, "20230103", "20230104", "20230105", "20230106",
+              "20240102", "20240103")
+
+    def fetch(trade_date: str, limit_type: str):
+        return _raw_df() if trade_date >= "20230105" and limit_type == "U" else None
+
+    assert backfill.probe_earliest(limitup_db, fetch) == "20230105"
 ```
 
 - [ ] **Step 2: 跑测试确认失败**
@@ -634,49 +651,36 @@ def backfill(
             "days_skipped": days_skipped}
 
 
-def probe_earliest(fetch_fn: FetchFn, upper: str = "20200101") -> str | None:
-    """Binary-search the earliest trade date limit_list_d covers."""
-    latest = db.normalize_date(upper)
-    probe = fetch_fn(latest, "U")
-    if probe is None or probe.empty:
+def probe_earliest(
+    conn: sqlite3.Connection, fetch_fn: FetchFn, upper: str = "20200101"
+) -> str | None:
+    """Binary-search the earliest trading date limit_list_d covers.
+
+    Probing only calendar dates from daily_price guarantees every probe
+    date is a real trading day (avoiding holiday false negatives).
+    """
+    cal = db.trading_dates(conn, "20050101", db.normalize_date(upper))
+    if not cal or _empty(fetch_fn, cal[-1]):
         return None
-    lo, hi = db.normalize_date(upper), latest  # search below `upper`
-    # coarse yearly stepping then refine monthly
-    test = lo
-    while True:
-        cand = _shift_month(test, 12)
-        df = fetch_fn(cand, "U")
-        if df is None or df.empty:
-            break
-        test = cand
-        if test <= "20050101":
-            return "20050101"
-    lo = test
-    hi = _shift_month(test, 12)
-    while _month_gap(hi, lo) > 1:
-        mid = _shift_month(lo, max(1, _month_gap(lo, hi) // 2))
-        df = fetch_fn(mid, "U")
-        if df is not None and not df.empty:
-            lo = mid
+    lo, hi = 0, len(cal) - 1
+    while lo < hi:
+        mid = (lo + hi) // 2
+        if _empty(fetch_fn, cal[mid]):
+            lo = mid + 1
         else:
             hi = mid
-    return lo
+    return cal[lo] if not _empty(fetch_fn, cal[lo]) else None
 
 
-def _shift_month(ymd: str, months: int) -> str:
-    y, m = int(ymd[:4]), int(ymd[4:6])
-    total = y * 12 + m - 1 + months
-    return f"{total // 12:04d}{total % 12 + 1:02d}01"
-
-
-def _month_gap(a: str, b: str) -> int:
-    return abs((int(a[:4]) * 12 + int(a[4:6])) - (int(b[:4]) * 12 + int(b[4:6])))
-```
+def _empty(fetch_fn: FetchFn, d: str) -> bool:
+    df = fetch_fn(d, "U")
+    return df is None or df.empty
+``````
 
 - [ ] **Step 4: 跑测试确认通过**
 
 Run: `cd /home/leo/Projects/CodeAgentDashboard && rtk pytest davis_analyzer/tests/test_limitup_backfill.py -v`
-Expected: PASS 3 项
+Expected: PASS 4 项
 
 - [ ] **Step 5: 实现 CLI 骨架 + backfill 子命令**
 
@@ -706,7 +710,7 @@ def cmd_backfill(args: argparse.Namespace) -> None:
     conn = db.connect()
     try:
         if args.probe:
-            earliest = backfill.probe_earliest(_make_fetch())
+            earliest = backfill.probe_earliest(conn, _make_fetch())
             print(f"limit_list_d 最早可用日期: {earliest}")
             return
         result = backfill.backfill(conn, args.start, args.end, _make_fetch())
@@ -1584,7 +1588,7 @@ def test_build_market_regime(limitup_db: sqlite3.Connection) -> None:
     r3 = regime[regime.trade_date == "20240103"].iloc[0]
     assert r2["limit_up_count"] == 2
     assert abs(r2["broken_rate"] - 1 / 3) < 1e-9  # broken 1 / (2 up + 1 broken)
-    assert abs(r3["promo_12"] - 1.0) < 1e-9  # 2 只首板 1 只晋级
+    assert abs(r2["promo_12"] - 0.5) < 1e-9  # 0102 两只首板仅 600001 晋级
     # premium@0103 = mean(600001: 11/11-1=0, 600002: 10.2/10.2-1=0)
     assert abs(r3["premium"]) < 1e-9
     assert r3["lianban_count"] == 1 and r3["max_boards"] == 2
@@ -2005,12 +2009,15 @@ def return_distribution(
     events: pd.DataFrame, by: list[str] | None = None
 ) -> pd.DataFrame:
     keys = by or []
-    if keys:
-        out = events.groupby(keys, dropna=False).apply(
-            lambda g: _dist(g), include_groups=False
-        ).reset_index()
-    else:
+    if not keys:
         out = _dist(events).to_frame().T
+    else:
+        rows = []
+        for kvals, g in events.groupby(keys, dropna=False, sort=False):
+            if not isinstance(kvals, tuple):
+                kvals = (kvals,)
+            rows.append({**dict(zip(keys, kvals)), **_dist(g).to_dict()})
+        out = pd.DataFrame(rows)
     out["enough_sample"] = robustness.sufficient(out["n"], "return")
     return out
 
@@ -2221,9 +2228,9 @@ def test_regime_filter() -> None:
 
 def test_filter_budget_raises() -> None:
     preset = PRESETS["relay_2"]
-    with pytest.raises(ValueError, match="过滤条件超过预算"):
-        apply_preset(_ev(), preset, min_sector_linkage=2,
-                     seal_ratio_median=0.01)  # 板数+seal+联动 = 3 → ok 不触发
+    # 板数+regime+seal+联动 = 4 条，预算内不触发
+    out = apply_preset(_ev(), preset, min_sector_linkage=2, seal_ratio_median=0.01)
+    assert not out.empty
     # 构造 5 条件触发：直接换 preset 字段
     from dataclasses import replace
     fat = replace(preset, pattern_labels=("突破型",), regime_allow=("回暖",),
@@ -2405,13 +2412,15 @@ def _prices() -> pd.DataFrame:
 
 
 def test_fill_probability_bands() -> None:
-    hard = _cand().iloc[0]              # 早盘未炸板
-    yizi = _cand(open=11.0, low=11.0).iloc[0]   # 一字板
+    hard = _cand().iloc[0]                          # 早盘 09:30 封板未炸
+    mid = _cand(first_seal_time="133000").iloc[0]   # 午盘封板未炸
+    yizi = _cand(open=11.0, low=11.0).iloc[0]       # 一字板
     broken = _cand(broken_count=2, first_seal_time="140000").iloc[0]
-    assert fill_probability(hard) == 0.35
+    assert fill_probability(hard) == 0.20
+    assert fill_probability(mid) == 0.35
     assert fill_probability(yizi) == 0.05
     assert fill_probability(broken) == 0.70
-    assert fill_probability(hard, "optimistic") == 0.525
+    assert fill_probability(hard, "optimistic") == 0.30
     assert fill_probability(hard, "always") == 1.0
 
 
@@ -2597,7 +2606,10 @@ def run_backtest(
             if pos.get("sell_on") != d or pos.get("exec") != "open":
                 continue
             if code not in px or d not in px[code].index:
-                continue  # 停牌：顺延
+                nxt = _next_day(d, all_dates)
+                if nxt:
+                    pos["sell_on"] = nxt  # 停牌无价：顺延卖出
+                continue
             if _limit_down_locked(code, d):
                 nxt = _next_day(d, all_dates)
                 if nxt:
@@ -2762,6 +2774,8 @@ git commit -m "feat(limitup): 事件驱动回测引擎（概率成交/T+1规则�
 
 ```python
 def test_compute_limitup_performance() -> None:
+    import pytest
+
     from davis_analyzer.backtest_report import PerformanceStats
     from davis_analyzer.limitup.engine import compute_limitup_performance
 
@@ -2779,7 +2793,7 @@ def test_compute_limitup_performance() -> None:
     assert isinstance(stats, PerformanceStats)
     assert stats.num_trades == 2
     assert stats.win_rate_pct == 50.0
-    assert stats.total_return_pct == 2.0
+    assert stats.total_return_pct == pytest.approx(2.0)
     assert stats.num_rebalances == 2
 ```
 
