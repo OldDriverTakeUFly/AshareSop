@@ -25,6 +25,9 @@ def _make_fetch() -> FetchFn:
 def cmd_backfill(args: argparse.Namespace) -> None:
     from davis_analyzer.limitup import backfill, db
 
+    if not args.probe and not args.start:
+        args.parser.error("--start 仅在 probe 模式可省略")
+
     conn = db.connect()
     try:
         if args.probe:
@@ -41,7 +44,7 @@ def cmd_backfill(args: argparse.Namespace) -> None:
         conn.close()
 
 
-def main() -> None:
+def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="davis_analyzer.limitup",
         description="连板打板/抓涨停启动研究模块",
@@ -49,11 +52,16 @@ def main() -> None:
     sub = parser.add_subparsers(dest="command")
 
     p_bf = sub.add_parser("backfill", help="回补 limit_list_d 涨停池历史")
-    p_bf.add_argument("--start", required=True, help="YYYYMMDD")
+    p_bf.add_argument("--start", default=None, help="YYYYMMDD")
     p_bf.add_argument("--end", default=None, help="YYYYMMDD，默认今日")
     p_bf.add_argument("--probe", action="store_true", help="只探测历史最早日期")
-    p_bf.set_defaults(func=cmd_backfill)
+    p_bf.set_defaults(func=cmd_backfill, parser=p_bf)
 
+    return parser
+
+
+def main() -> None:
+    parser = _build_parser()
     args = parser.parse_args()
     if args.command:
         args.func(args)

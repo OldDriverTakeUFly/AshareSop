@@ -1,12 +1,14 @@
-"""backfill.py 断点续传/幂等/字段映射测试。"""
+"""backfill.py 断点续传/幂等/字段映射测试 + backfill CLI 参数校验测试。"""
 
 from __future__ import annotations
 
 import sqlite3
+import sys
 
 import pandas as pd
+import pytest
 
-from davis_analyzer.limitup import backfill
+from davis_analyzer.limitup import backfill, cli
 
 
 def _raw_df() -> pd.DataFrame:
@@ -78,3 +80,19 @@ def test_probe_earliest_binary_search(limitup_db: sqlite3.Connection) -> None:
         return _raw_df() if trade_date >= "20230105" and limit_type == "U" else None
 
     assert backfill.probe_earliest(limitup_db, fetch) == "20230105"
+
+
+def test_cli_probe_mode_parses_without_start() -> None:
+    args = cli._build_parser().parse_args(["backfill", "--probe"])
+    assert args.command == "backfill"
+    assert args.probe is True and args.start is None
+
+
+def test_cli_backfill_without_start_errors(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setattr(sys, "argv", ["davis_analyzer.limitup", "backfill"])
+    with pytest.raises(SystemExit) as exc:
+        cli.main()
+    assert exc.value.code == 2
+    assert "--start 仅在 probe 模式可省略" in capsys.readouterr().err
