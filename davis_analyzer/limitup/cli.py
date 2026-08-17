@@ -200,6 +200,11 @@ def _build_parser() -> argparse.ArgumentParser:
     p_bt.add_argument("--seed", type=int, default=42)
     p_bt.set_defaults(func=cmd_backtest)
 
+    p_daily = sub.add_parser("daily", help="每日增量刷新（limit_pool/moneyflow/top_list/intraday/corp_event）")
+    p_daily.add_argument("--lookback", type=int, default=7,
+                         help="回看交易日数（默认 7，自动补漏）")
+    p_daily.set_defaults(func=cmd_daily)
+
     return parser
 
 
@@ -210,3 +215,14 @@ def main() -> None:
         args.func(args)
     else:
         parser.print_help()
+
+
+def cmd_daily(args: argparse.Namespace) -> None:
+    from davis_analyzer.limitup import daily_refresh, db
+
+    conn = db.connect()
+    try:
+        summary = daily_refresh.run_daily_refresh(conn, lookback_days=args.lookback)
+        print(f"每日刷新完成: {summary}")
+    finally:
+        conn.close()

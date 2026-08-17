@@ -58,6 +58,50 @@ def _pick(rec: pd.Series, *names: str) -> object:
     return None
 
 
+def write_pool_day(
+    conn: sqlite3.Connection, trade_date: str, df: pd.DataFrame,
+    limit_type: str, pool_kind: str,
+) -> int:
+    """Persist one pool-type/day of raw limit_list_d rows; returns rows written."""
+    dash = db.to_dash_date(trade_date)
+    rows = 0
+    for _, rec in df.iterrows():
+        conn.execute(
+            _INSERT_POOL,
+            (
+                dash, db.strip_code_suffix(str(rec.get("ts_code", ""))),
+                pool_kind, rec.get("name"),
+                rec.get("industry"),
+                _safe(rec.get("pct_chg")), _safe(rec.get("fd_amount")),
+                int(_safe(rec.get("limit_times"), 0) or 0),
+                int(_safe(rec.get("open_times"), 0) or 0),
+                db.normalize_seal_time(rec.get("first_time")),
+                db.normalize_seal_time(rec.get("last_time")),
+                _safe(_pick(rec, "turnover_ratio", "turnover_rate")),
+            ),
+        )
+        conn.execute(
+            "INSERT OR REPLACE INTO limit_pool_ext "
+            "(trade_date, ts_code, pool_kind, float_mv) VALUES (?,?,?,?)",
+            (dash, db.strip_code_suffix(str(rec.get("ts_code", ""))),
+             pool_kind, _safe(_pick(rec, "float_mv", "float_market_value"))),
+        )
+        rows += 1
+    conn.commit()
+    return rows
+
+
+def day_has_ext(conn: sqlite3.Connection, dash_date: str) -> bool:
+    """A day counts as covered only when its ext rows carry float market value."""
+    return bool(
+        conn.execute(
+            "SELECT 1 FROM limit_pool_ext WHERE trade_date=? AND float_mv IS NOT NULL "
+            "LIMIT 1",
+            (dash_date,),
+        ).fetchone()
+    )
+
+
 def backfill(
     conn: sqlite3.Connection, start: str, end: str, fetch_fn: FetchFn
 ) -> dict:
@@ -65,10 +109,7 @@ def backfill(
     days_done = rows_written = days_skipped = 0
     for d in db.trading_dates(conn, start, end):
         dash = db.to_dash_date(d)
-        exists = conn.execute(
-            "SELECT 1 FROM limit_pool WHERE trade_date=? LIMIT 1", (dash,)
-        ).fetchone()
-        if exists:
+        if day_has_ext(conn, dash):
             days_skipped += 1
             continue
         got_any = False
@@ -77,29 +118,7 @@ def backfill(
             if df is None or df.empty:
                 continue
             got_any = True
-            for _, rec in df.iterrows():
-                conn.execute(
-                    _INSERT_POOL,
-                    (
-                        dash, db.strip_code_suffix(str(rec.get("ts_code", ""))),
-                        pool_kind, rec.get("name"),
-                        rec.get("industry"),
-                        _safe(rec.get("pct_chg")), _safe(rec.get("fd_amount")),
-                        int(_safe(rec.get("limit_times"), 0) or 0),
-                        int(_safe(rec.get("open_times"), 0) or 0),
-                        db.normalize_seal_time(rec.get("first_time")),
-                        db.normalize_seal_time(rec.get("last_time")),
-                        _safe(_pick(rec, "turnover_ratio", "turnover_rate")),
-                    ),
-                )
-                conn.execute(
-                    "INSERT OR REPLACE INTO limit_pool_ext "
-                    "(trade_date, ts_code, pool_kind, float_mv) VALUES (?,?,?,?)",
-                    (dash, db.strip_code_suffix(str(rec.get("ts_code", ""))),
-                     pool_kind, _safe(_pick(rec, "float_mv", "float_market_value"))),
-                )
-                rows_written += 1
-        conn.commit()
+            rows_written += write_pool_day(conn, d, df, limit_type, pool_kind)
         if got_any:
             days_done += 1
         else:

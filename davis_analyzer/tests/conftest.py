@@ -140,6 +140,12 @@ def limitup_db() -> Iterator[sqlite3.Connection]:
             l_amount REAL, net_amount REAL, net_rate REAL, amount_rate REAL,
             float_values REAL, reason TEXT, fetched_at REAL,
             PRIMARY KEY (ts_code, trade_date));
+        CREATE TABLE moneyflow (
+            trade_date TEXT NOT NULL, ts_code TEXT NOT NULL, buy_sm_amount REAL,
+            sell_sm_amount REAL, buy_md_amount REAL, sell_md_amount REAL,
+            buy_lg_amount REAL, sell_lg_amount REAL, buy_elg_amount REAL,
+            sell_elg_amount REAL, net_mf_amount REAL, fetched_at REAL,
+            PRIMARY KEY (ts_code, trade_date));
         CREATE TABLE intraday_feature (
             ts_code TEXT NOT NULL, trade_date TEXT NOT NULL, gap REAL, amplitude REAL,
             close_position REAL, upper_shadow REAL, lower_shadow REAL, body_ratio REAL,
