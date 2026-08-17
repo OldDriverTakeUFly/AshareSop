@@ -1,3 +1,5 @@
+import sqlite3
+from collections.abc import Iterator
 from unittest.mock import MagicMock
 
 import pandas as pd
@@ -106,3 +108,50 @@ def mock_client_with_data(
     mock_client.get_cashflow.return_value = sample_cashflow_df
     mock_client.get_fina_indicator.return_value = sample_fina_df
     return mock_client
+
+
+@pytest.fixture
+def limitup_db() -> Iterator[sqlite3.Connection]:
+    """In-memory DB with empty limitup-relevant tables (schema mirrors market_db)."""
+    conn = sqlite3.connect(":memory:")
+    conn.executescript(
+        """
+        CREATE TABLE limit_pool (
+            trade_date TEXT NOT NULL, ts_code TEXT NOT NULL, pool_kind TEXT NOT NULL,
+            name TEXT, sector TEXT, change_pct REAL, seal_amount REAL,
+            consecutive_boards INTEGER, broken_count INTEGER, first_seal_time TEXT,
+            last_seal_time TEXT, turnover_rate REAL, fetched_at REAL,
+            PRIMARY KEY (trade_date, ts_code, pool_kind));
+        CREATE TABLE limit_pool_ext (
+            trade_date TEXT NOT NULL, ts_code TEXT NOT NULL, pool_kind TEXT NOT NULL,
+            float_mv REAL, PRIMARY KEY (trade_date, ts_code, pool_kind));
+        CREATE TABLE daily_price (
+            ts_code TEXT NOT NULL, trade_date TEXT NOT NULL, open REAL, high REAL,
+            low REAL, close REAL NOT NULL, pre_close REAL, pct_chg REAL, vol REAL,
+            amount REAL, adj_factor REAL, fetched_at REAL,
+            PRIMARY KEY (ts_code, trade_date));
+        CREATE TABLE index_daily (
+            ts_code TEXT NOT NULL, trade_date TEXT NOT NULL, open REAL, high REAL,
+            low REAL, close REAL NOT NULL, vol REAL, amount REAL, pct_chg REAL,
+            fetched_at REAL, PRIMARY KEY (ts_code, trade_date));
+        CREATE TABLE top_list (
+            trade_date TEXT NOT NULL, ts_code TEXT NOT NULL, name TEXT, close REAL,
+            pct_change REAL, turnover_rate REAL, amount REAL, l_sell REAL, l_buy REAL,
+            l_amount REAL, net_amount REAL, net_rate REAL, amount_rate REAL,
+            float_values REAL, reason TEXT, fetched_at REAL,
+            PRIMARY KEY (ts_code, trade_date));
+        CREATE TABLE intraday_feature (
+            ts_code TEXT NOT NULL, trade_date TEXT NOT NULL, gap REAL, amplitude REAL,
+            close_position REAL, upper_shadow REAL, lower_shadow REAL, body_ratio REAL,
+            fetched_at REAL, PRIMARY KEY (ts_code, trade_date));
+        CREATE TABLE stock_basic (
+            ts_code TEXT PRIMARY KEY, name TEXT, industry TEXT, list_status TEXT,
+            fetched_at REAL, list_date TEXT);
+        CREATE TABLE corp_event (
+            ts_code TEXT NOT NULL, ann_date TEXT NOT NULL, event_type TEXT NOT NULL,
+            direction TEXT, magnitude REAL, details_json TEXT, source TEXT,
+            fetched_at REAL, PRIMARY KEY (ts_code, ann_date, event_type, details_json));
+        """
+    )
+    yield conn
+    conn.close()
