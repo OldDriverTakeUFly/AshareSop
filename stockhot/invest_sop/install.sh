@@ -68,14 +68,15 @@ echo ""
 echo "4. Installing cron entries..."
 
 # Check if already installed by looking for our marker
-# ⚠️ crontab -l 失败（权限/空）时必须中止——否则会在已有 block 的情况下
-#    追加新 block 导致所有 cron 条目重复（消息双发 bug 的根因）
-EXISTING=$(crontab -l 2>/dev/null || true)
-if [ -z "$EXISTING" ] && ! crontab -l >/dev/null 2>&1; then
-    echo "   ✗ ERROR: 无法读取 crontab（权限不足）。请用 sudo 运行："
-    echo "     sudo bash $0"
+# ⚠️ 区分"无 crontab"（正常，首次安装）和"权限不足"（真错误，必须中止）
+# "no crontab for user" = 正常；"Permission denied"/"fopen" = 权限损坏
+CRONTAB_ERR=$(crontab -l 2>&1 >/dev/null || true)
+if echo "$CRONTAB_ERR" | grep -qiE "permission denied|fopen|not permitted"; then
+    echo "   ✗ ERROR: crontab 权限异常: $CRONTAB_ERR"
+    echo "     尝试修复: sudo chmod 1730 /var/spool/cron/crontabs && sudo chgrp crontab /var/spool/cron/crontabs"
     exit 1
 fi
+EXISTING=$(crontab -l 2>/dev/null || true)
 if echo "$EXISTING" | grep -qF "$MARKER"; then
     # 检测重复 block（marker 出现多次 = 之前的 bug）
     MARKER_N=$(echo "$EXISTING" | grep -cF "$MARKER" || true)
