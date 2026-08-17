@@ -53,10 +53,17 @@ def _limit_axes(conn: sqlite3.Connection, start: str, end: str) -> pd.DataFrame:
         rows.setdefault(d, {})["max_boards"] = int(g["consecutive_boards"].max())
     for d, g in broken.groupby("trade_date"):
         rows.setdefault(d, {})["broken_n"] = len(g)
+    if not rows:
+        return pd.DataFrame(
+            columns=["trade_date", "limit_up_count", "lianban_count", "max_boards",
+                     "broken_rate"]
+        )
     df = pd.DataFrame([{"trade_date": d, **v} for d, v in sorted(rows.items())])
-    up = df.get("limit_up_count", pd.Series(dtype=float)).fillna(0)
-    bk = df.get("broken_n", pd.Series(dtype=float)).fillna(0)
-    df["broken_rate"] = bk / (up + bk).replace(0, np.nan)
+    for c in ("limit_up_count", "lianban_count", "max_boards", "broken_n"):
+        if c not in df.columns:
+            df[c] = np.nan
+    total = (df["limit_up_count"].fillna(0) + df["broken_n"].fillna(0)).replace(0, np.nan)
+    df["broken_rate"] = df["broken_n"].fillna(0) / total
     df = df.drop(columns=["broken_n"], errors="ignore")
     return df
 
@@ -114,6 +121,8 @@ def _premium_axes(conn: sqlite3.Connection, start: str, end: str) -> pd.DataFram
         "GROUP BY lp.trade_date"
     )
     raw = pd.read_sql_query(sql, conn, params=(db.to_dash_date(start), db.to_dash_date(end)))
+    if raw.empty:
+        return pd.DataFrame(columns=["trade_date", "premium", "red_rate"])
     cal = db.trading_dates(conn, start, end)
     nxt = {}
     for i, d in enumerate(cal[:-1]):
@@ -124,6 +133,8 @@ def _premium_axes(conn: sqlite3.Connection, start: str, end: str) -> pd.DataFram
         if target:
             rows.append({"trade_date": target, "premium": r["premium"],
                          "red_rate": r["red_rate"]})
+    if not rows:
+        return pd.DataFrame(columns=["trade_date", "premium", "red_rate"])
     return pd.DataFrame(rows)
 
 

@@ -76,3 +76,26 @@ def test_build_market_regime(limitup_db: sqlite3.Connection) -> None:
     assert r3["lianban_count"] == 1 and r3["max_boards"] == 2
     assert 0 <= r3["up_down_ratio"] <= 1
     assert "regime_label" in regime.columns
+
+
+def test_build_market_regime_empty_pool(limitup_db: sqlite3.Connection) -> None:
+    conn = limitup_db
+    # 窗口内无任何 limit_pool 行（回测窗口早于池覆盖起点）：空态须返回带列空帧
+    conn.executemany(
+        "INSERT INTO daily_price VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+        [
+            ("600001.SH", "20240102", 10, 11, 10, 11, 10, 10, 0, 0, 1.0, None),
+            ("600001.SH", "20240103", 11, 12.1, 11, 12.1, 11, 10, 0, 0, 1.0, None),
+        ],
+    )
+    conn.executemany(
+        "INSERT INTO index_daily VALUES (?,?,?,?,?,?,?,?,?,?)",
+        [("000001.SH", "20240102", 3000, 3050, 2990, 3040, 1, 1, 1.3, None),
+         ("000001.SH", "20240103", 3040, 3060, 3030, 3050, 1, 1, 0.3, None)],
+    )
+    conn.commit()
+    regime = sentiment.build_market_regime(conn, "20240101", "20240110")
+    assert len(regime) == 2
+    assert "regime_label" in regime.columns
+    # 涨停三轴全 NaN → 所有 regime 条件跳过 → 回暖
+    assert (regime["regime_label"] == "回暖").all()
