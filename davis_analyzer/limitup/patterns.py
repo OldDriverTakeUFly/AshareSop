@@ -17,6 +17,8 @@ from davis_analyzer.limitup import db
 def seal_band(first_seal_time: str) -> str:
     if not isinstance(first_seal_time, str) or first_seal_time in ("", "000000"):
         return "未知"
+    if first_seal_time.isdigit():
+        first_seal_time = first_seal_time.zfill(6)  # 无前导零时间归一（'92500'→'092500'）
     if first_seal_time < "090000":
         return "未知"
     if first_seal_time < "100000":

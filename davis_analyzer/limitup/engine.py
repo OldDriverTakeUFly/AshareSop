@@ -51,7 +51,9 @@ def fill_probability(row: pd.Series, scenario: str = "base") -> float:
     yizi = (abs(float(row["open"]) - limit_up) <= 0.005) and (
         abs(float(row["low"]) - limit_up) <= 0.005
     )
-    ft = str(row.get("first_seal_time", "") or "")
+    ft = str(row.get("first_seal_time", "") or "").strip()
+    if ft.isdigit():
+        ft = ft.zfill(6)  # Tushare 无前导零格式（'95321'）归一为 HHMMSS
     if yizi:
         p = 0.05
     elif int(row.get("broken_count", 0) or 0) > 0:

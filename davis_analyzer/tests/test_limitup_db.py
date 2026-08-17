@@ -46,3 +46,16 @@ def test_trading_dates_sorted_unique(limitup_db: sqlite3.Connection) -> None:
     assert db.trading_dates(limitup_db, "20260501", "20260531") == [
         "20260511", "20260512", "20260513",
     ]
+
+
+def test_read_limit_pool_pads_seal_time(limitup_db: sqlite3.Connection) -> None:
+    """Tushare 存 '92500'（09:25:00 去前导零），读取必须归一为 6 位防误判档位."""
+    limitup_db.execute(
+        "INSERT INTO limit_pool VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        ("2024-01-02", "600001", "limit_up", "甲", "X", 10.0, 1e8, 1, 0,
+         "92500", "112945", 5.0, None),
+    )
+    limitup_db.commit()
+    df = db.read_limit_pool(limitup_db, "20240101", "20240110")
+    assert df.iloc[0]["first_seal_time"] == "092500"
+    assert df.iloc[0]["last_seal_time"] == "112945"

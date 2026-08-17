@@ -56,6 +56,14 @@ def trading_dates(conn: sqlite3.Connection, start: str, end: str) -> list[str]:
     return [r[0] for r in rows]
 
 
+def normalize_seal_time(t: object) -> object:
+    """Zero-pad seal-time strings to HHMMSS (Tushare stores '92500' for 09:25:00)."""
+    if t is None or (isinstance(t, float) and pd.isna(t)):
+        return t
+    s = str(t).strip()
+    return s.zfill(6) if s.isdigit() else s
+
+
 def read_limit_pool(
     conn: sqlite3.Connection, start: str, end: str, pool_kind: str = "limit_up"
 ) -> pd.DataFrame:
@@ -71,6 +79,8 @@ def read_limit_pool(
         return df
     df["trade_date"] = df["trade_date"].map(normalize_date)
     df["ts_code"] = df["ts_code"].map(to_suffixed_code)
+    df["first_seal_time"] = df["first_seal_time"].map(normalize_seal_time)
+    df["last_seal_time"] = df["last_seal_time"].map(normalize_seal_time)
     return df.sort_values(["trade_date", "ts_code"]).reset_index(drop=True)
 
 

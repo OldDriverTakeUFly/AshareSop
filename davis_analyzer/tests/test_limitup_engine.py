@@ -128,3 +128,9 @@ def test_compute_limitup_performance() -> None:
     assert stats.win_rate_pct == 50.0
     assert stats.total_return_pct == pytest.approx(2.0)
     assert stats.num_rebalances == 2
+
+
+def test_fill_probability_early_board_unpadded_time() -> None:
+    """9 点档封板时间无前导零（'95321'）也必须落入早盘 0.20 档而非 0.35."""
+    row = _cand(first_seal_time="95321").iloc[0]
+    assert fill_probability(row) == 0.20

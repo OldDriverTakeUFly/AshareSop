@@ -87,7 +87,8 @@ def backfill(
                         _safe(rec.get("pct_chg")), _safe(rec.get("fd_amount")),
                         int(_safe(rec.get("limit_times"), 0) or 0),
                         int(_safe(rec.get("open_times"), 0) or 0),
-                        str(rec.get("first_time") or ""), str(rec.get("last_time") or ""),
+                        db.normalize_seal_time(rec.get("first_time")),
+                        db.normalize_seal_time(rec.get("last_time")),
                         _safe(_pick(rec, "turnover_ratio", "turnover_rate")),
                     ),
                 )
