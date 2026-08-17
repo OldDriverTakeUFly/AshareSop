@@ -258,3 +258,47 @@ REV_UPGRADE: float = 4.0       # revision_score == 100 (管理层上调,叠加)
 
 # Sub-signal 3: secondary-ignition bonus.
 IGNITION_BONUS: float = 3.0
+
+# ── Tournament (策略锦标赛) frozen parameters — v1, 单一真相源，修改须 bump 版本并记入 SOP ──
+
+TOURNAMENT_EVAL_STEP_DAYS: int = 63        # L1 评估窗口长度（交易日）
+TOURNAMENT_MIN_WINDOW_DAYS: int = 40       # 窗口最小样本门槛（交易日）
+TOURNAMENT_MIN_TRADES: int = 10            # 窗口最小成交笔数门槛（passive 豁免）
+TOURNAMENT_TRAILING_WINDOWS: int = 4       # trailing_score 回看窗口数
+TOURNAMENT_TRAILING_HALF_LIFE: float = 2.0  # 窗口权重半衰期（窗口数）
+TOURNAMENT_DRAWDOWN_PENALTY: float = 0.1   # 窗口表现分回撤惩罚系数
+TOURNAMENT_COMPOSITE_WEIGHTS: dict[str, float] = {"trailing": 0.6, "regime_match": 0.4}
+TOURNAMENT_ALLOCATOR_TAU: float = 0.5      # softmax 温度
+TOURNAMENT_WEIGHT_BOUNDS: tuple[float, float] = (0.05, 0.50)  # 模块权重夹限
+TOURNAMENT_SEGMENTS_N: int = 10            # CPCV-lite 总段数
+TOURNAMENT_SEGMENTS_K: int = 3             # 每次抽取的验证段数
+TOURNAMENT_EMBARGO_DAYS: int = 5           # 段边界隔离带（交易日）
+TOURNAMENT_SEGMENT_DRAWS: int = 20         # 随机抽取次数
+TOURNAMENT_PROMO_WIN_RATE: float = 0.65    # 晋升门槛：随机段胜率
+TOURNAMENT_PROMO_MEDIAN_MIN: float = 0.0   # 晋升门槛：中位改进下限
+TOURNAMENT_PROMO_P25_MIN: float = -1.0     # 晋升门槛：25 分位改进下限
+TOURNAMENT_PERTURB_PCT: float = 0.20       # 参数扰动幅度
+TOURNAMENT_PERTURB_MAX_DECAY: float = 0.30 # 扰动后性能衰减上限
+TOURNAMENT_POPULATION: int = 16            # 进化种群规模
+TOURNAMENT_GENERATIONS: int = 10           # 每战役最大代数
+TOURNAMENT_MUTATION_SIGMA: float = 0.15    # 变异强度（区间宽度比例）
+TOURNAMENT_SURVIVAL_FRAC: float = 0.25     # 每代存活比例
+TOURNAMENT_CAMPAIGNS_PER_YEAR: int = 4     # 进化战役年度限额
+TOURNAMENT_FINALS_WINDOW_DAYS: int = 378   # 决赛窗口长度（交易日，约 18 个月）
+TOURNAMENT_CHAMPION_SLOTS: int = 2         # 每模块×regime 槽历史冠军数上限
+
+# davis 参赛预设（冻结参数点；空 dict = FactorConfig 默认值）
+TOURNAMENT_DAVIS_PRESETS: dict[str, dict[str, float]] = {
+    "davis_balanced": {},
+    "davis_momentum_tilt": {
+        "momentum_weight": 0.45, "valuation_weight": 0.10,
+        "prosperity_weight": 0.25, "distress_weight": 0.10,
+    },
+    "davis_valuation_tilt": {
+        "momentum_weight": 0.10, "valuation_weight": 0.45,
+        "prosperity_weight": 0.20, "distress_weight": 0.15,
+    },
+}
+
+# 现任冠军参数（部署态；由 champions deploy 流程人工同步，初始为空）
+CHAMPION_PRESETS: dict[str, dict[str, float]] = {}

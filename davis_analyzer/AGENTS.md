@@ -49,6 +49,8 @@ tushare_client.py             ← 数据层(API + SQLite 缓存 + 限流 400/min
 
 涨停研究子系统(独立):`limitup/`(backfill 数据回补 → events/patterns/sentiment 事件与形态 → study 事件研究 → engine 事件驱动打板回测,CLI: python -m davis_analyzer.limitup)。
 
+策略锦标赛子系统(相对独立):`tournament/`(adapters 参赛者适配 → judge 统一窗口评估 → scorecard/allocator 评分与权重分配 → replay 历史回放 → evolution CPCV-lite 参数进化战役 → champions 冠军存档与部署校验,台账写入共享 SQLite 的 tournament_ledger 表,CLI: python -m davis_analyzer.tournament {run|replay|evolve|champions})。
+
 **回测子系统**(相对独立):`backtest.py`(周期再平衡主循环) → `backtest_factors.py`(横截面因子评分) → `backtest_report.py`(收益/夏普/回撤 + CSV 导出)。
 
 **输出层**:`report_generator.py` + `templates.py`(模板化研报,无 LLM);`checklist_generator.py` + `rescorer.py`(深度调研清单循环,人工定性调整)。

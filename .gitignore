@@ -78,3 +78,4 @@ davis_analyzer/run_output.log
 .coverage
 storage/sector_rv_cache/
 .worktrees
+.superpowers

@@ -342,3 +342,10 @@ python -m davis_analyzer.cli deep-research --top N
 ---
 
 *本文档基于 `constants.py` 及各引擎模块的实际代码编写。权重与阈值如有变更，以 `constants.py` 为准。*
+
+## 策略锦标赛（tournament）参数 — v1（2026-08-17 冻结）
+
+评分权重 `TOURNAMENT_COMPOSITE_WEIGHTS`（trailing 0.6 / regime_match 0.4）、分配温度
+`TOURNAMENT_ALLOCATOR_TAU`（0.5）与权重夹限 `TOURNAMENT_WEIGHT_BOUNDS`（0.05-0.50）为裁判
+参数，**永不可被进化触碰**（反环化规则）；晋升门槛与进化参数见 `constants.py` TOURNAMENT_*
+段。修改任何 TOURNAMENT_* 常量必须 bump SOP 版本号并记入 tournament_ledger。
