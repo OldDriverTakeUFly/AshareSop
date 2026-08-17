@@ -103,3 +103,25 @@ def test_build_market_regime_empty_pool(limitup_db: sqlite3.Connection) -> None:
     assert "regime_label" in regime.columns
     # 涨停三轴全 NaN → 所有 regime 条件跳过 → 回暖
     assert (regime["regime_label"] == "回暖").all()
+
+
+def test_build_market_regime_single_day_window(limitup_db: sqlite3.Connection) -> None:
+    # fix round 2 回归：单日窗口（start == end）池日无 T+1 可观测，
+    # _promotion_axes 须返回带列空帧，不得在 merge 处抛 KeyError
+    conn = limitup_db
+    conn.executemany(
+        "INSERT INTO daily_price VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+        [("600001.SH", "20240102", 10, 11, 10, 11, 10, 10, 0, 0, 1.0, None)],
+    )
+    conn.executemany(
+        "INSERT INTO limit_pool VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        [("2024-01-02", "600001", "limit_up", "甲", "X", 10, 1e8, 1, 0,
+          "093000", "093000", 5, None)],
+    )
+    conn.commit()
+    regime = sentiment.build_market_regime(conn, "20240102", "20240102")
+    assert len(regime) == 1
+    row = regime.iloc[0]
+    assert pd.isna(row["promo_12"]) and pd.isna(row["promo_23"])
+    assert pd.isna(row["promo_34"])  # 无 T+1 → 晋级轴全 NaN 而非 KeyError
+    assert "regime_label" in regime.columns

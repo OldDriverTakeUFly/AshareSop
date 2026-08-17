@@ -60,6 +60,19 @@ def _seed_base(conn: sqlite3.Connection) -> None:
     conn.commit()
 
 
+def test_ex_div_mask_internal_sort() -> None:
+    # fix round 2 加固：_ex_div_mask 不依赖调用点预排序，
+    # 乱序输入仍按 (ts_code, trade_date) 判定除权（返回保持输入行序）
+    prices = pd.DataFrame({
+        "ts_code": ["600001.SH"] * 3,
+        "trade_date": ["20240103", "20240102", "20240104"],
+        "adj_factor": [2.0, 1.0, 2.0],
+    })
+    mask = events._ex_div_mask(prices)
+    # 0103（adj 1.0→2.0）为除权日；0102 是组内首日；0104 相对 0103 未变
+    assert mask.tolist() == [True, False, False]
+
+
 def test_prev_window_count() -> None:
     ranks = np.array([10, 11, 80, 82])
     # 简报原期望 [0,1,1,2] 与文档语义矛盾：80 与前序 10/11 相差 69/70 > 60 不应计入，

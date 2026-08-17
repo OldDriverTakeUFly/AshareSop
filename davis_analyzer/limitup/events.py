@@ -31,10 +31,11 @@ def prev_window_count(ranks: np.ndarray, window: int = 60) -> np.ndarray:
 
 
 def _ex_div_mask(prices: pd.DataFrame) -> pd.Series:
-    """除权日旗标：adj_factor 相对前一交易日（同股票）变化（按 ts_code 分组）."""
-    g = prices.groupby("ts_code", sort=False)
-    prev_adj = g["adj_factor"].shift(1)
-    return (prev_adj.notna() & (prices["adj_factor"] != prev_adj)).fillna(False)
+    """除权日旗标：adj_factor 相对前一交易日（同股票）变化（内部排序，不依赖调用点）."""
+    p = prices.sort_values(["ts_code", "trade_date"])
+    prev_adj = p.groupby("ts_code", sort=False)["adj_factor"].shift(1)
+    mask = prev_adj.notna() & (p["adj_factor"] != prev_adj)
+    return mask.reindex(prices.index).fillna(False)
 
 
 def _drop_ex_dividend(prices: pd.DataFrame) -> pd.DataFrame:

@@ -101,6 +101,9 @@ def _promotion_axes(conn: sqlite3.Connection, start: str, end: str) -> pd.DataFr
                 float(ok.loc[sub.index].mean()) if len(sub) else np.nan
             )
         out_rows.append(row)
+    if not out_rows:
+        # 单日窗口等场景：所有池日均无可观测 T+1 → 带列空帧（merge 不炸）
+        return pd.DataFrame(columns=["trade_date", "promo_12", "promo_23", "promo_34"])
     return pd.DataFrame(out_rows)
 
 
