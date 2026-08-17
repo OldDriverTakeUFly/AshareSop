@@ -15,6 +15,7 @@ from stockhot.eod_review.data_layer import _persist_daily
 class _FakeRepo:
     def __init__(self, exc: Exception | None = None) -> None:
         self.calls: list[tuple[pd.DataFrame, pd.DataFrame]] = []
+        self.sync_calls: list[str] = []
         self.exc = exc
 
     def persist_daily_snapshot(self, daily_df, adj_df):
@@ -22,6 +23,10 @@ class _FakeRepo:
             raise self.exc
         self.calls.append((daily_df, adj_df))
         return len(daily_df)
+
+    def sync_index_to_daily(self, trade_date: str, index_code: str = "000001.SH") -> int:
+        self.sync_calls.append(trade_date)
+        return 1
 
 
 class _FakeGW:
@@ -70,3 +75,23 @@ def test_persist_daily_repo_failure_does_not_raise() -> None:
     repo = _FakeRepo(exc=RuntimeError("db down"))
     gw = _FakeGW()
     _persist_daily(repo, gw, "20260817", _df())  # 不抛异常即通过
+
+
+def test_persist_daily_syncs_index_row() -> None:
+    """顺手同步指数日线（000001.SH）进 daily_price——锚与基准参赛者依赖."""
+    repo = _FakeRepo()
+    gw = _FakeGW()
+    _persist_daily(repo, gw, "20260817", _df())
+    assert repo.sync_calls == ["20260817"]
+
+
+def test_persist_daily_index_sync_failure_does_not_raise() -> None:
+    """指数同步失败同样只告警，不影响价格落库."""
+
+    class _BoomRepo(_FakeRepo):
+        def sync_index_to_daily(self, trade_date, index_code="000001.SH"):
+            raise RuntimeError("index sync down")
+
+    repo = _BoomRepo()
+    _persist_daily(repo, _FakeGW(), "20260817", _df())
+    assert len(repo.calls) == 1  # 价格照常落库

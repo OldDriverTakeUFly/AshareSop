@@ -231,6 +231,12 @@ def _persist_daily(
         logger.info(f"[EOD] daily write-through: {n} rows → daily_price ({date})")
     except Exception as e:
         logger.warning(f"[EOD] daily 落库失败（不影响盘后总结）: {e}")
+    # 指数日线同步：锚定日历与锦标赛基准参赛者都依赖 daily_price 里的
+    # 000001.SH，每日顺手从 index_daily 补一行（幂等，失败仅告警）
+    try:
+        repo.sync_index_to_daily(date)
+    except Exception as e:
+        logger.warning(f"[EOD] 指数日线同步失败: {e}")
 
 
 def _fetch_daily(gw: TushareGateway, date: str) -> pd.DataFrame:

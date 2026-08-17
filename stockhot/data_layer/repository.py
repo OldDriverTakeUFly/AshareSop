@@ -223,6 +223,26 @@ class MarketDataRepository:
             clean, adj_df if adj_df is not None else pd.DataFrame()
         )
 
+    def sync_index_to_daily(self, trade_date: str, index_code: str = "000001.SH") -> int:
+        """把指数日线从 index_daily 同步进 daily_price（幂等）.
+
+        锚定日历（backtest calendar_anchor）与锦标赛基准参赛者都从
+        daily_price 读指数——每日盘后顺手同步，避免锚/基准断供
+        （2026-08-17 修复）。返回新写入行数。
+        """
+        with closing(get_connection()) as conn:
+            cur = conn.execute(
+                "INSERT OR IGNORE INTO daily_price "
+                "(ts_code, trade_date, open, high, low, close, pre_close, "
+                "pct_chg, vol, amount, adj_factor, fetched_at) "
+                "SELECT ts_code, trade_date, open, high, low, close, NULL, "
+                "pct_chg, vol, amount, NULL, ? "
+                "FROM index_daily WHERE ts_code=? AND trade_date=?",
+                (now_ts(), index_code, trade_date),
+            )
+            conn.commit()
+            return cur.rowcount
+
     def _save_daily_prices(self, daily_df: pd.DataFrame, adj_df: pd.DataFrame) -> int:
         """批量写日线（内部，合并 daily + adj_factor）."""
         ts = now_ts()

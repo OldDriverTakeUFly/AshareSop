@@ -181,3 +181,46 @@ def test_persist_daily_snapshot_empty_input(tmp_path, monkeypatch):
     repo = MarketDataRepository()
     assert repo.persist_daily_snapshot(pd.DataFrame(), None) == 0
     assert repo.persist_daily_snapshot(None, _adj_df()) == 0
+
+
+# ── sync_index_to_daily（指数日线同步：锚与基准参赛者依赖）──
+
+_INDEX_SCHEMA = """
+CREATE TABLE IF NOT EXISTS index_daily (
+    ts_code TEXT NOT NULL,
+    trade_date TEXT NOT NULL,
+    open REAL, high REAL, low REAL, close REAL NOT NULL,
+    vol REAL, amount REAL, pct_chg REAL,
+    fetched_at REAL,
+    PRIMARY KEY (ts_code, trade_date)
+)
+"""
+
+
+def test_sync_index_to_daily(tmp_path, monkeypatch):
+    """从 index_daily 同步 000001.SH 到 daily_price，幂等且不碰个股行."""
+    db = tmp_path / "test.db"
+    conn = sqlite3.connect(db)
+    conn.execute(_DAILY_PRICE_SCHEMA)
+    conn.execute(_INDEX_SCHEMA)
+    conn.execute(
+        "INSERT INTO index_daily VALUES ('000001.SH','20260817',"
+        "3500.0,3550.0,3490.0,3520.5,123456.0,99999.0,1.41,0)"
+    )
+    conn.commit()
+    conn.close()
+    monkeypatch.setattr(
+        repository_module, "get_connection", lambda: sqlite3.connect(db)
+    )
+
+    repo = MarketDataRepository()
+    assert repo.sync_index_to_daily("20260817") == 1
+    assert repo.sync_index_to_daily("20260817") == 0  # 幂等
+    with sqlite3.connect(db) as conn:
+        row = conn.execute(
+            "SELECT ts_code, close, pct_chg, adj_factor FROM daily_price "
+            "WHERE ts_code='000001.SH'"
+        ).fetchone()
+        cnt = conn.execute("SELECT COUNT(*) FROM daily_price").fetchone()[0]
+    assert row == ("000001.SH", 3520.5, 1.41, None)
+    assert cnt == 1
