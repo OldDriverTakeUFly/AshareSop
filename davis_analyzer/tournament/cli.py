@@ -15,6 +15,8 @@ def _build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = _build_parser().parse_args(argv)
     if args.command == "list":
-        print("参赛者（Phase 1 Task 3 起注册）：暂无")
+        from davis_analyzer.tournament.adapters import default_participants
+        for p in default_participants():
+            print(f"参赛者: {p.name:<24} horizon={p.horizon:<8} version={p.version}")
         return 0
     return 1
