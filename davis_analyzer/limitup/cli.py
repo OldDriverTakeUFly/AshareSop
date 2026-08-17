@@ -44,6 +44,56 @@ def cmd_backfill(args: argparse.Namespace) -> None:
         conn.close()
 
 
+def cmd_study(args: argparse.Namespace) -> None:
+    import pandas as pd
+
+    from davis_analyzer import config
+    from davis_analyzer.limitup import db, patterns, report, study
+    from davis_analyzer.limitup.events import build_events
+    from davis_analyzer.limitup.robustness import split_is_oos
+    from davis_analyzer.limitup.sentiment import build_market_regime
+
+    conn = db.connect()
+    try:
+        events = build_events(conn, args.start, args.end)
+        events = patterns.attach_pattern_features(events, conn, args.start, args.end)
+        regime = build_market_regime(conn, args.start, args.end)
+        is_ev, oos_ev = split_is_oos(events, args.oos_start)
+        sections = [
+            ("数据概览", f"事件数 IS={len(is_ev)} / OOS={len(oos_ev)}；"
+                        f"样本门槛：收益类≥30、晋级率类≥50（不足标记样本不足）"),
+            ("晋级率矩阵（全样本）",
+             report.df_to_md_table(study.promotion_matrix(events).reset_index())),
+            ("晋级率矩阵 × 形态标签",
+             report.df_to_md_table(
+                 study.promotion_matrix(events, by=["pattern_label"]).reset_index())),
+            ("打板次日开盘收益分布（全样本）",
+             report.df_to_md_table(study.return_distribution(events))),
+            ("形态标签收益分布",
+             report.df_to_md_table(
+                 study.feature_effectiveness(events, "pattern_label"))),
+            ("龙虎榜有效性",
+             report.df_to_md_table(study.feature_effectiveness(
+                 events.assign(上榜=lambda d: d["on_lhb"].map({True: "上榜", False: "未榜"})),
+                 "上榜"))),
+            ("封单强度分档有效性",
+             report.df_to_md_table(study.feature_effectiveness(
+                 events.assign(封档=lambda d: pd.cut(
+                     d["seal_ratio"], [-1, 0.02, 0.05, 100],
+                     labels=["弱", "中", "强"])), "封档"))),
+            ("情绪 regime 切片",
+             report.df_to_md_table(study.regime_slices(events, regime))),
+        ]
+        out = report.write_report(
+            config.LIMITUP_REPORTS_DIR / f"{args.start}-{args.end}_limitup_study.md",
+            f"连板打板事件研究 [{args.start} → {args.end}]",
+            sections,
+        )
+        print(f"研究报告已生成: {out}")
+    finally:
+        conn.close()
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="davis_analyzer.limitup",
@@ -56,6 +106,13 @@ def _build_parser() -> argparse.ArgumentParser:
     p_bf.add_argument("--end", default=None, help="YYYYMMDD，默认今日")
     p_bf.add_argument("--probe", action="store_true", help="只探测历史最早日期")
     p_bf.set_defaults(func=cmd_backfill, parser=p_bf)
+
+    p_st = sub.add_parser("study", help="涨停事件研究（Phase 1）")
+    p_st.add_argument("--start", required=True, help="YYYYMMDD")
+    p_st.add_argument("--end", required=True, help="YYYYMMDD")
+    p_st.add_argument("--oos-start", default="20250701",
+                      help="IS/OOS 切分日（默认 20250701）")
+    p_st.set_defaults(func=cmd_study)
 
     return parser
 
