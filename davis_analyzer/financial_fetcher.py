@@ -128,6 +128,12 @@ def _fetch_financial_data_fast(
     merged_by_end: dict[str, dict] = {}
     try:
         conn = client._cache_conn  # reuse the persistent read connection
+        # Guard against mock/test clients: MagicMock returns Mock for any
+        # attribute access (no AttributeError), silently producing garbage.
+        # Only proceed with a real sqlite3-style connection.
+        import sqlite3 as _sq
+        if not isinstance(conn, _sq.Connection):
+            return None
         for endpoint in ("income", "balancesheet", "cashflow", "fina_indicator"):
             rows = conn.execute(
                 "SELECT end_date, payload FROM financial "
