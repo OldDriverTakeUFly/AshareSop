@@ -1,0 +1,1349 @@
+[
+  {
+    "ts_code": "300498.SZ",
+    "name": "温氏股份",
+    "financial": [
+      {
+        "period": "20260331",
+        "revenue_yi": 245.31,
+        "net_profit_yi": -10.88,
+        "eps": -0.161,
+        "roe": -2.5963,
+        "opcf_yi": 12.89,
+        "total_debt_yi": 489.73,
+        "total_assets_yi": 921.55,
+        "debt_ratio": 53.1,
+        "yoy_rev": 0.8,
+        "yoy_profit": -152.5,
+        "gross_margin": 2.7079
+      },
+      {
+        "period": "20251231",
+        "revenue_yi": 1038.62,
+        "net_profit_yi": 54.75,
+        "eps": 0.7945,
+        "roe": 12.6859,
+        "opcf_yi": 118.07,
+        "total_debt_yi": 445.91,
+        "total_assets_yi": 895.08,
+        "debt_ratio": 49.8,
+        "yoy_rev": -1.0,
+        "yoy_profit": -43.0,
+        "gross_margin": 11.1835
+      },
+      {
+        "period": "20250930",
+        "revenue_yi": 758.17,
+        "net_profit_yi": 54.17,
+        "eps": 0.793,
+        "roe": 12.3935,
+        "opcf_yi": 81.99,
+        "total_debt_yi": 455.97,
+        "total_assets_yi": 922.76,
+        "debt_ratio": 49.4,
+        "yoy_rev": 0.5,
+        "yoy_profit": -18.4,
+        "gross_margin": 12.8196
+      },
+      {
+        "period": "20250630",
+        "revenue_yi": 498.75,
+        "net_profit_yi": 35.31,
+        "eps": 0.5252,
+        "roe": 8.3665,
+        "opcf_yi": 64.65,
+        "total_debt_yi": 459.0,
+        "total_assets_yi": 907.69,
+        "debt_ratio": 50.6,
+        "yoy_rev": 6.7,
+        "yoy_profit": 147.1,
+        "gross_margin": 13.7646
+      },
+      {
+        "period": "20250331",
+        "revenue_yi": 243.31,
+        "net_profit_yi": 20.74,
+        "eps": 0.3025,
+        "roe": 4.765,
+        "opcf_yi": 38.19,
+        "total_debt_yi": 488.83,
+        "total_assets_yi": 950.16,
+        "debt_ratio": 51.4,
+        "yoy_rev": 11.4,
+        "yoy_profit": -265.1,
+        "gross_margin": 14.2869
+      },
+      {
+        "period": "20241231",
+        "revenue_yi": 1049.24,
+        "net_profit_yi": 96.11,
+        "eps": 1.3924,
+        "roe": 24.9427,
+        "opcf_yi": 195.86,
+        "total_debt_yi": 498.8,
+        "total_assets_yi": 938.58,
+        "debt_ratio": 53.1,
+        "yoy_rev": 16.7,
+        "yoy_profit": -250.4,
+        "gross_margin": 17.3062
+      },
+      {
+        "period": "20240930",
+        "revenue_yi": 754.19,
+        "net_profit_yi": 66.36,
+        "eps": 0.9664,
+        "roe": 17.7175,
+        "opcf_yi": 127.9,
+        "total_debt_yi": 512.47,
+        "total_assets_yi": 934.22,
+        "debt_ratio": 54.9,
+        "yoy_rev": 16.6,
+        "yoy_profit": -244.6,
+        "gross_margin": 16.328
+      },
+      {
+        "period": "20240630",
+        "revenue_yi": 467.58,
+        "net_profit_yi": 14.29,
+        "eps": 0.2005,
+        "roe": 3.9369,
+        "opcf_yi": 58.09,
+        "total_debt_yi": 533.7,
+        "total_assets_yi": 905.39,
+        "debt_ratio": 58.9,
+        "yoy_rev": null,
+        "yoy_profit": null,
+        "gross_margin": 10.8407
+      },
+      {
+        "period": "20240331",
+        "revenue_yi": 218.48,
+        "net_profit_yi": -12.57,
+        "eps": -0.1868,
+        "roe": -3.8035,
+        "opcf_yi": 22.59,
+        "total_debt_yi": 599.98,
+        "total_assets_yi": 946.77,
+        "debt_ratio": 63.4,
+        "yoy_rev": null,
+        "yoy_profit": null,
+        "gross_margin": 3.2696
+      },
+      {
+        "period": "20231231",
+        "revenue_yi": 899.21,
+        "net_profit_yi": -63.89,
+        "eps": -0.9707,
+        "roe": -17.5627,
+        "opcf_yi": 75.94,
+        "total_debt_yi": 570.48,
+        "total_assets_yi": 928.95,
+        "debt_ratio": 61.4,
+        "yoy_rev": null,
+        "yoy_profit": null,
+        "gross_margin": 0.8404
+      },
+      {
+        "period": "20230930",
+        "revenue_yi": 647.03,
+        "net_profit_yi": -45.9,
+        "eps": -0.6923,
+        "roe": -12.121,
+        "opcf_yi": 56.41,
+        "total_debt_yi": 576.81,
+        "total_assets_yi": 956.39,
+        "debt_ratio": 60.3,
+        "yoy_rev": null,
+        "yoy_profit": null,
+        "gross_margin": 0.393
+      }
+    ],
+    "valuation": {
+      "snapshot_date": "20260813",
+      "close": null,
+      "total_mv_yi": 918.2,
+      "circ_mv_yi": null,
+      "pe_ttm": 42.0614,
+      "pe_pct": 36.4,
+      "pb": 2.321,
+      "pb_pct": 36.4,
+      "ps": 0.8844,
+      "ps_pct": 36.4,
+      "mv_pct": 36.4,
+      "n_days": 22,
+      "pb_quantiles": {
+        "p10": 2.28,
+        "p25": 2.3,
+        "p50": 2.35,
+        "p75": 2.36,
+        "p90": 2.39,
+        "p95": 2.41
+      },
+      "pe_quantiles": {
+        "p10": 41.34,
+        "p25": 41.64,
+        "p50": 42.56,
+        "p75": 42.85,
+        "p90": 43.31,
+        "p95": 43.63
+      },
+      "ps_quantiles": {
+        "p10": 0.87,
+        "p25": 0.88,
+        "p50": 0.9,
+        "p75": 0.9,
+        "p90": 0.91,
+        "p95": 0.92
+      }
+    },
+    "prosperity": {
+      "composite": 39.98,
+      "delta_g": 0.15,
+      "revenue_score": 35.66,
+      "profit_score": 13.29,
+      "slope_score": 85.94,
+      "duration_score": 25.41,
+      "stage": "上升拐点"
+    },
+    "industry": "农业综合",
+    "is_cyclical": false,
+    "valuation_score_engine": {
+      "score": 59.09,
+      "pe_pct": 40.9,
+      "pb_pct": 40.9
+    },
+    "trend_score": 50.0,
+    "distress": {
+      "total": 34.85,
+      "l1": 71.2,
+      "l2": 0.47,
+      "l3": 33.36
+    },
+    "davis": {
+      "final": 45.93,
+      "rank": 0
+    },
+    "momentum": {
+      "score": 40.52,
+      "abs": 40.52,
+      "rs": null,
+      "windows": {
+        "60": 4.68,
+        "120": -20.26,
+        "250": -19.84
+      }
+    },
+    "dividend": {
+      "score": 88.41,
+      "consecutive_years": 4,
+      "yield_pct": 3.712,
+      "payout_years": [
+        "20221231",
+        "20231231",
+        "20241231",
+        "20251231"
+      ]
+    },
+    "forecast_signal": {
+      "leading_score": 0.0,
+      "type": "略减",
+      "ann_date": "20260108",
+      "end_date": "20251231",
+      "p_min": -46.12,
+      "p_max": -40.73,
+      "p_mid": -43.425,
+      "is_stale": false
+    },
+    "holder_conc": {
+      "score": 63.28,
+      "trend": "集中(动能增强)",
+      "latest_chg_pct": -2.23,
+      "counts": [
+        91041,
+        81077,
+        89406,
+        87415
+      ],
+      "periods": [
+        "20250630",
+        "20250930",
+        "20251231",
+        "20260331"
+      ]
+    },
+    "profitability_q": {
+      "quality_score": 20.0,
+      "latest_gross_margin": 2.71,
+      "gm_delta": -11.06,
+      "rd_intensity": null,
+      "data_sufficient": true
+    },
+    "holder_num_rows": [
+      {
+        "end_date": "20231231",
+        "ann_date": "20240429",
+        "num": 65274
+      },
+      {
+        "end_date": "20240331",
+        "ann_date": "20240429",
+        "num": 64431
+      },
+      {
+        "end_date": "20240630",
+        "ann_date": "20240827",
+        "num": 62787
+      },
+      {
+        "end_date": "20240930",
+        "ann_date": "20241023",
+        "num": 76251
+      },
+      {
+        "end_date": "20241231",
+        "ann_date": "20250424",
+        "num": 108380
+      },
+      {
+        "end_date": "20250331",
+        "ann_date": "20250424",
+        "num": 114689
+      },
+      {
+        "end_date": "20250630",
+        "ann_date": "20250828",
+        "num": 91041
+      },
+      {
+        "end_date": "20250930",
+        "ann_date": "20251022",
+        "num": 81077
+      },
+      {
+        "end_date": "20251231",
+        "ann_date": "20260422",
+        "num": 89406
+      },
+      {
+        "end_date": "20260331",
+        "ann_date": "20260422",
+        "num": 87415
+      }
+    ],
+    "top10_float": [
+      {
+        "holder_name": "严居能",
+        "hold": 1.9166
+      },
+      {
+        "holder_name": "梁焕珍",
+        "hold": 2.576
+      },
+      {
+        "holder_name": "温均生",
+        "hold": 2.5217
+      },
+      {
+        "holder_name": "温小琼",
+        "hold": 2.3338
+      },
+      {
+        "holder_name": "温木桓",
+        "hold": 1.901
+      },
+      {
+        "holder_name": "香港中央结算有限公司",
+        "hold": 1.7178
+      },
+      {
+        "holder_name": "黄伯昌",
+        "hold": 1.8565
+      },
+      {
+        "holder_name": "黄松德",
+        "hold": 1.386
+      },
+      {
+        "holder_name": "黎沃灿",
+        "hold": 2.3221
+      },
+      {
+        "holder_name": "黎洪灿",
+        "hold": 1.4428
+      }
+    ],
+    "top10_float_period": "20260331",
+    "freshness": {
+      "latest_trade": "20260814",
+      "latest_close": 13.47
+    },
+    "forecast_rows": [
+      {
+        "ann_date": "20260108",
+        "end_date": "20251231",
+        "type": "略减",
+        "p_min": -46.12,
+        "p_max": -40.73,
+        "np_min_yi": 50.0,
+        "np_max_yi": 55.0
+      },
+      {
+        "ann_date": "20250104",
+        "end_date": "20241231",
+        "type": "扭亏",
+        "p_min": 240.8525,
+        "p_max": 248.6777,
+        "np_min_yi": 90.0,
+        "np_max_yi": 95.0
+      },
+      {
+        "ann_date": "20240715",
+        "end_date": "20240630",
+        "type": "扭亏",
+        "p_min": 126.6596,
+        "p_max": 131.9915,
+        "np_min_yi": 12.5,
+        "np_max_yi": 15.0
+      },
+      {
+        "ann_date": "20240131",
+        "end_date": "20231231",
+        "type": "首亏",
+        "p_min": -222.8965,
+        "p_max": -213.4429,
+        "np_min_yi": -65.0,
+        "np_max_yi": -60.0
+      },
+      {
+        "ann_date": "20230131",
+        "end_date": "20221231",
+        "type": "扭亏",
+        "p_min": 135.8092,
+        "p_max": 139.5394,
+        "np_min_yi": 48.0,
+        "np_max_yi": 53.0
+      },
+      {
+        "ann_date": "20220121",
+        "end_date": "20211231",
+        "type": "首亏",
+        "p_min": -285.84,
+        "p_max": -275.06,
+        "np_min_yi": -138.0,
+        "np_max_yi": -130.0
+      },
+      {
+        "ann_date": "20211015",
+        "end_date": "20210930",
+        "type": "首亏",
+        "p_min": -218.3,
+        "p_max": -212.24,
+        "np_min_yi": -97.5,
+        "np_max_yi": -92.5
+      },
+      {
+        "ann_date": "20210716",
+        "end_date": "20210630",
+        "type": "首亏",
+        "p_min": -161.64,
+        "p_max": -154.41,
+        "np_min_yi": -25.6,
+        "np_max_yi": -22.6
+      },
+      {
+        "ann_date": "20201010",
+        "end_date": "20200930",
+        "type": "略增",
+        "p_min": 33.11,
+        "p_max": 38.04,
+        "np_min_yi": 81.0,
+        "np_max_yi": 84.0
+      },
+      {
+        "ann_date": "20200714",
+        "end_date": "20200630",
+        "type": "预增",
+        "p_min": 189.24,
+        "p_max": 207.32,
+        "np_min_yi": 40.0,
+        "np_max_yi": 42.5
+      },
+      {
+        "ann_date": "20200411",
+        "end_date": "20200331",
+        "type": "扭亏",
+        "p_min": 510.9,
+        "p_max": 511.98,
+        "np_min_yi": 18.92,
+        "np_max_yi": 18.97
+      },
+      {
+        "ann_date": "20200107",
+        "end_date": "20191231",
+        "type": "预增",
+        "p_min": 249.97,
+        "p_max": 261.35,
+        "np_min_yi": 138.5,
+        "np_max_yi": 143.0
+      },
+      {
+        "ann_date": "20191010",
+        "end_date": "20190930",
+        "type": "预增",
+        "p_min": 105.18,
+        "p_max": 112.08,
+        "np_min_yi": 59.5,
+        "np_max_yi": 61.5
+      },
+      {
+        "ann_date": "20190712",
+        "end_date": "20190630",
+        "type": "预增",
+        "p_min": 47.17,
+        "p_max": 58.07,
+        "np_min_yi": 13.5,
+        "np_max_yi": 14.5
+      },
+      {
+        "ann_date": "20190410",
+        "end_date": "20190331",
+        "type": "首亏",
+        "p_min": -132.87,
+        "p_max": -132.52,
+        "np_min_yi": -4.63,
+        "np_max_yi": -4.58
+      },
+      {
+        "ann_date": "20190108",
+        "end_date": "20181231",
+        "type": "略减",
+        "p_min": -41.49,
+        "p_max": -37.79,
+        "np_min_yi": 39.5,
+        "np_max_yi": 42.0
+      },
+      {
+        "ann_date": "20181009",
+        "end_date": "20180930",
+        "type": "略减",
+        "p_min": -29.44,
+        "p_max": -25.72,
+        "np_min_yi": 28.5,
+        "np_max_yi": 30.0
+      },
+      {
+        "ann_date": "20180711",
+        "end_date": "20180630",
+        "type": "预减",
+        "p_min": -53.04,
+        "p_max": -47.52,
+        "np_min_yi": 8.5,
+        "np_max_yi": 9.5
+      },
+      {
+        "ann_date": "20180410",
+        "end_date": "20180331",
+        "type": "略减",
+        "p_min": -8.36,
+        "p_max": -3.61,
+        "np_min_yi": 13.5,
+        "np_max_yi": 14.2
+      },
+      {
+        "ann_date": "20180109",
+        "end_date": "20171231",
+        "type": "略减",
+        "p_min": -44.02,
+        "p_max": -40.63,
+        "np_min_yi": 66.0,
+        "np_max_yi": 70.0
+      },
+      {
+        "ann_date": "20171010",
+        "end_date": "20170930",
+        "type": "预减",
+        "p_min": -63.09,
+        "p_max": -60.32,
+        "np_min_yi": 40.0,
+        "np_max_yi": 43.0
+      },
+      {
+        "ann_date": "20170714",
+        "end_date": "20170630",
+        "type": "预减",
+        "p_min": -77.86,
+        "p_max": -73.71,
+        "np_min_yi": 16.0,
+        "np_max_yi": 19.0
+      },
+      {
+        "ann_date": "20170407",
+        "end_date": "20170331",
+        "type": "预减",
+        "p_min": -54.72,
+        "p_max": -48.25,
+        "np_min_yi": 14.0,
+        "np_max_yi": 16.0
+      },
+      {
+        "ann_date": "20170109",
+        "end_date": "20161231",
+        "type": "预增",
+        "p_min": 83.0,
+        "p_max": 104.0,
+        "np_min_yi": 113.55,
+        "np_max_yi": 126.58
+      },
+      {
+        "ann_date": "20161011",
+        "end_date": "20160930",
+        "type": "预增",
+        "p_min": 115.57,
+        "p_max": 134.93,
+        "np_min_yi": 103.86,
+        "np_max_yi": 113.19
+      },
+      {
+        "ann_date": "20160826",
+        "end_date": "20160930",
+        "type": "预增",
+        "p_min": NaN,
+        "p_max": NaN,
+        "np_min_yi": null,
+        "np_max_yi": null
+      },
+      {
+        "ann_date": "20160713",
+        "end_date": "20160630",
+        "type": "预增",
+        "p_min": 315.06,
+        "p_max": 344.64,
+        "np_min_yi": 69.73,
+        "np_max_yi": 74.7
+      },
+      {
+        "ann_date": "20160422",
+        "end_date": "20160630",
+        "type": "预增",
+        "p_min": NaN,
+        "p_max": NaN,
+        "np_min_yi": null,
+        "np_max_yi": null
+      },
+      {
+        "ann_date": "20160408",
+        "end_date": "20160331",
+        "type": "预增",
+        "p_min": 349.33,
+        "p_max": 378.86,
+        "np_min_yi": 29.97,
+        "np_max_yi": 31.94
+      },
+      {
+        "ann_date": "20160108",
+        "end_date": "20151231",
+        "type": "预增",
+        "p_min": 110.02,
+        "p_max": 134.99,
+        "np_min_yi": 58.28,
+        "np_max_yi": 65.21
+      }
+    ],
+    "relative_valuation": {
+      "benchmark": "399006.SZ",
+      "stock_pe": 41.0556,
+      "index_pe": 44.4014,
+      "pe_ratio": 0.9246465201547698,
+      "pe_ratio_pct": 75.1,
+      "pe_ratio_label": "相对溢价（贵）",
+      "erp": 0.26,
+      "erp_label": "吸引力偏弱（ERP 0-1.5%）",
+      "risk_free_rate": 2.18,
+      "stock_pe_pct": 76.7,
+      "index_pe_pct": 90.5,
+      "quadrant": 1,
+      "quadrant_label": "①两者都贵（最危险）",
+      "verdict": "★ 相对高估（横向比较偏贵）",
+      "signals": [
+        "相对PE溢价率 0.92x，近3年75.1%分位 → 相对溢价（贵）",
+        "ERP 0.26%（盈利收益率2.44% - 无风险利率2.18%）→ 吸引力偏弱（ERP 0-1.5%）",
+        "PE-Band 第1象限：个股PE分位76.7% / 市场PE分位90.5% → ①两者都贵（最危险）"
+      ]
+    }
+  },
+  {
+    "ts_code": "000876.SZ",
+    "name": "新希望",
+    "financial": [
+      {
+        "period": "20260331",
+        "revenue_yi": 272.92,
+        "net_profit_yi": -8.85,
+        "eps": -0.2,
+        "roe": -4.0761,
+        "opcf_yi": 4.38,
+        "total_debt_yi": 824.6,
+        "total_assets_yi": 1163.93,
+        "debt_ratio": 70.8,
+        "yoy_rev": 11.8,
+        "yoy_profit": -275.1,
+        "gross_margin": 5.2323
+      },
+      {
+        "period": "20251231",
+        "revenue_yi": 1068.56,
+        "net_profit_yi": -17.54,
+        "eps": -0.41,
+        "roe": -7.4569,
+        "opcf_yi": 93.78,
+        "total_debt_yi": 798.43,
+        "total_assets_yi": 1142.33,
+        "debt_ratio": 69.9,
+        "yoy_rev": 3.7,
+        "yoy_profit": -970.1,
+        "gross_margin": 6.2825
+      },
+      {
+        "period": "20250930",
+        "revenue_yi": 805.04,
+        "net_profit_yi": 9.81,
+        "eps": 0.15,
+        "roe": 2.9561,
+        "opcf_yi": 78.35,
+        "total_debt_yi": 812.16,
+        "total_assets_yi": 1168.71,
+        "debt_ratio": 69.5,
+        "yoy_rev": 4.3,
+        "yoy_profit": 2834.2,
+        "gross_margin": 7.3816
+      },
+      {
+        "period": "20250630",
+        "revenue_yi": 516.25,
+        "net_profit_yi": 8.99,
+        "eps": 0.16,
+        "roe": 2.9239,
+        "opcf_yi": 51.53,
+        "total_debt_yi": 801.72,
+        "total_assets_yi": 1165.69,
+        "debt_ratio": 68.8,
+        "yoy_rev": 4.1,
+        "yoy_profit": -157.3,
+        "gross_margin": 7.8727
+      },
+      {
+        "period": "20250331",
+        "revenue_yi": 244.17,
+        "net_profit_yi": 5.06,
+        "eps": 0.09,
+        "roe": 1.7307,
+        "opcf_yi": 9.67,
+        "total_debt_yi": 816.75,
+        "total_assets_yi": 1179.44,
+        "debt_ratio": 69.2,
+        "yoy_rev": 2.1,
+        "yoy_profit": -121.4,
+        "gross_margin": 8.3952
+      },
+      {
+        "period": "20241231",
+        "revenue_yi": 1030.63,
+        "net_profit_yi": 2.02,
+        "eps": 0.09,
+        "roe": 1.8781,
+        "opcf_yi": 91.27,
+        "total_debt_yi": 813.68,
+        "total_assets_yi": 1179.14,
+        "debt_ratio": 69.0,
+        "yoy_rev": -27.3,
+        "yoy_profit": -121.1,
+        "gross_margin": 6.707
+      },
+      {
+        "period": "20240930",
+        "revenue_yi": 772.09,
+        "net_profit_yi": 0.33,
+        "eps": 0.02,
+        "roe": 0.6244,
+        "opcf_yi": 82.74,
+        "total_debt_yi": 849.9,
+        "total_assets_yi": 1199.57,
+        "debt_ratio": 70.9,
+        "yoy_rev": -27.7,
+        "yoy_profit": -100.7,
+        "gross_margin": 5.6744
+      },
+      {
+        "period": "20240630",
+        "revenue_yi": 495.77,
+        "net_profit_yi": -15.7,
+        "eps": -0.28,
+        "roe": -5.0898,
+        "opcf_yi": 46.52,
+        "total_debt_yi": 904.83,
+        "total_assets_yi": 1239.67,
+        "debt_ratio": 73.0,
+        "yoy_rev": null,
+        "yoy_profit": null,
+        "gross_margin": 2.3823
+      },
+      {
+        "period": "20240331",
+        "revenue_yi": 239.08,
+        "net_profit_yi": -23.61,
+        "eps": -0.43,
+        "roe": -8.1859,
+        "opcf_yi": 1.32,
+        "total_debt_yi": 938.56,
+        "total_assets_yi": 1267.87,
+        "debt_ratio": 74.0,
+        "yoy_rev": null,
+        "yoy_profit": null,
+        "gross_margin": -2.9332
+      },
+      {
+        "period": "20231231",
+        "revenue_yi": 1417.03,
+        "net_profit_yi": -9.55,
+        "eps": 0.04,
+        "roe": 0.9226,
+        "opcf_yi": 139.04,
+        "total_debt_yi": 936.8,
+        "total_assets_yi": 1296.11,
+        "debt_ratio": 72.3,
+        "yoy_rev": null,
+        "yoy_profit": null,
+        "gross_margin": 2.7516
+      },
+      {
+        "period": "20230930",
+        "revenue_yi": 1067.48,
+        "net_profit_yi": -45.38,
+        "eps": -0.87,
+        "roe": -14.383,
+        "opcf_yi": 66.65,
+        "total_debt_yi": 969.97,
+        "total_assets_yi": 1333.16,
+        "debt_ratio": 72.8,
+        "yoy_rev": null,
+        "yoy_profit": null,
+        "gross_margin": 2.2419
+      }
+    ],
+    "valuation": {
+      "snapshot_date": "20260813",
+      "close": null,
+      "total_mv_yi": 313.8,
+      "circ_mv_yi": null,
+      "pe_ttm": null,
+      "pe_pct": null,
+      "pb": 1.6661,
+      "pb_pct": 36.4,
+      "ps": 0.2937,
+      "ps_pct": 36.4,
+      "mv_pct": 36.4,
+      "n_days": 22,
+      "pb_quantiles": {
+        "p10": 1.64,
+        "p25": 1.66,
+        "p50": 1.67,
+        "p75": 1.68,
+        "p90": 1.71,
+        "p95": 1.71
+      },
+      "pe_quantiles": {
+        "p10": NaN,
+        "p25": NaN,
+        "p50": NaN,
+        "p75": NaN,
+        "p90": NaN,
+        "p95": NaN
+      },
+      "ps_quantiles": {
+        "p10": 0.29,
+        "p25": 0.29,
+        "p50": 0.29,
+        "p75": 0.3,
+        "p90": 0.3,
+        "p95": 0.3
+      }
+    },
+    "prosperity": {
+      "composite": 30.03,
+      "delta_g": 3.75,
+      "revenue_score": 33.75,
+      "profit_score": 16.2,
+      "slope_score": 0.18,
+      "duration_score": 100.0,
+      "stage": "上升拐点"
+    },
+    "industry": "饲料",
+    "is_cyclical": false,
+    "valuation_score_engine": null,
+    "trend_score": 50.0,
+    "distress": {
+      "total": 38.74,
+      "l1": 68.93,
+      "l2": 0.13,
+      "l3": 45.05
+    },
+    "davis": {
+      "final": 41.19,
+      "rank": 0
+    },
+    "momentum": {
+      "score": 37.76,
+      "abs": 37.76,
+      "rs": null,
+      "windows": {
+        "60": 3.8,
+        "120": -23.34,
+        "250": -26.0
+      }
+    },
+    "dividend": {
+      "score": 28.18,
+      "consecutive_years": 1,
+      "yield_pct": 0.3532,
+      "payout_years": [
+        "20241231"
+      ]
+    },
+    "forecast_signal": {
+      "leading_score": 0.0,
+      "type": "首亏",
+      "ann_date": "20260715",
+      "end_date": "20260630",
+      "p_min": -338.45,
+      "p_max": -311.96,
+      "p_mid": -325.205,
+      "is_stale": false
+    },
+    "holder_conc": {
+      "score": 31.57,
+      "trend": "分散(动能减弱)",
+      "latest_chg_pct": 5.53,
+      "counts": [
+        217000,
+        229000
+      ],
+      "periods": [
+        "20260620",
+        "20260710"
+      ]
+    },
+    "profitability_q": {
+      "quality_score": 42.08,
+      "latest_gross_margin": 5.23,
+      "gm_delta": -2.64,
+      "rd_intensity": null,
+      "data_sufficient": true
+    },
+    "holder_num_rows": [
+      {
+        "end_date": "20251120",
+        "ann_date": "20251126",
+        "num": 195000
+      },
+      {
+        "end_date": "20251210",
+        "ann_date": "20251215",
+        "num": 197000
+      },
+      {
+        "end_date": "20251231",
+        "ann_date": "20260429",
+        "num": 197752
+      },
+      {
+        "end_date": "20260131",
+        "ann_date": "20260224",
+        "num": 218000
+      },
+      {
+        "end_date": "20260220",
+        "ann_date": "20260323",
+        "num": 214000
+      },
+      {
+        "end_date": "20260310",
+        "ann_date": "20260323",
+        "num": 220000
+      },
+      {
+        "end_date": "20260331",
+        "ann_date": "20260430",
+        "num": 219121
+      },
+      {
+        "end_date": "20260430",
+        "ann_date": "20260528",
+        "num": 226000
+      },
+      {
+        "end_date": "20260620",
+        "ann_date": "20260629",
+        "num": 217000
+      },
+      {
+        "end_date": "20260710",
+        "ann_date": "20260803",
+        "num": 229000
+      }
+    ],
+    "top10_float": [
+      {
+        "holder_name": "南方希望实业有限公司",
+        "hold": 29.5142
+      },
+      {
+        "holder_name": "新希望集团有限公司",
+        "hold": 25.093
+      },
+      {
+        "holder_name": "西藏思壮投资咨询有限公司",
+        "hold": 2.2379
+      },
+      {
+        "holder_name": "西藏善诚投资咨询有限公司",
+        "hold": 1.97
+      },
+      {
+        "holder_name": "香港中央结算有限公司",
+        "hold": 1.5851
+      },
+      {
+        "holder_name": "全国社保基金一一八组合",
+        "hold": 1.2075
+      },
+      {
+        "holder_name": "拉萨开发区和之望实业有限公司",
+        "hold": 1.1003
+      },
+      {
+        "holder_name": "浙商银行股份有限公司-国泰中证畜牧养殖交易型开放式指数证券投资基金",
+        "hold": 0.8162
+      },
+      {
+        "holder_name": "中国工商银行股份有限公司-中证主要消费交易型开放式指数证券投资基金",
+        "hold": 0.7373
+      },
+      {
+        "holder_name": "中国工商银行股份有限公司-华泰柏瑞沪深300交易型开放式指数证券投资基金",
+        "hold": 0.4011
+      }
+    ],
+    "top10_float_period": "20260331",
+    "freshness": {
+      "latest_trade": "20260814",
+      "latest_close": 6.83
+    },
+    "forecast_rows": [
+      {
+        "ann_date": "20260715",
+        "end_date": "20260630",
+        "type": "首亏",
+        "p_min": -338.45,
+        "p_max": -311.96,
+        "np_min_yi": -18.0,
+        "np_max_yi": -16.0
+      },
+      {
+        "ann_date": "20260131",
+        "end_date": "20251231",
+        "type": "首亏",
+        "p_min": -480.07,
+        "p_max": -416.72,
+        "np_min_yi": -18.0,
+        "np_max_yi": -15.0
+      },
+      {
+        "ann_date": "20250715",
+        "end_date": "20250630",
+        "type": "扭亏",
+        "p_min": 155.85,
+        "p_max": 164.07,
+        "np_min_yi": 6.8,
+        "np_max_yi": 7.8
+      },
+      {
+        "ann_date": "20250403",
+        "end_date": "20250331",
+        "type": "扭亏",
+        "p_min": 122.23,
+        "p_max": 125.85,
+        "np_min_yi": 4.3,
+        "np_max_yi": 5.0
+      },
+      {
+        "ann_date": "20250124",
+        "end_date": "20241231",
+        "type": "预增",
+        "p_min": 80.58,
+        "p_max": 120.71,
+        "np_min_yi": 4.5,
+        "np_max_yi": 5.5
+      },
+      {
+        "ann_date": "20240706",
+        "end_date": "20240630",
+        "type": "续亏",
+        "p_min": 59.77,
+        "p_max": 59.77,
+        "np_min_yi": -12.0,
+        "np_max_yi": -12.0
+      },
+      {
+        "ann_date": "20240131",
+        "end_date": "20231231",
+        "type": "扭亏",
+        "p_min": 120.5394,
+        "p_max": 120.5394,
+        "np_min_yi": 3.0,
+        "np_max_yi": 3.0
+      },
+      {
+        "ann_date": "20230715",
+        "end_date": "20230630",
+        "type": "续亏",
+        "p_min": 27.77,
+        "p_max": 32.6,
+        "np_min_yi": -29.9,
+        "np_max_yi": -27.9
+      },
+      {
+        "ann_date": "20230331",
+        "end_date": "20221231",
+        "type": "续亏",
+        "p_min": 83.84,
+        "p_max": 85.92,
+        "np_min_yi": -15.5,
+        "np_max_yi": -13.5
+      },
+      {
+        "ann_date": "20230131",
+        "end_date": "20221231",
+        "type": "续亏",
+        "p_min": 93.64,
+        "p_max": 95.73,
+        "np_min_yi": -6.1,
+        "np_max_yi": -4.1
+      },
+      {
+        "ann_date": "20220715",
+        "end_date": "20220630",
+        "type": "续亏",
+        "p_min": -22.98,
+        "p_max": -14.2,
+        "np_min_yi": -42.0,
+        "np_max_yi": -39.0
+      },
+      {
+        "ann_date": "20220129",
+        "end_date": "20211231",
+        "type": "首亏",
+        "p_min": -294.17,
+        "p_max": -273.94,
+        "np_min_yi": -96.0,
+        "np_max_yi": -86.0
+      },
+      {
+        "ann_date": "20211015",
+        "end_date": "20210930",
+        "type": "首亏",
+        "p_min": -225.77,
+        "p_max": -217.91,
+        "np_min_yi": -63.95,
+        "np_max_yi": -59.95
+      },
+      {
+        "ann_date": "20210715",
+        "end_date": "20210630",
+        "type": "首亏",
+        "p_min": -209.04,
+        "p_max": -193.24,
+        "np_min_yi": -34.5,
+        "np_max_yi": -29.5
+      },
+      {
+        "ann_date": "20210415",
+        "end_date": "20210331",
+        "type": "预减",
+        "p_min": -92.62,
+        "p_max": -88.94,
+        "np_min_yi": 1.2,
+        "np_max_yi": 1.8
+      },
+      {
+        "ann_date": "20201013",
+        "end_date": "20200930",
+        "type": "预增",
+        "p_min": 56.27,
+        "p_max": 62.78,
+        "np_min_yi": 48.0,
+        "np_max_yi": 50.0
+      },
+      {
+        "ann_date": "20200711",
+        "end_date": "20200630",
+        "type": "预增",
+        "p_min": 101.68,
+        "p_max": 104.88,
+        "np_min_yi": 31.5,
+        "np_max_yi": 32.0
+      },
+      {
+        "ann_date": "20200411",
+        "end_date": "20200331",
+        "type": "预增",
+        "p_min": 125.09,
+        "p_max": 140.1,
+        "np_min_yi": 15.0,
+        "np_max_yi": 16.0
+      },
+      {
+        "ann_date": "20200123",
+        "end_date": "20191231",
+        "type": "预增",
+        "p_min": 181.58,
+        "p_max": 194.49,
+        "np_min_yi": 48.0,
+        "np_max_yi": 50.2
+      },
+      {
+        "ann_date": "20191012",
+        "end_date": "20190930",
+        "type": "预增",
+        "p_min": 100.71,
+        "p_max": 107.61,
+        "np_min_yi": 29.12,
+        "np_max_yi": 30.12
+      },
+      {
+        "ann_date": "20190711",
+        "end_date": "20190630",
+        "type": "预增",
+        "p_min": 60.0,
+        "p_max": 71.0,
+        "np_min_yi": 13.5,
+        "np_max_yi": 14.5
+      },
+      {
+        "ann_date": "20150408",
+        "end_date": "20150331",
+        "type": "预增",
+        "p_min": 50.0,
+        "p_max": 100.0,
+        "np_min_yi": 4.25,
+        "np_max_yi": 5.66
+      },
+      {
+        "ann_date": "20121013",
+        "end_date": "20120930",
+        "type": "预增",
+        "p_min": 50.0,
+        "p_max": 100.0,
+        "np_min_yi": 12.9,
+        "np_max_yi": 17.2
+      },
+      {
+        "ann_date": "20120714",
+        "end_date": "20120630",
+        "type": "预增",
+        "p_min": 80.0,
+        "p_max": 130.0,
+        "np_min_yi": 8.93,
+        "np_max_yi": 11.41
+      },
+      {
+        "ann_date": "20120413",
+        "end_date": "20120331",
+        "type": "预增",
+        "p_min": 100.0,
+        "p_max": 200.0,
+        "np_min_yi": 3.88,
+        "np_max_yi": 5.82
+      },
+      {
+        "ann_date": "20120131",
+        "end_date": "20111231",
+        "type": "预增",
+        "p_min": 306.0,
+        "p_max": 396.0,
+        "np_min_yi": 23.5,
+        "np_max_yi": 28.7
+      },
+      {
+        "ann_date": "20111019",
+        "end_date": "20110930",
+        "type": "预增",
+        "p_min": 103.0,
+        "p_max": 115.0,
+        "np_min_yi": 8.39,
+        "np_max_yi": 8.86
+      },
+      {
+        "ann_date": "20110715",
+        "end_date": "20110630",
+        "type": "预增",
+        "p_min": 60.0,
+        "p_max": 80.0,
+        "np_min_yi": 4.16,
+        "np_max_yi": 4.67
+      },
+      {
+        "ann_date": "20100129",
+        "end_date": "20091231",
+        "type": "预增",
+        "p_min": 50.0,
+        "p_max": 62.0,
+        "np_min_yi": 3.43,
+        "np_max_yi": 3.7
+      },
+      {
+        "ann_date": "20050527",
+        "end_date": "20050630",
+        "type": "略增",
+        "p_min": NaN,
+        "p_max": NaN,
+        "np_min_yi": null,
+        "np_max_yi": null
+      },
+      {
+        "ann_date": "20050407",
+        "end_date": "20050331",
+        "type": "预增",
+        "p_min": 50.0,
+        "p_max": 70.0,
+        "np_min_yi": null,
+        "np_max_yi": null
+      },
+      {
+        "ann_date": "20030211",
+        "end_date": "20021231",
+        "type": "略增",
+        "p_min": 0.0,
+        "p_max": 50.0,
+        "np_min_yi": null,
+        "np_max_yi": null
+      }
+    ],
+    "relative_valuation": {
+      "benchmark": "000300.SH",
+      "stock_pe": null,
+      "index_pe": 14.3637,
+      "pe_ratio": null,
+      "pe_ratio_pct": null,
+      "pe_ratio_label": "",
+      "erp": null,
+      "erp_label": "",
+      "risk_free_rate": 2.18,
+      "stock_pe_pct": null,
+      "index_pe_pct": 88.6,
+      "quadrant": 0,
+      "quadrant_label": "",
+      "verdict": "",
+      "signals": []
+    }
+  }
+]

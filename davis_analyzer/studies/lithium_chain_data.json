@@ -1,0 +1,416 @@
+[
+  {
+    "ts_code": "002460.SZ",
+    "name": "赣锋锂业",
+    "industry": "锂",
+    "is_cyclical": false,
+    "daily_basic_latest": {
+      "trade_date": "20260813",
+      "close": 53.16,
+      "pe_ttm": 29.2848,
+      "pb": 2.3991,
+      "ps": 4.8289,
+      "dv_ratio": 0.2822,
+      "total_mv_yi": 1114.6027430400002
+    },
+    "valuation": {
+      "data_points": 22,
+      "pe_current": 29.6924,
+      "pb_current": 2.4325,
+      "ps_current": 4.8962,
+      "pe_pct": 90.9090909090909,
+      "pb_pct": 90.9090909090909,
+      "ps_pct": 90.9090909090909,
+      "mv_pct": 90.9090909090909,
+      "pe_50": 27.67615,
+      "pb_50": 2.26735,
+      "latest_trade_date": "20260812"
+    },
+    "fin_2025": {
+      "revenue_yi": 230.8173274632,
+      "net_profit_yi": 16.1298099334,
+      "net_profit_yoy_pct": 177.77100184151368,
+      "roe_pct": 3.7111,
+      "debt_to_assets_pct": 54.2306,
+      "grossprofit_margin_pct": 15.7217,
+      "netprofit_margin_pct": 5.4699
+    },
+    "forecast_2026h1": {
+      "ann_date": "20260715",
+      "type": "扭亏",
+      "p_change_min": 787.07,
+      "p_change_max": 965.9,
+      "net_profit_min": 0.00365,
+      "net_profit_max": 0.0046,
+      "summary": "预计2026年1-6月归属于上市公司股东的净利润盈利:365,000万元至460,000万元,同比上年增长:787.07%至965.9%。"
+    }
+  },
+  {
+    "ts_code": "002466.SZ",
+    "name": "天齐锂业",
+    "industry": "锂",
+    "is_cyclical": false,
+    "daily_basic_latest": {
+      "trade_date": "20260813",
+      "close": 47.76,
+      "pe_ttm": 36.6202,
+      "pb": 1.7653,
+      "ps": 7.9084,
+      "dv_ratio": null,
+      "total_mv_yi": 818.23307011
+    },
+    "valuation": {
+      "data_points": 22,
+      "pe_current": 37.2106,
+      "pb_current": 1.7937,
+      "ps_current": 8.0359,
+      "pe_pct": 86.36363636363636,
+      "pb_pct": 86.36363636363636,
+      "ps_pct": 86.36363636363636,
+      "mv_pct": 86.36363636363636,
+      "pe_50": 35.72305,
+      "pb_50": 1.7220499999999999,
+      "latest_trade_date": "20260812"
+    },
+    "fin_2025": {
+      "revenue_yi": 103.46364563270001,
+      "net_profit_yi": 4.6262545236,
+      "net_profit_yoy_pct": 105.85262512458729,
+      "roe_pct": 1.0982,
+      "debt_to_assets_pct": 28.0375,
+      "grossprofit_margin_pct": 39.4733,
+      "netprofit_margin_pct": 29.0212
+    },
+    "forecast_2026h1": {
+      "ann_date": "20260715",
+      "type": "预增",
+      "p_change_min": 3276.35,
+      "p_change_max": 4934.91,
+      "net_profit_min": 0.00285,
+      "net_profit_max": 0.00425,
+      "summary": "预计2026年1-6月归属于上市公司股东的净利润盈利:285,000万元至425,000万元,同比上年增长:3276.35%至4934.91%。"
+    }
+  },
+  {
+    "ts_code": "000792.SZ",
+    "name": "盐湖股份",
+    "industry": "钾肥",
+    "is_cyclical": false,
+    "daily_basic_latest": {
+      "trade_date": "20260813",
+      "close": 27.65,
+      "pe_ttm": 14.1854,
+      "pb": 3.2736,
+      "ps": 9.4387,
+      "dv_ratio": null,
+      "total_mv_yi": 1463.1198239
+    },
+    "valuation": {
+      "data_points": 22,
+      "pe_current": 14.9088,
+      "pb_current": 3.4405,
+      "ps_current": 9.92,
+      "pe_pct": 90.9090909090909,
+      "pb_pct": 90.9090909090909,
+      "ps_pct": 90.9090909090909,
+      "mv_pct": 90.9090909090909,
+      "pe_50": 14.0366,
+      "pb_50": 3.23925,
+      "latest_trade_date": "20260812"
+    },
+    "fin_2025": {
+      "revenue_yi": 155.01243782059998,
+      "net_profit_yi": 84.75535262689999,
+      "net_profit_yoy_pct": 81.75688321549323,
+      "roe_pct": 20.7902,
+      "debt_to_assets_pct": 14.1532,
+      "grossprofit_margin_pct": 57.8551,
+      "netprofit_margin_pct": 57.7152
+    },
+    "forecast_2026h1": {
+      "ann_date": "20260703",
+      "type": "预增",
+      "p_change_min": 131.38,
+      "p_change_max": 142.95,
+      "net_profit_min": 0.006,
+      "net_profit_max": 0.0063,
+      "summary": "预计2026年1-6月归属于上市公司股东的净利润盈利:600,000万元至630,000万元,同比上年增长:131.38%至142.95%。"
+    }
+  },
+  {
+    "ts_code": "000408.SZ",
+    "name": "藏格矿业",
+    "industry": "钾肥",
+    "is_cyclical": false,
+    "daily_basic_latest": {
+      "trade_date": "20260813",
+      "close": 78.04,
+      "pe_ttm": 21.5173,
+      "pb": 7.1199,
+      "ps": 34.2316,
+      "dv_ratio": 1.2814,
+      "total_mv_yi": 1224.38110992
+    },
+    "valuation": {
+      "data_points": 22,
+      "pe_current": 22.3747,
+      "pb_current": 7.4036,
+      "ps_current": 35.5958,
+      "pe_pct": 0.0,
+      "pb_pct": 72.72727272727273,
+      "ps_pct": 72.72727272727273,
+      "mv_pct": 72.72727272727273,
+      "pe_50": 26.63625,
+      "pb_50": 7.084,
+      "latest_trade_date": "20260812"
+    },
+    "fin_2025": {
+      "revenue_yi": 35.767526059699996,
+      "net_profit_yi": 38.5235324098,
+      "net_profit_yoy_pct": 49.316830880551294,
+      "roe_pct": 25.5897,
+      "debt_to_assets_pct": 8.3473,
+      "grossprofit_margin_pct": 59.2391,
+      "netprofit_margin_pct": 107.2835
+    },
+    "forecast_2026h1": {
+      "ann_date": "20260707",
+      "type": "预增",
+      "p_change_min": 97.2,
+      "p_change_max": 108.31,
+      "net_profit_min": 0.00355,
+      "net_profit_max": 0.00375,
+      "summary": "预计2026年1-6月归属于上市公司股东的净利润盈利:355,000万元至375,000万元,同比上年增长:97.2%至108.31%。"
+    }
+  },
+  {
+    "ts_code": "002756.SZ",
+    "name": "永兴材料",
+    "industry": "普钢",
+    "is_cyclical": false,
+    "daily_basic_latest": {
+      "trade_date": "20260813",
+      "close": 47.86,
+      "pe_ttm": 26.902,
+      "pb": 1.9556,
+      "ps": 3.4758,
+      "dv_ratio": 1.6388,
+      "total_mv_yi": 258.0139779
+    },
+    "valuation": {
+      "data_points": 22,
+      "pe_current": 27.1212,
+      "pb_current": 1.9716,
+      "ps_current": 3.5042,
+      "pe_pct": 81.81818181818183,
+      "pb_pct": 81.81818181818183,
+      "ps_pct": 81.81818181818183,
+      "mv_pct": 81.81818181818183,
+      "pe_50": 25.8228,
+      "pb_50": 1.8771499999999999,
+      "latest_trade_date": "20260812"
+    },
+    "fin_2025": {
+      "revenue_yi": 74.2309639583,
+      "net_profit_yi": 6.6146287837,
+      "net_profit_yoy_pct": -36.60928170439401,
+      "roe_pct": 5.2839,
+      "debt_to_assets_pct": 11.9688,
+      "grossprofit_margin_pct": 15.8006,
+      "netprofit_margin_pct": 8.7212
+    },
+    "forecast_2026h1": {
+      "ann_date": "20260714",
+      "type": "预增",
+      "p_change_min": 137.02,
+      "p_change_max": 186.92,
+      "net_profit_min": 0.00095,
+      "net_profit_max": 0.00115,
+      "summary": "预计2026年1-6月归属于上市公司股东的净利润盈利:95,000万元至115,000万元,同比上年增长:137.02%至186.92%。"
+    }
+  },
+  {
+    "ts_code": "002738.SZ",
+    "name": "中矿资源",
+    "industry": "锂",
+    "is_cyclical": false,
+    "daily_basic_latest": {
+      "trade_date": "20260813",
+      "close": 52.4,
+      "pe_ttm": 46.0175,
+      "pb": 2.996,
+      "ps": 5.8394,
+      "dv_ratio": 0.9439,
+      "total_mv_yi": 382.1976876
+    },
+    "valuation": {
+      "data_points": 22,
+      "pe_current": 46.7903,
+      "pb_current": 3.0463,
+      "ps_current": 5.9374,
+      "pe_pct": 90.9090909090909,
+      "pb_pct": 90.9090909090909,
+      "ps_pct": 90.9090909090909,
+      "mv_pct": 90.9090909090909,
+      "pe_50": 42.32275,
+      "pb_50": 2.7554,
+      "latest_trade_date": "20260812"
+    },
+    "fin_2025": {
+      "revenue_yi": 65.4519387442,
+      "net_profit_yi": 4.5763979104,
+      "net_profit_yoy_pct": -39.543576673914714,
+      "roe_pct": 3.7569,
+      "debt_to_assets_pct": 31.3997,
+      "grossprofit_margin_pct": 25.4538,
+      "netprofit_margin_pct": 7.0185
+    },
+    "forecast_2026h1": {
+      "ann_date": "20260711",
+      "type": "预增",
+      "p_change_min": 1078.07,
+      "p_change_max": 1302.46,
+      "net_profit_min": 0.00105,
+      "net_profit_max": 0.00125,
+      "summary": "预计2026年1-6月归属于上市公司股东的净利润盈利:105,000万元至125,000万元,同比上年增长:1078.07%至1302.46%。"
+    }
+  },
+  {
+    "ts_code": "002497.SZ",
+    "name": "雅化集团",
+    "industry": "化工原料",
+    "is_cyclical": false,
+    "daily_basic_latest": {
+      "trade_date": "20260813",
+      "close": 18.83,
+      "pe_ttm": 24.4198,
+      "pb": 1.9671,
+      "ps": 2.5404,
+      "dv_ratio": 0.2107,
+      "total_mv_yi": 217.02752252000002
+    },
+    "valuation": {
+      "data_points": 22,
+      "pe_current": 24.8996,
+      "pb_current": 2.0058,
+      "ps_current": 2.5903,
+      "pe_pct": 95.45454545454545,
+      "pb_pct": 95.45454545454545,
+      "ps_pct": 95.45454545454545,
+      "mv_pct": 95.45454545454545,
+      "pe_50": 23.11645,
+      "pb_50": 1.86215,
+      "latest_trade_date": "20260812"
+    },
+    "fin_2025": {
+      "revenue_yi": 85.431712639,
+      "net_profit_yi": 6.3238016187,
+      "net_profit_yoy_pct": 145.95227574043136,
+      "roe_pct": 5.9792,
+      "debt_to_assets_pct": 26.1659,
+      "grossprofit_margin_pct": 22.0635,
+      "netprofit_margin_pct": 6.4346
+    },
+    "forecast_2026h1": {
+      "ann_date": "20260707",
+      "type": "预增",
+      "p_change_min": 710.17,
+      "p_change_max": 857.48,
+      "net_profit_min": 0.0011,
+      "net_profit_max": 0.0013,
+      "summary": "预计2026年1-6月归属于上市公司股东的净利润盈利:110,000万元至130,000万元,同比上年增长:710.17%至857.48%。"
+    }
+  },
+  {
+    "ts_code": "000762.SZ",
+    "name": "西藏矿业",
+    "industry": "铅锌",
+    "is_cyclical": false,
+    "daily_basic_latest": {
+      "trade_date": "20260813",
+      "close": 23.42,
+      "pe_ttm": 270.0962,
+      "pb": 4.0808,
+      "ps": 34.6517,
+      "dv_ratio": 0.2136,
+      "total_mv_yi": 121.97585663999999
+    },
+    "valuation": {
+      "data_points": 22,
+      "pe_current": 275.7472,
+      "pb_current": 4.1661,
+      "ps_current": 35.3767,
+      "pe_pct": 4.545454545454546,
+      "pb_pct": 77.27272727272727,
+      "ps_pct": 86.36363636363636,
+      "mv_pct": 86.36363636363636,
+      "pe_50": 5166.175450000001,
+      "pb_50": 3.949,
+      "latest_trade_date": "20260812"
+    },
+    "fin_2025": {
+      "revenue_yi": 3.5200522811000003,
+      "net_profit_yi": -0.3021113832,
+      "net_profit_yoy_pct": -127.03607803460419,
+      "roe_pct": -1.0247,
+      "debt_to_assets_pct": 48.3891,
+      "grossprofit_margin_pct": 32.0626,
+      "netprofit_margin_pct": -16.5605
+    },
+    "forecast_2026h1": {
+      "ann_date": "20260714",
+      "type": "扭亏",
+      "p_change_min": 426.69,
+      "p_change_max": 531.23,
+      "net_profit_min": 5e-05,
+      "net_profit_max": 6.6e-05,
+      "summary": "预计2026年1-6月归属于上市公司股东的净利润盈利:5,000万元至6,600万元,同比上年增长:426.69%至531.23%。"
+    }
+  },
+  {
+    "ts_code": "002192.SZ",
+    "name": "融捷股份",
+    "industry": "锂",
+    "is_cyclical": false,
+    "daily_basic_latest": {
+      "trade_date": "20260813",
+      "close": 70.95,
+      "pe_ttm": 34.3173,
+      "pb": 4.7542,
+      "ps": 21.9191,
+      "dv_ratio": 0.234,
+      "total_mv_yi": 184.22536440000002
+    },
+    "valuation": {
+      "data_points": 22,
+      "pe_current": 33.9594,
+      "pb_current": 4.7046,
+      "ps_current": 21.6905,
+      "pe_pct": 86.36363636363636,
+      "pb_pct": 86.36363636363636,
+      "ps_pct": 86.36363636363636,
+      "mv_pct": 86.36363636363636,
+      "pe_50": 31.349899999999998,
+      "pb_50": 4.3431,
+      "latest_trade_date": "20260812"
+    },
+    "fin_2025": {
+      "revenue_yi": 8.4047886163,
+      "net_profit_yi": 2.7876488929,
+      "net_profit_yoy_pct": 29.52170104004466,
+      "roe_pct": 8.0933,
+      "debt_to_assets_pct": 27.1004,
+      "grossprofit_margin_pct": 51.1754,
+      "netprofit_margin_pct": 32.464
+    },
+    "forecast_2026h1": {
+      "ann_date": "20260711",
+      "type": "预增",
+      "p_change_min": 956.84,
+      "p_change_max": 1191.69,
+      "net_profit_min": 0.0009,
+      "net_profit_max": 0.0011,
+      "summary": "预计2026年1-6月归属于上市公司股东的净利润盈利:90,000万元至110,000万元,同比上年增长:956.84%至1191.69%。"
+    }
+  }
+]

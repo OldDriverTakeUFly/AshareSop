@@ -1,0 +1,928 @@
+[
+  {
+    "ts_code": "601088.SH",
+    "name": "中国神华",
+    "industry": "煤炭开采",
+    "sector": "coal",
+    "is_cyclical": false,
+    "daily_basic_latest": {
+      "trade_date": "20260813",
+      "close": 44.34,
+      "pe_ttm": 18.6497,
+      "pb": 1.9998,
+      "ps": 3.261,
+      "dv_ratio": 6.5806,
+      "dv_ttm": 4.3134,
+      "total_mv_yi": 9617.095168619999
+    },
+    "valuation": {
+      "data_points": 22,
+      "pe_current": 18.5361,
+      "pb_current": 1.9876,
+      "ps_current": 3.2411,
+      "pe_pct": 40.909090909090914,
+      "pb_pct": 40.909090909090914,
+      "ps_pct": 40.909090909090914,
+      "mv_pct": 40.909090909090914,
+      "pe_50": 18.7969,
+      "pb_50": 2.01555,
+      "pb_min": 1.9394,
+      "pb_max": 2.081,
+      "latest_trade_date": "20260812"
+    },
+    "fin_2025": {
+      "revenue_yi": 2949.16,
+      "net_profit_yi": 528.49,
+      "net_profit_yoy_pct": -9.923130677847663,
+      "revenue_yoy_pct": -12.843442925748064,
+      "roe_pct": 12.6437,
+      "debt_to_assets_pct": 23.3066,
+      "grossprofit_margin_pct": 35.0781,
+      "netprofit_margin_pct": 21.2884
+    },
+    "forecast_2026h1": {
+      "ann_date": "20260715",
+      "type": "续盈",
+      "p_change_min": -4.7,
+      "p_change_max": 8.0,
+      "net_profit_min": 0.0263,
+      "net_profit_max": 0.0298,
+      "summary": "预计2026年1-6月归属于上市公司股东的净利润盈利:2,630,000万元至2,980,000万元,同比上年变动:-4.7%至8%,同比上年变动-130,000万元至220,000万元。"
+    },
+    "fin_2026q1": {
+      "net_profit_yi": 106.67,
+      "net_profit_yoy_pct": -10.728931291321445
+    }
+  },
+  {
+    "ts_code": "601225.SH",
+    "name": "陕西煤业",
+    "industry": "煤炭开采",
+    "sector": "coal",
+    "is_cyclical": false,
+    "daily_basic_latest": {
+      "trade_date": "20260813",
+      "close": 25.08,
+      "pe_ttm": 15.0372,
+      "pb": 2.3815,
+      "ps": 1.5372,
+      "dv_ratio": 5.0963,
+      "dv_ttm": 3.7799,
+      "total_mv_yi": 2431.506
+    },
+    "valuation": {
+      "data_points": 22,
+      "pe_current": 15.1091,
+      "pb_current": 2.3929,
+      "ps_current": 1.5445,
+      "pe_pct": 81.81818181818183,
+      "pb_pct": 81.81818181818183,
+      "ps_pct": 81.81818181818183,
+      "mv_pct": 81.81818181818183,
+      "pe_50": 14.7913,
+      "pb_50": 2.34255,
+      "pb_min": 2.2666,
+      "pb_max": 2.4727,
+      "latest_trade_date": "20260812"
+    },
+    "fin_2025": {
+      "revenue_yi": 1581.785197182,
+      "net_profit_yi": 167.6476316836,
+      "net_profit_yoy_pct": -25.022704844455617,
+      "revenue_yoy_pct": -14.10103298999828,
+      "roe_pct": 17.881,
+      "debt_to_assets_pct": 41.8429,
+      "grossprofit_margin_pct": 29.0587,
+      "netprofit_margin_pct": 16.8222
+    },
+    "forecast_2026h1": {
+      "ann_date": "20260711",
+      "type": "预增",
+      "p_change_min": 47.0,
+      "p_change_max": 53.0,
+      "net_profit_min": 0.011229,
+      "net_profit_max": 0.011687,
+      "summary": "预计2026年1-6月归属于上市公司股东的净利润盈利:1,122,900万元至1,168,700万元,同比上年增长:47%至53%,同比上年增长359,100万元至404,900万元。"
+    },
+    "fin_2026q1": {
+      "net_profit_yi": 42.0999104633,
+      "net_profit_yoy_pct": -12.378955491961396
+    }
+  },
+  {
+    "ts_code": "601898.SH",
+    "name": "中煤能源",
+    "industry": "煤炭开采",
+    "sector": "coal",
+    "is_cyclical": false,
+    "daily_basic_latest": {
+      "trade_date": "20260813",
+      "close": 13.93,
+      "pe_ttm": 10.4011,
+      "pb": 1.1261,
+      "ps": 1.2474,
+      "dv_ratio": 3.0438,
+      "dv_ttm": 3.0438,
+      "total_mv_yi": 1846.93181162
+    },
+    "valuation": {
+      "data_points": 22,
+      "pe_current": 10.5654,
+      "pb_current": 1.1439,
+      "ps_current": 1.2672,
+      "pe_pct": 72.72727272727273,
+      "pb_pct": 72.72727272727273,
+      "ps_pct": 72.72727272727273,
+      "mv_pct": 72.72727272727273,
+      "pe_50": 10.30035,
+      "pb_50": 1.1152,
+      "pb_min": 1.0137,
+      "pb_max": 1.1641,
+      "latest_trade_date": "20260812"
+    },
+    "fin_2025": {
+      "revenue_yi": 1480.56698,
+      "net_profit_yi": 178.83577,
+      "net_profit_yoy_pct": -7.448966347557128,
+      "revenue_yoy_pct": -21.828050674504436,
+      "roe_pct": 11.4622,
+      "debt_to_assets_pct": 45.8167,
+      "grossprofit_margin_pct": 27.4891,
+      "netprofit_margin_pct": 14.7507
+    },
+    "forecast_2026h1": null,
+    "fin_2026q1": {
+      "net_profit_yi": 38.44352,
+      "net_profit_yoy_pct": -3.356495651314807
+    }
+  },
+  {
+    "ts_code": "600188.SH",
+    "name": "兖矿能源",
+    "industry": "煤炭开采",
+    "sector": "coal",
+    "is_cyclical": false,
+    "daily_basic_latest": {
+      "trade_date": "20260813",
+      "close": 21.5,
+      "pe_ttm": 22.5877,
+      "pb": 2.8213,
+      "ps": 1.4889,
+      "dv_ratio": 3.3492,
+      "dv_ttm": 2.3252,
+      "total_mv_yi": 2157.9231800000002
+    },
+    "valuation": {
+      "data_points": 22,
+      "pe_current": 23.2075,
+      "pb_current": 2.8987,
+      "ps_current": 1.5298,
+      "pe_pct": 81.81818181818183,
+      "pb_pct": 81.81818181818183,
+      "ps_pct": 81.81818181818183,
+      "mv_pct": 81.81818181818183,
+      "pe_50": 21.2324,
+      "pb_50": 2.652,
+      "pb_min": 2.4801,
+      "pb_max": 2.9341,
+      "latest_trade_date": "20260812"
+    },
+    "fin_2025": {
+      "revenue_yi": 1449.32859,
+      "net_profit_yi": 83.80948,
+      "net_profit_yoy_pct": -41.900045968641635,
+      "revenue_yoy_pct": 4.174985538485649,
+      "roe_pct": 9.1558,
+      "debt_to_assets_pct": 62.2256,
+      "grossprofit_margin_pct": 29.3403,
+      "netprofit_margin_pct": 9.8154
+    },
+    "forecast_2026h1": {
+      "ann_date": "20260715",
+      "type": "略增",
+      "p_change_min": 49.0,
+      "p_change_max": 49.0,
+      "net_profit_min": 0.0072,
+      "net_profit_max": 0.0072,
+      "summary": "预计2026年1-6月归属于上市公司股东的净利润盈利约:720,000万元,同比上年增长:49%左右,同比上年增长240,000万元左右。"
+    },
+    "fin_2026q1": {
+      "net_profit_yi": 39.54969,
+      "net_profit_yoy_pct": 45.935830534516775
+    }
+  },
+  {
+    "ts_code": "000983.SZ",
+    "name": "山西焦煤",
+    "industry": "煤炭开采",
+    "sector": "coal",
+    "is_cyclical": false,
+    "daily_basic_latest": {
+      "trade_date": "20260813",
+      "close": 6.66,
+      "pe_ttm": 28.4793,
+      "pb": 1.0214,
+      "ps": 1.0176,
+      "dv_ratio": 3.8438,
+      "dv_ttm": 1.8919,
+      "total_mv_yi": 378.0949266
+    },
+    "valuation": {
+      "data_points": 22,
+      "pe_current": 28.9069,
+      "pb_current": 1.0368,
+      "ps_current": 1.0329,
+      "pe_pct": 86.36363636363636,
+      "pb_pct": 86.36363636363636,
+      "ps_pct": 86.36363636363636,
+      "mv_pct": 86.36363636363636,
+      "pe_50": 27.624,
+      "pb_50": 0.9908,
+      "pb_min": 0.9279,
+      "pb_max": 1.0536,
+      "latest_trade_date": "20260812"
+    },
+    "fin_2025": {
+      "revenue_yi": 371.5485632457,
+      "net_profit_yi": 12.0077498879,
+      "net_profit_yoy_pct": -61.36537900447663,
+      "revenue_yoy_pct": -17.963036133739628,
+      "roe_pct": 3.3287,
+      "debt_to_assets_pct": 57.1035,
+      "grossprofit_margin_pct": 30.5231,
+      "netprofit_margin_pct": 4.7692
+    },
+    "forecast_2026h1": null,
+    "fin_2026q1": {
+      "net_profit_yi": 8.0788001439,
+      "net_profit_yoy_pct": 18.624517300652986
+    }
+  },
+  {
+    "ts_code": "601666.SH",
+    "name": "平煤股份",
+    "industry": "煤炭开采",
+    "sector": "coal",
+    "is_cyclical": false,
+    "daily_basic_latest": {
+      "trade_date": "20260813",
+      "close": 8.99,
+      "pe_ttm": 111.1811,
+      "pb": 1.0156,
+      "ps": 1.0812,
+      "dv_ratio": 6.3529,
+      "dv_ttm": 0.6317,
+      "total_mv_yi": 221.99592248999997
+    },
+    "valuation": {
+      "data_points": 22,
+      "pe_current": 113.6545,
+      "pb_current": 1.0382,
+      "ps_current": 1.1053,
+      "pe_pct": 86.36363636363636,
+      "pb_pct": 86.36363636363636,
+      "ps_pct": 86.36363636363636,
+      "mv_pct": 86.36363636363636,
+      "pe_50": 98.75205,
+      "pb_50": 0.9020999999999999,
+      "pb_min": 0.8439,
+      "pb_max": 1.0563,
+      "latest_trade_date": "20260812"
+    },
+    "fin_2025": {
+      "revenue_yi": 205.3186300082,
+      "net_profit_yi": 2.3131216202,
+      "net_profit_yoy_pct": -90.15508367982233,
+      "revenue_yoy_pct": -32.19621675970681,
+      "roe_pct": 0.93,
+      "debt_to_assets_pct": 65.1476,
+      "grossprofit_margin_pct": 18.7015,
+      "netprofit_margin_pct": 1.2622
+    },
+    "forecast_2026h1": null,
+    "fin_2026q1": {
+      "net_profit_yi": 1.2011954248,
+      "net_profit_yoy_pct": -20.849564522051512
+    }
+  },
+  {
+    "ts_code": "601699.SH",
+    "name": "潞安环能",
+    "industry": "煤炭开采",
+    "sector": "coal",
+    "is_cyclical": false,
+    "daily_basic_latest": {
+      "trade_date": "20260813",
+      "close": 15.97,
+      "pe_ttm": 40.5896,
+      "pb": 1.0306,
+      "ps": 1.7172,
+      "dv_ratio": 2.5673,
+      "dv_ttm": 1.1709,
+      "total_mv_yi": 477.72804923999996
+    },
+    "valuation": {
+      "data_points": 22,
+      "pe_current": 41.3521,
+      "pb_current": 1.05,
+      "ps_current": 1.7495,
+      "pe_pct": 86.36363636363636,
+      "pb_pct": 86.36363636363636,
+      "ps_pct": 86.36363636363636,
+      "mv_pct": 86.36363636363636,
+      "pe_50": 38.505449999999996,
+      "pb_50": 0.9777,
+      "pb_min": 0.9267,
+      "pb_max": 1.0513,
+      "latest_trade_date": "20260812"
+    },
+    "fin_2025": {
+      "revenue_yi": 278.2002815561,
+      "net_profit_yi": 11.151546653499999,
+      "net_profit_yoy_pct": -54.474532389367525,
+      "revenue_yoy_pct": -22.399411326253592,
+      "roe_pct": 2.4369,
+      "debt_to_assets_pct": 41.5632,
+      "grossprofit_margin_pct": 32.9891,
+      "netprofit_margin_pct": 2.2039
+    },
+    "forecast_2026h1": null,
+    "fin_2026q1": {
+      "net_profit_yi": 7.1924584353,
+      "net_profit_yoy_pct": 9.402981141833736
+    }
+  },
+  {
+    "ts_code": "601101.SH",
+    "name": "昊华能源",
+    "industry": "煤炭开采",
+    "sector": "coal",
+    "is_cyclical": false,
+    "daily_basic_latest": {
+      "trade_date": "20260813",
+      "close": 12.57,
+      "pe_ttm": 32.5757,
+      "pb": 1.47,
+      "ps": 2.255,
+      "dv_ratio": 3.6436,
+      "dv_ttm": 1.9889,
+      "total_mv_yi": 181.00773603000002
+    },
+    "valuation": {
+      "data_points": 22,
+      "pe_current": 32.7311,
+      "pb_current": 1.477,
+      "ps_current": 2.2658,
+      "pe_pct": 81.81818181818183,
+      "pb_pct": 81.81818181818183,
+      "ps_pct": 81.81818181818183,
+      "mv_pct": 81.81818181818183,
+      "pe_50": 29.32325,
+      "pb_50": 1.3232499999999998,
+      "pb_min": 1.2256,
+      "pb_max": 1.5787,
+      "latest_trade_date": "20260812"
+    },
+    "fin_2025": {
+      "revenue_yi": 80.2695082413,
+      "net_profit_yi": 5.1241547249,
+      "net_profit_yoy_pct": -50.56626621936269,
+      "revenue_yoy_pct": -12.15564612895106,
+      "roe_pct": 4.2959,
+      "debt_to_assets_pct": 47.583,
+      "grossprofit_margin_pct": 35.0521,
+      "netprofit_margin_pct": 7.9702
+    },
+    "forecast_2026h1": {
+      "ann_date": "20260714",
+      "type": "预增",
+      "p_change_min": 65.68,
+      "p_change_max": 65.68,
+      "net_profit_min": 0.00074255,
+      "net_profit_max": 0.00074255,
+      "summary": "预计2026年1-6月归属于上市公司股东的净利润盈利:74,255万元,同比上年增长:65.68%,同比上年增长29,437万元。"
+    },
+    "fin_2026q1": {
+      "net_profit_yi": 3.1978089507,
+      "net_profit_yoy_pct": 15.63514286707422
+    }
+  },
+  {
+    "ts_code": "600019.SH",
+    "name": "宝钢股份",
+    "industry": "普钢",
+    "sector": "steel",
+    "is_cyclical": false,
+    "daily_basic_latest": {
+      "trade_date": "20260813",
+      "close": 5.67,
+      "pe_ttm": 12.1846,
+      "pb": 0.5928,
+      "ps": 0.389,
+      "dv_ratio": 3.8182,
+      "dv_ttm": 5.2463,
+      "total_mv_yi": 1235.04420249
+    },
+    "valuation": {
+      "data_points": 22,
+      "pe_current": 12.3351,
+      "pb_current": 0.6002,
+      "ps_current": 0.3938,
+      "pe_pct": 13.636363636363635,
+      "pb_pct": 13.636363636363635,
+      "ps_pct": 13.636363636363635,
+      "mv_pct": 13.636363636363635,
+      "pe_50": 12.5929,
+      "pb_50": 0.6127,
+      "pb_min": 0.5855,
+      "pb_max": 0.6545,
+      "latest_trade_date": "20260812"
+    },
+    "fin_2025": {
+      "revenue_yi": 3175.0779396666,
+      "net_profit_yi": 103.45621735270001,
+      "net_profit_yoy_pct": 40.52874632813835,
+      "revenue_yoy_pct": -1.430557363591457,
+      "roe_pct": 5.0874,
+      "debt_to_assets_pct": 37.9675,
+      "grossprofit_margin_pct": 7.2392,
+      "netprofit_margin_pct": 3.5943
+    },
+    "forecast_2026h1": null,
+    "fin_2026q1": {
+      "net_profit_yi": 22.2454217281,
+      "net_profit_yoy_pct": -8.608717805096493
+    }
+  },
+  {
+    "ts_code": "000709.SZ",
+    "name": "河钢股份",
+    "industry": "普钢",
+    "sector": "steel",
+    "is_cyclical": false,
+    "daily_basic_latest": {
+      "trade_date": "20260813",
+      "close": 2.09,
+      "pe_ttm": 19.7715,
+      "pb": 0.4151,
+      "ps": 0.1829,
+      "dv_ratio": 1.4354,
+      "dv_ttm": 1.9139,
+      "total_mv_yi": 216.04583099
+    },
+    "valuation": {
+      "data_points": 22,
+      "pe_current": 20.2445,
+      "pb_current": 0.4251,
+      "ps_current": 0.1873,
+      "pe_pct": 63.63636363636363,
+      "pb_pct": 63.63636363636363,
+      "ps_pct": 63.63636363636363,
+      "mv_pct": 63.63636363636363,
+      "pe_50": 19.9607,
+      "pb_50": 0.4191,
+      "pb_min": 0.3992,
+      "pb_max": 0.437,
+      "latest_trade_date": "20260812"
+    },
+    "fin_2025": {
+      "revenue_yi": 1181.3725463296,
+      "net_profit_yi": 10.0199158785,
+      "net_profit_yoy_pct": 41.637867724263984,
+      "revenue_yoy_pct": -2.860849175182314,
+      "roe_pct": 1.7061,
+      "debt_to_assets_pct": 74.8277,
+      "grossprofit_margin_pct": 10.6541,
+      "netprofit_margin_pct": 0.9012
+    },
+    "forecast_2026h1": null,
+    "fin_2026q1": {
+      "net_profit_yi": 3.2296079395999997,
+      "net_profit_yoy_pct": 39.06324685181297
+    }
+  },
+  {
+    "ts_code": "600010.SH",
+    "name": "包钢股份",
+    "industry": "普钢",
+    "sector": "steel",
+    "is_cyclical": false,
+    "daily_basic_latest": {
+      "trade_date": "20260813",
+      "close": 2.21,
+      "pe_ttm": null,
+      "pb": 1.9371,
+      "ps": 1.5062,
+      "dv_ratio": 0.0906,
+      "dv_ttm": null,
+      "total_mv_yi": 999.4953293
+    },
+    "valuation": {
+      "data_points": 22,
+      "pe_current": null,
+      "pb_current": 1.9634,
+      "ps_current": 1.5267,
+      "pe_pct": null,
+      "pb_pct": 68.18181818181817,
+      "ps_pct": 68.18181818181817,
+      "mv_pct": 68.18181818181817,
+      "pe_50": null,
+      "pb_50": 1.93705,
+      "pb_min": 1.8582,
+      "pb_max": 2.0072,
+      "latest_trade_date": "20260812"
+    },
+    "fin_2025": {
+      "revenue_yi": 663.5752400064,
+      "net_profit_yi": 3.7362249508999996,
+      "net_profit_yoy_pct": 41.18718910513285,
+      "revenue_yoy_pct": -2.543590625820648,
+      "roe_pct": 0.7188,
+      "debt_to_assets_pct": 59.4836,
+      "grossprofit_margin_pct": 9.6609,
+      "netprofit_margin_pct": 0.5812
+    },
+    "forecast_2026h1": {
+      "ann_date": "20260714",
+      "type": "预增",
+      "p_change_min": 52.0,
+      "p_change_max": 98.0,
+      "net_profit_min": 0.00023,
+      "net_profit_max": 0.0003,
+      "summary": "预计2026年1-6月归属于上市公司股东的净利润盈利:23,000万元至30,000万元,同比上年增长:52%至98%,同比上年增长7,867万元至14,867万元。"
+    },
+    "fin_2026q1": {
+      "net_profit_yi": -4.6269865868,
+      "net_profit_yoy_pct": -1129.0351444972016
+    }
+  },
+  {
+    "ts_code": "000898.SZ",
+    "name": "鞍钢股份",
+    "industry": "普钢",
+    "sector": "steel",
+    "is_cyclical": false,
+    "daily_basic_latest": {
+      "trade_date": "20260813",
+      "close": 1.98,
+      "pe_ttm": null,
+      "pb": 0.437,
+      "ps": 0.1931,
+      "dv_ratio": null,
+      "dv_ttm": null,
+      "total_mv_yi": 185.51058174
+    },
+    "valuation": {
+      "data_points": 22,
+      "pe_current": null,
+      "pb_current": 0.4437,
+      "ps_current": 0.1961,
+      "pe_pct": null,
+      "pb_pct": 50.0,
+      "ps_pct": 50.0,
+      "mv_pct": 50.0,
+      "pe_50": null,
+      "pb_50": 0.44255,
+      "pb_min": 0.4216,
+      "pb_max": 0.4657,
+      "latest_trade_date": "20260812"
+    },
+    "fin_2025": {
+      "revenue_yi": 960.52,
+      "net_profit_yi": -40.68,
+      "net_profit_yoy_pct": 42.881213142375735,
+      "revenue_yoy_pct": -8.609813417569768,
+      "roe_pct": -8.8861,
+      "debt_to_assets_pct": 53.1667,
+      "grossprofit_margin_pct": -1.2524,
+      "netprofit_margin_pct": -4.1571
+    },
+    "forecast_2026h1": {
+      "ann_date": "20260714",
+      "type": "增亏",
+      "p_change_min": -83.59,
+      "p_change_max": -83.59,
+      "net_profit_min": -0.002047,
+      "net_profit_max": -0.002047,
+      "summary": "预计2026年1-6月归属于上市公司股东的净利润亏损约:204,700万元,同比上年下降:83.59%左右。"
+    },
+    "fin_2026q1": {
+      "net_profit_yi": -14.57,
+      "net_profit_yoy_pct": -162.9963898916968
+    }
+  },
+  {
+    "ts_code": "000932.SZ",
+    "name": "华菱钢铁",
+    "industry": "普钢",
+    "sector": "steel",
+    "is_cyclical": false,
+    "daily_basic_latest": {
+      "trade_date": "20260813",
+      "close": 3.59,
+      "pe_ttm": 10.9518,
+      "pb": 0.4406,
+      "ps": 0.2031,
+      "dv_ratio": 2.7912,
+      "dv_ttm": 4.4568,
+      "total_mv_yi": 246.00867028000002
+    },
+    "valuation": {
+      "data_points": 22,
+      "pe_current": 11.2873,
+      "pb_current": 0.4541,
+      "ps_current": 0.2093,
+      "pe_pct": 22.727272727272727,
+      "pb_pct": 22.727272727272727,
+      "ps_pct": 22.727272727272727,
+      "mv_pct": 22.727272727272727,
+      "pe_50": 11.4094,
+      "pb_50": 0.45894999999999997,
+      "pb_min": 0.4381,
+      "pb_max": 0.4884,
+      "latest_trade_date": "20260812"
+    },
+    "fin_2025": {
+      "revenue_yi": 1217.4071803691,
+      "net_profit_yi": 26.1061502992,
+      "net_profit_yoy_pct": 28.4903037113042,
+      "revenue_yoy_pct": -15.857918704663934,
+      "roe_pct": 4.7746,
+      "debt_to_assets_pct": 53.4612,
+      "grossprofit_margin_pct": 9.7142,
+      "netprofit_margin_pct": 3.195
+    },
+    "forecast_2026h1": {
+      "ann_date": "20260710",
+      "type": "预减",
+      "p_change_min": -88.56,
+      "p_change_max": -82.84,
+      "net_profit_min": 0.0002,
+      "net_profit_max": 0.0003,
+      "summary": "预计2026年1-6月归属于上市公司股东的净利润盈利:20,000万元至30,000万元,同比上年下降:82.84%至88.56%。"
+    },
+    "fin_2026q1": {
+      "net_profit_yi": 1.9772333568,
+      "net_profit_yoy_pct": -64.82083083734241
+    }
+  },
+  {
+    "ts_code": "000959.SZ",
+    "name": "首钢股份",
+    "industry": "普钢",
+    "sector": "steel",
+    "is_cyclical": false,
+    "daily_basic_latest": {
+      "trade_date": "20260813",
+      "close": 3.56,
+      "pe_ttm": 32.8567,
+      "pb": 0.5492,
+      "ps": 0.2682,
+      "dv_ratio": 0.6195,
+      "dv_ttm": 1.1236,
+      "total_mv_yi": 276.07683944
+    },
+    "valuation": {
+      "data_points": 22,
+      "pe_current": 33.5951,
+      "pb_current": 0.5615,
+      "ps_current": 0.2743,
+      "pe_pct": 4.545454545454546,
+      "pb_pct": 4.545454545454546,
+      "ps_pct": 4.545454545454546,
+      "mv_pct": 4.545454545454546,
+      "pe_50": 34.841049999999996,
+      "pb_50": 0.5823499999999999,
+      "pb_min": 0.5368,
+      "pb_max": 0.6047,
+      "latest_trade_date": "20260812"
+    },
+    "fin_2025": {
+      "revenue_yi": 1029.1841757291,
+      "net_profit_yi": 9.9563596934,
+      "net_profit_yoy_pct": 111.34592653594038,
+      "revenue_yoy_pct": -4.978616231740906,
+      "roe_pct": 1.9923,
+      "debt_to_assets_pct": 55.7276,
+      "grossprofit_margin_pct": 5.0188,
+      "netprofit_margin_pct": 1.0444
+    },
+    "forecast_2026h1": null,
+    "fin_2026q1": {
+      "net_profit_yi": 1.7406956238,
+      "net_profit_yoy_pct": -46.91109439851163
+    }
+  },
+  {
+    "ts_code": "000825.SZ",
+    "name": "太钢不锈",
+    "industry": "特钢",
+    "sector": "steel",
+    "is_cyclical": false,
+    "daily_basic_latest": {
+      "trade_date": "20260813",
+      "close": 3.45,
+      "pe_ttm": null,
+      "pb": 0.6013,
+      "ps": 0.2174,
+      "dv_ratio": null,
+      "dv_ttm": 0.2609,
+      "total_mv_yi": 196.52054909999998
+    },
+    "valuation": {
+      "data_points": 22,
+      "pe_current": null,
+      "pb_current": 0.61,
+      "ps_current": 0.2206,
+      "pe_pct": null,
+      "pb_pct": 18.181818181818183,
+      "ps_pct": 18.181818181818183,
+      "mv_pct": 18.181818181818183,
+      "pe_50": null,
+      "pb_50": 0.6152500000000001,
+      "pb_min": 0.5996,
+      "pb_max": 0.6414,
+      "latest_trade_date": "20260812"
+    },
+    "fin_2025": {
+      "revenue_yi": 903.7549760388,
+      "net_profit_yi": 0.515282589,
+      "net_profit_yoy_pct": 105.25251810592601,
+      "revenue_yoy_pct": -9.966136319453653,
+      "roe_pct": 0.158,
+      "debt_to_assets_pct": 43.5258,
+      "grossprofit_margin_pct": 1.8969,
+      "netprofit_margin_pct": 0.0772
+    },
+    "forecast_2026h1": {
+      "ann_date": "20260715",
+      "type": "预减",
+      "p_change_min": -69.97,
+      "p_change_max": -61.07,
+      "net_profit_min": 0.000118,
+      "net_profit_max": 0.000153,
+      "summary": "预计2026年1-6月归属于上市公司股东的净利润盈利:11,800万元至15,300万元,同比上年下降:61.07%至69.97%。"
+    },
+    "fin_2026q1": {
+      "net_profit_yi": 0.2017825754,
+      "net_profit_yoy_pct": -89.26365037651581
+    }
+  },
+  {
+    "ts_code": "002756.SZ",
+    "name": "永兴材料",
+    "industry": "特钢",
+    "sector": "steel",
+    "is_cyclical": false,
+    "daily_basic_latest": {
+      "trade_date": "20260813",
+      "close": 47.86,
+      "pe_ttm": 26.902,
+      "pb": 1.9556,
+      "ps": 3.4758,
+      "dv_ratio": 1.6388,
+      "dv_ttm": 1.4376,
+      "total_mv_yi": 258.0139779
+    },
+    "valuation": {
+      "data_points": 22,
+      "pe_current": 27.1212,
+      "pb_current": 1.9716,
+      "ps_current": 3.5042,
+      "pe_pct": 81.81818181818183,
+      "pb_pct": 81.81818181818183,
+      "ps_pct": 81.81818181818183,
+      "mv_pct": 81.81818181818183,
+      "pe_50": 25.8228,
+      "pb_50": 1.8771499999999999,
+      "pb_min": 1.6614,
+      "pb_max": 2.0108,
+      "latest_trade_date": "20260812"
+    },
+    "fin_2025": {
+      "revenue_yi": 74.2309639583,
+      "net_profit_yi": 6.6146287837,
+      "net_profit_yoy_pct": -36.60928170439401,
+      "revenue_yoy_pct": -8.059837589730934,
+      "roe_pct": 5.2839,
+      "debt_to_assets_pct": 11.9688,
+      "grossprofit_margin_pct": 15.8006,
+      "netprofit_margin_pct": 8.7212
+    },
+    "forecast_2026h1": {
+      "ann_date": "20260714",
+      "type": "预增",
+      "p_change_min": 137.02,
+      "p_change_max": 186.92,
+      "net_profit_min": 0.00095,
+      "net_profit_max": 0.00115,
+      "summary": "预计2026年1-6月归属于上市公司股东的净利润盈利:95,000万元至115,000万元,同比上年增长:137.02%至186.92%。"
+    },
+    "fin_2026q1": {
+      "net_profit_yi": 4.8904595243,
+      "net_profit_yoy_pct": 155.4822428981044
+    }
+  },
+  {
+    "ts_code": "601969.SH",
+    "name": "海南矿业",
+    "industry": "普钢",
+    "sector": "iron_ore",
+    "is_cyclical": false,
+    "daily_basic_latest": {
+      "trade_date": "20260813",
+      "close": 9.11,
+      "pe_ttm": 38.3584,
+      "pb": 2.5868,
+      "ps": 4.0939,
+      "dv_ratio": 1.2105,
+      "dv_ttm": 1.2091,
+      "total_mv_yi": 180.78879723
+    },
+    "valuation": {
+      "data_points": 22,
+      "pe_current": 39.5374,
+      "pb_current": 2.6663,
+      "ps_current": 4.2198,
+      "pe_pct": 95.45454545454545,
+      "pb_pct": 95.45454545454545,
+      "ps_pct": 95.45454545454545,
+      "mv_pct": 95.45454545454545,
+      "pe_50": 37.36895,
+      "pb_50": 2.5200500000000003,
+      "pb_min": 2.3369,
+      "pb_max": 2.6663,
+      "latest_trade_date": "20260812"
+    },
+    "fin_2025": {
+      "revenue_yi": 44.1601451,
+      "net_profit_yi": 4.3102632,
+      "net_profit_yoy_pct": -38.9908240583699,
+      "revenue_yoy_pct": 8.620856049861967,
+      "roe_pct": 6.2244,
+      "debt_to_assets_pct": 46.8961,
+      "grossprofit_margin_pct": 25.8689,
+      "netprofit_margin_pct": 9.1614
+    },
+    "forecast_2026h1": {
+      "ann_date": "20260714",
+      "type": "预增",
+      "p_change_min": 68.0,
+      "p_change_max": 96.0,
+      "net_profit_min": 0.00047,
+      "net_profit_max": 0.00055,
+      "summary": "预计2026年1-6月归属于上市公司股东的净利润盈利:47,000万元至55,000万元,同比上年增长:68%至96%,同比上年增长18,900万元至26,900万元。"
+    },
+    "fin_2026q1": {
+      "net_profit_yi": 2.0062553,
+      "net_profit_yoy_pct": 25.12722715741066
+    }
+  },
+  {
+    "ts_code": "000655.SZ",
+    "name": "金岭矿业",
+    "industry": "普钢",
+    "sector": "iron_ore",
+    "is_cyclical": false,
+    "daily_basic_latest": {
+      "trade_date": "20260813",
+      "close": 6.75,
+      "pe_ttm": 15.814,
+      "pb": 1.1376,
+      "ps": 2.4156,
+      "dv_ratio": 3.1111,
+      "dv_ttm": 3.3481,
+      "total_mv_yi": 40.185463500000004
+    },
+    "valuation": {
+      "data_points": 22,
+      "pe_current": 16.142,
+      "pb_current": 1.1612,
+      "ps_current": 2.4657,
+      "pe_pct": 77.27272727272727,
+      "pb_pct": 77.27272727272727,
+      "ps_pct": 77.27272727272727,
+      "mv_pct": 77.27272727272727,
+      "pe_50": 15.61485,
+      "pb_50": 1.1233,
+      "pb_min": 1.0753,
+      "pb_max": 1.1899,
+      "latest_trade_date": "20260812"
+    },
+    "fin_2025": {
+      "revenue_yi": 16.635723030799998,
+      "net_profit_yi": 2.6808602664,
+      "net_profit_yoy_pct": 31.438240252397094,
+      "revenue_yoy_pct": 7.64127484154124,
+      "roe_pct": 7.8244,
+      "debt_to_assets_pct": 13.3135,
+      "grossprofit_margin_pct": 21.9634,
+      "netprofit_margin_pct": 16.513
+    },
+    "forecast_2026h1": null,
+    "fin_2026q1": {
+      "net_profit_yi": 0.3512668521,
+      "net_profit_yoy_pct": -28.45753267539469
+    }
+  }
+]
