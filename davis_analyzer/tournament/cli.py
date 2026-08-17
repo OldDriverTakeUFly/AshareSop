@@ -12,6 +12,9 @@ def _build_parser() -> argparse.ArgumentParser:
     p_run = sub.add_parser("run", help="运行当期锦标赛并出报告")
     p_run.add_argument("--start", required=True, help="YYYYMMDD")
     p_run.add_argument("--end", required=True, help="YYYYMMDD")
+    p_replay = sub.add_parser("replay", help="历史回放（meta 序列+前向模拟曲线）")
+    p_replay.add_argument("--start", required=True, help="YYYYMMDD")
+    p_replay.add_argument("--end", required=True, help="YYYYMMDD")
     return parser
 
 
@@ -51,5 +54,24 @@ def main(argv: list[str] | None = None) -> int:
         text = render_report(snap, scores, current_regime, allocation=allocation)
         path = write_report(text, end)
         print(f"锦标赛报告已写入: {path}")
+        return 0
+    if args.command == "replay":
+        from datetime import datetime
+        from davis_analyzer.config import TOURNAMENT_REPORTS_DIR
+        from davis_analyzer.tournament.adapters import default_participants
+        from davis_analyzer.tournament.judge import JudgeHarness, trading_calendar
+        from davis_analyzer.tournament.replay import export_replay, replay
+        from davis_analyzer.tushare_client import TushareClient
+
+        client = TushareClient()
+        start = datetime.strptime(args.start, "%Y%m%d").date()
+        end = datetime.strptime(args.end, "%Y%m%d").date()
+        judge = JudgeHarness(default_participants(), client)
+        calendar = trading_calendar(client, start, end)
+        windows = judge.build_windows(calendar)
+        reports_by_window = {w: judge.evaluate_window(*w) for w in windows}
+        result = replay(windows, reports_by_window)
+        meta_path, forward_path = export_replay(result, TOURNAMENT_REPORTS_DIR)
+        print(f"meta 序列: {meta_path}\n前向曲线: {forward_path}")
         return 0
     return 1
