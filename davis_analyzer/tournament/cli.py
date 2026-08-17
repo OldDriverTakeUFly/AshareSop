@@ -46,7 +46,9 @@ def main(argv: list[str] | None = None) -> int:
                 reports_by_participant.setdefault(name, []).append(r)
         for name, reports in reports_by_participant.items():
             scores[name] = score_participant(reports, current_regime)
-        text = render_report(snap, scores, current_regime)
+        from davis_analyzer.tournament.allocator import allocate
+        allocation = allocate({k: s.total for k, s in scores.items()})
+        text = render_report(snap, scores, current_regime, allocation=allocation)
         path = write_report(text, end)
         print(f"锦标赛报告已写入: {path}")
         return 0

@@ -43,6 +43,7 @@ def render_report(
     snapshot: dict[tuple[date, date], dict[str, WindowReport]],
     scores: dict[str, CompositeScore],
     current_regime: str,
+    allocation: dict[str, float] | None = None,
 ) -> str:
     any_na = any(
         r.stats is None for reports in snapshot.values() for r in reports.values()
@@ -55,6 +56,11 @@ def render_report(
     ]
     if any_na:
         parts.append("\n**参考性结论**：存在 N/A 参赛者（样本门槛未过），本期排名仅供参考。")
+    if allocation is not None:
+        rows = ["| 参赛者 | 建议权重 |", "|---|---|"]
+        rows += [f"| {k} | {v:.2%} |" for k, v in sorted(allocation.items())]
+        parts.append("\n## 建议权重（仅供人工决策，不自动执行）\n\n" + "\n".join(rows))
+        parts.append("\n置信度说明：N/A 参赛者权重固定为下限；有效窗口不足时结论为参考性。")
     parts.append(f"\n{HONESTY_NOTE}\n")
     return "\n".join(parts)
 
