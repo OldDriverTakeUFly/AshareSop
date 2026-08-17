@@ -81,6 +81,9 @@ def cmd_study(args: argparse.Namespace) -> None:
                  events.assign(封档=lambda d: pd.cut(
                      d["seal_ratio"], [-1, 0.02, 0.05, 100],
                      labels=["弱", "中", "强"])), "封档"))),
+            ("封单分档扰动稳定性（±20%）",
+             report.df_to_md_table(study.seal_bucket_perturbation(events))
+             + "\n\n形态与 regime 阈值扰动检验延后至 Phase 3 前"),
             ("情绪 regime 切片",
              report.df_to_md_table(study.regime_slices(events, regime))),
         ]
