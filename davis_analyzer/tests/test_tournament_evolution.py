@@ -23,9 +23,9 @@ def test_segments_disjoint_with_embargo() -> None:
         sel_days = {d for s, e in split.selection for d in _dates_between(cal, s, e)}
         val_days = {d for s, e in split.validation for d in _dates_between(cal, s, e)}
         assert not (sel_days & val_days), "selection/validation must be disjoint"
-        # 每个验证段剔除 embargo 隔离带后长度为 block−embargo
+        # 对称隔离：验证段两端各剔除 embargo，长度 = block − 2×embargo
         for s, e in split.validation:
-            assert len(_dates_between(cal, s, e)) == 20 - 5  # block=200/10, embargo=5
+            assert len(_dates_between(cal, s, e)) == 20 - 2 * 5  # block=200/10, embargo=5
 
 
 def test_split_finals_tail() -> None:

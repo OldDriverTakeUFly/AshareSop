@@ -7,6 +7,7 @@ Mutation never leaves declared genome bounds (D8).
 
 from __future__ import annotations
 
+import math
 import random
 from dataclasses import dataclass, field
 from datetime import date
@@ -20,6 +21,20 @@ from davis_analyzer.constants import (
     TOURNAMENT_SEGMENT_DRAWS,
 )
 from davis_analyzer.tournament.genome import Genome
+
+# 进化种子默认值：与 FactorConfig / BacktestConfig 的字段默认一致（backtest_factors.py
+# 权重 6 键 + backtest.py 的 top_n=10 / frequency=5）。空预设参与者（如 davis_balanced）
+# 以此补全 incumbent，否则 mutate 跳过缺失键 → 可进化集合为空、进化完全惰性。
+DAVIS_SEED_DEFAULTS: dict[str, float] = {
+    "momentum_weight": 0.20,
+    "valuation_weight": 0.20,
+    "prosperity_weight": 0.25,
+    "distress_weight": 0.15,
+    "northbound_weight": 0.10,
+    "research_weight": 0.10,
+    "top_n": 10,
+    "frequency": 5,
+}
 
 
 @dataclass
@@ -51,7 +66,8 @@ def draw_segments(
         validation: list[tuple[date, date]] = []
         for i in val_idx:
             block = blocks[i]
-            kept = block[embargo_days:]  # embargo: drop the first days of the block
+            # 对称 embargo：验证段两端各剔除隔离带（结尾贴近的后续选择段同样需要隔离）
+            kept = block[embargo_days:-embargo_days]
             if kept:
                 validation.append((kept[0], kept[-1]))
         selection = [
@@ -155,11 +171,18 @@ def improvement_distribution(
 
 
 def perturb_decay(challenger_score: float, perturbed_scores: list[float]) -> float:
-    """Performance decay ratio after ±20% parameter perturbation."""
-    if not perturbed_scores or challenger_score == 0:
-        return 0.0 if challenger_score == 0 else 1.0
+    """Performance decay ratio after independent per-parameter perturbation.
+
+    decay = max(0, (base − mean(perturbed)) / (|base| + ε)); the |base|
+    denominator keeps the ratio meaningful for negative base scores (base=-1,
+    perturbed=-2 → decay=1.0, i.e. a real 100% relative drop, not a pass).
+    Any non-finite input (or no perturbation samples) fails closed to +inf.
+    """
+    values = [challenger_score, *perturbed_scores]
+    if not perturbed_scores or not all(math.isfinite(v) for v in values):
+        return float("inf")
     mean_perturbed = sum(perturbed_scores) / len(perturbed_scores)
-    return 1.0 - mean_perturbed / challenger_score
+    return max(0.0, (challenger_score - mean_perturbed) / (abs(challenger_score) + 1e-9))
 
 
 @dataclass
@@ -175,6 +198,10 @@ def check_promotion(improvements: list[float], decay: float, finals_pass: bool) 
     reasons: list[str] = []
     if not improvements:
         return PromotionDecision(False, ["无随机段改进样本"])
+    # fail-closed：非有限评分（如 score_fn 窗口样本不足返回 -inf）直接拒绝，
+    # 不能让 NaN 比较静默通过任何门槛
+    if not all(math.isfinite(x) for x in improvements) or not math.isfinite(decay):
+        return PromotionDecision(False, ["非有限评分（窗口样本不足）"])
     win_rate = sum(1 for x in improvements if x > 0) / len(improvements)
     if win_rate < TOURNAMENT_PROMO_WIN_RATE:
         reasons.append(f"随机段胜率 {win_rate:.0%} < {TOURNAMENT_PROMO_WIN_RATE:.0%}")

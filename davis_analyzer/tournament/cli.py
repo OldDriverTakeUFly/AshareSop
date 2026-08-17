@@ -61,9 +61,23 @@ def main(argv: list[str] | None = None) -> int:
         for name, reports in reports_by_participant.items():
             scores[name] = score_participant(reports, current_regime)
         from davis_analyzer.tournament.allocator import allocate
+        from davis_analyzer.tournament.ledger import (
+            LedgerRecord, append_record, detect_continual_tweaking, open_db,
+        )
         allocation = allocate({k: s.total for k, s in scores.items()})
+        conn = open_db()  # 同一连接：先检测微调告警，后追加本次 run 台账
         text = render_report(snap, scores, current_regime, allocation=allocation)
+        if detect_continual_tweaking(conn):
+            text = ("⚠️ 台账检测到疑似连续微调模式（同参数版本短期重复评估）"
+                    "——本期结论请谨慎解读。\n\n" + text)
         path = write_report(text, end)
+        append_record(conn, LedgerRecord(
+            op_type="run", run_date=end,
+            participants=[(a.name, a.version) for a in adapters],
+            params_version="TOURNAMENT-v1",
+            oos_windows_used=len(snap), detail={"report": str(path)},
+        ))
+        conn.close()
         print(f"锦标赛报告已写入: {path}")
         return 0
     if args.command == "replay":
@@ -71,27 +85,41 @@ def main(argv: list[str] | None = None) -> int:
         from davis_analyzer.config import TOURNAMENT_REPORTS_DIR
         from davis_analyzer.tournament.adapters import default_participants
         from davis_analyzer.tournament.judge import JudgeHarness, trading_calendar
+        from davis_analyzer.tournament.ledger import LedgerRecord, append_record, open_db
         from davis_analyzer.tournament.replay import export_replay, replay
         from davis_analyzer.tushare_client import TushareClient
 
         client = TushareClient()
         start = datetime.strptime(args.start, "%Y%m%d").date()
         end = datetime.strptime(args.end, "%Y%m%d").date()
-        judge = JudgeHarness(default_participants(), client)
+        adapters = default_participants()
+        judge = JudgeHarness(adapters, client)
         calendar = trading_calendar(client, start, end)
         windows = judge.build_windows(calendar)
         reports_by_window = {w: judge.evaluate_window(*w) for w in windows}
         result = replay(windows, reports_by_window)
-        meta_path, forward_path = export_replay(result, TOURNAMENT_REPORTS_DIR)
+        meta_path, forward_path = export_replay(
+            result, TOURNAMENT_REPORTS_DIR, run_date=windows[-1][1],
+        )
+        conn = open_db()
+        append_record(conn, LedgerRecord(
+            op_type="replay", run_date=windows[-1][1],
+            participants=[(a.name, a.version) for a in adapters],
+            params_version="TOURNAMENT-v1",
+            oos_windows_used=len(windows),
+            detail={"meta_csv": str(meta_path), "forward_csv": str(forward_path)},
+        ))
+        conn.close()
         print(f"meta 序列: {meta_path}\n前向曲线: {forward_path}")
         return 0
     if args.command == "evolve":
+        import random
         from datetime import date, datetime
 
         from davis_analyzer import constants as C
         from davis_analyzer.tournament.adapters import default_participants
         from davis_analyzer.tournament.evolution import (
-            build_score_fn, check_promotion, draw_segments,
+            DAVIS_SEED_DEFAULTS, build_score_fn, check_promotion, draw_segments,
             improvement_distribution, mutate, perturb_decay,
             run_campaign, split_finals,
         )
@@ -110,14 +138,24 @@ def main(argv: list[str] | None = None) -> int:
 
         adapters = {a.name: a for a in default_participants()}
         adapter = adapters[args.participant]
-        incumbent = dict(C.TOURNAMENT_DAVIS_PRESETS.get(args.participant, {}))
+        # 空预设参与者以引擎默认值补全种子，否则 mutate 跳过缺失键 → 进化惰性
+        incumbent = {
+            **DAVIS_SEED_DEFAULTS,
+            **dict(C.TOURNAMENT_DAVIS_PRESETS.get(args.participant, {})),
+        }
         client = TushareClient()
         start = datetime.strptime(args.start, "%Y%m%d").date()
         end = datetime.strptime(args.end, "%Y%m%d").date()
         calendar = trading_calendar(client, start, end)
-        # 日历长度护栏（Task 10 评审遗留的退化输入边缘）：日历过短时
-        # draw_segments 会静默丢尾甚至段内越界，须在入口挡掉
-        if len(calendar) < C.TOURNAMENT_FINALS_WINDOW_DAYS + C.TOURNAMENT_SEGMENTS_N * 10:
+        # 日历长度护栏（Task 10 评审遗留的退化输入边缘）：可评估性要求
+        # 验证段 kept 长度 ≥ MIN_WINDOW_DAYS → 段长 ≥ 45 → 日历 ≥ 828。
+        # 日历过短时 draw_segments 会静默丢尾甚至段内越界，须在入口挡掉
+        min_calendar = (
+            C.TOURNAMENT_SEGMENTS_N
+            * (C.TOURNAMENT_MIN_WINDOW_DAYS + C.TOURNAMENT_EMBARGO_DAYS)
+            + C.TOURNAMENT_FINALS_WINDOW_DAYS
+        )
+        if len(calendar) < min_calendar:
             print("日历长度不足以支撑进化战役（需决赛段+10 段评估）")
             return 1
         evolve_cal, finals_cal = split_finals(calendar)
@@ -135,15 +173,25 @@ def main(argv: list[str] | None = None) -> int:
         improvements = improvement_distribution(
             score_fn, incumbent, best, [s.validation for s in splits]
         )
-        # 扰动稳健性：对每个参数 ±20% 重估（简单实现：全参数同向扰动）
+        # 扰动稳健性：逐参数独立 ±TOURNAMENT_PERTURB_PCT 扰动重估。独立符号改变
+        # 权重比例——若全参数同乘 (1±pct)，_blend 的权重归一化会完全抵消扰动
+        # （混合不变 → perturbed == base → decay 恒 0，门槛形同虚设）
         base = score_fn(best, splits[0].selection)
-        perturbed = [
-            score_fn({k: min(max(float(v) * (1 + sgn * C.TOURNAMENT_PERTURB_PCT), 0.0), 1.0)
-                      if DAVIS_GENOME.spec(k).kind == "weight" else v
-                      for k, v in best.items()}, splits[0].selection)
-            for sgn in (1, -1)
-        ]
-        decay = perturb_decay(base, perturbed)
+        perturb_rng = random.Random(args.seed)
+        perturbed_scores: list[float] = []
+        for _ in range(6):
+            vec = dict(best)
+            for k, v in best.items():
+                spec = DAVIS_GENOME.spec(k)
+                if spec.kind != "weight":
+                    continue  # choice 参数为离散跳变，不参与连续扰动
+                sign = 1.0 if perturb_rng.random() < 0.5 else -1.0
+                vec[k] = min(
+                    max(float(v) * (1.0 + sign * C.TOURNAMENT_PERTURB_PCT), spec.lo),
+                    spec.hi,
+                )
+            perturbed_scores.append(score_fn(vec, splits[0].selection))
+        decay = perturb_decay(base, perturbed_scores)
         finals_pass = score_fn(best, [(finals_cal[0], finals_cal[-1])]) > \
             score_fn(incumbent, [(finals_cal[0], finals_cal[-1])])
         decision = check_promotion(improvements, decay, finals_pass)

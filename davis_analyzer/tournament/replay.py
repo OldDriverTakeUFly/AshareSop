@@ -19,13 +19,10 @@ class ReplayResult:
 
 
 def _window_return(report: WindowReport) -> float:
-    """Total return of one window, derived from annualised return & length."""
+    """Exact window total return from the engine (no re-annualisation)."""
     if report.stats is None:
         return 0.0
-    days = max((report.end - report.start).days, 1)
-    years = days / 365.0
-    ann = report.stats.annualized_return_pct / 100.0
-    return (1.0 + ann) ** years - 1.0
+    return report.stats.total_return_pct / 100.0
 
 
 def replay(
@@ -77,11 +74,14 @@ def replay(
     return result
 
 
-def export_replay(result: ReplayResult, out_dir: Path) -> tuple[Path, Path]:
+def export_replay(
+    result: ReplayResult, out_dir: Path, run_date: date | None = None,
+) -> tuple[Path, Path]:
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
-    meta_path = out_dir / "meta_series.csv"
-    forward_path = out_dir / "forward_curve.csv"
+    stamp = (run_date or date.today()).isoformat()
+    meta_path = out_dir / f"{stamp}_meta_series.csv"
+    forward_path = out_dir / f"{stamp}_forward_curve.csv"
     with meta_path.open("w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=["as_of", "participant", "composite", "weight"])
         writer.writeheader()

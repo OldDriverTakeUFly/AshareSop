@@ -6,7 +6,7 @@ from datetime import date, timedelta
 
 from davis_analyzer.backtest_report import PerformanceStats
 from davis_analyzer.tournament.judge import WindowReport
-from davis_analyzer.tournament.replay import replay
+from davis_analyzer.tournament.replay import _window_return, export_replay, replay
 
 
 def _stats(sharpe: float) -> PerformanceStats:
@@ -54,3 +54,32 @@ def test_replay_prefers_strong_participant() -> None:
     result = replay(windows, _reports(windows, 2.0, 0.0))
     last = [r for r in result.meta_rows if r["participant"] == "A"]
     assert last[-1]["weight"] > 0.5  # 强者权重显著更高
+
+
+def test_window_return_is_exact_total_return() -> None:
+    # I1：直接取引擎 total_return_pct，不再按 365 日历日反年化推导
+    stats = PerformanceStats(
+        total_return_pct=18.0, annualized_return_pct=15.0, sharpe_ratio=1.0,
+        max_drawdown_pct=-8.0, win_rate_pct=55.0, turnover_per_rebalance=0.3,
+        num_trades=24, num_rebalances=8, avg_holding_count=5.0, total_cost=0.01,
+    )
+    long_window = (date(2023, 1, 2), date(2024, 1, 2))  # 365 日历日
+    short_window = (date(2023, 1, 2), date(2023, 4, 3))  # 91 日历日
+    for w in (long_window, short_window):
+        report = WindowReport("A", w[0], w[1], stats=stats, regime="risk_on", na_reason=None)
+        assert _window_return(report) == 0.18  # 与窗口长度、年化值无关
+    na = WindowReport("A", *long_window, stats=None, regime=None, na_reason="数据不足")
+    assert _window_return(na) == 0.0
+
+
+def test_export_replay_filenames_carry_date_prefix(tmp_path) -> None:
+    # M4：CSV 文件名带 {YYYY-MM-DD}_ 前缀；缺省 run_date 用当天
+    result = replay(_windows(6), _reports(_windows(6), 1.5, 0.5))
+    meta_path, forward_path = export_replay(
+        result, tmp_path, run_date=date(2025, 6, 30),
+    )
+    assert meta_path.name == "2025-06-30_meta_series.csv"
+    assert forward_path.name == "2025-06-30_forward_curve.csv"
+    assert meta_path.exists() and forward_path.exists()
+    header = meta_path.read_text(encoding="utf-8").splitlines()[0]
+    assert header == "as_of,participant,composite,weight"

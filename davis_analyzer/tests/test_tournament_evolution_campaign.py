@@ -49,7 +49,52 @@ def test_improvement_distribution_signs() -> None:
 
 def test_perturb_decay_ratio() -> None:
     decay = perturb_decay(challenger_score=1.0, perturbed_scores=[0.9, 0.8])
-    assert decay == pytest.approx(0.15)  # 1 − mean(0.85)
+    assert decay == pytest.approx(0.15)  # (1 − 0.85) / |1|
+    # base≤0：旧公式 1 − (−2/−1) = −1 会反向"通过"；新公式对称触发失败
+    assert perturb_decay(challenger_score=-1.0, perturbed_scores=[-2.0]) == pytest.approx(1.0)
+    # 改进不得为负 decay（perturbed 优于 base 时钳到 0）
+    assert perturb_decay(challenger_score=1.0, perturbed_scores=[1.2, 1.1]) == 0.0
+    # 非有限输入 / 空扰动样本 → fail-closed 为 inf（门槛必拒）
+    assert perturb_decay(float("nan"), [0.9]) == float("inf")
+    assert perturb_decay(1.0, [float("inf")]) == float("inf")
+    assert perturb_decay(1.0, []) == float("inf")
+
+
+def test_promotion_nonfinite_fails_closed() -> None:
+    nan_case = check_promotion([float("nan")] * 20, 0.1, True)
+    assert nan_case.ok is False
+    assert nan_case.reasons == ["非有限评分（窗口样本不足）"]
+    inf_case = check_promotion([0.5] * 20, float("inf"), True)
+    assert inf_case.ok is False
+    assert inf_case.reasons == ["非有限评分（窗口样本不足）"]
+
+
+def test_evolve_perturbation_changes_weight_ratios(monkeypatch: pytest.MonkeyPatch) -> None:
+    """C1 回归锁：backtest_factors._blend 会归一化权重——全参数同乘 (1±pct)
+    的旧扰动被完全抵消（perturbed==base → decay 恒 0 → 门槛永不失败）。
+    逐参数独立符号必须改变权重比例，使 decay 脱离 0。"""
+    conn = _patch_evolve_env(monkeypatch)
+    # 冻结变异强度：best 保持在种子（内部值），单独检验扰动块本身
+    monkeypatch.setattr(evolution_mod, "TOURNAMENT_MUTATION_SIGMA", 0.0)
+
+    def _ratio_score(params: dict, ranges: list) -> float:
+        m = float(params.get("momentum_weight", 0.2))
+        v = float(params.get("valuation_weight", 0.2))
+        ratio = m / (m + v)  # 齐次零次：对全参数统一缩放不变（模拟 _blend 归一化）
+        return 1.0 - (ratio - 0.5) ** 2  # 在 m=v（种子值 0.2/0.2）处取极大
+
+    monkeypatch.setattr(
+        evolution_mod, "build_score_fn", lambda judge, participant: _ratio_score,
+    )
+    try:
+        main(list(_EVO_ARGS))  # davis_balanced 种子 m=v → base 为内部极大值
+        detail = json.loads(conn.execute(
+            "SELECT detail FROM tournament_ledger WHERE op_type='evolve'"
+        ).fetchone()[0])
+        # 6 个扰动向量中必有 momentum/valuation 异号者 → mean(perturbed)<base
+        assert detail["decay"] > 0.0
+    finally:
+        conn.close()
 
 
 def test_promotion_gates_truth_table() -> None:
@@ -77,12 +122,12 @@ _EVO_ARGS = [
 ]
 
 
-def _patch_evolve_env(monkeypatch: pytest.MonkeyPatch, n_days: int = 700) -> sqlite3.Connection:
+def _patch_evolve_env(monkeypatch: pytest.MonkeyPatch, n_days: int = 900) -> sqlite3.Connection:
     """Patch every external touchpoint of the cli evolve branch.
 
     - ledger.open_db → in-memory sqlite（ensure_tables 已建表）
     - TushareClient → MagicMock 类（cli 分支在函数内 import，运行时取属性）
-    - judge.trading_calendar → n_days 个合成交易日
+    - judge.trading_calendar → n_days 个合成交易日（默认 900，高于 828 守卫）
     - evolution.build_score_fn → 确定性假分（只认 momentum_weight，缺省 0.2）
     """
     conn = sqlite3.connect(":memory:")
@@ -101,7 +146,7 @@ def _patch_evolve_env(monkeypatch: pytest.MonkeyPatch, n_days: int = 700) -> sql
 
 
 def test_evolve_cli_contract(monkeypatch: pytest.MonkeyPatch) -> None:
-    conn = _patch_evolve_env(monkeypatch, n_days=700)
+    conn = _patch_evolve_env(monkeypatch, n_days=900)
     try:
         rc = main(list(_EVO_ARGS))
         assert rc in (0, 2)
@@ -114,6 +159,26 @@ def test_evolve_cli_contract(monkeypatch: pytest.MonkeyPatch) -> None:
             "improvements", "decay", "finals_pass", "ok", "reasons", "best_params",
         }
         assert (rc == 0) == (detail["ok"] is True)  # 退出码与晋升判定一致
+    finally:
+        conn.close()
+
+
+def test_evolve_cli_seed_defaults_fill_empty_preset(monkeypatch: pytest.MonkeyPatch) -> None:
+    """I2：空预设参与者（davis_balanced）的 incumbent 由种子补全全部 8 键。"""
+    from davis_analyzer.tournament.evolution import DAVIS_SEED_DEFAULTS
+    from davis_analyzer.tournament.genome import DAVIS_GENOME
+
+    conn = _patch_evolve_env(monkeypatch)
+    try:
+        main(list(_EVO_ARGS))
+        detail = json.loads(conn.execute(
+            "SELECT detail FROM tournament_ledger WHERE op_type='evolve'"
+        ).fetchone()[0])
+        best = detail["best_params"]
+        assert set(best) == set(DAVIS_SEED_DEFAULTS)  # mutate 保留种子全集
+        for k, v in best.items():
+            lo, hi = DAVIS_GENOME.bounds()[k]
+            assert lo <= v <= hi
     finally:
         conn.close()
 
@@ -139,7 +204,15 @@ def test_evolve_cli_quota_rejection(monkeypatch: pytest.MonkeyPatch, capsys) -> 
 
 
 def test_evolve_cli_short_calendar_guard(monkeypatch: pytest.MonkeyPatch, capsys) -> None:
-    conn = _patch_evolve_env(monkeypatch, n_days=200)
+    # I4 守卫阈值（常量表达式推导，=828）：差一天也必须拒绝且不落台账
+    from davis_analyzer import constants as C
+
+    threshold = (
+        C.TOURNAMENT_SEGMENTS_N
+        * (C.TOURNAMENT_MIN_WINDOW_DAYS + C.TOURNAMENT_EMBARGO_DAYS)
+        + C.TOURNAMENT_FINALS_WINDOW_DAYS
+    )
+    conn = _patch_evolve_env(monkeypatch, n_days=threshold - 1)
     try:
         rc = main(list(_EVO_ARGS))
         assert rc == 1
