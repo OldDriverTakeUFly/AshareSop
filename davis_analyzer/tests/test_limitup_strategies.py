@@ -65,3 +65,11 @@ def test_filter_budget_raises() -> None:
 def test_exit_rules_defined() -> None:
     assert PRESETS["first_board"].exit_rule is ExitRule.OPEN_NEXT
     assert PRESETS["relay_2"].exit_rule is ExitRule.RIDE_BOARD
+
+
+def test_is_median_seal_preset_flag() -> None:
+    # C2 修复：IS 中位封单过滤仅 relay_2 规格内启用，其余预设默认关闭，
+    # 避免 first_board 带规格外过滤
+    assert PRESETS["first_board"].use_is_median_seal is False
+    assert PRESETS["relay_3"].use_is_median_seal is False
+    assert PRESETS["relay_2"].use_is_median_seal is True

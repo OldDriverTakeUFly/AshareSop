@@ -113,8 +113,11 @@ def cmd_backtest(args: argparse.Namespace) -> None:
         is_ev, _ = split_is_oos(events, args.oos_start)
         preset = PRESETS[args.preset]
         seal_med = float(is_ev["seal_ratio"].median()) if len(is_ev) else None
+        # IS 中位封单过滤仅 relay_2（use_is_median_seal=True）规格内启用，
+        # 其余预设不注入该过滤条件（防止规格外过滤）
+        seal_arg = seal_med if preset.use_is_median_seal else None
         candidates = apply_preset(
-            events, preset, regime=regime, seal_ratio_median=seal_med
+            events, preset, regime=regime, seal_ratio_median=seal_arg
         )
         prices = db.read_daily_prices(
             conn, sorted(candidates["ts_code"].unique()),
@@ -133,7 +136,8 @@ def cmd_backtest(args: argparse.Namespace) -> None:
         daily_signal = len(candidates) / max(n_days, 1)
         sections = [
             ("策略与参数", f"预设={args.preset}（{preset.name}）；窗口 "
-                        f"{args.start}→{args.end}；IS 中位 seal_ratio={seal_med}；"
+                        f"{args.start}→{args.end}；IS 中位 seal_ratio="
+                        f"{seal_arg if preset.use_is_median_seal else '未启用'}；"
                         f"日均信号数={daily_signal:.2f}"
                         + ("（⚠ 过稀疏）" if daily_signal < 0.5 else "")),
             ("三档成交敏感性", report.df_to_md_table(rows)),

@@ -28,6 +28,9 @@ class StrategyPreset:
     min_seal_ratio: float | None = None
     min_sector_linkage: int | None = None
     exclude_negative_event: bool = True
+    # IS 中位封单过滤是 relay_2 的规格内过滤；默认关闭，CLI 仅在该旗标
+    # 为 True 时才把 seal_ratio_median 传入 apply_preset（防止规格外过滤）
+    use_is_median_seal: bool = False
 
 
 PRESETS: dict[str, StrategyPreset] = {
@@ -37,7 +40,7 @@ PRESETS: dict[str, StrategyPreset] = {
     ),
     "relay_2": StrategyPreset(
         name="二板接力", board_range=(2, 2), pattern_labels=None,
-        exit_rule=ExitRule.RIDE_BOARD,
+        exit_rule=ExitRule.RIDE_BOARD, use_is_median_seal=True,
     ),
     "relay_3": StrategyPreset(
         name="三板接力", board_range=(3, 3), pattern_labels=None,
