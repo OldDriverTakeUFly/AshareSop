@@ -118,3 +118,28 @@ def test_ex_dividend_event_removed(limitup_db: sqlite3.Connection) -> None:
     row = df.iloc[0]
     assert row["ts_code"] == "600005.SH"
     assert row["limit_price"] == 11.0
+
+
+def test_return_labels(limitup_db: sqlite3.Connection) -> None:
+    _seed_base(limitup_db)
+    # 再造 2 天价格：600001 在 0104 断板低开、0105 反包
+    conn = limitup_db
+    conn.executemany(
+        "INSERT INTO daily_price VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+        [
+            ("600001.SH", "20240104", 11.5, 11.8, 11.0, 11.2, 12.1, -7.4, 0, 0, 1.0, None),
+            ("600001.SH", "20240105", 11.0, 12.32, 11.0, 12.32, 11.2, 10.0, 0, 0, 1.0, None),
+        ],
+    )
+    conn.commit()
+    df = events.build_events(conn, "20240101", "20240110")
+    e2 = df[(df.ts_code == "600001.SH") & (df.trade_date == "20240103")].iloc[0]
+    # 简报原式 abs(ret - x/y - 1) 运算优先级错误（恒为 |-2|=2），
+    # 最小修正为 abs(ret - (x/y - 1))，断言语义不变
+    assert abs(e2["ret_open_1"] - (11.5 / 12.1 - 1)) < 1e-9
+    assert abs(e2["ret_close_1"] - (11.2 / 12.1 - 1)) < 1e-9
+    assert not e2["promoted"]  # 0104 收盘 11.2 未涨停
+    e1 = df[(df.ts_code == "600001.SH") & (df.trade_date == "20240102")].iloc[0]
+    assert e1["promoted"]  # 0103 12.1 = 11.0*1.1 涨停
+    assert abs(e1["ret_open_1"] - (11.0 / 11.0 - 1)) < 1e-9
+    assert abs(e1["ret_3d"] - (12.32 / 11.0 - 1)) < 1e-9  # 0105 收盘/0102 涨停价

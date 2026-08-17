@@ -98,6 +98,9 @@ def build_events(conn: sqlite3.Connection, start: str, end: str) -> pd.DataFrame
         parts.append(g)
     lp = pd.concat(parts, ignore_index=True) if parts else lp
 
+    # 前瞻收益标签（T+1 开盘/收盘/冲高/回撤 + 3日/5日 + 晋级）
+    lp = attach_return_labels(lp, prices)
+
     logger.info("build_events: {} 条事件 [{} → {}]", len(lp), start, end)
     return lp.sort_values(["trade_date", "ts_code"]).reset_index(drop=True)
 
@@ -105,3 +108,39 @@ def build_events(conn: sqlite3.Connection, start: str, end: str) -> pd.DataFrame
 def _shift_day(ymd: str, days: int) -> str:
     dt = pd.to_datetime(ymd, format="%Y%m%d") + pd.Timedelta(days=days)
     return dt.strftime("%Y%m%d")
+
+
+# ── forward return labels ──
+
+def attach_return_labels(
+    events: pd.DataFrame, prices: pd.DataFrame
+) -> pd.DataFrame:
+    """Attach T+1/T+3/T+5 returns and promotion flag (T+1 closes limit-up)."""
+    p = prices.sort_values(["ts_code", "trade_date"]).copy()
+    g = p.groupby("ts_code", sort=False)
+    p["t1_open"] = g["open"].shift(-1)
+    p["t1_high"] = g["high"].shift(-1)
+    p["t1_low"] = g["low"].shift(-1)
+    p["t1_close"] = g["close"].shift(-1)
+    p["t1_pre_close"] = g["pre_close"].shift(-1)
+    p["t3_close"] = g["close"].shift(-3)
+    p["t5_close"] = g["close"].shift(-5)
+    label_cols = ["t1_open", "t1_high", "t1_low", "t1_close", "t1_pre_close",
+                  "t3_close", "t5_close"]
+    ev = events.merge(p[["ts_code", "trade_date", *label_cols]],
+                      on=["ts_code", "trade_date"], how="left")
+    ev["ret_open_1"] = ev["t1_open"] / ev["limit_price"] - 1
+    ev["ret_close_1"] = ev["t1_close"] / ev["limit_price"] - 1
+    ev["ret_high_1"] = ev["t1_high"] / ev["limit_price"] - 1
+    ev["ret_low_1"] = ev["t1_low"] / ev["limit_price"] - 1
+    ev["ret_3d"] = ev["t3_close"] / ev["limit_price"] - 1
+    ev["ret_5d"] = ev["t5_close"] / ev["limit_price"] - 1
+    ev["promoted"] = ev.apply(
+        lambda r: bool(
+            pd.notna(r["t1_close"]) and pd.notna(r["t1_pre_close"])
+            and is_limit_up_close(r["t1_close"], r["t1_pre_close"],
+                                  limit_ratio_for(r["ts_code"]))
+        ),
+        axis=1,
+    )
+    return ev.drop(columns=label_cols)
