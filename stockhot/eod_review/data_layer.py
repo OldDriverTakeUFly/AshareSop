@@ -107,14 +107,17 @@ def get_market_snapshot(
 
     snap = MarketSnapshot(trade_date=date)
 
-    # ── 1. 全市场日线（直接走 gateway，绕过可能部分写入的 DAL 缓存）──
-    # NOTE: repository.get_daily_by_date 会落库缓存，但某些日期的缓存写入
-    # 可能产生大量 NaN（已知现象）。复盘引擎要求完整 OHLCV，因此直接拉 Tushare。
+    # ── 1. 全市场日线（直拉保证 OHLCV 完整 + 写穿落库）──
+    # NOTE: 快照仍直接走 gateway（绕过可能部分写入的 DAL 读缓存——历史
+    # NaN 事故前科，复盘引擎要求完整 OHLCV）；但拉到后顺手写穿
+    # daily_price（close 为空的行由 repository 丢弃，失败仅告警不阻断），
+    # 使每日盘后总结成为全市场日线的保底采集管道（2026-08 断供事故修复）。
     try:
         snap.daily = _fetch_daily(gw, date)
         if snap.daily.empty:
             snap.errors.append("daily")
         else:
+            _persist_daily(repository, gw, date, snap.daily)
             logger.info(f"[EOD] daily: {len(snap.daily)} rows")
     except Exception as e:
         logger.warning(f"[EOD] daily 拉取失败: {e}")
@@ -205,6 +208,29 @@ def get_market_snapshot(
 
 
 # ── 内部拉取函数 ──────────────────────────────────────────────────────
+
+
+def _persist_daily(
+    repo: MarketDataRepository,
+    gw: TushareGateway,
+    date: str,
+    daily_df: pd.DataFrame,
+) -> None:
+    """盘后写穿落库（best-effort）：把直拉的全市场日线持久化到 daily_price.
+
+    adj_factor 拉取失败不阻断价格落库（因子留空可后补）；
+    repository 写入失败只告警，绝不阻断盘后总结主流程。
+    """
+    adj_df = pd.DataFrame()
+    try:
+        adj_df = gw.get_adj_factor(date)
+    except Exception as e:
+        logger.warning(f"[EOD] adj_factor 拉取失败（价格照常落库，因子留空）: {e}")
+    try:
+        n = repo.persist_daily_snapshot(daily_df, adj_df)
+        logger.info(f"[EOD] daily write-through: {n} rows → daily_price ({date})")
+    except Exception as e:
+        logger.warning(f"[EOD] daily 落库失败（不影响盘后总结）: {e}")
 
 
 def _fetch_daily(gw: TushareGateway, date: str) -> pd.DataFrame:

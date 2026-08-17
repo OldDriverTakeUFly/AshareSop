@@ -207,6 +207,22 @@ class MarketDataRepository:
             self._save_daily_prices(df, adj_df)
         return df
 
+    def persist_daily_snapshot(
+        self, daily_df: pd.DataFrame, adj_df: pd.DataFrame | None = None
+    ) -> int:
+        """写穿落库：持久化外部直拉的全市场日线快照（eod_review 盘后调用）.
+
+        与 :meth:`get_daily_by_date` 的区别：数据由调用方直拉（保证 OHLCV
+        完整、不受读缓存污染），本方法只负责落库。close 为空的行直接丢弃
+        （历史 NaN 事故防线）；INSERT OR REPLACE 幂等。返回写入行数。
+        """
+        if daily_df is None or daily_df.empty:
+            return 0
+        clean = daily_df.dropna(subset=["close"])
+        return self._save_daily_prices(
+            clean, adj_df if adj_df is not None else pd.DataFrame()
+        )
+
     def _save_daily_prices(self, daily_df: pd.DataFrame, adj_df: pd.DataFrame) -> int:
         """批量写日线（内部，合并 daily + adj_factor）."""
         ts = now_ts()
