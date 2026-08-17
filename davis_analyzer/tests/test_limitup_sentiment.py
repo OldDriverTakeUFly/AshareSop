@@ -70,7 +70,11 @@ def test_build_market_regime(limitup_db: sqlite3.Connection) -> None:
     r3 = regime[regime.trade_date == "20240103"].iloc[0]
     assert r2["limit_up_count"] == 2
     assert abs(r2["broken_rate"] - 1 / 3) < 1e-9  # broken 1 / (2 up + 1 broken)
-    assert abs(r2["promo_12"] - 0.5) < 1e-9  # 0102 两只首板仅 600001 晋级
+    # C1 修复：T 日池的晋级结果 T+1 才可观测，promo_* 归属到 T+1——
+    # 0102 行 promo_12 为 NaN，0102 两只首板仅 600001 晋级 → 0.5 出现在 0103 行
+    assert pd.isna(r2["promo_12"])
+    assert pd.isna(r2["promo_23"]) and pd.isna(r2["promo_34"])
+    assert abs(r3["promo_12"] - 0.5) < 1e-9
     # premium@0103 = mean(600001: 11/11-1=0, 600002: 10.2/10.2-1=0)
     assert abs(r3["premium"]) < 1e-9
     assert r3["lianban_count"] == 1 and r3["max_boards"] == 2

@@ -69,11 +69,17 @@ def _limit_axes(conn: sqlite3.Connection, start: str, end: str) -> pd.DataFrame:
 
 
 def _promotion_axes(conn: sqlite3.Connection, start: str, end: str) -> pd.DataFrame:
-    """promo_12/23/34 by pairing each pool row with its next trading day row."""
+    """promo_12/23/34 by pairing each pool row with its next trading day row.
+
+    T 日池的晋级结果在 T+1 才可观测，按交易日映射归属到 T+1 日期
+    （与 _premium_axes 的 nxt 映射同法），消除 regime 打板决策的前视偏差；
+    窗口末日的晋级结果不可观测，直接丢弃。
+    """
     lp = db.read_limit_pool(conn, start, end, pool_kind="limit_up")
     if lp.empty:
         return pd.DataFrame(columns=["trade_date", "promo_12", "promo_23", "promo_34"])
     cal = db.trading_dates(conn, start, end)
+    nxt = {d: cal[i + 1] for i, d in enumerate(cal[:-1])}
     rank = {d: i for i, d in enumerate(cal)}
     lp["rank"] = lp["trade_date"].map(rank)
     lp = lp.sort_values(["ts_code", "rank"])
@@ -85,7 +91,10 @@ def _promotion_axes(conn: sqlite3.Connection, start: str, end: str) -> pd.DataFr
     )
     out_rows = []
     for d, g2 in lp.groupby("trade_date"):
-        row = {"trade_date": d}
+        target = nxt.get(d)
+        if target is None:
+            continue  # 窗口末日或日历外日期：T+1 不可观测
+        row = {"trade_date": target}
         for base in (1, 2, 3):
             sub = g2[g2["consecutive_boards"] == base]
             row[f"promo_{base}{base + 1}"] = (
