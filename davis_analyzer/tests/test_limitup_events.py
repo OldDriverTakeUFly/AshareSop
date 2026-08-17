@@ -143,3 +143,40 @@ def test_return_labels(limitup_db: sqlite3.Connection) -> None:
     assert e1["promoted"]  # 0103 12.1 = 11.0*1.1 涨停
     assert abs(e1["ret_open_1"] - (11.0 / 11.0 - 1)) < 1e-9
     assert abs(e1["ret_3d"] - (12.32 / 11.0 - 1)) < 1e-9  # 0105 收盘/0102 涨停价
+
+
+def test_volume_lhb_and_news_proxy(limitup_db: sqlite3.Connection) -> None:
+    conn = limitup_db
+    _seed_base(conn)
+    # 600001 龙虎榜上榜（0102），同日同板块 2 家涨停
+    conn.execute(
+        "INSERT INTO limit_pool VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        ("2024-01-02", "600009", "limit_up", "戊", "X业", 10.0, 1e8, 1, 0,
+         "093000", "093000", 5.0, None),
+    )
+    conn.execute(
+        "INSERT INTO daily_price VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+        ("600009.SH", "20240102", 5, 5.5, 5, 5.5, 5.0, 10.0, 0, 0, 1.0, None),
+    )
+    conn.execute(
+        "INSERT INTO stock_basic VALUES ('600009.SH','戊','X业','L',NULL,'20000101')"
+    )
+    conn.execute(
+        "INSERT INTO top_list VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        ("20240102", "600001.SH", "甲", 11.0, 10.0, 5.0, 3e8, 1e8, 2e8, 3e8,
+         1e8, 0.33, 0.5, 1e9, "日涨幅偏离值达7%", None),
+    )
+    conn.execute(
+        "INSERT INTO corp_event VALUES (?,?,?,?,?,?,?,?)",
+        ("600001.SH", "20231225", "share_float", "减持", 1.0, "{}", "test", None),
+    )
+    conn.commit()
+    df = events.build_events(conn, "20240101", "20240110")
+    e = df[(df.ts_code == "600001.SH") & (df.trade_date == "20240102")].iloc[0]
+    assert e["on_lhb"]
+    assert e["lhb_net_amount"] == 1e8
+    assert e["sector_linkage"] == 2  # 600001 + 600009 同板块 X业
+    assert e["negative_event_30d"]  # 30 日内解禁/减持
+    e3 = df[(df.ts_code == "600001.SH") & (df.trade_date == "20240103")].iloc[0]
+    assert not e3["on_lhb"]
+    assert "vol_ratio_20" in df.columns and "mild_vol_days_5" in df.columns

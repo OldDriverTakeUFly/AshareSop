@@ -100,6 +100,9 @@ def build_events(conn: sqlite3.Connection, start: str, end: str) -> pd.DataFrame
 
     # 前瞻收益标签（T+1 开盘/收盘/冲高/回撤 + 3日/5日 + 晋级）
     lp = attach_return_labels(lp, prices)
+    lp = attach_volume_features(lp, prices)
+    lp = attach_lhb_features(lp, conn, start, end)
+    lp = attach_news_proxies(lp, conn, start, end)
 
     logger.info("build_events: {} 条事件 [{} → {}]", len(lp), start, end)
     return lp.sort_values(["trade_date", "ts_code"]).reset_index(drop=True)
@@ -144,3 +147,87 @@ def attach_return_labels(
         axis=1,
     )
     return ev.drop(columns=label_cols)
+
+
+# ── volume features ──
+
+def attach_volume_features(
+    events: pd.DataFrame, prices: pd.DataFrame
+) -> pd.DataFrame:
+    """Attach 量比（当日量/前 20 日均量，不含当日）与近 5 日温和放量天数."""
+    p = prices.sort_values(["ts_code", "trade_date"]).copy()
+    g = p.groupby("ts_code", sort=False)
+    p["vol_ma20_prev"] = g["vol"].transform(lambda s: s.rolling(20).mean().shift(1))
+    p["vol_ratio_20"] = p["vol"] / p["vol_ma20_prev"]
+    p["_mild"] = ((p["vol"] > p["vol_ma20_prev"] * 1.2)
+                  & (p["vol"] < p["vol_ma20_prev"] * 2.5)).astype(float)
+    p["mild_vol_days_5"] = p.groupby("ts_code")["_mild"].transform(
+        lambda s: s.rolling(5).sum().shift(1)
+    )
+    return events.merge(
+        p[["ts_code", "trade_date", "vol_ratio_20", "mild_vol_days_5"]],
+        on=["ts_code", "trade_date"], how="left",
+    )
+
+
+# ── dragon-tiger join ──
+
+def attach_lhb_features(
+    events: pd.DataFrame, conn: sqlite3.Connection, start: str, end: str
+) -> pd.DataFrame:
+    """Join 龙虎榜 (top_list) aggregates onto events by (ts_code, trade_date)."""
+    lhb = db.read_top_list(conn, start, end)
+    if lhb.empty:
+        events["on_lhb"] = False
+        for col in ("lhb_net_amount", "lhb_net_rate", "lhb_amount_rate"):
+            events[col] = np.nan
+        events["lhb_reason"] = ""
+        return events
+    lhb = lhb.rename(columns={
+        "net_amount": "lhb_net_amount", "net_rate": "lhb_net_rate",
+        "amount_rate": "lhb_amount_rate", "reason": "lhb_reason",
+    })
+    lhb["on_lhb"] = True
+    ev = events.merge(
+        lhb[["ts_code", "trade_date", "on_lhb", "lhb_net_amount",
+             "lhb_net_rate", "lhb_amount_rate", "lhb_reason"]],
+        on=["ts_code", "trade_date"], how="left",
+    )
+    ev["on_lhb"] = ev["on_lhb"].fillna(False)
+    return ev
+
+
+# ── news proxies: sector linkage + negative corp events ──
+
+def attach_news_proxies(
+    events: pd.DataFrame, conn: sqlite3.Connection, start: str, end: str
+) -> pd.DataFrame:
+    """Attach 板块联动（同日同板块涨停家数/占比）与 30 日内利空事件（解禁/减持）代理."""
+    ev = events.copy()
+    day_count = ev.groupby("trade_date")["ts_code"].transform("size")
+    ev["sector_linkage"] = ev.groupby(["trade_date", "sector"])["ts_code"].transform("size")
+    ev["sector_share"] = ev["sector_linkage"] / day_count
+
+    codes = sorted(ev["ts_code"].unique())
+    ev_start = _shift_day(db.normalize_date(start), -45)
+    ce = db.read_corp_events(conn, codes, ev_start, end)
+    neg = ce[
+        (ce["event_type"] == "share_float")
+        | ((ce["event_type"] == "holder_trade") & (ce["direction"] == "减持"))
+    ]
+    neg_map: dict[str, list[str]] = {}
+    for _, r in neg.iterrows():
+        neg_map.setdefault(r["ts_code"], []).append(r["ann_date"])
+    ev["negative_event_30d"] = ev.apply(
+        lambda r: _has_neg_within(neg_map.get(r["ts_code"], []), r["trade_date"]), axis=1
+    )
+    return ev
+
+
+def _has_neg_within(ann_dates: list[str], trade_date: str, days: int = 30) -> bool:
+    """True if any announcement date falls within [trade_date - days, trade_date]."""
+    if not ann_dates:
+        return False
+    t = pd.to_datetime(trade_date, format="%Y%m%d")
+    return any(0 <= (t - pd.to_datetime(a, format="%Y%m%d")).days <= days
+               for a in ann_dates)
