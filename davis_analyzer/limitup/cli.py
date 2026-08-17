@@ -97,6 +97,11 @@ def cmd_study(args: argparse.Namespace) -> None:
         conn.close()
 
 
+def _trades_csv_name(preset: str, start: str, end: str) -> str:
+    """交易明细文件名：与 md 报告同窗口段，避免跨窗口静默覆盖."""
+    return f"{preset}_{start}-{end}_trades.csv"
+
+
 def cmd_backtest(args: argparse.Namespace) -> None:
     import pandas as pd
 
@@ -154,7 +159,9 @@ def cmd_backtest(args: argparse.Namespace) -> None:
             f"打板回测 [{preset.name}]（{args.fill_scenario} 档明细）",
             sections,
         )
-        out_csv = config.LIMITUP_REPORTS_DIR / f"{args.preset}_trades.csv"
+        out_csv = config.LIMITUP_REPORTS_DIR / _trades_csv_name(
+            args.preset, args.start, args.end
+        )
         pd.DataFrame([vars(t) for t in base_trades]).to_csv(out_csv, index=False)
         print(f"回测报告: {out_md}\n交易明细: {out_csv}")
     finally:

@@ -95,6 +95,15 @@ def test_cli_probe_mode_parses_without_start() -> None:
     assert args.probe is True and args.start is None
 
 
+def test_trades_csv_name_has_window_segment() -> None:
+    # I3 修复：交易明细文件名带窗口段（与 md 报告同段），
+    # 消除不同回测窗口间 `{preset}_trades.csv` 的静默覆盖
+    name = cli._trades_csv_name("relay_2", "20240101", "20240630")
+    assert name == "relay_2_20240101-20240630_trades.csv"
+    assert name != cli._trades_csv_name("relay_2", "20250101", "20250630")
+    assert cli._trades_csv_name("first_board", "20240101", "20240630") != name
+
+
 def test_cli_backfill_without_start_errors(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str],
 ) -> None:
