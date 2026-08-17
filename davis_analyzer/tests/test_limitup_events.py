@@ -5,6 +5,7 @@ from __future__ import annotations
 import sqlite3
 
 import numpy as np
+import pandas as pd
 
 from davis_analyzer.limitup import events
 
@@ -118,6 +119,43 @@ def test_ex_dividend_event_removed(limitup_db: sqlite3.Connection) -> None:
     row = df.iloc[0]
     assert row["ts_code"] == "600005.SH"
     assert row["limit_price"] == 11.0
+
+
+def test_return_labels_ex_div_t1_nan(limitup_db: sqlite3.Connection) -> None:
+    # I1 修复：T+1 为除权日的涨停事件，7 个标签列必须置 NaN——
+    # 旧实现先删除权行再 shift，T+1 标签会错位取到 T+2（0104）的值
+    conn = limitup_db
+    rows = [
+        # (code, date, open, high, low, close, pre_close, adj)
+        ("600006.SH", "20240102", 9.8, 11.0, 9.8, 11.0, 10.0, 1.0),  # 真涨停 +10%
+        ("600006.SH", "20240103", 11.0, 11.5, 10.9, 11.0, 11.0, 2.0),  # T+1 除权日
+        ("600006.SH", "20240104", 11.2, 12.0, 11.0, 11.8, 11.0, 2.0),
+    ]
+    conn.executemany(
+        "INSERT INTO daily_price VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+        [(c, d, o, h, l, cl, pc, (cl / pc - 1) * 100, 0.0, 0.0, a, None)
+         for c, d, o, h, l, cl, pc, a in rows],
+    )
+    conn.executemany(
+        "INSERT INTO limit_pool VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        [("2024-01-02", "600006", "limit_up", "己", "U业", 10.0, 1e8, 1, 0,
+          "093000", "093000", 5.0, None)],
+    )
+    conn.execute(
+        "INSERT INTO stock_basic VALUES (?,?,?,?,?,?)",
+        ("600006.SH", "己", "U业", "L", None, "20000101"),
+    )
+    conn.commit()
+    df = events.build_events(conn, "20240101", "20240110")
+    e = df[(df.ts_code == "600006.SH") & (df.trade_date == "20240102")].iloc[0]
+    # 标签窗口（T+1..T+5）内含除权日 → 宁缺毋错，全部置 NaN
+    assert pd.isna(e["ret_open_1"])   # 旧实现会取到 0104 开盘 11.2
+    assert pd.isna(e["ret_close_1"])
+    assert pd.isna(e["ret_high_1"])
+    assert pd.isna(e["ret_low_1"])
+    assert pd.isna(e["ret_3d"])
+    assert pd.isna(e["ret_5d"])
+    assert pd.isna(e["promoted"])
 
 
 def test_return_labels(limitup_db: sqlite3.Connection) -> None:
