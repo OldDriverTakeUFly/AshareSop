@@ -126,6 +126,7 @@ def _get_strategy_config() -> dict:
         "risk_stop_multiplier": s.risk_stop_multiplier,
         "sell_momentum": s.sell_momentum,
         "buy_momentum": s.buy_momentum,
+        "bull_relaxed_buy_momentum": s.bull_relaxed_buy_momentum,
         "volume_weight": s.volume_weight,
         "enable_volume_risk": s.enable_volume_risk,
         "pe_exemption_for_volume": s.pe_exemption_for_volume,

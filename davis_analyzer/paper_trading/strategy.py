@@ -241,11 +241,14 @@ class FactorThresholdStrategy:
         self,
         max_positions: int = 5,
         buy_momentum: float = 70.0,
-        # ── 牛市信号扩容 (2026-08-18 归因诊断) ──
+        # ── 牛市信号扩容 (2026-08-19 固化, 实验0001 G2_bull60) ──
         # U0 归因: 2024-2025 牛市 bull 天暴露仅 1.3-2.3 格 (2021 为 4.66),
         # 病因是动量≥70 的买入信号在普涨牛里稀缺. 当 HMM=bull 且指数站上
-        # MA200 时, 买入动量门槛放宽到此值. 0 = 关闭 (生产默认).
-        bull_relaxed_buy_momentum: float = 0.0,
+        # MA200 时, 买入动量门槛放宽到此值.
+        # 五年 A/B: 门槛 60 → Sharpe 0.886→1.081, +126.4%/MDD 15.6%,
+        # 病灶年 2025 -3.0%→+18.6%, 2021-23 零伤害.
+        # 复现 G2 之前的基线需显式传 bull_relaxed_buy_momentum=0.0.
+        bull_relaxed_buy_momentum: float = 60.0,
         # 指数在 MA200 上方时, HMM 的 bear 判定不阻断新开仓 (按 neutral 的
         # 半仓上限处理). 修复 924 式行情起点踏空 (2024-09 bear 37%/暴露0.95格).
         # False = 关闭 (生产默认).
