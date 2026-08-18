@@ -276,6 +276,11 @@ def _build_parser() -> argparse.ArgumentParser:
                         help="候选表取前 N 条（默认 10）")
     p_cand.set_defaults(func=cmd_candidates)
 
+    p_push = sub.add_parser("paper-push", help="打板双臂模拟盘飞书日报（幂等）")
+    p_push.add_argument("--date", default=None, help="YYYYMMDD，默认今日")
+    p_push.add_argument("--force", action="store_true", help="忽略当日幂等标记重推")
+    p_push.set_defaults(func=cmd_paper_push)
+
     return parser
 
 
@@ -286,6 +291,16 @@ def main() -> None:
         args.func(args)
     else:
         parser.print_help()
+
+
+def cmd_paper_push(args: argparse.Namespace) -> None:
+    from datetime import datetime
+
+    from davis_analyzer.limitup import paper_push
+
+    day = args.date or datetime.now().strftime("%Y%m%d")
+    ok = paper_push.push_paper_summary(day, force=args.force)
+    print(f"双臂日报推送{'完成' if ok else '跳过/失败（见日志）'}: {day}")
 
 
 def cmd_daily(args: argparse.Namespace) -> None:
