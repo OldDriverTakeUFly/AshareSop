@@ -504,6 +504,24 @@ def _compute_index_20d_drop(trade_date: str) -> float | None:
         return None
 
 
+def _compute_index_above_ma200(trade_date: str) -> bool | None:
+    """上证收盘是否站上 MA200 (牛市确认用). None = 历史不足200天."""
+    try:
+        with get_market_conn() as conn:
+            rows = conn.execute(
+                "SELECT close FROM index_daily WHERE ts_code='000001.SH' "
+                "AND trade_date <= ? AND close > 0 ORDER BY trade_date DESC LIMIT 200",
+                (trade_date,),
+            ).fetchall()
+        if len(rows) < 200:
+            return None
+        curr = float(rows[0][0])
+        ma200 = sum(float(r[0]) for r in rows) / len(rows)
+        return curr > ma200
+    except Exception:
+        return None
+
+
 def _compute_stock_20d_drops(ts_codes: list[str], trade_date: str) -> dict[str, float]:
     """Compute 20-day return (%) for each stock (for oversold bounce selection).
 
@@ -2342,6 +2360,7 @@ class DailyExecutor:
             index_20d_drop=_compute_index_20d_drop(trade_date),
             stock_20d_drops=_compute_stock_20d_drops(codes_to_price, trade_date),
             vol_ratio_250=_compute_vol_ratio_250(trade_date),
+            index_above_ma200=_compute_index_above_ma200(trade_date),
             industries=industries,
             industry_trend=industry_trend,
             short_momentum=short_momentum,

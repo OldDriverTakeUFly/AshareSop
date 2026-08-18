@@ -80,6 +80,7 @@ class MarketSnapshot:
     index_20d_drop: float | None = None  # 上证前20日涨跌幅 (%), None=无数据
     stock_20d_drops: dict = field(default_factory=dict)  # ts_code → 前20日涨跌幅 (%)
     vol_ratio_250: float | None = None  # 全市场近20日均量/250日均量, None=无数据
+    index_above_ma200: bool | None = None  # 上证收盘 > MA200 (牛市确认/防HMM误判bear), None=无数据
     industries: dict[str, str] = field(default_factory=dict)  # ts_code → industry
     industry_trend: dict[str, str] = field(default_factory=dict)  # industry → "up"/"down"/"flat"
     # ── Short-term momentum + valuation (added for quality filtering) ──
@@ -240,6 +241,15 @@ class FactorThresholdStrategy:
         self,
         max_positions: int = 5,
         buy_momentum: float = 70.0,
+        # ── 牛市信号扩容 (2026-08-18 归因诊断) ──
+        # U0 归因: 2024-2025 牛市 bull 天暴露仅 1.3-2.3 格 (2021 为 4.66),
+        # 病因是动量≥70 的买入信号在普涨牛里稀缺. 当 HMM=bull 且指数站上
+        # MA200 时, 买入动量门槛放宽到此值. 0 = 关闭 (生产默认).
+        bull_relaxed_buy_momentum: float = 0.0,
+        # 指数在 MA200 上方时, HMM 的 bear 判定不阻断新开仓 (按 neutral 的
+        # 半仓上限处理). 修复 924 式行情起点踏空 (2024-09 bear 37%/暴露0.95格).
+        # False = 关闭 (生产默认).
+        ma200_bear_override: bool = False,
         # sell_momentum: Fine-param sweep (2026-07-23) showed 30 beats 40/45.
         # Lower threshold = exit sooner when momentum fades (better in bear markets).
         #   sell=30 → Sharpe +0.252 (BEST)
@@ -504,6 +514,8 @@ class FactorThresholdStrategy:
     ) -> None:
         self.max_positions = max_positions
         self.buy_momentum = buy_momentum
+        self.bull_relaxed_buy_momentum = bull_relaxed_buy_momentum
+        self.ma200_bear_override = ma200_bear_override
         self.sell_momentum = sell_momentum
         self.enable_adaptive_sell = enable_adaptive_sell
         self.enable_dynamic_weight = enable_dynamic_weight
@@ -650,20 +662,30 @@ class FactorThresholdStrategy:
         return signals
 
     def _effective_max_positions(self, market_regime: str,
-                                 vol_mult: float = 1.0) -> int:
+                                 vol_mult: float = 1.0,
+                                 index_above_ma200: bool | None = None) -> int:
         """Reduce position cap in bear/neutral markets + vol adjustment.
 
         Supports both old regime names (mixed) and new (neutral):
-        - bear/panic → 0 (no new buys)
+        - bear/panic → 0 (no new buys); MA200 override 可豁免为半仓
         - mixed/neutral → half positions × vol_mult
         - bull → full positions × vol_mult
 
         vol_mult: position size multiplier from market volatility regime
         (1.1 low_vol / 1.0 normal / 0.8 high_vol / 0.5 extreme_vol).
+
+        ma200_bear_override: 指数在 MA200 上方时, HMM 的 bear 判定视为
+        neutral 处理 (半仓而非清零), 防行情起点误判踏空.
         """
         if market_regime in ("bear", "panic"):
-            return 0  # no new buys in bear market
-        if market_regime in ("mixed", "neutral"):
+            if (
+                self.ma200_bear_override
+                and index_above_ma200
+            ):
+                base = max(1, self.max_positions // 2)  # 豁免为 neutral 档
+            else:
+                return 0  # no new buys in bear market
+        elif market_regime in ("mixed", "neutral"):
             base = max(1, self.max_positions // 2)
         else:
             base = self.max_positions
@@ -687,7 +709,16 @@ class FactorThresholdStrategy:
             if code not in snapshot.prices or snapshot.prices[code] <= 0:
                 continue
             mom = factors.get("momentum")
-            if mom is None or mom <= self.buy_momentum:
+            # 牛市信号扩容: bull + 指数站上 MA200 时放宽动量门槛
+            mom_gate = self.buy_momentum
+            if (
+                self.bull_relaxed_buy_momentum > 0
+                and snapshot.market_regime == "bull"
+                and getattr(snapshot, "index_above_ma200", None)
+                and self.bull_relaxed_buy_momentum < mom_gate
+            ):
+                mom_gate = self.bull_relaxed_buy_momentum
+            if mom is None or mom <= mom_gate:
                 continue
 
             # Sector filter
@@ -1080,7 +1111,8 @@ class FactorThresholdStrategy:
 
         # ── 3. Market gate ──
         effective_max = self._effective_max_positions(
-            snapshot.market_regime, getattr(snapshot, "vol_mult", 1.0)
+            snapshot.market_regime, getattr(snapshot, "vol_mult", 1.0),
+            index_above_ma200=getattr(snapshot, "index_above_ma200", None),
         )
         # Volume ratio defense: halve positions when market volume >> 250d avg
         if self.vol_ratio_defense > 0:
