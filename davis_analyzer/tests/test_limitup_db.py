@@ -59,3 +59,21 @@ def test_read_limit_pool_pads_seal_time(limitup_db: sqlite3.Connection) -> None:
     df = db.read_limit_pool(limitup_db, "20240101", "20240110")
     assert df.iloc[0]["first_seal_time"] == "092500"
     assert df.iloc[0]["last_seal_time"] == "112945"
+
+
+def test_read_limit_pool_dedupes_suffix_variants(limitup_db: sqlite3.Connection) -> None:
+    """stockhot 日扫写带后缀、本模块回补写无后缀 → 同股双记，读取层必须去重."""
+    limitup_db.execute(
+        "INSERT INTO limit_pool VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        ("2026-08-18", "000007", "limit_up", "甲", "X", 10.0, 1e8, 1, 0,
+         "130045", "130045", 3.29, None),
+    )
+    limitup_db.execute(
+        "INSERT INTO limit_pool VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        ("2026-08-18", "000007.SZ", "limit_up", "甲", "X", 10.0, 1e8, 1, 0,
+         "130045", "130045", 3.29, None),
+    )
+    limitup_db.commit()
+    df = db.read_limit_pool(limitup_db, "20260801", "20260831")
+    assert len(df) == 1
+    assert df.iloc[0]["ts_code"] == "000007.SZ"

@@ -343,3 +343,22 @@ def test_cli_parser_candidates_defaults() -> None:
     )
     assert args2.date == "2024-04-15"
     assert args2.top == 5
+
+
+def test_data_readiness_guards(limitup_db: sqlite3.Connection) -> None:
+    """无池 / 池股无日线（覆盖率<80%）/ 就绪 三态判定。"""
+    assert candidates.data_readiness(limitup_db, "20260818") == "no_pool"
+    limitup_db.execute(
+        "INSERT INTO limit_pool VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        ("2026-08-18", "600001", "limit_up", "甲", "X", 10.0, 1e8, 1, 0,
+         "092500", "092500", 3.0, None),
+    )
+    limitup_db.commit()
+    # 池有行但该股当日无日线 → 覆盖率 0% → incomplete_prices
+    assert candidates.data_readiness(limitup_db, "20260818") == "incomplete_prices"
+    limitup_db.execute(
+        "INSERT INTO daily_price VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+        ("600001.SH", "20260818", 10, 11, 10, 11, 10, 10, 0, 0, 1.0, None),
+    )
+    limitup_db.commit()
+    assert candidates.data_readiness(limitup_db, "20260818") == "ok"

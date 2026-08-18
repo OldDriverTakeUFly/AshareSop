@@ -81,6 +81,26 @@ def _attach_sell_structure(
 
 # ── main entry ──
 
+def data_readiness(conn: sqlite3.Connection, day: str) -> str:
+    """Data readiness for a candidate day: ok / no_pool / incomplete_prices.
+
+    incomplete_prices 判定：当日涨停池个股在 daily_price 的覆盖率 <80%
+    （全市场日线未完成落库时池股普遍无价，事件必然被滤光——须显式区分于
+    「无候选」，不用陈旧数据产出误导性空清单）。
+    """
+    pool = db.read_limit_pool(conn, day, day)
+    if pool.empty:
+        return "no_pool"
+    codes = sorted(set(pool["ts_code"]))
+    ph = ",".join("?" * len(codes))
+    n_have = conn.execute(
+        f"SELECT COUNT(DISTINCT ts_code) FROM daily_price "
+        f"WHERE trade_date=? AND ts_code IN ({ph})",
+        (day, *codes),
+    ).fetchone()[0]
+    return "ok" if n_have >= 0.8 * len(codes) else "incomplete_prices"
+
+
 def build_candidates(
     conn: sqlite3.Connection,
     date: str,
@@ -98,7 +118,8 @@ def build_candidates(
     """
     day = db.normalize_date(date)
 
-    # 数据新鲜度防线：当日涨停池无行 → 告警 + 空帧（CLI 据此退出，不用陈旧数据）
+    # 数据新鲜度防线：当日涨停池无行 → 告警 + 空帧（价格完备性防线在 CLI 层，
+    # data_readiness —— 库消费方（如模拟盘策略）对空帧本就优雅降级）
     if db.read_limit_pool(conn, day, day).empty:
         logger.warning(
             "candidates: {} 当日 limit_pool 无数据（daily 刷新失败?），返回空清单", day

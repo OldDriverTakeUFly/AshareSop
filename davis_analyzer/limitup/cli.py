@@ -204,13 +204,14 @@ def cmd_candidates(args: argparse.Namespace) -> None:
             sys.exit(1)
 
         ctx = candidates.candidate_context(conn, day)
-        pool_empty = db.read_limit_pool(conn, day, day).empty
+        readiness = candidates.data_readiness(conn, day)
         no_data = ctx.get("regime_label") == "无数据"
-        if pool_empty or no_data:
-            # 两种数据缺失空态：不用陈旧数据生成候选，报告注明原因后退出 1
-            reason = (f"{day} 当日 limit_pool 无数据（daily 刷新失败?），"
-                      if pool_empty else
-                      f"{day} 当日 regime 无数据（日历缺日/空库），")
+        if readiness != "ok" or no_data:
+            # 数据缺失空态：不用陈旧数据生成候选，报告注明原因后退出 1
+            reason = {
+                "no_pool": f"{day} 当日 limit_pool 无数据（daily 刷新失败?），",
+                "incomplete_prices": f"{day} 当日全市场日线未就绪（daily_price 行数<1000），",
+            }.get(readiness, f"{day} 当日 regime 无数据（日历缺日/空库），")
             md = candidates.render_candidates_md(
                 pd.DataFrame(columns=candidates.CANDIDATE_COLUMNS),
                 ctx, top=args.top, note=reason + "无法生成候选清单。",

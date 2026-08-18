@@ -87,6 +87,12 @@ def read_limit_pool(
     df["ts_code"] = df["ts_code"].map(to_suffixed_code)
     df["first_seal_time"] = df["first_seal_time"].map(normalize_seal_time)
     df["last_seal_time"] = df["last_seal_time"].map(normalize_seal_time)
+    # 写入方混用带/不带后缀代码（stockhot 日扫 vs 本模块回补）→ 同股双记；
+    # 读取层按规范化键去重（重复行字段值一致，保序取首行）。
+    n_before = len(df)
+    df = df.drop_duplicates(subset=["trade_date", "ts_code"], keep="first")
+    if len(df) < n_before:
+        logger.warning("limit_pool 去重: {} → {} 行（带/无后缀混写）", n_before, len(df))
     return df.sort_values(["trade_date", "ts_code"]).reset_index(drop=True)
 
 
