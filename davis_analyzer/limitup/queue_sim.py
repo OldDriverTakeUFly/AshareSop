@@ -28,19 +28,35 @@ _last_mins_call = 0.0
 
 
 def fetch_minutes(client: object, ts_code: str, day: str) -> pd.DataFrame:
-    """Fetch 1-minute bars for one stock-day (paced to 1 call/min)."""
+    """Fetch 1-minute bars for one stock-day (paced + patient rate-limit retry)."""
     global _last_mins_call
-    wait = _MINS_CALL_GAP - (time.monotonic() - _last_mins_call)
-    if wait > 0:
-        logger.info("stk_mins pacing: sleep {:.0f}s ({})", wait, ts_code)
-        time.sleep(wait)
-    _last_mins_call = time.monotonic()
-    df = client._call(
-        "stk_mins", client._pro.stk_mins,
-        {"ts_code": ts_code, "freq": "1min",
-         "start_date": f"{day[:4]}-{day[4:6]}-{day[6:8]} 09:00:00",
-         "end_date": f"{day[:4]}-{day[4:6]}-{day[6:8]} 15:10:00"},
-    )
+
+    def _paced_call() -> pd.DataFrame:
+        global _last_mins_call
+        wait = _MINS_CALL_GAP - (time.monotonic() - _last_mins_call)
+        if wait > 0:
+            logger.info("stk_mins pacing: sleep {:.0f}s ({})", wait, ts_code)
+            time.sleep(wait)
+        _last_mins_call = time.monotonic()
+        return client._call(
+            "stk_mins", client._pro.stk_mins,
+            {"ts_code": ts_code, "freq": "1min",
+             "start_date": f"{day[:4]}-{day[4:6]}-{day[6:8]} 09:00:00",
+             "end_date": f"{day[:4]}-{day[4:6]}-{day[6:8]} 15:10:00"},
+        )
+
+    try:
+        df = _paced_call()
+    except Exception as exc:  # tushare SDK 限频直接抛出（_call 快速重试已烧尽）
+        logger.warning("stk_mins {} 调用失败（{}），65s 后重试一次", ts_code, exc)
+        df = None
+    if df is None and _MINS_CALL_GAP > 0:
+        time.sleep(65.0)
+        try:
+            df = _paced_call()
+        except Exception:
+            logger.error("stk_mins {} 重试仍失败，跳过该标的", ts_code)
+            return pd.DataFrame()
     if df is None or df.empty:
         return pd.DataFrame()
     col_time = "trade_time" if "trade_time" in df.columns else "time"
