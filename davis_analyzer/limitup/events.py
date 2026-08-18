@@ -31,10 +31,18 @@ def prev_window_count(ranks: np.ndarray, window: int = 60) -> np.ndarray:
 
 
 def _ex_div_mask(prices: pd.DataFrame) -> pd.Series:
-    """除权日旗标：adj_factor 相对前一交易日（同股票）变化（内部排序，不依赖调用点）."""
+    """除权日旗标：价格连续性判定——当日 pre_close ≠ 前日 close（同股票）.
+
+    刻意不用 adj_factor：上游写入方对 adj 口径不一致（真实复权因子 vs 占位
+    1.0 逐日混写），按 adj 变化判定会把整段日线误杀为除权；而交易所口径下
+    正常交易日 pre_close 恒等于前日 close，除权/除息日才出现跳口，且不受
+    写入方影响。容差 0.005 覆盖两位小数舍入。
+    """
     p = prices.sort_values(["ts_code", "trade_date"])
-    prev_adj = p.groupby("ts_code", sort=False)["adj_factor"].shift(1)
-    mask = prev_adj.notna() & (p["adj_factor"] != prev_adj)
+    prev_close = p.groupby("ts_code", sort=False)["close"].shift(1)
+    mask = prev_close.notna() & (
+        (p["pre_close"] - prev_close).abs() > 0.005
+    )
     return mask.reindex(prices.index).fillna(False)
 
 

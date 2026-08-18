@@ -62,14 +62,17 @@ def _seed_base(conn: sqlite3.Connection) -> None:
 
 def test_ex_div_mask_internal_sort() -> None:
     # fix round 2 加固：_ex_div_mask 不依赖调用点预排序，
-    # 乱序输入仍按 (ts_code, trade_date) 判定除权（返回保持输入行序）
+    # 乱序输入仍按 (ts_code, trade_date) 判定除权（返回保持输入行序）。
+    # 价格连续性口径：pre_close ≠ 前日 close 即除权（adj 口径混写免疫）。
     prices = pd.DataFrame({
         "ts_code": ["600001.SH"] * 3,
         "trade_date": ["20240103", "20240102", "20240104"],
-        "adj_factor": [2.0, 1.0, 2.0],
+        "close": [11.0, 10.0, 12.1],
+        "pre_close": [5.5, 9.1, 11.0],
     })
     mask = events._ex_div_mask(prices)
-    # 0103（adj 1.0→2.0）为除权日；0102 是组内首日；0104 相对 0103 未变
+    # 0103（pre_close 5.5 ≠ 前日 close 10.0）为除权日；0102 组内首日；
+    # 0104 pre_close 11.0 == 前日 close 11.0 连续
     assert mask.tolist() == [True, False, False]
 
 
@@ -100,8 +103,9 @@ def test_build_events_filters(limitup_db: sqlite3.Connection) -> None:
 def _seed_ex_dividend(conn: sqlite3.Connection) -> None:
     rows = [
         # (code, date, open, high, low, close, pre_close, adj)
+        # 0103 为真实除权日：pre_close 5.5 ≠ 前日 close 11.0（10送10 跳口）
         ("600005.SH", "20240102", 9.8, 11.0, 9.8, 11.0, 10.0, 1.0),   # 真涨停 +10%
-        ("600005.SH", "20240103", 11.0, 12.1, 11.0, 12.1, 11.0, 2.0),  # 真涨停但除权
+        ("600005.SH", "20240103", 5.6, 6.05, 5.6, 6.05, 5.5, 2.0),    # 真涨停但除权
     ]
     conn.executemany(
         "INSERT INTO daily_price VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
@@ -140,8 +144,8 @@ def test_return_labels_ex_div_t1_nan(limitup_db: sqlite3.Connection) -> None:
     conn = limitup_db
     rows = [
         # (code, date, open, high, low, close, pre_close, adj)
-        ("600006.SH", "20240102", 9.8, 11.0, 9.8, 11.0, 10.0, 1.0),  # 真涨停 +10%
-        ("600006.SH", "20240103", 11.0, 11.5, 10.9, 11.0, 11.0, 2.0),  # T+1 除权日
+        ("600006.SH", "20240102", 19.8, 22.0, 19.8, 22.0, 20.0, 1.0),  # 真涨停 +10%
+        ("600006.SH", "20240103", 11.2, 11.5, 10.9, 11.0, 11.0, 2.0),  # T+1 除权（10送10 跳口）
         ("600006.SH", "20240104", 11.2, 12.0, 11.0, 11.8, 11.0, 2.0),
     ]
     conn.executemany(
