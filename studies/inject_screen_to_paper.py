@@ -120,7 +120,7 @@ def main(argv: list[str] | None = None) -> int:
             result = inject(as_of, acc_name, dry_run=args.dry_run)
             status = result.get("status", "unknown")
             print(f"结果: {status}")
-            if status not in ("skipped", "dry_run", "no_prices"):
+            if status not in ("skipped", "busy", "dry_run", "no_prices"):
                 buys = result.get("buys", 0)
                 sells = result.get("sells", 0)
                 nav = result.get("nav")

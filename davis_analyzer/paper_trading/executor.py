@@ -28,6 +28,7 @@ from stockhot.data_layer import get_repository
 from stockhot.storage.database import get_connection
 
 from davis_analyzer.paper_trading.account import PaperAccount, Position
+from davis_analyzer.paper_trading.runlock import account_run_lock
 from davis_analyzer.paper_trading.strategy import (
     DavisDoubleStrategy,
     FactorThresholdStrategy,
@@ -2159,11 +2160,27 @@ class DailyExecutor:
     def run_day(self, trade_date: str, factor_scores: dict | None = None) -> dict:
         """Execute one trading day. Returns a summary dict.
 
+        Takes the account-level run lock first: a second process running the
+        same account gets ``{"status": "busy"}`` instead of double-executing
+        the day (the old ``has_run_on`` guard alone had a race window spanning
+        the whole factor-computation phase).
+
         Args:
             trade_date: YYYYMMDD format.
             factor_scores: pre-computed factor scores (for backfill mode).
                 If None, factors are computed live (slow but real-time).
         """
+        with account_run_lock(self.account.account_id) as acquired:
+            if not acquired:
+                logger.warning(
+                    f"[{self.account.name}] {trade_date} run skipped — "
+                    "another process holds this account's run lock"
+                )
+                return {"status": "busy", "trade_date": trade_date}
+            return self._run_day_locked(trade_date, factor_scores)
+
+    def _run_day_locked(self, trade_date: str, factor_scores: dict | None = None) -> dict:
+        """Execute one trading day (caller must hold the account run lock)."""
         if self.account.has_run_on(trade_date):
             logger.info(f"[{self.account.name}] {trade_date} already executed, skipping")
             return {"status": "skipped", "trade_date": trade_date}
@@ -2943,40 +2960,51 @@ def run_backfill_auto(
         f"scoring every {scoring_frequency} days"
     )
 
-    executor = DailyExecutor(account, strategy)
-    results: list[dict] = []
-    cached_davis: dict[str, dict] = {}
-    cached_factors: dict[str, dict] = {}
+    # Hold the account run lock for the WHOLE range: per-day reentrancy is
+    # handled inside run_day, and a concurrent reset_account / live run on
+    # the same account is refused or skipped instead of interleaving.
+    with account_run_lock(account.account_id) as acquired:
+        if not acquired:
+            logger.warning(
+                f"[{account.name}] backfill {start_date}→{end_date} aborted — "
+                "another process holds this account's run lock"
+            )
+            return [{"status": "busy", "trade_date": start_date}]
 
-    for i, day in enumerate(trading_days):
-        as_of = datetime.strptime(day, "%Y%m%d").date()
+        executor = DailyExecutor(account, strategy)
+        results: list[dict] = []
+        cached_davis: dict[str, dict] = {}
+        cached_factors: dict[str, dict] = {}
 
-        # Re-score periodically
-        if i % scoring_frequency == 0:
-            logger.info(f"  [{day}] Scoring universe ({len(universe_codes)} stocks)...")
-            try:
-                cached_davis = _compute_davis_scores_at(client, as_of, universe_codes, stock_infos)
-                cached_factors = _compute_factor_scores_at(client, as_of, universe_codes)
-                logger.info(
-                    f"  [{day}] Scored: {len(cached_davis)} davis, {len(cached_factors)} factor"
-                )
-            except Exception:
-                logger.exception(f"  [{day}] Scoring failed")
-                cached_davis = {}
-                cached_factors = {}
+        for i, day in enumerate(trading_days):
+            as_of = datetime.strptime(day, "%Y%m%d").date()
 
-        scores = {
-            "_davis_scores": cached_davis,
-            "_factor_scores": cached_factors,
-        }
-        result = executor.run_day(day, factor_scores=scores)
-        results.append(result)
+            # Re-score periodically
+            if i % scoring_frequency == 0:
+                logger.info(f"  [{day}] Scoring universe ({len(universe_codes)} stocks)...")
+                try:
+                    cached_davis = _compute_davis_scores_at(client, as_of, universe_codes, stock_infos)
+                    cached_factors = _compute_factor_scores_at(client, as_of, universe_codes)
+                    logger.info(
+                        f"  [{day}] Scored: {len(cached_davis)} davis, {len(cached_factors)} factor"
+                    )
+                except Exception:
+                    logger.exception(f"  [{day}] Scoring failed")
+                    cached_davis = {}
+                    cached_factors = {}
 
-        if (i + 1) % 10 == 0:
-            nav = result.get("nav", 0)
-            logger.info(f"  progress: {i+1}/{len(trading_days)} days, NAV={nav:,.0f}")
+            scores = {
+                "_davis_scores": cached_davis,
+                "_factor_scores": cached_factors,
+            }
+            result = executor.run_day(day, factor_scores=scores)
+            results.append(result)
 
-    return results
+            if (i + 1) % 10 == 0:
+                nav = result.get("nav", 0)
+                logger.info(f"  progress: {i+1}/{len(trading_days)} days, NAV={nav:,.0f}")
+
+        return results
 
 
 # ── Shadow tracking helpers ────────────────────────────────────────────
