@@ -42,7 +42,7 @@
           "hooks": [
             {
               "type": "command",
-              "command": "bash \"${ZCODE_PROJECT_DIR}/.zcode/hooks/uncommitted-reminder.sh\"",
+              "command": "bash \"${ZCODE_PROJECT_DIR}/.zcode/hooks/save-session-state.sh\"",
               "timeout": 3
             }
           ]

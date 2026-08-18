@@ -29,6 +29,14 @@ CONTEXT+=$'\n'"• 今日模拟交易: ${TRADES} 笔"
 
 CONTEXT+=$'\n'"• 数据库: market_data.db（行情/波动率/板块）+ stockhot.db（持仓/交易/资金）"
 
+# 4b. 注入 session_state.md（上次 session 的状态快照——重启后不用重新探索）
+STATE_FILE=".zcode/session_state.md"
+if [ -f "$STATE_FILE" ]; then
+  # 只取前 80 行（防止状态文件过长本身变成负担）
+  STATE=$(head -80 "$STATE_FILE")
+  CONTEXT+=$'\n'"• 📖 详细状态: .zcode/session_state.md 存在（含最近工作/待办/架构速查），需要时读取"
+fi
+
 # 用 jq 包装 JSON 输出
 if command -v jq >/dev/null 2>&1; then
   echo "{\"additionalContext\": $(echo "$CONTEXT" | jq -Rs .)}"
