@@ -15,6 +15,16 @@ VENV_PYTHON="$PROJECT_ROOT/.venv/bin/python"
 MARKER="# INVEST_SOP_CRON_START"
 MARKER_END="# INVEST_SOP_CRON_END"
 
+# ── sudo 防护：sudo 环境下 crontab 命令操作 root，导致条目装错用户（双发 bug 两次根因）──
+# root 运行时自动切换为操作 leo 的 crontab
+if [ "$(id -u)" -eq 0 ]; then
+    TARGET_USER="${SUDO_USER:-leo}"
+    CRONTAB_CMD=(crontab -u "$TARGET_USER")
+    echo "── 检测到 sudo/root 运行 → cron 将安装到用户 '$TARGET_USER' ──"
+else
+    CRONTAB_CMD=(crontab)
+fi
+
 DRY_RUN=false
 if [[ "${1:-}" == "--dry-run" ]]; then
     DRY_RUN=true
@@ -70,13 +80,13 @@ echo "4. Installing cron entries..."
 # Check if already installed by looking for our marker
 # ⚠️ 区分"无 crontab"（正常，首次安装）和"权限不足"（真错误，必须中止）
 # "no crontab for user" = 正常；"Permission denied"/"fopen" = 权限损坏
-CRONTAB_ERR=$(crontab -l 2>&1 >/dev/null || true)
+CRONTAB_ERR=$("${CRONTAB_CMD[@]}" -l 2>&1 >/dev/null || true)
 if echo "$CRONTAB_ERR" | grep -qiE "permission denied|fopen|not permitted"; then
     echo "   ✗ ERROR: crontab 权限异常: $CRONTAB_ERR"
     echo "     尝试修复: sudo chmod 1730 /var/spool/cron/crontabs && sudo chgrp crontab /var/spool/cron/crontabs"
     exit 1
 fi
-EXISTING=$(crontab -l 2>/dev/null || true)
+EXISTING=$("${CRONTAB_CMD[@]}" -l 2>/dev/null || true)
 if echo "$EXISTING" | grep -qF "$MARKER"; then
     # 检测重复 block（marker 出现多次 = 之前的 bug）
     MARKER_N=$(echo "$EXISTING" | grep -cF "$MARKER" || true)
@@ -105,7 +115,7 @@ else
         echo -e "$CRON_BLOCK" | sed 's/^/         /'
     else
         # Append to existing crontab
-        (echo "$EXISTING"; echo -e "$CRON_BLOCK") | crontab -
+        (echo "$EXISTING"; echo -e "$CRON_BLOCK") | "${CRONTAB_CMD[@]}" -
         echo "   ✓ Cron entries installed successfully"
     fi
 fi
@@ -120,7 +130,7 @@ if $DRY_RUN; then
     echo "   [DRY-RUN] Would verify: $VENV_PYTHON is executable"
 else
     # Verify crontab
-    INSTALLED=$(crontab -l 2>/dev/null || true)
+    INSTALLED=$("${CRONTAB_CMD[@]}" -l 2>/dev/null || true)
     if echo "$INSTALLED" | grep -qF "$MARKER"; then
         echo "   ✓ Cron entries present in crontab"
     else
