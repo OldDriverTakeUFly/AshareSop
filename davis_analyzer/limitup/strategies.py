@@ -15,6 +15,10 @@ class ExitRule(str, Enum):
     OPEN_NEXT = "open_next"
     RIDE_BOARD = "ride_board"
     CLOSE_NEXT = "close_next"
+    # 可观测持有变体（规格 §3.2.1 第 4 条）：T+1 开盘=涨停价（9:25 可判定）→
+    # 取消卖出转入 ride 循环；否则按 OPEN_NEXT 语义开盘卖。无新预设，研究脚本
+    # 用 dataclasses.replace 注入。
+    OPEN_HOLD_LOCKED = "open_hold_locked"
 
 
 @dataclass(frozen=True)

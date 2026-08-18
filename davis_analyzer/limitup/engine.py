@@ -122,13 +122,24 @@ def run_backtest(
                     pos["sell_on"] = nxt
                     logger.info("{} {} 一字跌停无法卖出，顺延", code, d)
                 continue
+            if (pos["exit_rule"] is ExitRule.OPEN_HOLD_LOCKED
+                    and _open_at_limit_up(code, px[code].loc[d])):
+                # 可观测持有变体（规格 §3.2.1 第 4 条）：9:25 开盘即涨停 →
+                # 取消本次卖出，转入 ride 循环（sell_on=None 由第 2 步接管）
+                pos["sell_on"], pos["exec"] = None, None
+                logger.info("{} {} 开盘=涨停价，open_hold_locked 取消卖出转 ride", code, d)
+                continue
             exec_px = float(px[code].loc[d]["open"]) * (1 - config.slippage_bps / 1e4)
             _close_position(code, pos, d, exec_px, "规则卖出", scenario, config,
                             positions, trades)
             cash += pos["_cash_credit"]  # 由 _close_position 记录
-        # 2) ride_board 收盘评估
+        # 2) ride_board 收盘评估（open_hold_locked 变体取消卖出后由同一循环接管：
+        #    其 sell_on 在触发开盘卖前恒非 None，故未取消的变体持仓不会进入此分支）
         for code, pos in positions.items():
-            if pos["exit_rule"] != ExitRule.RIDE_BOARD or pos.get("sell_on"):
+            if (
+                pos["exit_rule"] not in (ExitRule.RIDE_BOARD, ExitRule.OPEN_HOLD_LOCKED)
+                or pos.get("sell_on")
+            ):
                 continue
             if code in px and d in px[code].index and d > pos["entry_date"]:
                 row = px[code].loc[d]
@@ -178,7 +189,7 @@ def run_backtest(
                     "sell_on": None, "exec": None, "_cash_credit": 0.0,
                     "last_close": price,
                 }
-                if preset.exit_rule is ExitRule.OPEN_NEXT:
+                if preset.exit_rule in (ExitRule.OPEN_NEXT, ExitRule.OPEN_HOLD_LOCKED):
                     pos["sell_on"], pos["exec"] = nxt, "open"
                 elif preset.exit_rule is ExitRule.CLOSE_NEXT:
                     pos["sell_on"], pos["exec"] = nxt, "close"
@@ -206,6 +217,13 @@ def _closed_limit_up(code: str, row: pd.Series) -> bool:
     ratio = limit_ratio_for(code)
     limit_up = round(float(row["pre_close"]) * (1 + ratio) + 1e-9, 2)
     return abs(float(row["close"]) - limit_up) <= 0.0051  # ≈0.005 容差，与 fill_probability 一致
+
+
+def _open_at_limit_up(code: str, row: pd.Series) -> bool:
+    """9:25 可观测判定：开盘价≈当日涨停价（只用 open，不看 low——无前视）."""
+    ratio = limit_ratio_for(code)
+    limit_up = round(float(row["pre_close"]) * (1 + ratio) + 1e-9, 2)
+    return abs(float(row["open"]) - limit_up) <= 0.005
 
 
 def _positions_market_value(

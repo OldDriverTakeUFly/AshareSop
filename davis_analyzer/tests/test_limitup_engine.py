@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
+
 import pandas as pd
 
 from davis_analyzer.limitup.engine import (
     LimitupBacktestConfig, TradeRecord, fill_probability, run_backtest,
 )
-from davis_analyzer.limitup.strategies import PRESETS
+from davis_analyzer.limitup.strategies import PRESETS, ExitRule, StrategyPreset
 
 
 def _cand(**kw) -> pd.DataFrame:
@@ -134,3 +136,54 @@ def test_fill_probability_early_board_unpadded_time() -> None:
     """9 点档封板时间无前导零（'95321'）也必须落入早盘 0.20 档而非 0.35."""
     row = _cand(first_seal_time="95321").iloc[0]
     assert fill_probability(row) == 0.20
+
+
+# ── open_hold_locked 可观测卖出变体（规格 §3.2.1 第 4 条）──
+
+
+def _hold_locked_preset() -> StrategyPreset:
+    """研究脚本同款注入方式：dataclasses.replace 换 exit_rule，不动预设."""
+    return replace(PRESETS["first_board"], exit_rule=ExitRule.OPEN_HOLD_LOCKED)
+
+
+def test_open_hold_locked_open_at_limit_rides_to_break() -> None:
+    # T+1 开盘=涨停价 12.1（=round(11.0*1.1,2)）→ 取消卖出转入 ride；
+    # 0103 收盘仍涨停 → 持有；0104 断板（收盘 12.4 < 13.31）→ 0105 开盘卖
+    prices = pd.DataFrame([
+        ("600001.SH", "20240102", 10.2, 11.0, 10.0, 11.0, 10.0),
+        ("600001.SH", "20240103", 12.1, 12.1, 12.0, 12.1, 11.0),
+        ("600001.SH", "20240104", 12.5, 13.0, 12.0, 12.4, 12.1),
+        ("600001.SH", "20240105", 12.2, 12.6, 12.0, 12.3, 12.4),
+    ], columns=["ts_code", "trade_date", "open", "high", "low", "close", "pre_close"])
+    trades, _ = run_backtest(
+        _cand(), prices, _hold_locked_preset(), LimitupBacktestConfig(),
+        scenario="always", seed=1,
+    )
+    assert trades[0].exit_date == "20240105"
+    assert abs(trades[0].exit_price - 12.2 * (1 - 10 / 1e4)) < 1e-9
+
+
+def test_open_hold_locked_open_below_limit_sells_t1() -> None:
+    # T+1 开盘 10.8 远低于涨停价 12.1 → 正常 T+1 开盘卖（含滑点）
+    trades, _ = run_backtest(
+        _cand(), _prices(), _hold_locked_preset(), LimitupBacktestConfig(),
+        scenario="always", seed=1,
+    )
+    assert trades[0].exit_date == "20240103"
+    assert abs(trades[0].exit_price - 10.8 * (1 - 10 / 1e4)) < 1e-9
+
+
+def test_open_hold_locked_limit_down_still_postpones() -> None:
+    # T+1 一字跌停（open=low=9.9=round(11.0*0.9,2)）与涨停价 12.1 不符 →
+    # 走既有跌停顺延：0103 无法卖，0104 开盘卖
+    prices = pd.DataFrame([
+        ("600001.SH", "20240102", 10.2, 11.0, 10.0, 11.0, 10.0),
+        ("600001.SH", "20240103", 9.9, 9.9, 9.9, 9.9, 11.0),
+        ("600001.SH", "20240104", 9.5, 9.8, 9.4, 9.7, 9.9),
+    ], columns=["ts_code", "trade_date", "open", "high", "low", "close", "pre_close"])
+    trades, _ = run_backtest(
+        _cand(), prices, _hold_locked_preset(), LimitupBacktestConfig(),
+        scenario="always", seed=1,
+    )
+    assert trades[0].exit_date == "20240104"
+    assert abs(trades[0].exit_price - 9.5 * (1 - 10 / 1e4)) < 1e-9
