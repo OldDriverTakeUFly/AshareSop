@@ -27,10 +27,15 @@ STRONG_SEAL_MIN = 0.05   # 封单比 ≥0.05 → 强封单档
 SEAL_BAND_EDGES = [-1.0, 0.02, 0.05, 100.0]   # 封档分箱（右闭）
 SEAL_BAND_LABELS = ["弱", "中", "强"]
 
+# 量档（锁仓因子标注）：当日量/前20日均量，先验粗档（解剖研究 A2 单调分层）
+VOLUME_BANDS = [0, 1, 2, 5, 1000]
+VOLUME_BAND_LABELS = ["缩量", "温和", "放量", "爆量"]
+
 # 输出契约列（空数据防线返回的空帧也带这些列，CLI 可直接渲染）
 CANDIDATE_COLUMNS = [
     "ts_code", "name", "sector", "pattern_label", "seal_ratio", "封档",
-    "first_seal_band", "broken_count", "lg_sell_share", "enhanced", "fill_prob",
+    "量档", "first_seal_band", "broken_count", "lg_sell_share", "enhanced",
+    "fill_prob",
 ]
 
 # candidate_context 摘要键：涨停家数/晋级率/开盘溢价/指数多空/regime 档位
@@ -154,6 +159,9 @@ def build_candidates(
 
     cands["封档"] = pd.cut(
         cands["seal_ratio"], SEAL_BAND_EDGES, labels=SEAL_BAND_LABELS
+    )
+    cands["量档"] = pd.cut(
+        cands["vol_ratio_20"], VOLUME_BANDS, labels=VOLUME_BAND_LABELS
     )
     cands["fill_prob"] = cands.apply(
         lambda r: fill_probability(r, "base"), axis=1

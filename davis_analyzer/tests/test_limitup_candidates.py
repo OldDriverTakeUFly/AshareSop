@@ -362,3 +362,18 @@ def test_data_readiness_guards(limitup_db: sqlite3.Connection) -> None:
     )
     limitup_db.commit()
     assert candidates.data_readiness(limitup_db, "20260818") == "ok"
+
+
+def test_volume_band_annotation() -> None:
+    """量档（锁仓因子标注）：缩量/温和/放量/爆量四档 + NaN→渲染为"—"."""
+    import pandas as pd
+
+    from davis_analyzer.limitup import candidates as C
+
+    assert "量档" in C.CANDIDATE_COLUMNS
+    row = {"vol_ratio_20": 0.6}
+    cut = pd.cut(pd.Series([0.6, 1.5, 3.0, 8.0, None]),
+                 C.VOLUME_BANDS, labels=C.VOLUME_BAND_LABELS)
+    assert [None if pd.isna(v) else v for v in cut] == ["缩量", "温和", "放量", "爆量", None]
+    assert C._fmt_cell("量档", "缩量") == "缩量"
+    assert C._fmt_cell("量档", None) == "—"
