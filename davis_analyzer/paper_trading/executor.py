@@ -2200,6 +2200,14 @@ class DailyExecutor:
             if code not in codes_to_price:
                 codes_to_price.append(code)
 
+        # 策略申报的额外定价宇宙（如打板候选在「成交额前 200」之外，
+        # 不申报则 BUY 因无价被静默跳过）
+        _declare_extra = getattr(self.strategy, "required_codes", None)
+        if callable(_declare_extra):
+            for code in _declare_extra(trade_date):
+                if code not in codes_to_price:
+                    codes_to_price.append(code)
+
         # ── 2a. Bounce pool expansion (反弹专用全市场暴跌池) ──
         # On oversold-bounce trigger days (上证跌>5% + RV未衰减), expand the
         # candidate pool with the market-wide deepest-fallen stocks. The main

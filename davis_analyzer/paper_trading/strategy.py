@@ -1287,8 +1287,35 @@ class BoardChasingStrategy:
     def __init__(self, enhanced_filter: bool = False, max_positions: int = 3) -> None:
         self._enhanced = enhanced_filter
         self.max_positions = max_positions
+        self._cache_date: str | None = None
+        self._cache_cands: pd.DataFrame | None = None
         if enhanced_filter:
             self.name = "board_chasing_enhanced"
+
+    def _load_candidates(self, trade_date: str) -> pd.DataFrame:
+        """候选构建（带当日缓存：required_codes 钩子预热后 evaluate 复用）."""
+        if self._cache_date == trade_date and self._cache_cands is not None:
+            return self._cache_cands
+        from davis_analyzer.limitup import candidates as _limitup_candidates
+        from davis_analyzer.limitup import db as _limitup_db
+
+        conn = _limitup_db.connect()
+        try:
+            cands = _limitup_candidates.build_candidates(
+                conn, trade_date, enhanced_filter=self._enhanced
+            )
+        finally:
+            conn.close()  # conn 短生命周期
+        self._cache_date, self._cache_cands = trade_date, cands
+        return cands
+
+    def required_codes(self, trade_date: str) -> list[str]:
+        """executor 定价宇宙扩展钩子：打板候选多在「成交额前 200」之外，
+        不申报则 BUY 因无价被静默跳过（2026-08-18 端到端验证发现）."""
+        try:
+            return list(self._load_candidates(trade_date)["ts_code"])
+        except Exception:
+            return []
 
     @staticmethod
     def _row_enhanced(row: pd.Series) -> bool:
@@ -1323,17 +1350,8 @@ class BoardChasingStrategy:
             )
 
         # ── 2. 候选清单（limitup 同源；懒加载避免既有消费方被动引入 limitup 链）──
-        from davis_analyzer.limitup import candidates as _limitup_candidates
-        from davis_analyzer.limitup import db as _limitup_db
-
         try:
-            conn = _limitup_db.connect()
-            try:
-                cands = _limitup_candidates.build_candidates(
-                    conn, snapshot.trade_date, enhanced_filter=self._enhanced
-                )
-            finally:
-                conn.close()  # conn 短生命周期
+            cands = self._load_candidates(snapshot.trade_date)
         except Exception as exc:
             # 数据层故障只降级当日信号，不让缺失数据炸掉整个 run_day
             logger.warning(

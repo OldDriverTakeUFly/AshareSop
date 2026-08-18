@@ -352,3 +352,36 @@ class TestWiring:
         strategy = BoardChasingStrategy()
         strategy.evaluate([], _snapshot(), 1_000_000.0)
         assert fake_conn.closed == 1
+
+
+def test_required_codes_hook_and_cache(monkeypatch) -> None:
+    """required_codes 申报候选代码 + 当日缓存（evaluate 复用不再重算）."""
+    calls: list[str] = []
+
+    def fake_build(conn, date, *, enhanced_filter=False, lookback_days=60):
+        calls.append(date)
+        return pd.DataFrame([{
+            "ts_code": "600572.SH", "name": "康恩贝", "sector": "中药",
+            "pattern_label": "突破型", "seal_ratio": 0.009, "封档": "弱",
+            "first_seal_band": "尾盘", "broken_count": 1, "lg_sell_share": 0.34,
+            "enhanced": False, "fill_prob": 0.70,
+        }])
+
+    monkeypatch.setattr(
+        "davis_analyzer.limitup.candidates.build_candidates", fake_build)
+    monkeypatch.setattr(
+        "davis_analyzer.limitup.db.connect",
+        lambda: __import__("sqlite3").connect(":memory:"))
+
+    from davis_analyzer.paper_trading.strategy import BoardChasingStrategy
+
+    strat = BoardChasingStrategy()
+    assert strat.required_codes("20260812") == ["600572.SH"]
+    assert strat.required_codes("20260812") == ["600572.SH"]
+    assert len(calls) == 1  # 当日缓存
+    # 异常安全
+    strat2 = BoardChasingStrategy()
+    monkeypatch.setattr(
+        "davis_analyzer.limitup.candidates.build_candidates",
+        lambda *a, **k: (_ for _ in ()).throw(RuntimeError("db down")))
+    assert strat2.required_codes("20260813") == []
