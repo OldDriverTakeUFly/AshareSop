@@ -2,6 +2,23 @@
 
 This repository expects coding agents to follow the local development environment skill for any environment-related work.
 
+## 命令输出截断规则（硬性）
+
+所有可能产生长输出的命令，**必须主动加截断/过滤**，防止大量无关输出进入上下文浪费 token：
+
+| 命令类型 | 必须加的截断 | 示例 |
+|---------|------------|------|
+| 行情/数据查询 | `\| head -50` 或 `\| tail -20` | `python3 -c "...行情查询..." \| head -50` |
+| pytest（全量跑） | `2>&1 \| tail -5`（只看结果摘要） | `.venv/bin/python -m pytest stockhot/ 2>&1 \| tail -5` |
+| 日志文件查看 | `\| tail -20` 或 `\| grep "关键词"` | `tail -20 panic_alert.log` |
+| DataFrame 打印 | `.head(10)` / `.tail(5)` / 选中列 | `print(df[['col1','col2']].head(10))` |
+| tqdm 进度条 | `2>/dev/null`（stderr 丢弃） | `python script.py 2>/dev/null` |
+| AKShare 拉取 | 确认行数后只看样本 | `print(f"{len(df)} 行"); print(df.head(3))` |
+
+**例外**：输出需要精读消化的场景（研报数据/财务表/checklist 内容），不加截断。
+
+**原则**：不确定输出多长时，默认加 `| head -50`；发现关键信息在后半段再去掉截断重跑。
+
 ## RTK 使用规范（RTK Token-Saving CLI Proxy）
 
 本仓库已全局安装 [RTK](https://github.com/reachingforthejack/rtk)（Rust Token Killer，`/home/leo/.local/bin/rtk`，v0.43.0+），一个为 LLM agent 设计的命令行 token 节省代理。**使用与否按任务类型区分，不强制全量替代原生命令。**
