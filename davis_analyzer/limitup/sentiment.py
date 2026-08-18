@@ -210,7 +210,9 @@ def _index_axes(conn: sqlite3.Connection, start: str, end: str) -> pd.DataFrame:
 
 def build_market_regime(conn: sqlite3.Connection, start: str, end: str) -> pd.DataFrame:
     cal = db.trading_dates(conn, start, end)
-    base = pd.DataFrame({"trade_date": cal})
+    # 空 cal 时 pandas 3 会把空列表推断为 float64，与各轴的 object trade_date
+    # merge 冲突——显式 object 保证「空日历 → 带列空帧」契约成立
+    base = pd.DataFrame({"trade_date": pd.Series(cal, dtype="object")})
     parts = [
         _limit_axes(conn, start, end),
         _promotion_axes(conn, start, end),
