@@ -238,6 +238,75 @@ def refresh_corp_events(
     return total
 
 
+# ── daily_price 质量自愈（多写入方混写防线）──
+# 历史教训（2026-08）：并行写入方曾写 close-only 行（high/low NULL，~3k 行/日）
+# 与占位 adj_factor=1.0（整日覆盖），分别击穿形态 rolling 与除权判定。
+
+_NULL_OHLC_THRESHOLD = 100    # 单日 NULL high 超此数视为写入方污染（正常<10）
+_PLACEHOLDER_ADJ_THRESHOLD = 1000  # 单日 adj=1.0 超此数视为占位（正常~116 只）
+
+
+def repair_daily_price_gaps(conn: sqlite3.Connection, dates: list[str], client: object) -> dict:
+    """Repair close-only rows (NULL high/low) and placeholder adj_factor=1.0 rows.
+
+    Only touches rows whose high IS NULL / (adj IS NULL or 疑似占位)；合法值不动。
+    """
+    fixed_ohlc = fixed_adj = 0
+    for d in dates:
+        n_null = conn.execute(
+            "SELECT COUNT(*) FROM daily_price WHERE trade_date=? AND high IS NULL",
+            (d,),
+        ).fetchone()[0]
+        n_adj1 = conn.execute(
+            "SELECT COUNT(*) FROM daily_price WHERE trade_date=? AND adj_factor=1.0",
+            (d,),
+        ).fetchone()[0]
+        if n_null < _NULL_OHLC_THRESHOLD and n_adj1 < _PLACEHOLDER_ADJ_THRESHOLD:
+            continue
+        df = client._call("daily", client._pro.daily, {"trade_date": d})
+        if df is None or df.empty:
+            logger.warning("daily 自愈拉取失败 {}", d)
+            continue
+        need_ohlc = n_null >= _NULL_OHLC_THRESHOLD
+        need_adj = n_adj1 >= _PLACEHOLDER_ADJ_THRESHOLD
+        for _, r in df.iterrows():
+            if need_ohlc:
+                cur = conn.execute(
+                    "SELECT high FROM daily_price WHERE ts_code=? AND trade_date=?",
+                    (r["ts_code"], d),
+                ).fetchone()
+                if cur and cur[0] is None and r.get("high") is not None:
+                    conn.execute(
+                        "UPDATE daily_price SET high=?, low=?, vol=COALESCE(vol,?), "
+                        "amount=COALESCE(amount,?) WHERE ts_code=? AND trade_date=?",
+                        (float(r["high"]), float(r["low"]), r.get("vol"),
+                         r.get("amount"), r["ts_code"], d),
+                    )
+                    fixed_ohlc += 1
+            if need_adj and r.get("adj_factor") is None:
+                continue  # daily 接口无 adj；占位修复由 adj_factor 接口做
+        conn.commit()
+        if need_adj:
+            adf = client._call("adj_factor", client._pro.adj_factor, {"trade_date": d})
+            if adf is not None and not adf.empty:
+                for _, r in adf.iterrows():
+                    cur = conn.execute(
+                        "SELECT adj_factor FROM daily_price WHERE ts_code=? AND trade_date=?",
+                        (r["ts_code"], d),
+                    ).fetchone()
+                    if cur and cur[0] == 1.0 and abs(float(r["adj_factor"]) - 1.0) > 1e-9:
+                        conn.execute(
+                            "UPDATE daily_price SET adj_factor=? WHERE ts_code=? "
+                            "AND trade_date=?",
+                            (float(r["adj_factor"]), r["ts_code"], d),
+                        )
+                        fixed_adj += 1
+                conn.commit()
+    if fixed_ohlc or fixed_adj:
+        logger.info("daily_price 自愈: high/low {} 行, adj {} 行", fixed_ohlc, fixed_adj)
+    return {"ohlc": fixed_ohlc, "adj": fixed_adj}
+
+
 # ── 总入口 ──
 
 def run_daily_refresh(conn: sqlite3.Connection, lookback_days: int = 7) -> dict:
@@ -257,6 +326,7 @@ def run_daily_refresh(conn: sqlite3.Connection, lookback_days: int = 7) -> dict:
         return client._call("top_list", client._pro.top_list, {"trade_date": d})
 
     steps: list[tuple[str, object]] = [
+        ("daily_price_repair", lambda: repair_daily_price_gaps(conn, dates, client)),
         ("limit_pool", lambda: refresh_limit_pool(
             conn, dates, lambda d, t: client._call(
                 "limit_list_d", client._pro.limit_list_d,

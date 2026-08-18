@@ -156,3 +156,53 @@ def test_refresh_limit_pool_ext_aware(limitup_db: sqlite3.Connection) -> None:
         "SELECT first_seal_time, turnover_rate FROM limit_pool WHERE trade_date='2026-08-12'"
     ).fetchone()
     assert pool == ("092500", 5.0)
+
+
+def test_repair_daily_price_gaps(limitup_db: sqlite3.Connection) -> None:
+    """close-only 行（high NULL）与占位 adj=1.0 的自愈；合法值不动."""
+    # 造 150 行 close-only（超阈值 100）+ 正常基线行
+    for i in range(150):
+        limitup_db.execute(
+            "INSERT INTO daily_price VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+            (f"6000{i:03d}.SH", "20260818", None, None, None, 10.0, 9.5,
+             5.0, 0.0, 0.0, 1.0, None),
+        )
+    limitup_db.commit()
+
+    class FakeClient:
+        from types import SimpleNamespace as _NS
+
+        _pro = _NS(daily=lambda **kw: None, adj_factor=lambda **kw: None)
+
+        def _call(self, endpoint, _fn, params):
+            d = params["trade_date"]
+            if endpoint == "daily":
+                return pd.DataFrame([
+                    {"ts_code": f"6000{i:03d}.SH", "high": 10.5, "low": 9.4,
+                     "vol": 100, "amount": 1e6}
+                    for i in range(150)
+                ])
+            if endpoint == "adj_factor":
+                return pd.DataFrame([
+                    {"ts_code": f"6000{i:03d}.SH", "adj_factor": 2.5}
+                    for i in range(150)
+                ])
+            return pd.DataFrame()
+
+    import pytest
+
+    from davis_analyzer.limitup import daily_refresh as dr
+
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(dr, "_PLACEHOLDER_ADJ_THRESHOLD", 100)
+        result = dr.repair_daily_price_gaps(limitup_db, ["20260818"], FakeClient())
+    assert result == {"ohlc": 150, "adj": 150}
+    row = limitup_db.execute(
+        "SELECT high, low, adj_factor FROM daily_price WHERE ts_code='6000000.SH' OR ts_code='600000.SH'"
+    ).fetchone()
+    assert row[0] == 10.5 and row[1] == 9.4 and row[2] == 2.5
+    # 已修复后重跑：high 已非 NULL、adj 已非 1.0，不再触发阈值
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setattr(dr, "_PLACEHOLDER_ADJ_THRESHOLD", 100)
+        assert dr.repair_daily_price_gaps(
+            limitup_db, ["20260818"], FakeClient()) == {"ohlc": 0, "adj": 0}
