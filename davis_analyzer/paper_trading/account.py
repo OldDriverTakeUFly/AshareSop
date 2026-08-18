@@ -185,6 +185,18 @@ class PaperAccount:
 
     # ── trade execution ──
 
+    def _begin_immediate(self) -> None:
+        """Open a write transaction up front (read-modify-write serialization).
+
+        BEGIN IMMEDIATE takes the DB write lock before any read, so the
+        cash/position checks inside buy/sell see committed state and cannot
+        interleave with a concurrent writer.
+        """
+        if self._conn.in_transaction:
+            # Stray transaction left by a previously failed op — discard it.
+            self._conn.rollback()
+        self._conn.execute("BEGIN IMMEDIATE")
+
     def buy(
         self,
         ts_code: str,
@@ -202,60 +214,67 @@ class PaperAccount:
         if shares <= 0 or price <= 0:
             return None
 
-        gross = shares * price
-        cost = _trade_cost(gross, commission_bps, stamp_tax_bps, is_sell=False)
-        if gross + cost > self.cash:
-            # Trim to affordable (board-lot aligned)
-            affordable = int(
-                (self.cash / (price * (1 + commission_bps / 1e4))) // _BOARD_LOT
-            ) * _BOARD_LOT
-            if affordable <= 0:
-                return None
-            shares = affordable
+        self._begin_immediate()
+        try:
             gross = shares * price
             cost = _trade_cost(gross, commission_bps, stamp_tax_bps, is_sell=False)
+            cash = self.cash
+            if gross + cost > cash:
+                # Trim to affordable (board-lot aligned)
+                affordable = int(
+                    (cash / (price * (1 + commission_bps / 1e4))) // _BOARD_LOT
+                ) * _BOARD_LOT
+                if affordable <= 0:
+                    self._conn.rollback()
+                    return None
+                shares = affordable
+                gross = shares * price
+                cost = _trade_cost(gross, commission_bps, stamp_tax_bps, is_sell=False)
 
-        # Update cash
-        self._conn.execute(
-            "UPDATE paper_accounts SET cash=cash-?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
-            (gross + cost, self.account_id),
-        )
-
-        # Upsert position (add to existing or create new)
-        existing = self._conn.execute(
-            "SELECT shares, avg_cost FROM paper_positions WHERE account_id=? AND ts_code=?",
-            (self.account_id, ts_code),
-        ).fetchone()
-        if existing:
-            old_shares = existing["shares"]
-            old_cost = existing["avg_cost"]
-            new_shares = old_shares + shares
-            new_avg = (old_shares * old_cost + gross) / new_shares
+            # Update cash
             self._conn.execute(
-                "UPDATE paper_positions SET shares=?, avg_cost=? WHERE account_id=? AND ts_code=?",
-                (new_shares, new_avg, self.account_id, ts_code),
-            )
-        else:
-            self._conn.execute(
-                "INSERT INTO paper_positions (account_id, ts_code, name, shares, avg_cost, entry_date, signal_reason) "
-                "VALUES (?, ?, ?, ?, ?, ?, ?)",
-                (self.account_id, ts_code, name, shares, gross / shares, trade_date, signal_reason),
+                "UPDATE paper_accounts SET cash=cash-?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
+                (gross + cost, self.account_id),
             )
 
-        # Record trade
-        trade = TradeRecord(
-            trade_date=trade_date,
-            ts_code=ts_code,
-            name=name,
-            action="BUY",
-            shares=shares,
-            price=price,
-            amount=gross,
-            cost=cost,
-            signal_reason=signal_reason,
-        )
-        self._record_trade(trade)
-        self._conn.commit()
+            # Upsert position (add to existing or create new)
+            existing = self._conn.execute(
+                "SELECT shares, avg_cost FROM paper_positions WHERE account_id=? AND ts_code=?",
+                (self.account_id, ts_code),
+            ).fetchone()
+            if existing:
+                old_shares = existing["shares"]
+                old_cost = existing["avg_cost"]
+                new_shares = old_shares + shares
+                new_avg = (old_shares * old_cost + gross) / new_shares
+                self._conn.execute(
+                    "UPDATE paper_positions SET shares=?, avg_cost=? WHERE account_id=? AND ts_code=?",
+                    (new_shares, new_avg, self.account_id, ts_code),
+                )
+            else:
+                self._conn.execute(
+                    "INSERT INTO paper_positions (account_id, ts_code, name, shares, avg_cost, entry_date, signal_reason) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    (self.account_id, ts_code, name, shares, gross / shares, trade_date, signal_reason),
+                )
+
+            # Record trade
+            trade = TradeRecord(
+                trade_date=trade_date,
+                ts_code=ts_code,
+                name=name,
+                action="BUY",
+                shares=shares,
+                price=price,
+                amount=gross,
+                cost=cost,
+                signal_reason=signal_reason,
+            )
+            self._record_trade(trade)
+            self._conn.commit()
+        except Exception:
+            self._conn.rollback()
+            raise
 
         # 登记 到 watchlist（供盘前报告/飞书推送引用实盘参考价）
         # 仅对新开仓登记（加仓不重复更新），记录买入价 + 日期 + 信号
@@ -283,7 +302,9 @@ class PaperAccount:
         if any(tag in self.name.lower() for tag in ("backtest", "abtest", "shadow")):
             return
         try:
-            from stockhot.core.config import DB_PATH
+            # Resolve DB_PATH through the module at call time so tests that
+            # monkeypatch stockhot.storage.database.DB_PATH stay isolated.
+            from stockhot.storage.database import DB_PATH
             import sqlite3 as _sqlite3
             with _sqlite3.connect(str(DB_PATH)) as wl_conn:
                 code6 = ts_code.split(".")[0]
@@ -315,58 +336,65 @@ class PaperAccount:
         if shares <= 0 or price <= 0:
             return None
 
-        pos = self._conn.execute(
-            "SELECT shares FROM paper_positions WHERE account_id=? AND ts_code=?",
-            (self.account_id, ts_code),
-        ).fetchone()
-        if pos is None or pos["shares"] <= 0:
-            return None
-
-        # Can't sell more than held
-        shares = min(shares, pos["shares"])
-        shares = (shares // _BOARD_LOT) * _BOARD_LOT
-        if shares <= 0:
-            # Allow selling remaining odd lot if it's all we have
-            if pos["shares"] < _BOARD_LOT:
-                shares = pos["shares"]
-            else:
+        self._begin_immediate()
+        try:
+            pos = self._conn.execute(
+                "SELECT shares FROM paper_positions WHERE account_id=? AND ts_code=?",
+                (self.account_id, ts_code),
+            ).fetchone()
+            if pos is None or pos["shares"] <= 0:
+                self._conn.rollback()
                 return None
 
-        gross = shares * price
-        cost = _trade_cost(gross, commission_bps, stamp_tax_bps, is_sell=True)
+            # Can't sell more than held
+            shares = min(shares, pos["shares"])
+            shares = (shares // _BOARD_LOT) * _BOARD_LOT
+            if shares <= 0:
+                # Allow selling remaining odd lot if it's all we have
+                if pos["shares"] < _BOARD_LOT:
+                    shares = pos["shares"]
+                else:
+                    self._conn.rollback()
+                    return None
 
-        # Update cash
-        self._conn.execute(
-            "UPDATE paper_accounts SET cash=cash+?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
-            (gross - cost, self.account_id),
-        )
+            gross = shares * price
+            cost = _trade_cost(gross, commission_bps, stamp_tax_bps, is_sell=True)
 
-        # Update/delete position
-        remaining = pos["shares"] - shares
-        if remaining <= 0:
+            # Update cash
             self._conn.execute(
-                "DELETE FROM paper_positions WHERE account_id=? AND ts_code=?",
-                (self.account_id, ts_code),
-            )
-        else:
-            self._conn.execute(
-                "UPDATE paper_positions SET shares=? WHERE account_id=? AND ts_code=?",
-                (remaining, self.account_id, ts_code),
+                "UPDATE paper_accounts SET cash=cash+?, updated_at=CURRENT_TIMESTAMP WHERE id=?",
+                (gross - cost, self.account_id),
             )
 
-        trade = TradeRecord(
-            trade_date=trade_date,
-            ts_code=ts_code,
-            name=name,
-            action="SELL",
-            shares=shares,
-            price=price,
-            amount=gross,
-            cost=cost,
-            signal_reason=signal_reason,
-        )
-        self._record_trade(trade)
-        self._conn.commit()
+            # Update/delete position
+            remaining = pos["shares"] - shares
+            if remaining <= 0:
+                self._conn.execute(
+                    "DELETE FROM paper_positions WHERE account_id=? AND ts_code=?",
+                    (self.account_id, ts_code),
+                )
+            else:
+                self._conn.execute(
+                    "UPDATE paper_positions SET shares=? WHERE account_id=? AND ts_code=?",
+                    (remaining, self.account_id, ts_code),
+                )
+
+            trade = TradeRecord(
+                trade_date=trade_date,
+                ts_code=ts_code,
+                name=name,
+                action="SELL",
+                shares=shares,
+                price=price,
+                amount=gross,
+                cost=cost,
+                signal_reason=signal_reason,
+            )
+            self._record_trade(trade)
+            self._conn.commit()
+        except Exception:
+            self._conn.rollback()
+            raise
         return trade
 
     def sell_all(
@@ -408,34 +436,41 @@ class PaperAccount:
 
     def record_nav(self, trade_date: str, prices: dict[str, float]) -> NAVSnapshot:
         """Write a daily NAV snapshot. Returns the snapshot."""
-        cash = self.cash
-        pos_val = self.positions_value(prices)
-        total = cash + pos_val
+        # BEGIN IMMEDIATE gives a consistent cash + positions snapshot even
+        # when another process is trading this account concurrently.
+        self._begin_immediate()
+        try:
+            cash = self.cash
+            pos_val = self.positions_value(prices)
+            total = cash + pos_val
 
-        # Daily return vs previous NAV
-        prev = self._conn.execute(
-            "SELECT total_equity FROM paper_nav_history WHERE account_id=? ORDER BY trade_date DESC LIMIT 1",
-            (self.account_id,),
-        ).fetchone()
-        daily_return = None
-        if prev and prev["total_equity"] > 0:
-            daily_return = round((total / prev["total_equity"] - 1) * 100, 4)
+            # Daily return vs previous NAV
+            prev = self._conn.execute(
+                "SELECT total_equity FROM paper_nav_history WHERE account_id=? ORDER BY trade_date DESC LIMIT 1",
+                (self.account_id,),
+            ).fetchone()
+            daily_return = None
+            if prev and prev["total_equity"] > 0:
+                daily_return = round((total / prev["total_equity"] - 1) * 100, 4)
 
-        snap = NAVSnapshot(
-            trade_date=trade_date,
-            cash=round(cash, 2),
-            positions_value=round(pos_val, 2),
-            total_equity=round(total, 2),
-            daily_return=daily_return,
-        )
+            snap = NAVSnapshot(
+                trade_date=trade_date,
+                cash=round(cash, 2),
+                positions_value=round(pos_val, 2),
+                total_equity=round(total, 2),
+                daily_return=daily_return,
+            )
 
-        self._conn.execute(
-            "INSERT OR REPLACE INTO paper_nav_history "
-            "(account_id, trade_date, cash, positions_value, total_equity, daily_return) "
-            "VALUES (?, ?, ?, ?, ?, ?)",
-            (self.account_id, snap.trade_date, snap.cash, snap.positions_value, snap.total_equity, snap.daily_return),
-        )
-        self._conn.commit()
+            self._conn.execute(
+                "INSERT OR REPLACE INTO paper_nav_history "
+                "(account_id, trade_date, cash, positions_value, total_equity, daily_return) "
+                "VALUES (?, ?, ?, ?, ?, ?)",
+                (self.account_id, snap.trade_date, snap.cash, snap.positions_value, snap.total_equity, snap.daily_return),
+            )
+            self._conn.commit()
+        except Exception:
+            self._conn.rollback()
+            raise
         return snap
 
     def get_nav_history(self) -> list[NAVSnapshot]:
@@ -513,3 +548,43 @@ class PaperAccount:
 
     def close(self) -> None:
         self._conn.close()
+
+
+# ── backtest-completeness helpers (abx 脚本复用/续跑判定) ──
+
+
+def expected_trading_days(start: str, end: str) -> int:
+    """Count distinct trading days in [start, end] from the cached daily_price calendar.
+
+    Calendar source matches the project convention (回测日历从缓存日线推导,
+    not a dedicated calendar API).
+    """
+    from stockhot.data_layer.market_db import get_connection as get_market_conn
+
+    with get_market_conn() as conn:
+        row = conn.execute(
+            "SELECT COUNT(DISTINCT trade_date) FROM daily_price WHERE trade_date BETWEEN ? AND ?",
+            (start, end),
+        ).fetchone()
+    return int(row[0]) if row and row[0] else 0
+
+
+def account_nav_complete(name: str, start: str, end: str) -> bool:
+    """True if the account's NAV history covers the full [start, end] trading calendar.
+
+    Replacement for the old ``COUNT(nav) >= 120`` heuristic: an interrupted
+    run past day 120 of a ~130-day window used to pass as "complete" and
+    silently feed partial results into cross-experiment comparisons.
+    """
+    conn = get_connection()
+    try:
+        row = conn.execute(
+            "SELECT COUNT(*) FROM paper_nav_history v "
+            "JOIN paper_accounts a ON v.account_id=a.id WHERE a.name=?",
+            (name,),
+        ).fetchone()
+    finally:
+        conn.close()
+    n_nav = int(row[0]) if row else 0
+    expected = expected_trading_days(start, end)
+    return expected > 0 and n_nav >= expected
