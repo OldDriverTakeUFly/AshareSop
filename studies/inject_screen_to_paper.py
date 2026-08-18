@@ -98,47 +98,54 @@ def inject(as_of: str, account_name: str, dry_run: bool = False) -> dict:
 
 
 def main(argv: list[str] | None = None) -> int:
-    """CLI 入口."""
+    """CLI 入口：注入所有前向测试账户（主仓 + 小仓）."""
     parser = argparse.ArgumentParser(description="注入选股信号到前向测试账户")
     parser.add_argument("--date", default=None, help="选股日期 YYYY-MM-DD（默认：今天）")
-    parser.add_argument("--name", default=DEFAULT_ACCOUNT, help=f"账户名（默认：{DEFAULT_ACCOUNT}）")
+    parser.add_argument("--name", default=None, help="账户名（默认：注入全部 INJECT_ACCOUNTS）")
     parser.add_argument("--dry-run", action="store_true", help="只打印桥接结果，不实际调仓")
     args = parser.parse_args(argv)
 
     from datetime import date
 
     as_of = args.date or date.today().strftime("%Y-%m-%d")
-    print(f"=== inject_screen_to_paper | AS_OF={as_of} | account={args.name} ===")
 
-    try:
-        result = inject(as_of, args.name, dry_run=args.dry_run)
-        status = result.get("status", "unknown")
-        print(f"结果: {status}")
-        if status not in ("skipped", "dry_run", "no_prices"):
-            # 成功执行，打印交易摘要
-            buys = result.get("buys", 0)
-            sells = result.get("sells", 0)
-            nav = result.get("nav")
-            print(f"  买入 {buys} 只, 卖出 {sells} 只" + (f", NAV {nav}" if nav else ""))
+    # 多账户注入（2026-08-18：主仓 + 小仓 mini_100k）
+    INJECT_ACCOUNTS = ["live_factor_test", "mini_100k"]
+    accounts = [args.name] if args.name else INJECT_ACCOUNTS
 
-            # 有交易时推飞书调仓报告
-            buy_trades = result.get("buy_trades", [])
-            sell_trades = result.get("sell_trades", [])
-            account_summary = result.get("account_summary")
-            if buy_trades or sell_trades:
-                _push_rebalance_report(
-                    args.name, buy_trades, sell_trades, account_summary, as_of,
-                )
-        return 0 if status != "no_prices" else 1
-    except FileNotFoundError as e:
-        print(f"[ERROR] {e}")
-        return 1
-    except Exception as e:
-        import traceback
+    exit_code = 0
+    for acc_name in accounts:
+        print(f"\n=== inject_screen_to_paper | AS_OF={as_of} | account={acc_name} ===")
+        try:
+            result = inject(as_of, acc_name, dry_run=args.dry_run)
+            status = result.get("status", "unknown")
+            print(f"结果: {status}")
+            if status not in ("skipped", "dry_run", "no_prices"):
+                buys = result.get("buys", 0)
+                sells = result.get("sells", 0)
+                nav = result.get("nav")
+                print(f"  买入 {buys} 只, 卖出 {sells} 只" + (f", NAV {nav}" if nav else ""))
 
-        print(f"[ERROR] 注入失败: {type(e).__name__}: {e}")
-        traceback.print_exc()
-        return 1
+                buy_trades = result.get("buy_trades", [])
+                sell_trades = result.get("sell_trades", [])
+                account_summary = result.get("account_summary")
+                if buy_trades or sell_trades:
+                    _push_rebalance_report(
+                        acc_name, buy_trades, sell_trades, account_summary, as_of,
+                    )
+            if status == "no_prices":
+                exit_code = 1
+        except FileNotFoundError as e:
+            print(f"[ERROR] {e}")
+            exit_code = 1
+        except Exception as e:
+            import traceback
+
+            print(f"[ERROR] 注入失败: {type(e).__name__}: {e}")
+            traceback.print_exc()
+            exit_code = 1
+
+    return exit_code
 
 
 def _push_rebalance_report(

@@ -36,7 +36,8 @@ from collections import defaultdict
 from datetime import date, datetime, timedelta
 
 PROJECT_ROOT = PROJECT_ROOT = __import__("pathlib").Path(__file__).resolve().parent.parent.parent.parent
-PAPER_ACCOUNT = "live_factor_test"
+# 多账户监控（2026-08-18）：主仓 100 万 + 小仓 10 万
+PAPER_ACCOUNTS = ["live_factor_test", "mini_100k"]
 
 # 轮询间隔（秒）
 DEFAULT_INTERVAL = 120
@@ -175,15 +176,13 @@ def _collect_holdings() -> tuple[list[dict], object | None, float, float]:
     from stockhot.core.config import DB_PATH
 
     holdings: list[dict] = []
-    account = None
-    initial_capital = 0
-    cash = 0
+    accounts: dict[str, object] = {}   # {账户名: PaperAccount}
+    account_info: dict[str, dict] = {}  # {账户名: {initial_capital, cash}}
 
-    # 模拟账户持仓
+    # 多模拟账户持仓（2026-08-18：live_factor_test + mini_100k）
     try:
         from davis_analyzer.paper_trading.account import PaperAccount
 
-        account = PaperAccount.load(PAPER_ACCOUNT)
         conn = sqlite3.connect(str(DB_PATH))
         conn.row_factory = sqlite3.Row
 
@@ -193,28 +192,39 @@ def _collect_holdings() -> tuple[list[dict], object | None, float, float]:
         ):
             wl_map[r["code"]] = dict(r)
 
-        for r in conn.execute(
-            "SELECT initial_capital, cash FROM paper_accounts WHERE id=?", (account.account_id,)
-        ):
-            initial_capital = r["initial_capital"]
-            cash = r["cash"]
+        for acc_name in PAPER_ACCOUNTS:
+            try:
+                acc = PaperAccount.load(acc_name)
+            except Exception as e:
+                print(f"[WARN] 账户 {acc_name} 加载失败: {e}")
+                continue
+            accounts[acc_name] = acc
 
-        for pos in account.get_positions():
-            code6 = pos.ts_code.split(".")[0]
-            wl = wl_map.get(code6, {})
-            stop_pct = wl.get("stop_loss_pct", -0.12)
-            holdings.append({
-                "code": code6,
-                "ts_code": pos.ts_code,
-                "name": pos.name,
-                "shares": pos.shares,
-                "avg_cost": pos.avg_cost,
-                "source": "paper",
-                "stop_pct": stop_pct,
-                "composite": wl.get("composite_score"),
-                "can_execute": True,  # 模拟账户可执行
-            })
-        # 不 close account——run_one_cycle 后续的 _execute_signal 需要它活着
+            init_cap, acc_cash = 0, 0
+            for r in conn.execute(
+                "SELECT initial_capital, cash FROM paper_accounts WHERE id=?", (acc.account_id,)
+            ):
+                init_cap = r["initial_capital"]
+                acc_cash = r["cash"]
+            account_info[acc_name] = {"initial_capital": init_cap, "cash": acc_cash}
+
+            for pos in acc.get_positions():
+                code6 = pos.ts_code.split(".")[0]
+                wl = wl_map.get(code6, {})
+                stop_pct = wl.get("stop_loss_pct", -0.12)
+                holdings.append({
+                    "code": code6,
+                    "ts_code": pos.ts_code,
+                    "name": pos.name,
+                    "shares": pos.shares,
+                    "avg_cost": pos.avg_cost,
+                    "source": acc_name,  # 账户名作为 source（消息标注用）
+                    "stop_pct": stop_pct,
+                    "composite": wl.get("composite_score"),
+                    "can_execute": True,
+                    "account": acc,  # 持有 account 引用，执行时直接用
+                })
+            # 不 close account——run_one_cycle 后续的 _execute_signal 需要它活着
     except Exception as e:
         print(f"[WARN] 模拟账户加载失败: {e}")
 
@@ -243,11 +253,12 @@ def _collect_holdings() -> tuple[list[dict], object | None, float, float]:
                     "stop_pct": (stop_hard / cost - 1),
                     "composite": None,
                     "can_execute": False,  # 手动持仓不自动执行
+                    "account": None,
                 })
     except Exception:
         pass
 
-    return holdings, account, initial_capital, cash
+    return holdings, accounts, account_info
 
 
 def _code_to_ts_code(code: str) -> str:
@@ -292,12 +303,16 @@ def _check_signals(h: dict, current_price: float) -> list[dict]:
         })
 
     # 止盈（优先于 T+减仓）
+    # 止盈：小仓位（≤300股）直接清仓，大仓位减 1/3（方案B，2026-08-18）
     if pnl_pct >= TAKE_PROFIT_PCT:
-        trim_shares = int(h["shares"] * T_TRIM_RATIO // BOARD_LOT) * BOARD_LOT
+        if h["shares"] <= 300:
+            sell_shares = h["shares"]  # 小仓位清仓
+        else:
+            sell_shares = max(int(h["shares"] * T_TRIM_RATIO // BOARD_LOT) * BOARD_LOT, BOARD_LOT)
         signals.append({
             "type": "take_profit",
             "price": current_price,
-            "shares": max(trim_shares, BOARD_LOT),
+            "shares": sell_shares,
             "pnl_pct": pnl_pct * 100,
             "target_price": take_profit_price,
         })
@@ -380,10 +395,12 @@ async def _push_message(msg: str) -> bool:
         return False
 
 
-def _format_execution_report(executed: list[dict], warnings: list[dict], account_info: dict) -> str:
-    """格式化盘中调仓报告."""
+def _format_execution_report(executed: list[dict], warnings: list[dict], account_info: dict, account_name: str = "") -> str:
+    """格式化盘中调仓报告（含账户标注）."""
     now = datetime.now().strftime("%H:%M")
-    lines = [f"⚡ 盘中调仓 [{now}]"]
+    # 账户简称（消息里区分两个模拟仓）
+    acc_label = {"live_factor_test": "主仓", "mini_100k": "小仓", "manual": "手动"}.get(account_name, account_name)
+    lines = [f"⚡ 盘中调仓 [{now}]（{acc_label}）"]
 
     for ex in executed:
         if ex["type"] == "stop_loss":
@@ -486,7 +503,7 @@ def _check_panic_signal(dry_run: bool = False) -> str:
 def run_one_cycle(dry_run: bool = False) -> dict:
     """执行一轮监控（单次），返回执行统计."""
     trade_date = date.today().strftime("%Y%m%d")
-    holdings, account, initial_capital, cash = _collect_holdings()
+    holdings, accounts, account_info = _collect_holdings()
 
     if not holdings:
         return {"checked": 0, "executed": 0, "warnings": 0}
@@ -499,22 +516,23 @@ def run_one_cycle(dry_run: bool = False) -> dict:
 
     executed: list[dict] = []
     warnings: list[dict] = []
-    executed_codes_today: set[str] = set()  # 去重
+    executed_keys_today: set[tuple] = set()  # (账户, code) 去重——多账户同股票独立处理
 
     for h in holdings:
         if h["code"] not in prices:
             continue
         current = prices[h["code"]]["price"]
         signals = _check_signals(h, current)
+        dedup_key = (h["source"], h["code"])
 
         for sig in signals:
             if sig["type"] in ("warn_stop", "warn_target"):
                 # 预警信号
                 w = {"type": sig["type"], "name": h["name"], "code": h["code"],
-                     "price": current, **sig}
+                     "price": current, "source": h["source"], **sig}
                 warnings.append(w)
-            elif h["code"] not in executed_codes_today:
-                # 执行信号
+            elif dedup_key not in executed_keys_today:
+                # 执行信号（用持仓自带的 account 引用，支持多账户）
                 if dry_run:
                     executed.append({
                         "type": sig["type"], "name": h["name"], "code": h["code"],
@@ -523,34 +541,47 @@ def run_one_cycle(dry_run: bool = False) -> dict:
                         "remaining": h["shares"] - sig.get("shares", 0),
                         "source": h["source"],
                     })
-                    executed_codes_today.add(h["code"])
-                elif h.get("can_execute"):
-                    result = _execute_signal(h, sig, account, trade_date)
+                    executed_keys_today.add(dedup_key)
+                elif h.get("can_execute") and h.get("account"):
+                    result = _execute_signal(h, sig, h["account"], trade_date)
                     if result:
                         result["source"] = h["source"]
                         executed.append(result)
-                        executed_codes_today.add(h["code"])
-                        print(f"  执行: {result['type']} {result['name']} @{result['price']:.2f}")
+                        executed_keys_today.add(dedup_key)
+                        print(f"  执行[{h['source']}]: {result['type']} {result['name']} @{result['price']:.2f}")
 
     # 推送（有持仓执行/预警 或 恐慌状态变化时）
     panic_msg = _check_panic_signal(dry_run=dry_run)
 
     # 调仓信号和恐慌信号分开推送（不拼接在一起）
     if executed or warnings:
-        account_info = {}
-        if initial_capital > 0:
+        # 多账户分别计算状态
+        msg_parts = []
+        for acc_name, info in account_info.items():
+            acc_holdings = [h for h in holdings if h["source"] == acc_name]
             pos_value = sum(
                 prices.get(h["code"], {}).get("price", 0) * h["shares"]
-                for h in holdings if h["code"] in prices
+                for h in acc_holdings if h["code"] in prices
             )
-            equity = cash + pos_value
-            account_info = {
-                "equity": equity, "cash": cash,
-                "pos_count": len([h for h in holdings if h["code"] in prices]),
+            equity = info["cash"] + pos_value
+            acc_report = {
+                "equity": equity, "cash": info["cash"],
+                "pos_count": len([h for h in acc_holdings if h["code"] in prices]),
                 "pos_pct": pos_value / equity * 100 if equity > 0 else 0,
             }
+            acc_executed = [e for e in executed if e["source"] == acc_name]
+            acc_warnings = [w for w in warnings if w["source"] == acc_name]
+            if acc_executed or acc_warnings:
+                part = _format_execution_report(acc_executed, acc_warnings, acc_report, acc_name)
+                msg_parts.append(part)
 
-        msg = _format_execution_report(executed, warnings, account_info)
+        # 手动持仓的预警（如有）
+        manual_warns = [w for w in warnings if w["source"] == "manual"]
+        if manual_warns:
+            part = _format_execution_report([], manual_warns, {}, "manual")
+            msg_parts.append(part)
+
+        msg = "\n\n".join(msg_parts)
         print(msg)
         if not dry_run:
             asyncio.run(_push_message(msg))

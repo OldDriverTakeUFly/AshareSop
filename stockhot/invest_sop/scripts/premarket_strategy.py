@@ -29,7 +29,7 @@ from datetime import date, timedelta
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent.parent
-PAPER_ACCOUNT = "live_factor_test"
+PAPER_ACCOUNTS = ["live_factor_test", "mini_100k"]  # 主仓 + 小仓
 
 # 操作阈值（与 executor / intraday_manager 一致）
 TAKE_PROFIT_PCT = 0.20       # 止盈线 +20%
@@ -65,7 +65,6 @@ def _load_paper_positions() -> list[dict]:
     try:
         from davis_analyzer.paper_trading.account import PaperAccount
 
-        acc = PaperAccount.load(PAPER_ACCOUNT)
         conn = sqlite3.connect(str(DB_PATH))
         conn.row_factory = sqlite3.Row
 
@@ -77,34 +76,44 @@ def _load_paper_positions() -> list[dict]:
         ):
             wl_map[r["code"]] = dict(r)
 
-        initial_capital = 0
-        cash = 0
-        for r in conn.execute(
-            "SELECT initial_capital, cash FROM paper_accounts WHERE id=?", (acc.account_id,)
-        ):
-            initial_capital = r["initial_capital"]
-            cash = r["cash"]
+        holdings_initial = 0
+        holdings_cash = 0
 
-        for pos in acc.get_positions():
-            code6 = pos.ts_code.split(".")[0]
-            wl = wl_map.get(code6, {})
-            stop_pct = wl.get("stop_loss_pct", -0.12)
-            holdings.append({
-                "code": code6,
-                "ts_code": pos.ts_code,
-                "name": pos.name,
-                "shares": pos.shares,
-                "avg_cost": pos.avg_cost,
-                "source": "paper",
-                "stop_loss_pct": stop_pct,
-                "target_high": wl.get("target_entry_high"),
-                "composite": wl.get("composite_score"),
-                "signal_reason": pos.signal_reason or "",
-            })
+        # 多账户遍历（主仓 + 小仓）
+        for acc_name in PAPER_ACCOUNTS:
+            try:
+                acc = PaperAccount.load(acc_name)
+            except Exception as e:
+                print(f"[WARN] 账户 {acc_name} 加载失败: {e}")
+                continue
 
-        acc.close()
-        holdings_initial = initial_capital
-        holdings_cash = cash
+            initial_capital = 0
+            cash = 0
+            for r in conn.execute(
+                "SELECT initial_capital, cash FROM paper_accounts WHERE id=?", (acc.account_id,)
+            ):
+                initial_capital = r["initial_capital"]
+                cash = r["cash"]
+            holdings_initial += initial_capital
+            holdings_cash += cash
+
+            for pos in acc.get_positions():
+                code6 = pos.ts_code.split(".")[0]
+                wl = wl_map.get(code6, {})
+                stop_pct = wl.get("stop_loss_pct", -0.12)
+                holdings.append({
+                    "code": code6,
+                    "ts_code": pos.ts_code,
+                    "name": pos.name,
+                    "shares": pos.shares,
+                    "avg_cost": pos.avg_cost,
+                    "source": acc_name,  # 账户名（消息标注用）
+                    "stop_loss_pct": stop_pct,
+                    "target_high": wl.get("target_entry_high"),
+                    "composite": wl.get("composite_score"),
+                    "signal_reason": pos.signal_reason or "",
+                })
+            acc.close()
     except Exception as e:
         print(f"[WARN] 加载模拟持仓失败: {e}")
         holdings_initial = 0
@@ -237,7 +246,7 @@ def generate_strategy_report() -> str:
             strat = _compute_strategy(h, prev_close)
             held_codes.add(h["code"])
 
-            tag = "📊" if h["source"] == "paper" else "💼"
+            tag = {"live_factor_test": "📊主仓", "mini_100k": "🆕小仓"}.get(h["source"], "💼手动")
             pnl_str = f"{strat['pnl_pct']:+.1f}%" if prev_close else "N/A"
             close_str = f"{prev_close:.2f}" if prev_close else "N/A"
 
