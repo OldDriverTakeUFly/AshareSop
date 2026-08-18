@@ -54,8 +54,32 @@ def attach_kline_features(
 
 # ── positional patterns (computed on prices up to T-1) ──
 
-def classify_from_prices(events: pd.DataFrame, prices: pd.DataFrame) -> pd.DataFrame:
-    """四类位置形态（突破/趋势加速/超跌反转/横盘）→ 互斥形态标签."""
+# 冻结先验阈值（规格 §7.1）：默认行为与参数化前的字面量完全一致；
+# thresholds 传参仅供 ±20% 扰动检验复用同一分类器，先验本身不因此改变
+PATTERN_THRESHOLDS: dict[str, float] = {
+    "breakout_close": 0.98,   # close ≥ prior_high60 × 0.98 → 突破
+    "breakout_box": 0.25,     # 40 日箱体振幅上限（突破须箱体紧凑）
+    "accel_lo": 0.15,         # 20 日涨幅下限（趋势加速）
+    "accel_hi": 0.40,         # 20 日涨幅上限（趋势加速）
+    "oversold": -0.30,        # 60 日跌幅阈值（超跌反转）
+    "consolidation": 0.20,    # 120 日区间振幅上限（横盘）
+}
+
+# classify_from_prices 附加的形态列（重分类前需从事件表剥离，避免 merge 后缀冲突）
+PATTERN_FEATURE_COLS = ["prior_high60", "is_breakout", "is_trend_accel",
+                        "is_oversold", "is_consolidation", "pattern_label"]
+
+
+def classify_from_prices(
+    events: pd.DataFrame, prices: pd.DataFrame,
+    *, thresholds: dict[str, float] | None = None,
+) -> pd.DataFrame:
+    """四类位置形态（突破/趋势加速/超跌反转/横盘）→ 互斥形态标签.
+
+    thresholds=None 用冻结先验 PATTERN_THRESHOLDS（与历史默认行为完全
+    一致）；部分传参仅覆盖给定键，其余键回落先验。
+    """
+    t = {**PATTERN_THRESHOLDS, **(thresholds or {})}
     if prices.empty:
         out = events.copy()
         out["prior_high60"] = np.nan
@@ -83,42 +107,50 @@ def classify_from_prices(events: pd.DataFrame, prices: pd.DataFrame) -> pd.DataF
         g["close"].transform(lambda s: s.rolling(120).max().shift(1))
         / g["close"].transform(lambda s: s.rolling(120).min().shift(1)) - 1
     )
-    p["is_breakout"] = (p["close"] >= p["prior_high60"] * 0.98) & (p["box40"] < 0.25)
-    p["is_trend_accel"] = (
-        (p["close"] > p["ma20"]) & p["ma20_rising"] & p["ret20p"].between(0.15, 0.40)
+    p["is_breakout"] = (
+        (p["close"] >= p["prior_high60"] * t["breakout_close"])
+        & (p["box40"] < t["breakout_box"])
     )
-    p["is_oversold"] = (p["ret60p"] < -0.30) & (p["close"] < ma60 * 0.90)
-    p["is_consolidation"] = p["range120p"] < 0.20
+    p["is_trend_accel"] = (
+        (p["close"] > p["ma20"]) & p["ma20_rising"]
+        & p["ret20p"].between(t["accel_lo"], t["accel_hi"])
+    )
+    p["is_oversold"] = (p["ret60p"] < t["oversold"]) & (p["close"] < ma60 * 0.90)
+    p["is_consolidation"] = p["range120p"] < t["consolidation"]
     p["pattern_label"] = np.select(
         [p["is_breakout"], p["is_trend_accel"], p["is_consolidation"], p["is_oversold"]],
         ["突破型", "趋势加速型", "横盘首板型", "超跌反转型"],
         default="其他",
     )
-    cols = ["prior_high60", "is_breakout", "is_trend_accel", "is_oversold",
-            "is_consolidation", "pattern_label"]
-    out = events.merge(p[["ts_code", "trade_date", *cols]],
+    out = events.merge(p[["ts_code", "trade_date", *PATTERN_FEATURE_COLS]],
                        on=["ts_code", "trade_date"], how="left")
     for col in ("is_breakout", "is_trend_accel", "is_oversold", "is_consolidation"):
         out[col] = out[col].fillna(False).astype(bool)
     return out
 
 
+def read_buffered_prices(
+    events: pd.DataFrame, conn: sqlite3.Connection, start: str, end: str
+) -> pd.DataFrame:
+    """按位置形态口径拉取日线（start-200 自然日缓冲 → end+15）.
+
+    与 attach_pattern_features 同一缓冲窗口：位置形态最长窗口为 120 交易日
+    （range120p）+ rolling 计算行，缓冲不足会使研究区间头部事件的横盘/突破
+    特征因窗口不足静默退化（数据充分性，非调参）。扰动检验复用同一口径。
+    """
+    buffer_start = _shift(db.normalize_date(start), -200)
+    buffer_end = _shift(db.normalize_date(end), 15)
+    return db.read_daily_prices(
+        conn, sorted(events["ts_code"].unique()), buffer_start, buffer_end
+    )
+
+
 def attach_pattern_features(
     events: pd.DataFrame, conn: sqlite3.Connection, start: str, end: str
 ) -> pd.DataFrame:
-    """Attach K线 + 位置形态特征（组合入口）.
-
-    价格缓冲取 start-200 自然日（≈135 交易日）：位置形态最长窗口为
-    120 交易日（range120p）+ rolling 计算行，30 自然日缓冲会使研究区间
-    头部事件的横盘/突破特征因窗口不足静默退化（数据充分性，非调参）。
-    """
+    """Attach K线 + 位置形态特征（组合入口）."""
     ev = attach_kline_features(events, conn, start, end)
-    buffer_start = _shift(db.normalize_date(start), -200)
-    buffer_end = _shift(db.normalize_date(end), 15)
-    prices = db.read_daily_prices(
-        conn, sorted(ev["ts_code"].unique()), buffer_start, buffer_end
-    )
-    return classify_from_prices(ev, prices)
+    return classify_from_prices(ev, read_buffered_prices(ev, conn, start, end))
 
 
 def _shift(ymd: str, days: int) -> str:

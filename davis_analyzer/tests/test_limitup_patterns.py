@@ -51,6 +51,47 @@ def test_classify_breakout() -> None:
     assert labeled.iloc[0]["pattern_label"] == "突破型"
 
 
+def test_classify_from_prices_thresholds_param() -> None:
+    # 60 日 @10 平盘（box40=0）+ 事件日 close 9.9：默认 0.98 → 9.9 ≥ 9.8 突破
+    code = "600200.SH"
+    dates = pd.bdate_range(end="20240102", periods=61)
+    rows = [
+        (code, d.strftime("%Y%m%d"), 10.0, 10.0, 10.0, 10.0, 10.0, 1e4, 1e6, 1.0)
+        for d in dates[:-1]
+    ]
+    rows.append((code, "20240102", 9.9, 9.9, 9.9, 9.9, 10.0, 1e5, 1e7, 1.0))
+    prices = pd.DataFrame(rows, columns=[
+        "ts_code", "trade_date", "open", "high", "low", "close", "pre_close",
+        "vol", "amount", "adj_factor"])
+    ev = pd.DataFrame([{"ts_code": code, "trade_date": "20240102"}])
+    # 默认（含显式 thresholds=None）= 冻结先验，行为与参数化前一致
+    assert patterns.classify_from_prices(ev, prices).iloc[0]["pattern_label"] == "突破型"
+    assert (patterns.classify_from_prices(ev, prices, thresholds=None)
+            .iloc[0]["pattern_label"] == "突破型")
+    # 1.2x 等效阈值 1.176：9.9 < 11.76 失守突破 → 其他（窗口不足 120 日无横盘档）
+    assert (patterns.classify_from_prices(
+        ev, prices, thresholds={"breakout_close": 1.176})
+        .iloc[0]["pattern_label"] == "其他")
+    # 部分覆盖仅改给定键：breakout_box 收紧到 0 → 0 < 0 不成立 → 不再突破
+    assert (patterns.classify_from_prices(
+        ev, prices, thresholds={"breakout_box": 0.0})
+        .iloc[0]["pattern_label"] == "其他")
+
+
+def test_read_buffered_prices_returns_rows(
+    limitup_db: sqlite3.Connection,
+) -> None:
+    limitup_db.execute(
+        "INSERT INTO daily_price VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+        ("600100.SH", "20231229", 10, 11, 10, 11, 10, 10, 1e4, 1e7, 1.0, None),
+    )
+    limitup_db.commit()
+    ev = pd.DataFrame([{"ts_code": "600100.SH", "trade_date": "20240102"}])
+    px = patterns.read_buffered_prices(ev, limitup_db, "20240102", "20240110")
+    assert list(px["ts_code"]) == ["600100.SH"]
+    assert list(px["trade_date"]) == ["20231229"]
+
+
 def test_attach_kline_and_bands(limitup_db: sqlite3.Connection) -> None:
     limitup_db.execute(
         "INSERT INTO intraday_feature VALUES (?,?,?,?,?,?,?,?,?)",

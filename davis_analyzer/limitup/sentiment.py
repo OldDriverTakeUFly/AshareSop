@@ -21,12 +21,25 @@ REGIME_COOL_PREMIUM = 0.0
 REGIME_COOL_PROMO12 = 0.30
 
 
-def classify_regime(row: pd.Series) -> str:
-    if _lt(row.get("premium"), REGIME_FREEZE) or _le(row.get("limit_up_count"), REGIME_COLD_COUNT):
+def classify_regime(
+    row: pd.Series, *, thresholds: dict[str, float] | None = None
+) -> str:
+    """阈值默认取冻结常量；thresholds 可选覆盖（键：freeze_premium/cold_count/
+    hot_boards/hot_count/cool_premium/cool_promo12），缺省键回落常量——仅供
+    ±20% 扰动检验复用同一分类器，先验本身不因传参改变.
+    """
+    t = thresholds or {}
+    freeze = t.get("freeze_premium", REGIME_FREEZE)
+    cold = t.get("cold_count", REGIME_COLD_COUNT)
+    hot_boards = t.get("hot_boards", REGIME_HOT_BOARDS)
+    hot_count = t.get("hot_count", REGIME_HOT_COUNT)
+    cool_premium = t.get("cool_premium", REGIME_COOL_PREMIUM)
+    cool_promo12 = t.get("cool_promo12", REGIME_COOL_PROMO12)
+    if _lt(row.get("premium"), freeze) or _le(row.get("limit_up_count"), cold):
         return "冰点"
-    if _ge(row.get("max_boards"), REGIME_HOT_BOARDS) or _ge(row.get("limit_up_count"), REGIME_HOT_COUNT):
+    if _ge(row.get("max_boards"), hot_boards) or _ge(row.get("limit_up_count"), hot_count):
         return "高潮"
-    if _lt(row.get("premium"), REGIME_COOL_PREMIUM) or _lt(row.get("promo_12"), REGIME_COOL_PROMO12):
+    if _lt(row.get("premium"), cool_premium) or _lt(row.get("promo_12"), cool_promo12):
         return "退潮"
     return "回暖"
 
