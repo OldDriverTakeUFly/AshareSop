@@ -54,13 +54,9 @@ print(f"\n[universe] {len(universe)} stocks, 窗口 {START}→{END}")
 
 
 def run(label, extra):
-    with sqlite3.connect(DB_PATH) as c:
-        row = c.execute("SELECT id FROM paper_accounts WHERE name=?", (f"smk_{label}",)).fetchone()
-        if row:
-            for tbl in ("paper_positions", "paper_trades", "paper_nav_history", "paper_shadow_trades"):
-                c.execute(f"DELETE FROM {tbl} WHERE account_id=?", (row[0],))
-            c.execute("DELETE FROM paper_accounts WHERE id=?", (row[0],))
-            c.commit()
+    from davis_analyzer.paper_trading.runlock import delete_account_if_idle
+
+    delete_account_if_idle(f"smk_{label}")
     acct = PaperAccount.create(name=f"smk_{label}", strategy_name="factor_threshold",
                                initial_capital=INITIAL, config={})
     strat = FactorThresholdStrategy(**{**BASE, **extra})

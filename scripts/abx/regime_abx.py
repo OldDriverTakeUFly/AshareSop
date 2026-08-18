@@ -56,14 +56,9 @@ def build_universe(top_n):
 
 
 def reset_account(name, config):
-    with sqlite3.connect(DB_PATH) as c:
-        row = c.execute("SELECT id FROM paper_accounts WHERE name=?", (name,)).fetchone()
-        if row:
-            aid = row[0]
-            for tbl in ("paper_positions", "paper_trades", "paper_nav_history", "paper_shadow_trades"):
-                c.execute(f"DELETE FROM {tbl} WHERE account_id=?", (aid,))
-            c.execute("DELETE FROM paper_accounts WHERE id=?", (aid,))
-            c.commit()
+    from davis_analyzer.paper_trading.runlock import delete_account_if_idle
+
+    delete_account_if_idle(name)
     return PaperAccount.create(name=name, strategy_name="factor_threshold", initial_capital=INITIAL_CAPITAL, config=config)
 
 
@@ -119,11 +114,12 @@ def main():
 
     results = []
 
+    from davis_analyzer.paper_trading.account import account_nav_complete
+
     # Reuse sell30 from fine_params if available
     try:
         with sqlite3.connect(DB_PATH) as c:
-            row = c.execute("SELECT COUNT(*) FROM paper_nav_history n JOIN paper_accounts a ON n.account_id=a.id WHERE a.name='fp_sell30'").fetchone()
-            if row[0] >= 120:
+            if account_nav_complete("fp_sell30", START, END):
                 print("  [reuse] sell30 from fine_params (fp_sell30)")
                 account = PaperAccount.load("fp_sell30")
                 nav_rows = account.get_nav_history()

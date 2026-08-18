@@ -83,15 +83,9 @@ def build_universe(top_n: int) -> list[str]:
 
 
 def reset_account(name: str, config: dict) -> PaperAccount:
-    with sqlite3.connect(DB_PATH) as c:
-        row = c.execute("SELECT id FROM paper_accounts WHERE name=?", (name,)).fetchone()
-        if row:
-            aid = row[0]
-            for tbl in ("paper_positions", "paper_trades",
-                        "paper_nav_history", "paper_shadow_trades"):
-                c.execute(f"DELETE FROM {tbl} WHERE account_id=?", (aid,))
-            c.execute("DELETE FROM paper_accounts WHERE id=?", (aid,))
-            c.commit()
+    from davis_analyzer.paper_trading.runlock import delete_account_if_idle
+
+    delete_account_if_idle(name)
     return PaperAccount.create(
         name=name, strategy_name="factor_threshold",
         initial_capital=INITIAL_CAPITAL, config=config,
@@ -154,16 +148,11 @@ def main():
 
     results = []
     for label, params in VARIANTS:
-        # Resume support: skip if account already has full nav history
-        with sqlite3.connect(DB_PATH) as c:
-            row = c.execute(
-                "SELECT COUNT(*) FROM paper_nav_history n "
-                "JOIN paper_accounts a ON n.account_id=a.id "
-                "WHERE a.name=?", (f"abx_{label}",)
-            ).fetchone()
-            n_navs = row[0] if row else 0
-        if n_navs >= 120 and "--rerun" not in sys.argv:
-            print(f"\n  [skip] abx_{label} already has {n_navs} nav rows; reuse")
+        # Resume support: skip if account already covers the full calendar
+        from davis_analyzer.paper_trading.account import account_nav_complete
+
+        if account_nav_complete(f"abx_{label}", START, END) and "--rerun" not in sys.argv:
+            print(f"\n  [skip] abx_{label} nav complete for {START}→{END}; reuse")
             account = PaperAccount.load(f"abx_{label}")
             nav_rows = account.get_nav_history()
             nav_history = [r.total_equity for r in nav_rows] if nav_rows else []

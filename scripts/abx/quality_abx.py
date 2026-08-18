@@ -36,14 +36,9 @@ def build_universe(top_n):
         rows = c.execute("SELECT a.ts_code FROM daily_price a JOIN daily_price b ON a.ts_code=b.ts_code AND b.trade_date = (SELECT MAX(trade_date) FROM daily_price WHERE ts_code=a.ts_code AND trade_date <= '20251001') WHERE a.trade_date = ? AND a.close > 0 AND b.close > 0 AND a.vol > 0 ORDER BY (a.close / b.close - 1) DESC LIMIT ?", (ref_end, top_n)).fetchall()
     return [r[0] for r in rows]
 def reset_account(name, config):
-    with sqlite3.connect(DB_PATH) as c:
-        row = c.execute("SELECT id FROM paper_accounts WHERE name=?", (name,)).fetchone()
-        if row:
-            aid = row[0]
-            for tbl in ("paper_positions", "paper_trades", "paper_nav_history", "paper_shadow_trades"):
-                c.execute(f"DELETE FROM {tbl} WHERE account_id=?", (aid,))
-            c.execute("DELETE FROM paper_accounts WHERE id=?", (aid,))
-            c.commit()
+    from davis_analyzer.paper_trading.runlock import delete_account_if_idle
+
+    delete_account_if_idle(name)
     return PaperAccount.create(name=name, strategy_name="factor_threshold", initial_capital=INITIAL_CAPITAL, config=config)
 def max_dd(nav):
     peak = nav[0] if nav else 0; mdd = 0
@@ -75,11 +70,12 @@ def main():
     universe = build_universe(UNIVERSE_SIZE)
     print(f"  Universe: {len(universe)} stocks\n")
     results = []
+    from davis_analyzer.paper_trading.account import account_nav_complete
+
     # Reuse Q0 from production_amp08
     try:
         with sqlite3.connect(DB_PATH) as c:
-            row = c.execute("SELECT COUNT(*) FROM paper_nav_history n JOIN paper_accounts a ON n.account_id=a.id WHERE a.name='production_amp08'").fetchone()
-            if row[0] >= 120:
+            if account_nav_complete("production_amp08", START, END):
                 account = PaperAccount.load("production_amp08")
                 nav_rows = account.get_nav_history()
                 nav = [r.total_equity for r in nav_rows]

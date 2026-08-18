@@ -63,15 +63,9 @@ def build_universe(top_n: int) -> list[str]:
 
 
 def reset_account(name: str, config: dict) -> PaperAccount:
-    with sqlite3.connect(DB_PATH) as c:
-        row = c.execute("SELECT id FROM paper_accounts WHERE name=?", (name,)).fetchone()
-        if row:
-            aid = row[0]
-            for tbl in ("paper_positions", "paper_trades",
-                        "paper_nav_history", "paper_shadow_trades"):
-                c.execute(f"DELETE FROM {tbl} WHERE account_id=?", (aid,))
-            c.execute("DELETE FROM paper_accounts WHERE id=?", (aid,))
-            c.commit()
+    from davis_analyzer.paper_trading.runlock import delete_account_if_idle
+
+    delete_account_if_idle(name)
     return PaperAccount.create(
         name=name, strategy_name="factor_threshold",
         initial_capital=INITIAL_CAPITAL, config=config,
@@ -128,13 +122,10 @@ def main():
     results = []
     # Check if V2_volume exists from full_backtest
     try:
+        from davis_analyzer.paper_trading.account import account_nav_complete
+
         with sqlite3.connect(DB_PATH) as c:
-            row = c.execute(
-                "SELECT COUNT(*) FROM paper_nav_history n "
-                "JOIN paper_accounts a ON n.account_id=a.id "
-                "WHERE a.name='abx_V2_volume'"
-            ).fetchone()
-            if row[0] >= 120:
+            if account_nav_complete("abx_V2_volume", START, END):
                 print("  [reuse] V2_volume from full_backtest (abx_V2_volume)")
                 account = PaperAccount.load("abx_V2_volume")
                 nav_rows = account.get_nav_history()
