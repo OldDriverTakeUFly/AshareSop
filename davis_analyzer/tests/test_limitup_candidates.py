@@ -175,3 +175,149 @@ def test_candidate_context(limitup_db: sqlite3.Connection) -> None:
 def test_candidate_context_empty_db(limitup_db: sqlite3.Connection) -> None:
     ctx = candidates.candidate_context(limitup_db, EVENT_DAY)
     assert ctx == {"trade_date": EVENT_DAY, "regime_label": "无数据"}
+
+
+# ── markdown 渲染（纯 DataFrame，不走 DB）──
+
+def _render_cands() -> pd.DataFrame:
+    """渲染夹具：3 条候选（强封 enhanced / 中封 NaN / 弱封）覆盖全部分支."""
+    return pd.DataFrame(
+        {
+            "ts_code": ["600100.SH", "600200.SH", "600300.SH"],
+            "name": ["甲", "乙", "丙"],
+            "sector": ["X业", "Y业", "Z业"],
+            "pattern_label": ["突破型", "突破型", "横盘首板型"],
+            "seal_ratio": [0.10, 0.05, 0.012],
+            "封档": ["强", "中", "弱"],
+            "first_seal_band": ["早盘", "尾盘", "早盘"],
+            "broken_count": [0, 1, 0],
+            "lg_sell_share": [0.6, float("nan"), 0.2],
+            "enhanced": [True, False, False],
+            "fill_prob": [0.20, 0.70, 0.20],
+        }
+    )
+
+
+def _render_ctx(**overrides: Any) -> dict[str, Any]:
+    base: dict[str, Any] = {
+        "trade_date": EVENT_DAY,
+        "limit_up_count": 35,
+        "promo_12": None,       # 窗口末日不可观测 → "—"
+        "premium": 0.005,
+        "regime_label": "回暖",
+    }
+    base.update(overrides)
+    return base
+
+
+def test_render_candidates_md_sections_and_pct() -> None:
+    md = candidates.render_candidates_md(_render_cands(), _render_ctx())
+    # 节 1：标题 + 三轴摘要行（None 轴显示 "—"）
+    assert f"# 打板候选清单 {EVENT_DAY}" in md
+    assert "情绪档位：回暖" in md
+    assert "涨停家数 35" in md
+    assert "晋级率 promo_12 —" in md
+    assert "开盘溢价 0.5%" in md
+    # 节 2：候选表契约列头 + 百分比化（NaN → "—"）
+    assert "| ts_code | name | sector | pattern_label | seal_ratio | 封档 | " \
+           "first_seal_band | broken_count | lg_sell_share | enhanced | fill_prob |" in md
+    assert "10.0%" in md and "60.0%" in md and "20.0%" in md
+    assert "1.2%" in md  # seal_ratio 0.012
+    # 节 3/4/5：标题齐全
+    for heading in ("## 候选表", "## 增强标注", "## 次日执行提示", "## 免责声明"):
+        assert heading in md
+    assert "enhanced 为研究标注非过滤" in md
+    # 节 4：两分支执行提示均在（强+低 fill_prob 持有；弱/易成交 开盘卖）
+    assert candidates.HOLD_HINT in md
+    assert candidates.SELL_HINT in md
+    hint_line = next(
+        ln for ln in md.splitlines() if ln.startswith("- 600100.SH 甲（封档=")
+    )
+    assert candidates.HOLD_HINT in hint_line
+    sell_line = next(
+        ln for ln in md.splitlines() if ln.startswith("- 600300.SH 丙（封档=")
+    )
+    assert candidates.SELL_HINT in sell_line
+
+
+def test_render_candidates_md_enhanced_section_lists_only_true() -> None:
+    md = candidates.render_candidates_md(_render_cands(), _render_ctx())
+    enh_sec = md.split("## 增强标注")[1].split("## 次日执行提示")[0]
+    assert "600100.SH 甲" in enh_sec  # enhanced=True 单独列出
+    assert "600200.SH" not in enh_sec and "600300.SH" not in enh_sec
+
+
+def test_render_candidates_md_top_truncates_table() -> None:
+    md = candidates.render_candidates_md(_render_cands(), _render_ctx(), top=2)
+    table_sec = md.split("## 候选表")[1].split("## 增强标注")[0]
+    assert "600100.SH" in table_sec and "600200.SH" in table_sec
+    assert "600300.SH" not in table_sec  # 第 3 条不入表
+
+
+def test_render_candidates_md_empty_normal_regime() -> None:
+    empty = pd.DataFrame(columns=candidates.CANDIDATE_COLUMNS)
+    md = candidates.render_candidates_md(empty, _render_ctx())
+    assert "当日无候选（regime=回暖，涨停 35 家）" in md
+    assert "今日无" in md  # 增强标注节空态文案
+    assert "## 免责声明" in md  # 空态报告结构完整
+
+
+def test_render_candidates_md_no_data_regime_and_note() -> None:
+    empty = pd.DataFrame(columns=candidates.CANDIDATE_COLUMNS)
+    ctx = {"trade_date": EVENT_DAY, "regime_label": "无数据"}
+    md = candidates.render_candidates_md(empty, ctx)
+    assert "regime 无数据" in md  # 自动注明原因
+    assert "情绪档位：无数据" in md
+    # note 显式覆盖（limit_pool 缺数场景由 CLI 传入）
+    md2 = candidates.render_candidates_md(
+        empty, _render_ctx(), note="当日 limit_pool 无数据（daily 刷新失败?）"
+    )
+    assert "当日 limit_pool 无数据" in md2
+
+
+def test_execution_hint_two_branches() -> None:
+    hold, sell = candidates.HOLD_HINT, candidates.SELL_HINT
+    assert candidates.execution_hint("强", 0.20) == hold
+    assert candidates.execution_hint("中", 0.34) == hold   # <0.35 边界内
+    assert candidates.execution_hint("弱", 0.20) == sell   # 弱封档
+    assert candidates.execution_hint("中", 0.35) == sell   # 0.35 非低（严格 <）
+    assert candidates.execution_hint("强", 0.70) == sell   # 易成交（炸板回封）
+
+
+def test_empty_candidates_message() -> None:
+    msg = candidates.empty_candidates_message(
+        {"regime_label": "回暖", "limit_up_count": 42}
+    )
+    assert msg == "当日无候选（regime=回暖，涨停 42 家）"
+
+
+# ── --date 默认逻辑（daily_price 最新交易日）──
+
+def test_latest_trade_date(limitup_db: sqlite3.Connection) -> None:
+    from davis_analyzer.limitup import db
+
+    assert db.latest_trade_date(limitup_db) is None  # 空库 → None（CLI 退出路径）
+    limitup_db.execute(
+        "INSERT INTO daily_price VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+        ("600100.SH", "20240412", 10, 10, 10, 10, 10, 0, 1e4, 1e7, 1.0, None),
+    )
+    limitup_db.execute(
+        "INSERT INTO daily_price VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+        ("600100.SH", EVENT_DAY, 10, 11, 10, 11, 10, 10, 1e6, 1e8, 1.0, None),
+    )
+    limitup_db.commit()
+    assert db.latest_trade_date(limitup_db) == EVENT_DAY
+
+
+def test_cli_parser_candidates_defaults() -> None:
+    from davis_analyzer.limitup import cli as limitup_cli
+
+    args = limitup_cli._build_parser().parse_args(["candidates"])
+    assert args.date is None  # 默认留给运行期查 daily_price MAX(trade_date)
+    assert args.top == 10
+    assert args.func is limitup_cli.cmd_candidates
+    args2 = limitup_cli._build_parser().parse_args(
+        ["candidates", "--date", "2024-04-15", "--top", "5"]
+    )
+    assert args2.date == "2024-04-15"
+    assert args2.top == 5

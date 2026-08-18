@@ -163,3 +163,136 @@ def candidate_context(
         v = row.iloc[0].get(key)
         out[key] = None if pd.isna(v) else v
     return out
+
+
+# ── markdown 渲染（candidates CLI 报告，规格 §2.3 五节结构）──
+
+# §3.2.2 盘中纪律的每候选定制文本（人工执行参考，机器规则仍 open_next）
+HOLD_HINT = "开盘若=涨停价可持有观察，炸板立即卖出；低开走弱则开盘卖出"
+SELL_HINT = "建议 T+1 开盘直接卖出"
+DISCLAIMER = "基于日线近似（EOD 特征做当日决策），与回测同口径；enhanced 为研究标注非过滤。"
+
+# 百分比化显示列（其余列原样字符串化，NaN 一律 "—"）
+_PCT_COLUMNS = ("seal_ratio", "lg_sell_share", "fill_prob")
+
+
+def execution_hint(seal_band: object, fill_prob: float) -> str:
+    """次日执行提示文本（§3.2.2，函数化便于测试）.
+
+    强/中封档且 fill_prob<0.35（一字/早盘硬板，成交概率低=封得死）→
+    次日开盘=涨停价可持有观察、炸板立即卖出；其余（弱封档，或强/中但
+    炸板回封/尾盘封等易成交形态 fill_prob≥0.35）→ T+1 开盘直接卖出。
+    """
+    if seal_band == "弱" or not (float(fill_prob) < 0.35):
+        return SELL_HINT
+    return HOLD_HINT
+
+
+def empty_candidates_message(ctx: dict[str, object]) -> str:
+    """空候选 + regime 正常时的 CLI/报告共用户案."""
+    cnt = ctx.get("limit_up_count")
+    return f"当日无候选（regime={ctx.get('regime_label')}，" \
+           f"涨停 {cnt if cnt is not None else '—'} 家）"
+
+
+def _fmt_cell(col: str, v: object) -> str:
+    if pd.isna(v):
+        return "—"
+    if col in _PCT_COLUMNS:
+        return f"{float(v) * 100:.1f}%"
+    if col == "enhanced":
+        return "✓" if bool(v) else "—"
+    return str(v)
+
+
+def _fmt_axis(v: object) -> str:
+    """摘要轴：None/NaN → "—"，比率轴百分比化."""
+    if v is None or pd.isna(v):
+        return "—"
+    return f"{float(v) * 100:.1f}%"
+
+
+def _summary_line(ctx: dict[str, object]) -> str:
+    cnt = ctx.get("limit_up_count")
+    return (
+        f"情绪档位：{ctx.get('regime_label', '—')} ｜ "
+        f"涨停家数 {cnt if cnt is not None else '—'} ｜ "
+        f"晋级率 promo_12 {_fmt_axis(ctx.get('promo_12'))} ｜ "
+        f"开盘溢价 {_fmt_axis(ctx.get('premium'))}"
+    )
+
+
+def _cand_ref(row: pd.Series) -> str:
+    return f"{row.get('ts_code', '—')} {row.get('name', '')}".rstrip()
+
+
+def render_candidates_md(
+    cands: pd.DataFrame,
+    ctx: dict[str, object],
+    top: int = 10,
+    note: str | None = None,
+) -> str:
+    """五节候选报告 md：①标题+三轴摘要 ②候选表 ③增强标注 ④执行提示 ⑤免责.
+
+    空态自动注明原因：regime=="无数据" → 数据缺失文案；cands 空 →
+    「当日无候选（regime=X，涨停 Y 家）」；note 显式覆盖（CLI 的
+    limit_pool 缺数场景优先用）。空帧列缺失时仍可渲染（契约列容错）。
+    """
+    day = str(ctx.get("trade_date", ""))
+    shown = cands.head(top) if top > 0 else cands.iloc[0:0]
+    if note is None:
+        if ctx.get("regime_label") == "无数据":
+            note = f"{day} 当日 regime 无数据（日历缺日/空库），无法生成候选清单。"
+        elif shown.empty:
+            note = empty_candidates_message(ctx)
+
+    parts = [f"# 打板候选清单 {day}", "", _summary_line(ctx), ""]
+
+    # 节 2：候选表（CANDIDATE_COLUMNS 契约列，seal_ratio 降序由上游保证）
+    parts += [f"## 候选表（按封单比降序，前 {len(shown)} 条 / 共 {len(cands)} 条）", ""]
+    if shown.empty:
+        parts += [note or empty_candidates_message(ctx), ""]
+    else:
+        cols = [c for c in CANDIDATE_COLUMNS if c in shown.columns]
+        parts += [
+            "| " + " | ".join(cols) + " |",
+            "|" + "|".join(["---"] * len(cols)) + "|",
+        ]
+        for _, row in shown.iterrows():
+            parts.append("| " + " | ".join(_fmt_cell(c, row.get(c)) for c in cols) + " |")
+        parts.append("")
+
+    # 节 3：增强标注（enhanced=True 单独列出，无则「今日无」）
+    parts += ["## 增强标注（大单主导 lg_sell_share≥50% × 强封单 seal_ratio≥5%）", ""]
+    enh = (shown[shown["enhanced"].fillna(False).astype(bool)]
+           if "enhanced" in shown else shown.iloc[0:0])
+    if enh.empty:
+        parts += ["今日无", ""]
+    else:
+        for _, row in enh.iterrows():
+            parts.append(
+                f"- {_cand_ref(row)}：lg_sell_share "
+                f"{_fmt_cell('lg_sell_share', row.get('lg_sell_share'))} × "
+                f"seal_ratio {_fmt_cell('seal_ratio', row.get('seal_ratio'))}"
+            )
+        parts.append("")
+
+    # 节 4：每候选次日执行提示（§3.2.2 定制文本）
+    parts += ["## 次日执行提示（§3.2.2 盘中纪律，人工执行）", ""]
+    if shown.empty:
+        parts += ["无候选，无执行提示。", ""]
+    else:
+        for _, row in shown.iterrows():
+            band = row.get("封档")
+            fp = row.get("fill_prob")
+            fp_val = float("nan") if fp is None or pd.isna(fp) else float(fp)
+            parts.append(
+                f"- {_cand_ref(row)}（封档={_fmt_cell('封档', band)}，"
+                f"fill_prob {_fmt_cell('fill_prob', fp)}）："
+                f"{execution_hint(band, fp_val)}"
+            )
+        parts.append("")
+
+    # 节 5：免责声明
+    parts += ["## 免责声明", "", DISCLAIMER, ""]
+    return "\n".join(parts)

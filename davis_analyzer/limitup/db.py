@@ -56,6 +56,12 @@ def trading_dates(conn: sqlite3.Connection, start: str, end: str) -> list[str]:
     return [r[0] for r in rows]
 
 
+def latest_trade_date(conn: sqlite3.Connection) -> str | None:
+    """daily_price 最新交易日（candidates --date 默认值；空表 → None）."""
+    row = conn.execute("SELECT MAX(trade_date) FROM daily_price").fetchone()
+    return row[0] if row and row[0] else None
+
+
 def normalize_seal_time(t: object) -> object:
     """Zero-pad seal-time strings to HHMMSS (Tushare stores '92500' for 09:25:00)."""
     if t is None or (isinstance(t, float) and pd.isna(t)):

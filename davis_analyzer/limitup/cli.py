@@ -1,9 +1,11 @@
-"""limitup 模块 CLI（backfill/study/backtest 子命令）。"""
+"""limitup 模块 CLI（backfill/study/backtest/daily/candidates 子命令）。"""
 
 from __future__ import annotations
 
 import argparse
+import sys
 from datetime import datetime
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -172,6 +174,63 @@ def cmd_backtest(args: argparse.Namespace) -> None:
         conn.close()
 
 
+def _write_candidates_report(day: str, md: str) -> Path:
+    from davis_analyzer import config
+
+    out = config.LIMITUP_REPORTS_DIR / f"candidates_{day}.md"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(md, encoding="utf-8")
+    return out
+
+
+def cmd_candidates(args: argparse.Namespace) -> None:
+    """盘后候选清单报告（first_board 口径，规格 §2.3 五节结构）.
+
+    空态防线：regime=="无数据" 或当日 limit_pool 无行 → 报告仍写（注明
+    原因）+ stderr 告警 + 退出码 1；候选空但 regime 正常 → 「当日无候选」
+    正常退出 0。报告路径 LIMITUP_REPORTS_DIR/candidates_{date}.md。
+    """
+    import pandas as pd
+
+    from davis_analyzer.limitup import candidates, db
+
+    conn = db.connect()
+    try:
+        day = (db.normalize_date(args.date) if args.date
+               else db.latest_trade_date(conn))
+        if day is None:
+            print("candidates: daily_price 无数据，无法确定默认交易日",
+                  file=sys.stderr)
+            sys.exit(1)
+
+        ctx = candidates.candidate_context(conn, day)
+        pool_empty = db.read_limit_pool(conn, day, day).empty
+        no_data = ctx.get("regime_label") == "无数据"
+        if pool_empty or no_data:
+            # 两种数据缺失空态：不用陈旧数据生成候选，报告注明原因后退出 1
+            reason = (f"{day} 当日 limit_pool 无数据（daily 刷新失败?），"
+                      if pool_empty else
+                      f"{day} 当日 regime 无数据（日历缺日/空库），")
+            md = candidates.render_candidates_md(
+                pd.DataFrame(columns=candidates.CANDIDATE_COLUMNS),
+                ctx, top=args.top, note=reason + "无法生成候选清单。",
+            )
+            _write_candidates_report(day, md)
+            print(f"candidates: {reason}已写空态报告并退出", file=sys.stderr)
+            sys.exit(1)
+
+        cands = candidates.build_candidates(conn, day)
+        md = candidates.render_candidates_md(cands, ctx, top=args.top)
+        out = _write_candidates_report(day, md)
+        if cands.empty:
+            print(candidates.empty_candidates_message(ctx))
+        else:
+            print(f"候选清单已生成: {out}（{len(cands)} 条，"
+                  f"enhanced {int(cands['enhanced'].sum())} 条）")
+    finally:
+        conn.close()
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="davis_analyzer.limitup",
@@ -208,6 +267,13 @@ def _build_parser() -> argparse.ArgumentParser:
     p_daily.add_argument("--lookback", type=int, default=7,
                          help="回看交易日数（默认 7，自动补漏）")
     p_daily.set_defaults(func=cmd_daily)
+
+    p_cand = sub.add_parser("candidates", help="盘后候选清单报告（first_board 口径，Phase 3）")
+    p_cand.add_argument("--date", default=None,
+                        help="YYYYMMDD，默认 daily_price 最新交易日")
+    p_cand.add_argument("--top", type=int, default=10,
+                        help="候选表取前 N 条（默认 10）")
+    p_cand.set_defaults(func=cmd_candidates)
 
     return parser
 
