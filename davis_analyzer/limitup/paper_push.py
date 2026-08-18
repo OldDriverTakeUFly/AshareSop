@@ -72,6 +72,19 @@ def build_arms_summary(day: str) -> str:
     try:
         lines = [f"[打板双臂日报] {day}"]
         lines += [_arm_summary(conn, name, label, day) for name, label in ARMS]
+        # 排队模拟摘要（market_data.db；无记录时自述）
+        try:
+            from davis_analyzer.limitup.db import connect as _mkt_connect
+
+            from davis_analyzer.limitup import queue_sim
+
+            mkt = _mkt_connect()
+            try:
+                lines.append(queue_sim.queue_summary(mkt, day))
+            finally:
+                mkt.close()
+        except Exception as exc:  # 摘要失败不影响主报告
+            lines.append(f"排队模拟[{day}]: 摘要不可用（{exc}）")
         lines.append("（candidates 清单见 davis_analyzer/limitup/reports/）")
         return "\n".join(lines)
     finally:

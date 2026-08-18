@@ -281,6 +281,10 @@ def _build_parser() -> argparse.ArgumentParser:
     p_push.add_argument("--force", action="store_true", help="忽略当日幂等标记重推")
     p_push.set_defaults(func=cmd_paper_push)
 
+    p_qs = sub.add_parser("queue-sim", help="打板排队模拟（前日候选×当日分钟线回放）")
+    p_qs.add_argument("--date", default=None, help="监控日 YYYYMMDD，默认最新交易日")
+    p_qs.set_defaults(func=cmd_queue_sim)
+
     return parser
 
 
@@ -310,5 +314,24 @@ def cmd_daily(args: argparse.Namespace) -> None:
     try:
         summary = daily_refresh.run_daily_refresh(conn, lookback_days=args.lookback)
         print(f"每日刷新完成: {summary}")
+    finally:
+        conn.close()
+
+
+def cmd_queue_sim(args: argparse.Namespace) -> None:
+    from davis_analyzer.limitup import db, queue_sim
+    from davis_analyzer.tushare_client import TushareClient
+
+    conn = db.connect()
+    try:
+        day = db.normalize_date(args.date) if args.date else db.latest_trade_date(conn)
+        if day is None:
+            print("queue-sim: daily_price 无数据", file=sys.stderr)
+            sys.exit(1)
+        df = queue_sim.run_queue_sim(conn, day, TushareClient())
+        print(queue_sim.queue_summary(conn, day))
+        if not df.empty:
+            print(df[["ts_code", "name", "boarded", "filled", "first_touch",
+                      "fill_time", "ret_open_1"]].to_string(index=False))
     finally:
         conn.close()
