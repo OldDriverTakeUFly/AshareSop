@@ -33,8 +33,9 @@ CANDIDATE_COLUMNS = [
     "first_seal_band", "broken_count", "lg_sell_share", "enhanced", "fill_prob",
 ]
 
-# candidate_context 摘要键：涨停家数/晋级率/开盘溢价/regime 档位
-_CONTEXT_KEYS = ("limit_up_count", "promo_12", "premium", "regime_label")
+# candidate_context 摘要键：涨停家数/晋级率/开盘溢价/指数多空/regime 档位
+_CONTEXT_KEYS = ("limit_up_count", "promo_12", "premium", "index_ma_bull",
+                 "regime_label")
 
 
 def _shift_day(ymd: str, days: int) -> str:
@@ -149,9 +150,10 @@ def candidate_context(
 ) -> dict[str, object]:
     """当日 regime 摘要（candidates CLI 报告头）.
 
-    涨停家数/晋级率（promo_12）/开盘溢价/regime_label；当日无 regime 行
-    （日历缺日/空库）→ {"trade_date": date, "regime_label": "无数据"}，
-    缺失轴置 None 而非 NaN（供 CLI 直接格式化）。
+    涨停家数/晋级率（promo_12）/开盘溢价/指数多空（index_ma_bull）/
+    regime_label；当日无 regime 行（日历缺日/空库）→
+    {"trade_date": date, "regime_label": "无数据"}，缺失轴置 None 而非
+    NaN（供 CLI 直接格式化）。
     """
     day = db.normalize_date(date)
     regime = build_market_regime(conn, _shift_day(day, -lookback_days), day)
@@ -167,24 +169,30 @@ def candidate_context(
 
 # ── markdown 渲染（candidates CLI 报告，规格 §2.3 五节结构）──
 
-# §3.2.2 盘中纪律的每候选定制文本（人工执行参考，机器规则仍 open_next）
+# §3.2.2 盘中纪律的每候选定制文本（人工执行参考，机器规则仍 open_next）。
+# 2026-08-18 评审中性化裁决：T 日 fill_prob/封档是事前特征，不能预判
+# T+1 盘中情形 → 不输出无条件卖出指令；所有候选统一条件式持有纪律
+# （保留 A 桶一字持有期权：持有 +18.9% vs 开盘卖 +10.5%）。
 HOLD_HINT = "开盘若=涨停价可持有观察，炸板立即卖出；低开走弱则开盘卖出"
-SELL_HINT = "建议 T+1 开盘直接卖出"
+WEAK_SEAL_NOTE = (
+    "封板质量偏弱（易成交形态），T+1 走弱概率较高；"
+    "开盘未封死直接卖，若开盘=涨停价仍可持有观察+炸板即卖"
+)
 DISCLAIMER = "基于日线近似（EOD 特征做当日决策），与回测同口径；enhanced 为研究标注非过滤。"
 
 # 百分比化显示列（其余列原样字符串化，NaN 一律 "—"）
 _PCT_COLUMNS = ("seal_ratio", "lg_sell_share", "fill_prob")
 
 
-def execution_hint(seal_band: object, fill_prob: float) -> str:
+def execution_hint(fill_prob: float) -> str:
     """次日执行提示文本（§3.2.2，函数化便于测试）.
 
-    强/中封档且 fill_prob<0.35（一字/早盘硬板，成交概率低=封得死）→
-    次日开盘=涨停价可持有观察、炸板立即卖出；其余（弱封档，或强/中但
-    炸板回封/尾盘封等易成交形态 fill_prob≥0.35）→ T+1 开盘直接卖出。
+    fill_prob<0.35（一字/早盘硬板，成交概率低=封得死）→ 纯条件式持有
+    纪律；fill_prob>=0.35（炸板回封/尾盘封等易成交形态）→ 同样的条件式
+    纪律前附加风险注记（信息量保留，但不下无条件卖出指令）。
     """
-    if seal_band == "弱" or not (float(fill_prob) < 0.35):
-        return SELL_HINT
+    if not (float(fill_prob) < 0.35):
+        return WEAK_SEAL_NOTE
     return HOLD_HINT
 
 
@@ -212,13 +220,21 @@ def _fmt_axis(v: object) -> str:
     return f"{float(v) * 100:.1f}%"
 
 
+def _fmt_bull(v: object) -> str:
+    """指数多空轴：True→多 / False→空 / None/NaN→"—"（§2.3.1 三轴之一）."""
+    if v is None or pd.isna(v):
+        return "—"
+    return "多" if bool(v) else "空"
+
+
 def _summary_line(ctx: dict[str, object]) -> str:
     cnt = ctx.get("limit_up_count")
     return (
         f"情绪档位：{ctx.get('regime_label', '—')} ｜ "
         f"涨停家数 {cnt if cnt is not None else '—'} ｜ "
         f"晋级率 promo_12 {_fmt_axis(ctx.get('promo_12'))} ｜ "
-        f"开盘溢价 {_fmt_axis(ctx.get('premium'))}"
+        f"开盘溢价 {_fmt_axis(ctx.get('premium'))} ｜ "
+        f"指数多空 {_fmt_bull(ctx.get('index_ma_bull'))}"
     )
 
 
@@ -283,13 +299,12 @@ def render_candidates_md(
         parts += ["无候选，无执行提示。", ""]
     else:
         for _, row in shown.iterrows():
-            band = row.get("封档")
             fp = row.get("fill_prob")
             fp_val = float("nan") if fp is None or pd.isna(fp) else float(fp)
             parts.append(
-                f"- {_cand_ref(row)}（封档={_fmt_cell('封档', band)}，"
+                f"- {_cand_ref(row)}（封档={_fmt_cell('封档', row.get('封档'))}，"
                 f"fill_prob {_fmt_cell('fill_prob', fp)}）："
-                f"{execution_hint(band, fp_val)}"
+                f"{execution_hint(fp_val)}"
             )
         parts.append("")
 

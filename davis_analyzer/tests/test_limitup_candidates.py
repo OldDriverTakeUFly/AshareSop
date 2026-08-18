@@ -170,6 +170,7 @@ def test_candidate_context(limitup_db: sqlite3.Connection) -> None:
     assert ctx["limit_up_count"] == 35  # 5 目标 + 30 陪跑
     assert ctx["promo_12"] is None
     assert ctx["premium"] is None
+    assert ctx["index_ma_bull"] is None  # §2.3.1 指数多空轴（夹具无 index_daily → None）
 
 
 def test_candidate_context_empty_db(limitup_db: sqlite3.Connection) -> None:
@@ -204,6 +205,7 @@ def _render_ctx(**overrides: Any) -> dict[str, Any]:
         "limit_up_count": 35,
         "promo_12": None,       # 窗口末日不可观测 → "—"
         "premium": 0.005,
+        "index_ma_bull": True,
         "regime_label": "回暖",
     }
     base.update(overrides)
@@ -212,32 +214,49 @@ def _render_ctx(**overrides: Any) -> dict[str, Any]:
 
 def test_render_candidates_md_sections_and_pct() -> None:
     md = candidates.render_candidates_md(_render_cands(), _render_ctx())
-    # 节 1：标题 + 三轴摘要行（None 轴显示 "—"）
+    # 节 1：标题 + 四轴摘要行（None 轴显示 "—"）
     assert f"# 打板候选清单 {EVENT_DAY}" in md
     assert "情绪档位：回暖" in md
     assert "涨停家数 35" in md
     assert "晋级率 promo_12 —" in md
     assert "开盘溢价 0.5%" in md
+    assert "指数多空 多" in md  # True → 多（§2.3.1 规格轴）
     # 节 2：候选表契约列头 + 百分比化（NaN → "—"）
     assert "| ts_code | name | sector | pattern_label | seal_ratio | 封档 | " \
            "first_seal_band | broken_count | lg_sell_share | enhanced | fill_prob |" in md
     assert "10.0%" in md and "60.0%" in md and "20.0%" in md
     assert "1.2%" in md  # seal_ratio 0.012
+    row_yi = next(ln for ln in md.splitlines() if ln.startswith("| 600200.SH"))
+    assert "—" in row_yi  # 乙 lg_sell_share=NaN → "—"
     # 节 3/4/5：标题齐全
     for heading in ("## 候选表", "## 增强标注", "## 次日执行提示", "## 免责声明"):
         assert heading in md
     assert "enhanced 为研究标注非过滤" in md
-    # 节 4：两分支执行提示均在（强+低 fill_prob 持有；弱/易成交 开盘卖）
+    # 节 4：中性化后无条件卖出指令不复存在；条件式持有 + 弱质注记两分支
+    assert not hasattr(candidates, "SELL_HINT")  # 常量已移除
+    assert "建议 T+1 开盘直接卖出" not in md  # 无条件卖出指令文案不复存在
     assert candidates.HOLD_HINT in md
-    assert candidates.SELL_HINT in md
+    assert candidates.WEAK_SEAL_NOTE in md
     hint_line = next(
         ln for ln in md.splitlines() if ln.startswith("- 600100.SH 甲（封档=")
     )
-    assert candidates.HOLD_HINT in hint_line
-    sell_line = next(
-        ln for ln in md.splitlines() if ln.startswith("- 600300.SH 丙（封档=")
+    assert candidates.HOLD_HINT in hint_line  # fill_prob 0.20 → 纯条件式持有
+    note_line = next(
+        ln for ln in md.splitlines() if ln.startswith("- 600200.SH 乙（封档=")
     )
-    assert candidates.SELL_HINT in sell_line
+    assert candidates.WEAK_SEAL_NOTE in note_line  # fill_prob 0.70 → 持有+风险注记
+
+
+def test_render_candidates_md_summary_bull_axis() -> None:
+    # 指数多空轴三态：False → 空；None/缺失 → "—"
+    md_false = candidates.render_candidates_md(
+        _render_cands().head(1), _render_ctx(index_ma_bull=False)
+    )
+    assert "指数多空 空" in md_false
+    md_none = candidates.render_candidates_md(
+        _render_cands().head(1), _render_ctx(index_ma_bull=None)
+    )
+    assert "指数多空 —" in md_none
 
 
 def test_render_candidates_md_enhanced_section_lists_only_true() -> None:
@@ -276,12 +295,15 @@ def test_render_candidates_md_no_data_regime_and_note() -> None:
 
 
 def test_execution_hint_two_branches() -> None:
-    hold, sell = candidates.HOLD_HINT, candidates.SELL_HINT
-    assert candidates.execution_hint("强", 0.20) == hold
-    assert candidates.execution_hint("中", 0.34) == hold   # <0.35 边界内
-    assert candidates.execution_hint("弱", 0.20) == sell   # 弱封档
-    assert candidates.execution_hint("中", 0.35) == sell   # 0.35 非低（严格 <）
-    assert candidates.execution_hint("强", 0.70) == sell   # 易成交（炸板回封）
+    # 评审中性化裁决：T 日 fill_prob 是事前特征不能预判 T+1 情形 →
+    # 不再输出无条件卖出指令，统一条件式持有；fill_prob>=0.35 附加风险注记
+    hold, note = candidates.HOLD_HINT, candidates.WEAK_SEAL_NOTE
+    assert candidates.execution_hint(0.20) == hold
+    assert candidates.execution_hint(0.34) == hold    # <0.35 边界内 → 纯持有纪律
+    assert candidates.execution_hint(0.35) == note    # 0.35 非低（严格 <）→ 注记
+    assert candidates.execution_hint(0.70) == note    # 易成交（炸板回封）→ 注记
+    # 注记本身仍是条件式（保留 A 桶一字持有期权），非无条件指令
+    assert "开盘=涨停价仍可持有观察" in note and "建议" not in note
 
 
 def test_empty_candidates_message() -> None:
