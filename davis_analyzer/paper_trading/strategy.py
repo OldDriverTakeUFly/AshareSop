@@ -14,13 +14,20 @@ Two strategies are provided:
    engines: buy when momentum is strong + holders are accumulating; sell when
    momentum collapses or holders distribute. This tests the factor signals
    identified in our research reports.
+
+3. **BoardChasingStrategy** — limitup first_board 打板: buy the day's
+   first-board candidates at close (via ``limitup.candidates``), sell every
+   holding at next open (level-triggered SELL with ``sell_at_open=True``).
+   Registered twice: ``board_chasing`` / ``board_chasing_enhanced``.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Protocol
+from functools import partial
+from typing import Any, Callable, Protocol
 
+import pandas as pd
 from loguru import logger
 
 from davis_analyzer.paper_trading.account import Position
@@ -1251,12 +1258,142 @@ class FactorThresholdStrategy:
         return signals
 
 
+# ─── Strategy 3: Board Chasing (limitup first_board 打板) ────────────────
+
+
+class BoardChasingStrategy:
+    """首板打板策略：T 日收盘买入 first_board 候选，T+1 开盘卖出.
+
+    与 limitup 回测引擎严格同源：候选清单直接调用
+    ``limitup.candidates.build_candidates``（first_board 口径 + 形态/封档/
+    增强标注），不在策略内复刻过滤逻辑.
+
+    卖出为「电平型」：持仓期间每日重发 SELL（sell_at_open=True，executor
+    以当日开盘价×(1−10bps) 成交）；open 缺失/一字跌停顺延时持仓保留，
+    次日重发的 SELL 自然重试——绝不边沿型（顺延漏卖防线）.
+
+    双名注册（§3.3 双臂对照）：
+        board_chasing          → enhanced_filter=False（基准臂 fb_base）
+        board_chasing_enhanced → enhanced_filter=True（增强臂 fb_enhanced，
+                                 大单主导×强封单过滤）
+
+    Config:
+        enhanced_filter: 叠加增强过滤（透传 build_candidates + 本地双保险）
+        max_positions: 最大同时持仓数，BUY 等权 1/max_positions
+    """
+
+    name = "board_chasing"
+
+    def __init__(self, enhanced_filter: bool = False, max_positions: int = 3) -> None:
+        self._enhanced = enhanced_filter
+        self.max_positions = max_positions
+        if enhanced_filter:
+            self.name = "board_chasing_enhanced"
+
+    @staticmethod
+    def _row_enhanced(row: pd.Series) -> bool:
+        """单行 enhanced 标注（NaN/缺失 → False，宁缺毋错）."""
+        val = row.get("enhanced")
+        return bool(val) if val is not None and not pd.isna(val) else False
+
+    @staticmethod
+    def _cell_str(row: pd.Series, col: str, default: str = "—") -> str:
+        """行取值转字符串；NaN/缺失 → default（reason 字段容错渲染）."""
+        val = row.get(col)
+        return str(val) if val is not None and not pd.isna(val) else default
+
+    def evaluate(
+        self,
+        positions: list[Position],
+        snapshot: MarketSnapshot,
+        total_equity: float,
+    ) -> list[Signal]:
+        signals: list[Signal] = []
+
+        # ── 1. 持仓 → SELL（电平型：持有期间每日重发）──
+        for pos in positions:
+            signals.append(
+                Signal(
+                    ts_code=pos.ts_code,
+                    name=pos.name,
+                    action="SELL",
+                    signal_reason="T+1开盘卖(打板)",
+                    sell_at_open=True,
+                )
+            )
+
+        # ── 2. 候选清单（limitup 同源；懒加载避免既有消费方被动引入 limitup 链）──
+        from davis_analyzer.limitup import candidates as _limitup_candidates
+        from davis_analyzer.limitup import db as _limitup_db
+
+        try:
+            conn = _limitup_db.connect()
+            try:
+                cands = _limitup_candidates.build_candidates(
+                    conn, snapshot.trade_date, enhanced_filter=self._enhanced
+                )
+            finally:
+                conn.close()  # conn 短生命周期
+        except Exception as exc:
+            # 数据层故障只降级当日信号，不让缺失数据炸掉整个 run_day
+            logger.warning(
+                "board_chasing: {} 候选构建异常（{}），当日无信号",
+                snapshot.trade_date, exc,
+            )
+            return []
+
+        if cands.empty:
+            logger.warning(
+                "board_chasing: {} 无 first_board 候选，仅执行持仓卖出",
+                snapshot.trade_date,
+            )
+            return signals
+
+        # 增强臂本地双保险过滤（build_candidates 已过滤，防口径漂移/桩替身）
+        if self._enhanced and "enhanced" in cands.columns:
+            cands = cands[cands["enhanced"].fillna(False).astype(bool)]
+
+        # ── 3. 未持仓候选 → BUY（等权，按封单比降序取前 max_positions 个）──
+        # 当日持仓全部 SELL 且 executor 先卖后买，BUY 名额不因持仓扣减；
+        # 持仓 code 当日不重复买入（T+1 打板节奏：卖旧买新，不自成交）.
+        held_codes = {p.ts_code for p in positions}
+        weight = 1.0 / self.max_positions
+        slots = self.max_positions
+        for _, row in cands.iterrows():
+            if slots <= 0:
+                break
+            code = self._cell_str(row, "ts_code", default="")
+            if not code or code in held_codes:
+                continue
+            name = self._cell_str(row, "name", default="") \
+                or snapshot.stock_names.get(code, code)
+            signals.append(
+                Signal(
+                    ts_code=code,
+                    name=name,
+                    action="BUY",
+                    target_weight=weight,
+                    signal_reason=(
+                        f"首板打板 {self._cell_str(row, 'pattern_label')} "
+                        f"封档={self._cell_str(row, '封档')} "
+                        f"enhanced={'是' if self._row_enhanced(row) else '否'}"
+                    ),
+                )
+            )
+            slots -= 1
+
+        return signals
+
+
 # ─── Registry ────────────────────────────────────────────────────────────
 
 
-STRATEGY_REGISTRY: dict[str, type] = {
+STRATEGY_REGISTRY: dict[str, Callable[..., Strategy]] = {
     "davis_double": DavisDoubleStrategy,
     "factor_threshold": FactorThresholdStrategy,
+    # 打板双臂（§3.3）：同一实现类实例化两次，仅 enhanced_filter 开关不同
+    "board_chasing": BoardChasingStrategy,
+    "board_chasing_enhanced": partial(BoardChasingStrategy, enhanced_filter=True),
 }
 
 
