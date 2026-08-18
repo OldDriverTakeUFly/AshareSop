@@ -95,6 +95,59 @@ def _get_stock_name(ts_code: str) -> str:
     return row[0] if row else ts_code
 
 
+# sell_at_open 卖出滑点（bps）——与 limitup 回测引擎 slippage_bps 同口径
+_OPEN_SELL_SLIPPAGE_BPS: float = 10.0
+
+
+def _get_open_prices(ts_codes: list[str], trade_date: str) -> dict[str, dict[str, float]]:
+    """Fetch same-day open/low/pre_close rows from daily_price (read-only).
+
+    与 _get_close_prices 同源（market_data.db 的 daily_price 表），但**只取
+    当日行、不做回看回退**——open 缺失（停牌/数据缺口）必须显式暴露给调用
+    方走顺延，而不是拿旧价补。纯 SQL 读缓存，不触发 Tushare API。
+
+    Returns ``{ts_code: {"open": o, "low": l, "pre_close": pc}}``，只含当日
+    有行且 open 有效（非 NULL、>0）的标的。
+    """
+    if not ts_codes:
+        return {}
+    placeholders = ",".join("?" * len(ts_codes))
+    try:
+        with get_market_conn() as conn:
+            rows = conn.execute(
+                f"SELECT ts_code, open, low, pre_close FROM daily_price "
+                f"WHERE trade_date = ? AND ts_code IN ({placeholders})",
+                (trade_date, *ts_codes),
+            ).fetchall()
+    except Exception:
+        logger.warning(f"open price fetch failed on {trade_date}")
+        return {}
+    out: dict[str, dict[str, float]] = {}
+    for code, open_px, low, pre_close in rows:
+        try:
+            o, lo, pc = float(open_px), float(low), float(pre_close)
+        except (TypeError, ValueError):
+            continue
+        if o > 0:
+            out[code] = {"open": o, "low": lo, "pre_close": pc}
+    return out
+
+
+def _limit_down_locked(ts_code: str, open_px: float, low: float, pre_close: float) -> bool:
+    """一字跌停判定（与 limitup 回测引擎 engine._limit_down_locked 同口径）.
+
+    跌停价 = round(pre_close × (1 − 幅度), 2)（创业板/科创板 20cm，主板 10cm）；
+    open = low = 跌停价（容差 0.005）→ 全天锁死无法卖出 → 顺延。
+    """
+    from davis_analyzer.limitup.events import limit_ratio_for
+
+    if pre_close <= 0:
+        return False
+    ratio = limit_ratio_for(ts_code)
+    limit_down = round(pre_close * (1 - ratio) + 1e-9, 2)
+    return abs(open_px - limit_down) <= 0.005 and abs(low - limit_down) <= 0.005
+
+
 def _get_davis_scores(trade_date: str) -> dict[str, dict]:
     """Get Davis Double scores for the universe.
 
@@ -2330,13 +2383,33 @@ class DailyExecutor:
             positions = self.account.get_positions()
 
         # ── 5b. Execute main signals (sells first) ──
-        # Sells
+        # Sells — sell_at_open=True 的信号以当日开盘价×(1−10bps) 成交；
+        # open 缺失（停牌/数据缺口）或一字跌停 → 顺延：当日不卖、保留持仓，
+        # 下一 run_day 策略重发 SELL 自然重试（与 limitup 回测引擎语义一致）。
+        open_sell_codes = [
+            s.ts_code for s in signals
+            if s.action == "SELL" and s.sell_at_open
+        ]
+        open_rows = _get_open_prices(open_sell_codes, trade_date) if open_sell_codes else {}
         for sig in signals:
             if sig.action == "SELL":
+                fill_price = prices.get(sig.ts_code, 0)
+                if sig.sell_at_open:
+                    row = open_rows.get(sig.ts_code)
+                    if row is None or _limit_down_locked(
+                        sig.ts_code, row["open"], row["low"], row["pre_close"]
+                    ):
+                        reason = "一字跌停" if row is not None else "开盘价缺失（停牌/数据缺口）"
+                        logger.info(
+                            f"[{self.account.name}] {trade_date}: {sig.ts_code} {sig.name} "
+                            f"sell_at_open 顺延（{reason}），持仓保留待次日重试"
+                        )
+                        continue
+                    fill_price = row["open"] * (1 - _OPEN_SELL_SLIPPAGE_BPS / 1e4)
                 trade = self.account.sell_all(
                     ts_code=sig.ts_code,
                     name=sig.name,
-                    price=prices.get(sig.ts_code, 0),
+                    price=fill_price,
                     trade_date=trade_date,
                     signal_reason=sig.signal_reason,
                 )

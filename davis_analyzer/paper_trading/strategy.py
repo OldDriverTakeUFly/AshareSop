@@ -46,6 +46,9 @@ class Signal:
     action: str  # "BUY" / "SELL" / "HOLD"
     target_weight: float = 0.0  # fraction of total equity (for BUY)
     signal_reason: str = ""
+    # True → SELL 以当日开盘价成交（open×(1−10bps)，executor 处理；
+    # open 缺失/一字跌停顺延）。默认 False：既有策略走收盘价路径零影响。
+    sell_at_open: bool = False
 
 
 @dataclass
