@@ -7,8 +7,19 @@
           "hooks": [
             {
               "type": "command",
-              "command": "bash \"${ZCODE_PROJECT_DIR}/.zcode/hooks/session-context.sh\"",
+              "command": "rm -f \"${ZCODE_PROJECT_DIR}/.zcode/.plan_approved\" && bash \"${ZCODE_PROJECT_DIR}/.zcode/hooks/session-context.sh\"",
               "timeout": 5
+            }
+          ]
+        }
+      ],
+      "UserPromptSubmit": [
+        {
+          "hooks": [
+            {
+              "type": "command",
+              "command": "bash \"${ZCODE_PROJECT_DIR}/.zcode/hooks/plan-marker-manager.sh\"",
+              "timeout": 3
             }
           ]
         }
@@ -20,6 +31,16 @@
             {
               "type": "command",
               "command": "bash \"${ZCODE_PROJECT_DIR}/.zcode/hooks/test-safety-guard.sh\"",
+              "timeout": 3
+            }
+          ]
+        },
+        {
+          "matcher": "Write|Edit",
+          "hooks": [
+            {
+              "type": "command",
+              "command": "bash \"${ZCODE_PROJECT_DIR}/.zcode/hooks/plan-guard.sh\"",
               "timeout": 3
             }
           ]
