@@ -206,3 +206,50 @@ def test_repair_daily_price_gaps(limitup_db: sqlite3.Connection) -> None:
         mp.setattr(dr, "_PLACEHOLDER_ADJ_THRESHOLD", 100)
         assert dr.repair_daily_price_gaps(
             limitup_db, ["20260818"], FakeClient()) == {"ohlc": 0, "adj": 0}
+
+
+def test_ensure_daily_price_full_skips_complete(limitup_db) -> None:
+    """行数已达阈值 → 直接跳过不拉取（Boom 客户端触发即失败）。"""
+    from davis_analyzer.limitup import daily_refresh as dr
+
+    class Boom:
+        def _call(self, *a, **k):
+            raise AssertionError("不应触发拉取")
+
+    for i in range(1000):
+        limitup_db.execute(
+            "INSERT INTO daily_price VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+            (f"6000{i % 10}{i:03d}".__class__ and f"6{i:05d}.SH", "20260812",
+             1, 1, 1, 1, 1, 0, 0, 0, 1.0, None))
+    limitup_db.commit()
+    assert dr.ensure_daily_price_full(limitup_db, "20260812", Boom()) == 0
+
+
+def test_ensure_daily_price_full_upserts(limitup_db) -> None:
+    """行数不足 → 全市场拉取 + adj 映射 upsert。"""
+    from types import SimpleNamespace
+
+    from davis_analyzer.limitup import daily_refresh as dr
+
+    class FakeClient:
+        _pro = SimpleNamespace(
+            daily=lambda **kw: None, adj_factor=lambda **kw: None)
+
+        def _call(self, endpoint, _fn, params):
+            if endpoint == "daily":
+                return pd.DataFrame([
+                    {"ts_code": f"6000{i:03d}.SH", "open": 10.0, "high": 11.0,
+                     "low": 9.5, "close": 10.5, "pre_close": 10.0,
+                     "pct_chg": 5.0, "vol": 100, "amount": 1e6}
+                    for i in range(5)
+                ])
+            return pd.DataFrame([
+                {"ts_code": f"6000{i:03d}.SH", "adj_factor": 2.5} for i in range(5)
+            ])
+
+    n = dr.ensure_daily_price_full(limitup_db, "20260818", FakeClient())
+    assert n == 5
+    row = limitup_db.execute(
+        "SELECT open, high, adj_factor FROM daily_price "
+        "WHERE trade_date='20260818' LIMIT 1").fetchone()
+    assert row == (10.0, 11.0, 2.5)

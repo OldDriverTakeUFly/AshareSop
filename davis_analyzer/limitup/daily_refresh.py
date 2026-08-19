@@ -240,10 +240,56 @@ def refresh_corp_events(
 
 # ── daily_price 质量自愈（多写入方混写防线）──
 # 历史教训（2026-08）：并行写入方曾写 close-only 行（high/low NULL，~3k 行/日）
-# 与占位 adj_factor=1.0（整日覆盖），分别击穿形态 rolling 与除权判定。
+# 与占位 adj_factor=1.0（整日覆盖），分别击穿形态 rolling 与除权判定；
+# 另有当日全市场日线迟至 19:30 仍未落库（上游时序不稳），致候选/模拟盘
+# 连续空转（2026-0818/0819）——ensure_daily_price_full 兜底当日完整性。
 
 _NULL_OHLC_THRESHOLD = 100    # 单日 NULL high 超此数视为写入方污染（正常<10）
 _PLACEHOLDER_ADJ_THRESHOLD = 1000  # 单日 adj=1.0 超此数视为占位（正常~116 只）
+_FULL_DAY_THRESHOLD = 1000    # 当日行数低于此数视为未完成落库（正常 ~5500）
+
+
+def ensure_daily_price_full(conn: sqlite3.Connection, day: str, client: object) -> int:
+    """Ensure the day's full-market daily_price exists (fallback for slow writers).
+
+    If the day has fewer than _FULL_DAY_THRESHOLD rows, fetch the full market
+    from Tushare `daily` + `adj_factor` and upsert (INSERT OR REPLACE).
+    Returns rows upserted (0 if already complete / fetch failed).
+    """
+    n = conn.execute(
+        "SELECT COUNT(*) FROM daily_price WHERE trade_date=?", (day,)
+    ).fetchone()[0]
+    if n >= _FULL_DAY_THRESHOLD:
+        return 0
+    logger.info("daily_price {} 仅 {} 行（<{}），全市场兜底拉取", day, n,
+                _FULL_DAY_THRESHOLD)
+    df = client._call("daily", client._pro.daily, {"trade_date": day})
+    if df is None or df.empty:
+        logger.warning("daily 兜底拉取失败 {}", day)
+        return 0
+    adj = client._call("adj_factor", client._pro.adj_factor, {"trade_date": day})
+    adj_map: dict[str, float] = {}
+    if adj is not None and not adj.empty:
+        adj_map = dict(zip(adj["ts_code"], adj["adj_factor"].astype(float)))
+    now = datetime.now().timestamp()
+    upserted = 0
+    for _, r in df.iterrows():
+        code = r.get("ts_code")
+        if not code:
+            continue
+        conn.execute(
+            "INSERT OR REPLACE INTO daily_price (ts_code, trade_date, open, high, "
+            "low, close, pre_close, pct_chg, vol, amount, adj_factor, fetched_at) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+            (code, day, _num(r.get("open")), _num(r.get("high")),
+             _num(r.get("low")), _num(r.get("close")), _num(r.get("pre_close")),
+             _num(r.get("pct_chg")), _num(r.get("vol")), _num(r.get("amount")),
+             adj_map.get(code), now),
+        )
+        upserted += 1
+    conn.commit()
+    logger.info("daily_price {} 兜底完成: {} 行 upsert（此前 {}）", day, upserted, n)
+    return upserted
 
 
 def repair_daily_price_gaps(conn: sqlite3.Connection, dates: list[str], client: object) -> dict:
@@ -326,6 +372,7 @@ def run_daily_refresh(conn: sqlite3.Connection, lookback_days: int = 7) -> dict:
         return client._call("top_list", client._pro.top_list, {"trade_date": d})
 
     steps: list[tuple[str, object]] = [
+        ("daily_price_full", lambda: ensure_daily_price_full(conn, dates[-1], client)),
         ("daily_price_repair", lambda: repair_daily_price_gaps(conn, dates, client)),
         ("limit_pool", lambda: refresh_limit_pool(
             conn, dates, lambda d, t: client._call(
