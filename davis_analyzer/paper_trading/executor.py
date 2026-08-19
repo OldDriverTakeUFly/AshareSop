@@ -27,7 +27,7 @@ from stockhot.core.config import DB_PATH
 from stockhot.data_layer import get_repository
 from stockhot.storage.database import get_connection
 
-from davis_analyzer.paper_trading.account import PaperAccount, Position
+from davis_analyzer.paper_trading.account import PaperAccount, Position, min_buy_lots
 from davis_analyzer.paper_trading.runlock import account_run_lock
 from davis_analyzer.paper_trading.strategy import (
     DavisDoubleStrategy,
@@ -1906,6 +1906,12 @@ class DailyExecutor:
         volatilities = volatilities or {}
         volume_signals = volume_signals or {}
         signals: list[Signal] = []
+
+        # 板-chasing 策略自管风控：跳过传统止盈/减仓/高位放量
+        # （T+1 日内策略的「快进快出」与波段止盈止损正面冲突——2026-08-19 回放实测）
+        if getattr(self.strategy, "disable_default_risk", False):
+            return signals
+
         for pos in positions:
             px = prices.get(pos.ts_code)
             if px is None or px <= 0:
@@ -2269,7 +2275,9 @@ class DailyExecutor:
                 pass  # best-effort expansion
 
         prices = _get_close_prices(codes_to_price, trade_date)
-        if not prices:
+        if codes_to_price and not prices:
+            # 定价宇宙非空却拿不到价格才是异常；空宇宙（无持仓+策略无候选）
+            # 应正常走完当日流程并记录现金 NAV
             logger.warning(f"[{self.account.name}] {trade_date}: no prices available")
             return {"status": "no_prices", "trade_date": trade_date}
 
@@ -2484,8 +2492,8 @@ class DailyExecutor:
                     logger.info(f"[{self.account.name}] {trade_date}: {sig.name} "
                                 f"pct={buy_pct:+.1f}% fill_prob={fill_prob:.0%} "
                                 f"shares {int(target_amount/px)}→{target_shares}")
-                if target_shares < 100:
-                    continue  # below board lot after haircut
+                if target_shares < min_buy_lots(sig.ts_code):
+                    continue  # below board minimum lot after haircut
                 trade = self.account.buy(
                     ts_code=sig.ts_code,
                     name=sig.name,

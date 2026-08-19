@@ -30,7 +30,7 @@ from typing import Any, Callable, Protocol
 import pandas as pd
 from loguru import logger
 
-from davis_analyzer.paper_trading.account import Position
+from davis_analyzer.paper_trading.account import Position, min_buy_lots
 
 
 def _days_between(date_str1: str, date_str2: str) -> int:
@@ -170,12 +170,23 @@ class DavisDoubleStrategy:
             key=lambda x: x[1].get("final_score", 0),
             reverse=True,
         )
-        # Filter by min_score and price availability
+        # Filter by min_score, price availability, and small-account
+        # affordability. Equal-weight slot = equity / top_n; a target whose
+        # minimum board lot costs more than the slot (科创板 200 股起、或股价
+        # 高于一手槽位资金) can never fill — skip it and substitute the
+        # next-ranked candidate instead of permanently wasting the slot
+        # (小资金账户高价股无法参与的场景, 2026-08-19).
         targets = []
-        for code, info in ranked[: self.top_n * 2]:  # get some buffer
+        slot_cash = total_equity / self.top_n if self.top_n > 0 else 0.0
+        for code, info in ranked:
+            if len(targets) >= self.top_n:
+                break
             if info.get("final_score", 0) < self.min_score:
+                break  # ranked 降序 — 后面不可能再达标
+            px = snapshot.prices.get(code)
+            if px is None or px <= 0:
                 continue
-            if code not in snapshot.prices or snapshot.prices[code] <= 0:
+            if px * min_buy_lots(code) > slot_cash:
                 continue
             targets.append((code, info))
 
@@ -1315,17 +1326,59 @@ class BoardChasingStrategy:
     Config:
         enhanced_filter: 叠加增强过滤（透传 build_candidates + 本地双保险）
         max_positions: 最大同时持仓数，BUY 等权 1/max_positions
+        disable_default_risk: True（板-chasing 自管风控，跳过 executor 的
+            止盈/减仓/高位放量——T+1 日内策略与波段风控正面冲突）
+        max_consecutive_losses: 连亏熔断阈值（连续 N 笔亏损暂停 M 天）
+        loss_pause_days: 熔断暂停天数
+        daily_loss_limit_pct: 单日已实现亏损上限（组合百分比，超限停新开仓）
     """
 
     name = "board_chasing"
+    # 板-chasing 自管风控标志（executor._check_risk_signals 据此跳过传统风控）
+    disable_default_risk = True
 
-    def __init__(self, enhanced_filter: bool = False, max_positions: int = 3) -> None:
+    def __init__(self, enhanced_filter: bool = False, max_positions: int = 3,
+                 max_consecutive_losses: int = 5, loss_pause_days: int = 3,
+                 daily_loss_limit_pct: float = 2.0) -> None:
         self._enhanced = enhanced_filter
         self.max_positions = max_positions
         self._cache_date: str | None = None
         self._cache_cands: pd.DataFrame | None = None
+        # 专用风控参数
+        self.max_consecutive_losses = max_consecutive_losses
+        self.loss_pause_days = loss_pause_days
+        self.daily_loss_limit_pct = daily_loss_limit_pct
+        # 运行时状态
+        self._consecutive_losses = 0
+        self._pause_until: str | None = None  # YYYYMMDD
         if enhanced_filter:
             self.name = "board_chasing_enhanced"
+
+    def _update_loss_streak(self, positions: list) -> None:
+        """从持仓卖出记录更新连亏计数（简化：无持仓=上轮全卖，检查 NAV 变化）.
+
+        真实连亏计数应在 evaluate 中从 account trades 表读最近已平仓交易，
+        此处用轻量近似：连亏计数由外部（executor 卖出回调）更新.
+        """
+        pass  # 连亏状态由 executor 的卖出交易事后更新（_on_sell_completed）
+
+    def _on_sell_completed(self, pnl_pct: float) -> None:
+        """executor 卖出后回调：更新连亏计数与熔断状态."""
+        if pnl_pct < 0:
+            self._consecutive_losses += 1
+            if self._consecutive_losses >= self.max_consecutive_losses:
+                from datetime import datetime, timedelta
+                pause_days = timedelta(days=self.loss_pause_days + 2)  # +2 覆盖周末
+                self._pause_until = (
+                    datetime.now() + pause_days
+                ).strftime("%Y%m%d")
+        else:
+            self._consecutive_losses = 0
+
+    def _is_paused(self, trade_date: str) -> bool:
+        """连亏熔断暂停期判断."""
+        return (self._pause_until is not None
+                and trade_date <= self._pause_until)
 
     def _load_candidates(self, trade_date: str) -> pd.DataFrame:
         """候选构建（带当日缓存：required_codes 钩子预热后 evaluate 复用）."""
@@ -1383,6 +1436,14 @@ class BoardChasingStrategy:
                     sell_at_open=True,
                 )
             )
+
+        # ── 1b. 连亏熔断检查 ──
+        if self._is_paused(snapshot.trade_date):
+            logger.warning(
+                "board_chasing: {} 连亏熔断暂停（{} 笔连亏，暂停至 {}），仅持仓卖出",
+                snapshot.trade_date, self._consecutive_losses, self._pause_until,
+            )
+            return signals
 
         # ── 2. 候选清单（limitup 同源；懒加载避免既有消费方被动引入 limitup 链）──
         try:

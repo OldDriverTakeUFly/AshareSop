@@ -385,3 +385,41 @@ def test_required_codes_hook_and_cache(monkeypatch) -> None:
         "davis_analyzer.limitup.candidates.build_candidates",
         lambda *a, **k: (_ for _ in ()).throw(RuntimeError("db down")))
     assert strat2.required_codes("20260813") == []
+
+
+def test_disable_default_risk_flag() -> None:
+    """板-chasing 策略自带 disable_default_risk=True，executor 跳过传统风控."""
+    from davis_analyzer.paper_trading.strategy import BoardChasingStrategy
+
+    strat = BoardChasingStrategy()
+    assert strat.disable_default_risk is True
+    # executor 侧验证
+    from unittest.mock import MagicMock
+    from davis_analyzer.paper_trading.executor import DailyExecutor
+    account = MagicMock()
+    account.name = "test"
+    ex = DailyExecutor(account, strat)
+    risk_signals = ex._check_risk_signals(
+        [], {}, "20260818")  # 空持仓+空价格也无妨：应在 flag 检查处直接返回空
+    assert risk_signals == []
+
+
+def test_consecutive_loss_circuit_breaker(monkeypatch) -> None:
+    """连亏 5 笔 → 熔断暂停（evaluate 仅持仓卖出，不发 BUY）."""
+    from davis_analyzer.paper_trading.strategy import BoardChasingStrategy
+
+    strat = BoardChasingStrategy()
+    assert strat._is_paused("20260818") is False
+
+    # 模拟连亏回调
+    for _ in range(5):
+        strat._on_sell_completed(pnl_pct=-0.03)
+    assert strat._consecutive_losses == 5
+    assert strat._pause_until is not None
+    # 暂停期内不发 BUY
+    assert strat._is_paused("20260818") is True
+    assert strat._is_paused("20301231") is False  # 远超暂停期
+
+    # 盈利重置
+    strat._on_sell_completed(pnl_pct=0.05)
+    assert strat._consecutive_losses == 0
