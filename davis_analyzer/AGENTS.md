@@ -8,7 +8,7 @@
 
 - **核心语言**:Python 3.11+(代码使用 `from __future__ import annotations` + PEP 604 联合类型)
 - **回测/数据**:自研(基于 pandas/numpy),不依赖 Zipline/Backtrader
-- **数据源**:Tushare Pro(唯一外部数据源)
+- **数据源**:Tushare Pro(唯一外部数据源)。**唯一例外**:`intraday/` 日内做T研究沙盒用 baostock 拉分钟线(2026-08-19 用户批准)——只落独立库 `storage/database/intraday_research.db`(表内标注 source),生产 pipeline 与 market_data.db 缓存不得读取;背景:Tushare stk_mins 当前积分档限频 1 次/小时、2 次/天,无法承担分钟回补。
 
 ## ⚠️ 关键架构事实(动手前必读)
 
@@ -52,6 +52,8 @@ tushare_client.py             ← 数据层(API + SQLite 缓存 + 限流 400/min
 策略锦标赛子系统(相对独立):`tournament/`(adapters 参赛者适配 → judge 统一窗口评估 → scorecard/allocator 评分与权重分配 → replay 历史回放 → evolution CPCV-lite 参数进化战役 → champions 冠军存档与部署校验,台账写入共享 SQLite 的 tournament_ledger 表,CLI: python -m davis_analyzer.tournament {run|replay|evolve|champions})。
 
 **回测子系统**(相对独立):`backtest.py`(周期再平衡主循环) → `backtest_factors.py`(横截面因子评分) → `backtest_report.py`(收益/夏普/回撤 + CSV 导出)。
+
+**日内做T研究子系统**(独立沙盒):`intraday/`(db 独立研究库 + backfill baostock 分钟线断点回补 → engine 闭环回转引擎[T+1 卖出池/次bar成交/涨跌停拒单/收盘竞价] → features 因果特征 → strategies 朴素+增强策略族 → report 对账与汇总 → paper_shadow 模拟盘影子验证[cron 19:55 盘后回放,真实底仓,台账 intraday_shadow_*],CLI: python -m davis_analyzer.intraday {backfill|status|verify|run|shadow|shadow-report})。注意:回补按月块记账,当月数据未收盘不完整——增量更新需先删当月 backfill_chunk 记录再重跑;影子验证依赖 19:20 daily_refresh 先行,pre_close 自行推导不依赖当日日线完整性。结论见 docs/回测记录/日内做T引擎首测_2026-08-19.md。
 
 **输出层**:`report_generator.py` + `templates.py`(模板化研报,无 LLM);`checklist_generator.py` + `rescorer.py`(深度调研清单循环,人工定性调整)。
 
