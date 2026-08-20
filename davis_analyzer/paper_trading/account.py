@@ -26,6 +26,18 @@ from davis_analyzer.backtest import _trade_cost
 _BOARD_LOT = 100  # A-share minimum lot
 
 
+def min_buy_lots(ts_code: str) -> int:
+    """Return the minimum BUY order size (shares) for a board.
+
+    科创板（688/689 开头）限价单笔申报下限 200 股（卖出余额不受限）；
+    其余板块（含创业板/北交所）100 股整手。小资金账户若按 100 股买
+    科创板，产生的模拟成交在真实市场不可执行——所有买入定仓/可买性
+    判断必须用本函数，而不是裸的 100 整手。
+    """
+    code = (ts_code or "").split(".")[0]
+    return 200 if code.startswith(("688", "689")) else _BOARD_LOT
+
+
 @dataclass
 class Position:
     """A held position snapshot."""
@@ -211,7 +223,7 @@ class PaperAccount:
         """Execute a virtual buy. Returns the trade record, or None if failed."""
         # Enforce board lot
         shares = (shares // _BOARD_LOT) * _BOARD_LOT
-        if shares <= 0 or price <= 0:
+        if shares < min_buy_lots(ts_code) or price <= 0:
             return None
 
         self._begin_immediate()
@@ -224,7 +236,7 @@ class PaperAccount:
                 affordable = int(
                     (cash / (price * (1 + commission_bps / 1e4))) // _BOARD_LOT
                 ) * _BOARD_LOT
-                if affordable <= 0:
+                if affordable < min_buy_lots(ts_code):
                     self._conn.rollback()
                     return None
                 shares = affordable
