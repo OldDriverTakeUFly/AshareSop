@@ -42,6 +42,7 @@
 - **机制验证**：A/B 前先烟测确认机制真的触发（防止"改了没生效"的假阴性）
 - **收益/MDD/真Sharpe 三口径**：真 Sharpe = 日收益年化（rf=0），Calmar = 收益/MDD，两者不可混称
 - **TradeRecord 用属性访问** `t.ts_code`，不可下标（踩过两次）
+- **长回测必须脱离会话运行**（2026-08-20 事故教训）：`run_in_background` 的进程随会话关闭被连带杀掉（0003 首跑死在 trial 4，前 3 个结果一并丢失）。用 `setsid nohup .venv/bin/python xxx.py > logs/xxx.log 2>&1 &`；同时结果 JSON 应逐 trial 落盘而非最后一次性写（待改）
 - **双关固化标准（2026-08-19 起）**：新因子需 五年全期 A/B（总量）+ 随机窗口×票池截断测试台（`scripts/abx/random_window_harness.py`，稳健性）双关才可固化；对照基准用截断池 EW 而非上证指数
 
 ## 历史实验索引（本目录建立之前）
