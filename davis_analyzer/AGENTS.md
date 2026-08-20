@@ -10,6 +10,13 @@
 - **回测/数据**:自研(基于 pandas/numpy),不依赖 Zipline/Backtrader
 - **数据源**:Tushare Pro(唯一外部数据源)。**唯一例外**:`intraday/` 日内做T研究沙盒用 baostock 拉分钟线(2026-08-19 用户批准)——只落独立库 `storage/database/intraday_research.db`(表内标注 source),生产 pipeline 与 market_data.db 缓存不得读取;背景:Tushare stk_mins 当前积分档限频 1 次/小时、2 次/天,无法承担分钟回补。
 
+## Agent 工作方式(Karpathy 四条,本地化版)
+
+1. 动手前先想清楚方案,非平凡改动先出计划再写代码。
+2. 从能解决问题的最简单方案开始,不过度设计。
+3. 只做与任务直接相关的最小修改,不顺手重构。
+4. 交互式会话中遇歧义先问再动手;**定时/无人值守任务**(盘面扫描、盘后总结、盘前报告等 cron 流程)不等待人工——按各 SOP 纪律记录异常后继续执行,事后在报告中说明。
+
 ## ⚠️ 关键架构事实(动手前必读)
 
 这三条是新人/agent 最容易踩的坑,务必先理解:
@@ -61,21 +68,25 @@ tushare_client.py             ← 数据层(API + SQLite 缓存 + 限流 400/min
 
 ## rtk 使用规范(节省 token)
 
-本项目已本地部署 **rtk**(CLI 代理,压缩命令输出)。执行输出冗长的命令时**必须优先用 rtk 包装**。
+本项目已本地部署 **rtk**(CLI 代理,压缩命令输出)。**按任务类型区分使用**,与根目录 `AGENTS.md` 口径一致:
 
-| 原命令 | 用法 | 场景 |
-|--------|------|------|
-| `pytest` | `rtk pytest` | 跑测试(本项目 21 个测试文件,输出长) |
-| `python -m davis_analyzer run` | 视输出长度决定 | 跑完整 pipeline 输出极长,**强烈建议 rtk** |
-| `pip install -e .` | `rtk pip install -e .` | 从父项目根目录装依赖 |
-| `ls` / `find` | `rtk ls` / `rtk find ...` | 列目录/查找 |
-| `grep` / `rg` | `rtk grep ...` / `rtk rg ...` | 搜索代码 |
-| `git status/log/diff` | `rtk git status` 等 | git 操作 |
-| `cat 大文件` | `rtk read <file>` | 读大文件 |
+**用 rtk**(工程类,输出"扫一眼找信息"):
 
-**无需 rtk**:短命令(`mkdir`/`mv`/`echo`)、已知输出极短的命令、修改系统状态的命令(`rm`/`git commit`)。
+- git 操作:`rtk git status` / `rtk git log` / `rtk git diff`
+- 目录/搜索:`rtk ls` / `rtk find ...` / `rtk grep ...` / `rtk rg ...`
+- 测试:`rtk pytest`(只看失败摘要)
+- 依赖安装:`rtk pip install -e .`
+- 读大文件扫信息:`rtk read <file>`
 
-**原则**:不确定输出多长时,默认用 rtk。
+**用原生命令**(研报/取数类,输出要"精读消化"):
+
+- davis_analyzer 引擎取数脚本(完整 JSON 进研报,压缩会丢数字)
+- tushare/stockhot 数据库查询输出
+- 研报模板、财务表格、checklist 等需完整读取的内容
+
+**无需 rtk**:短命令(`mkdir`/`mv`/`echo`)、修改系统状态的命令(`rm`/`git commit`)。
+
+**判定原则**:输出要精读消化 → 原生命令;扫一眼找信息 → rtk。不确定时用原生命令并加 `| head -50` 截断(原生命令永远准确,rtk 只是优化层)。
 
 ## 代码约定
 
@@ -96,11 +107,26 @@ tushare_client.py             ← 数据层(API + SQLite 缓存 + 限流 400/min
 
 ## 配置与运行
 
+- **Python 解释器**:统一用父仓库根目录的 `.venv/bin/python`(系统 `python` 不存在、`python3` 缺 pandas,直接调用必然报错)。
 - **Token**:`TUSHARE_TOKEN` 环境变量(从父仓库根目录 `.env` 读)。
 - **输出位置**:研报写入 `STUDIES_DIR`(`davis_analyzer/studies/`),文件名 `{rank}_{ts_code}_{name}_深度研报.md`。回测结果导出为 CSV(交易明细 + 权益曲线)。
 - **入口**:
   - 主程序:`python -m davis_analyzer {run|deep-research|rescore}`
   - 模拟交易:`python -m davis_analyzer.paper_trading {init|run|backfill|report|list}`
+
+## 长回测运行规范(硬性,2026-08-20 事故沉淀)
+
+单次预计超 30 分钟的回测/A/B(五年全期 ≈2.5h/变体;短窗口按 ~6-12 秒/交易日折算,窗口越靠后数据越密越慢)一律按以下执行。背景事故:0003 首跑用 `run_in_background` 启动,会话关闭进程被连带杀掉,死在 trial 4,前 3 个 trial 结果一并丢失。
+
+1. **脱离会话启动**:
+   ```
+   cd /home/leo/Projects/CodeAgentDashboard && setsid nohup .venv/bin/python scripts/abx/xxx.py > logs/xxx_run.log 2>&1 &
+   ```
+   启动后必须验证脱离:`ps -o pid,ppid,pgid,sid -p <PID>`,**SID=PGID=自身**才算安全(仍在原会话组=没脱离)。`run_in_background` 只用于会话存续期内能收尾的短任务(烟测/单段回测)。
+2. **逐段落盘**:结果 JSON 逐 trial/逐变体完成即 dump,禁止跑完一次性写——中断可保住已完成部分。账户按变体命名且脚本入口 reset,重跑自动覆盖,无需手动清理。
+3. **启动即排收尾**:按估算耗时(偏保守 +30min 余量)立刻设一次性 cron 收结果/填实验日志(`docs/回测记录/实验日志/`);cron prompt 写明三分支:完成→分析+归档+commit/push;未完→只报进度;进程死→报死亡位置,**不自动重跑**(等人工决定)。
+4. **中途不改依赖**:运行期间不改动其 import 的脚本、constants 权重、DB schema;确需改动等跑完。
+5. **进度检查**:`tail -5 logs/xxx_run.log` 找 trial 标记行,或查 DB 账户 nav 最新日期(`paper_accounts` 按前缀过滤)。
 
 ## 协作流程
 
