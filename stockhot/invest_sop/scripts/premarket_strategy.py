@@ -40,20 +40,24 @@ WARN_PROXIMITY = 0.01        # 接近预警（1% 以内）
 
 
 def _load_top20() -> list[dict]:
-    """加载最新 top20 选股结果."""
-    path = PROJECT_ROOT / "studies" / "output" / "top20_screen_latest.json"
-    if not path.exists():
-        # 尝试日期文件
-        for back in range(0, 7):
-            d = (date.today() - timedelta(days=back)).strftime("%Y-%m-%d")
-            p = PROJECT_ROOT / "studies" / "output" / f"top20_screen_{d}.json"
-            if p.exists():
-                path = p
-                break
-    if not path.exists():
-        return []
-    data = json.loads(path.read_text())
-    return data.get("top20", [])
+    """加载最新 top20 选股结果.
+
+    优先取最近 7 天内的日期文件（screen_top20 每日 16:30 生成）；
+    top20_screen_latest.json 只是历史遗留（2026-07-12 后无写入方），
+    仅在日期文件全部缺失时兜底——避免一直引用一个月前的旧榜单。
+    """
+    base = PROJECT_ROOT / "studies" / "output"
+    for back in range(0, 7):
+        d = (date.today() - timedelta(days=back)).strftime("%Y-%m-%d")
+        p = base / f"top20_screen_{d}.json"
+        if p.exists():
+            data = json.loads(p.read_text())
+            return data.get("top20", [])
+    path = base / "top20_screen_latest.json"
+    if path.exists():
+        data = json.loads(path.read_text())
+        return data.get("top20", [])
+    return []
 
 
 def _load_paper_positions() -> list[dict]:
