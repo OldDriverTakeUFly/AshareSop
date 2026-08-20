@@ -7,6 +7,9 @@
   3. 触发 → 执行模拟交易 + 即时推飞书
   4. 接近信号线（1%以内）→ 推预警
   5. 无信号 → 静默
+  6. 尾盘轮动（2026-08-20 起）：≥14:40 的周期触发 intraday_rotation——
+     昨日因子+实时价对 live_factor_test/mini_100k 调仓并推送可跟随信号
+     （失败自动重试，重试超限由 19:00 inject 兜底）
 
 执行规则（与 executor 一致）：
   - 止损（现价 ≤ stop_price）→ sell_all 全部清仓
@@ -609,6 +612,9 @@ def run_intraday_loop(interval: int = DEFAULT_INTERVAL, dry_run: bool = False) -
 
     daily_stats = {"cycles": 0, "executed": 0, "warnings": 0, "panic_pushed": 0}
 
+    # ── 尾盘轮动状态（14:40 起触发 intraday_rotation，每日一次）──
+    rotation_done = False
+
     while _in_trading_hours():
         # 午休时段（11:30~13:00）：低频等待，不轮询
         if _is_lunch_break():
@@ -636,17 +642,35 @@ def run_intraday_loop(interval: int = DEFAULT_INTERVAL, dry_run: bool = False) -
         elif result["executed"] == 0 and result["warnings"] == 0 and result.get("panic_pushed", 0) == 0:
             print(f"  [{now}] 轮询 #{daily_stats['cycles']} 正常（{result['checked']}只持仓）")
 
+        # ── 尾盘轮动（≥14:40 的周期触发；失败自动重试，达上限放弃）──
+        # 昨日因子+实时价 → live_factor_test/mini_100k 轮动 + 飞书可跟随推送。
+        # trigger_rotation 自带窗口守卫与重试计数；dry-run 模式只监测不轮动。
+        if not rotation_done and not dry_run:
+            try:
+                from stockhot.invest_sop.scripts.intraday_rotation import (
+                    ROTATION_TRIGGER,
+                    trigger_rotation,
+                )
+
+                if datetime.now().strftime("%H:%M") >= ROTATION_TRIGGER:
+                    rotation_done = trigger_rotation()
+            except Exception as e:
+                print(f"  [{now}] [WARN] 尾盘轮动触发异常: {type(e).__name__}: {e}")
+                rotation_done = True  # 异常不刷屏；19:00 inject 兜底
+
         time.sleep(interval)
 
     # 收盘摘要
     print(f"\n[{date.today().isoformat()}] === 盘中监控结束 ===")
     print(f"  总轮询: {daily_stats['cycles']} | 执行: {daily_stats['executed']} | 预警: {daily_stats['warnings']} | 恐慌推送: {daily_stats['panic_pushed']}")
+    print(f"  尾盘轮动: {'已完成' if rotation_done else '未完成（19:00 inject 兜底）'}")
 
     if daily_stats["executed"] > 0 or daily_stats["warnings"] > 0 or daily_stats["panic_pushed"] > 0:
         summary = (
             f"📊 盘中监控结束 [{date.today().isoformat()}]\n"
             f"当日交易：{daily_stats['executed']}笔 | 预警：{daily_stats['warnings']}条\n"
             f"恐慌推送：{daily_stats['panic_pushed']}次\n"
+            f"尾盘轮动：{'已完成' if rotation_done else '未完成(19:00兜底)'}\n"
             f"总轮询：{daily_stats['cycles']}次"
         )
         print(summary)

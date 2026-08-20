@@ -18,8 +18,12 @@
 # 持仓止损/止盈/T+减仓线 + top20候选 + 账户状态
 0 8 * * 1-5 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python stockhot/invest_sop/scripts/premarket_strategy.py >> stockhot/invest_sop/logs/premarket_strategy.log 2>&1
 
-# 08:15 – AI Trading Advisor (盘前报告 + AI建议)
-15 8 * * 1-5 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python stockhot/invest_sop/scripts/run_daily_advisor.py >> stockhot/invest_sop/logs/advisor.log 2>&1
+# 05:00 – AI Trading Advisor (盘前报告 + AI建议)
+# 2026-08-19 从 08:15 提前到 05:00：全量因子打分耗时已膨胀到 2.5-2.8h
+# （8/7 前 ~25min），08:15 启动导致盘前报告 11:00 才推送。05:00 起跑约
+# 07:50 完成，赶在 08:00 盘前策略表 / 08:30 morning_confirm 之前。数据
+# 全部依赖 T-1 收盘后已入库内容，05:00 与 08:15 等价。
+0 5 * * 1-5 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python stockhot/invest_sop/scripts/run_daily_advisor.py >> stockhot/invest_sop/logs/advisor.log 2>&1
 
 # 08:30 – Morning confirmation (盘前数据完整性检查)
 30 8 * * 1-5 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python stockhot/invest_sop/scripts/morning_confirm.py >> stockhot/invest_sop/logs/morning.log 2>&1
@@ -30,6 +34,15 @@
 # 每 2 分钟轮询实时价 → 持仓止损/止盈/T+减仓/加仓执行 + 恐慌信号检测
 # 恐慌信号仅状态切换或强度跳变 ±15 时推送（避免刷屏）
 25 9 * * 1-5 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python stockhot/invest_sop/scripts/intraday_manager.py >> stockhot/invest_sop/logs/intraday_manager.log 2>&1
+
+# 14:40 – 尾盘实时价轮动（2026-08-20 新增，可跟随信号）
+# 昨日因子(top20_screen T-1) + 实时行情 → live_factor_test/mini_100k 轮动成交
+# + 飞书推送（~20 分钟跟随窗口）。涨跌停拒单、板块整手规则（科创板200股
+# 下限、小资金可买性递补）与 executor 一致。
+# 触发方式：由上方 intraday_manager 常驻进程在 ≥14:40 的周期内置触发
+# （intraday_rotation.trigger_rotation，窗口守卫+最多3次重试），无独立
+# cron 行。成功后 has_run_on(T)=True，19:00 inject 自动跳过——inject 降级
+# 为失败兜底（如实时行情双源均挂且重试超限）。
 
 # ═══ 盘后（Mon–Fri）══════════════════════════════════════════════════
 
@@ -42,7 +55,9 @@
 # 17:20 – Sync top20 → watchlist 候选池
 20 17 * * 1-5 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python studies/sync_screen_to_watchlist.py >> stockhot/invest_sop/logs/screen_sync.log 2>&1
 
-# 19:00 – Inject signals → paper_trading (收盘调仓 + 调仓报告推送)
+# 19:00 – Inject signals → paper_trading（14:40 尾盘轮动的失败兜底）
+# 2026-08-20 起主执行通道为 14:40 尾盘实时价轮动（见上）；本任务仅在当日
+# 14:40 未成功落账时执行（executor has_run_on 检查），成交价为当日收盘。
 # 放在 19:00：screen_top20 (16:30) 受 Tushare 限流影响可能跑到 18:30+，
 # 17:25 启动会因选股结果未生成而报错
 0 19 * * 1-5 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python studies/inject_screen_to_paper.py >> stockhot/invest_sop/logs/paper_inject.log 2>&1
@@ -52,6 +67,13 @@
 
 # 19:00 – Auto git commit & push (报告同步到 GitHub)
 0 19 * * 1-5 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python stockhot/invest_sop/scripts/auto_commit_push.py >> stockhot/invest_sop/logs/auto_sync.log 2>&1
+
+# 19:20 – Limitup daily refresh (limit_pool/资金流/龙虎榜 + 全市场日线兜底)
+# intraday shadow(19:55) 依赖当日 daily_price 锚先行落库
+20 19 * * 1-5 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python -m davis_analyzer.limitup daily >> stockhot/invest_sop/logs/limitup_daily.log 2>&1
+
+# 19:55 – Intraday 做T影子验证 (盘后回放 gap_smart，写独立研究库台账 intraday_shadow_*)
+55 19 * * 1-5 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python -m davis_analyzer.intraday shadow >> stockhot/invest_sop/logs/intraday_shadow.log 2>&1
 
 # 20:00 – Davis Double 估值筛选 (~60-90min)
 0 20 * * 1-5 cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python scripts/davis_nightly_screen.py >> stockhot/invest_sop/logs/davis_nightly.log 2>&1
