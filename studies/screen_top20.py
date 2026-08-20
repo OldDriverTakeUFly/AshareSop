@@ -158,7 +158,7 @@ def run_screening(as_of: date) -> dict:
     # ── 1. Build full-A universe ──
     print(f"[1/4] Building full-A stock universe...")
     stock_list = build_stock_universe(client)
-    print(f"      Universe: {len(stock_list)} stocks (ST excluded)")
+    print(f"      Universe: {len(stock_list)} stocks (ST/delisted excluded)")
     stock_infos: dict[str, StockInfo] = {s.ts_code: s for s in stock_list}
 
     # ── 2. Stage 1: Valuation pre-filter ──
@@ -396,7 +396,7 @@ def generate_report(data: dict) -> str:
         f"# 全A股四因子截面筛选 — 当前最适合买入的 top-20 标的",
         "",
         f"> **筛选日期**：{as_of}（最近交易日收盘数据）",
-        f"> **筛选范围**：全A股 {data['universe_size']} 只（已排除 ST/*ST）",
+        f"> **筛选范围**：全A股 {data['universe_size']} 只（已排除 ST/*ST/退市股）",
         f"> **筛选方法**：四因子加权打分（动量+估值+景气度+困境）",
         f"> **生成日期**：{date.today().isoformat()}",
         "",
