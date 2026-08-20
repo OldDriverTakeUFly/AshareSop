@@ -202,6 +202,102 @@ def default_participants(universe: list[str] | None = None) -> list[ModuleAdapte
         for name, params in TOURNAMENT_DAVIS_PRESETS.items()
     ]
     participants.append(IndexBenchmarkAdapter())
+    participants.append(BoardChasingAdapter())
     for name, params in CHAMPION_PRESETS.items():
         participants.append(DavisPresetAdapter(f"champion_{name}", dict(params), universe=universe))
     return participants
+
+
+# ── board-chasing (limitup first_board, event horizon) ──
+
+
+from davis_analyzer.limitup import db as _limitup_db
+from davis_analyzer.limitup.engine import (
+    LimitupBacktestConfig as _LCfg,
+    TradeRecord as _LTrade,
+    run_backtest as _lrun,
+    run_sensitivity as _lsens,
+)
+from davis_analyzer.limitup.events import build_events as _build_ev
+from davis_analyzer.limitup.patterns import attach_pattern_features as _attach_pat
+from davis_analyzer.limitup.sentiment import build_market_regime as _build_regime
+from davis_analyzer.limitup.strategies import PRESETS as _LPRESETS, apply_preset as _lap
+
+from davis_analyzer.tournament.genome import BOARD_CHASING_GENOME
+
+
+class BoardChasingAdapter:
+    """首板打板策略（event horizon）——悲观档成交假设.
+
+    基因声明极小化（spec §D8 + limitup 冻结先验）：
+    仅开放 max_positions；形态阈值/regime 阈值/成交概率档位全部冻结。
+    """
+
+    horizon = "event"
+
+    def __init__(
+        self,
+        name: str = "board_chasing_first",
+        params: dict[str, float | int] | None = None,
+    ) -> None:
+        self.name = name
+        self._params = {"max_positions": 3, **(params or {})}
+        self._genome = BOARD_CHASING_GENOME
+        self.version = f"v{_params_fingerprint(self._params)}"
+
+    def run_window(
+        self, client: TushareClient, start: date, end: date,
+        params: dict[str, float | int] | None = None,
+    ) -> RunResult | None:
+        merged = {**self._params, **(params or {})}
+        self._genome.validate(merged)
+        s, e = start.strftime("%Y%m%d"), end.strftime("%Y%m%d")
+        conn = _limitup_db.connect()
+        try:
+            ev = _build_ev(conn, s, e)
+            if ev.empty:
+                return None
+            ev = _attach_pat(ev, conn, s, e)
+            regime = _build_regime(conn, s, e)
+            cands = _lap(ev, _LPRESETS["first_board"], regime=regime)
+            if cands.empty:
+                return None
+            prices = _limitup_db.read_daily_prices(
+                conn, sorted(cands["ts_code"].unique()), s, e)
+        finally:
+            conn.close()
+        if prices.empty:
+            return None
+        cfg = _LCfg(max_positions=int(merged["max_positions"]))
+        # 悲观档（spec「成本现实性规则」最保守假设）
+        trades_l, nav = _lrun(cands, prices, _LPRESETS["first_board"], cfg,
+                              scenario="pessimistic")
+        curve: list[EquitySnapshot] = []
+        for _, r in nav.iterrows():
+            d = pd.to_datetime(r["date"], format="%Y%m%d").date()
+            curve.append(EquitySnapshot(
+                date=d, equity=float(r["equity"]),
+                cash=float(r["cash"]), positions_value=float(r["equity"]) - float(r["cash"])))
+        bt_trades: list[Trade] = []
+        for t in trades_l:
+            bt_trades.append(Trade(
+                code=t.ts_code, action="BUY" if True else "SELL",
+                price=t.entry_price, shares=t.shares,
+                signal_date=pd.to_datetime(t.entry_date, format="%Y%m%d").date(),
+                exec_date=pd.to_datetime(t.entry_date, format="%Y%m%d").date(),
+            ))
+            bt_trades.append(Trade(
+                code=t.ts_code, action="SELL",
+                price=t.exit_price, shares=t.shares,
+                signal_date=pd.to_datetime(t.exit_date, format="%Y%m%d").date(),
+                exec_date=pd.to_datetime(t.exit_date, format="%Y%m%d").date(),
+            ))
+        return RunResult(
+            equity_curve=curve, trades=bt_trades,
+            assumptions={
+                "cost_model": "commission_2.5bps_stamp_10bps_slippage_10bps",
+                "fill_model": "pessimistic(probability×0.5)",
+                "exit_rule": "T+1_open_sell",
+                "caveat": "fill_rate_not_yet_calibrated_by_queue_sim",
+            },
+        )

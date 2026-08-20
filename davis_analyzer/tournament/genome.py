@@ -77,3 +77,13 @@ DAVIS_GENOME = Genome(
         ParamSpec("frequency", 5, 20, kind="choice", choices=[5, 10, 20]),
     ]
 )
+
+
+# ── board-chasing genome (frozen v1, spec Phase 4) ──
+# 仅开放 max_positions；形态/regime/成交概率阈值全部冻结（limitup 先验）
+
+BOARD_CHASING_GENOME = Genome(
+    [
+        ParamSpec("max_positions", 1, 5, kind="choice", choices=[1, 2, 3, 4, 5]),
+    ]
+)
