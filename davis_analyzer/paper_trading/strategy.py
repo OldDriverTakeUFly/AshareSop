@@ -264,6 +264,12 @@ class FactorThresholdStrategy:
         # 半仓上限处理). 修复 924 式行情起点踏空 (2024-09 bear 37%/暴露0.95格).
         # False = 关闭 (生产默认).
         ma200_bear_override: bool = False,
+        # ── 牛市卖出豁免 (实验0004, 2026-08-21) ──
+        # 0003 测试台 T13 逐笔证据: 924 脉冲中入场很准(启动前/次日买入),
+        # 但高位放量/T+减仓在 +8~+17% 就清仓, 吃不到主升段. bull 且指数>MA200
+        # 时豁免这两个止盈型卖出(硬止损不受影响). 均默认关闭.
+        bull_highvol_sell_exempt: bool = False,
+        bull_tplus_trim_exempt: bool = False,
         # sell_momentum: Fine-param sweep (2026-07-23) showed 30 beats 40/45.
         # Lower threshold = exit sooner when momentum fades (better in bear markets).
         #   sell=30 → Sharpe +0.252 (BEST)
@@ -530,6 +536,8 @@ class FactorThresholdStrategy:
         self.buy_momentum = buy_momentum
         self.bull_relaxed_buy_momentum = bull_relaxed_buy_momentum
         self.ma200_bear_override = ma200_bear_override
+        self.bull_highvol_sell_exempt = bull_highvol_sell_exempt
+        self.bull_tplus_trim_exempt = bull_tplus_trim_exempt
         self.sell_momentum = sell_momentum
         self.enable_adaptive_sell = enable_adaptive_sell
         self.enable_dynamic_weight = enable_dynamic_weight

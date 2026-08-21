@@ -505,8 +505,17 @@ def _compute_index_20d_drop(trade_date: str) -> float | None:
         return None
 
 
+_MA200_CACHE: dict[str, bool | None] = {}
+
+
 def _compute_index_above_ma200(trade_date: str) -> bool | None:
-    """上证收盘是否站上 MA200 (牛市确认用). None = 历史不足200天."""
+    """上证收盘是否站上 MA200 (牛市确认用). None = 历史不足200天.
+
+    每日被快照/风控/T+交易三处调用, 按日期 memoize.
+    """
+    if trade_date in _MA200_CACHE:
+        return _MA200_CACHE[trade_date]
+    result: bool | None = None
     try:
         with get_market_conn() as conn:
             rows = conn.execute(
@@ -515,12 +524,15 @@ def _compute_index_above_ma200(trade_date: str) -> bool | None:
                 (trade_date,),
             ).fetchall()
         if len(rows) < 200:
-            return None
-        curr = float(rows[0][0])
-        ma200 = sum(float(r[0]) for r in rows) / len(rows)
-        return curr > ma200
+            result = None
+        else:
+            curr = float(rows[0][0])
+            ma200 = sum(float(r[0]) for r in rows) / len(rows)
+            result = curr > ma200
     except Exception:
-        return None
+        result = None
+    _MA200_CACHE[trade_date] = result
+    return result
 
 
 def _compute_stock_20d_drops(ts_codes: list[str], trade_date: str) -> dict[str, float]:
@@ -2043,6 +2055,14 @@ class DailyExecutor:
                 # Skip entirely if strategy disabled the volume-risk path.
                 if not getattr(self.strategy, "enable_volume_risk", True):
                     continue
+                # 实验0004: 牛市确认状态(bull + 指数>MA200)豁免——脉冲主升段
+                # 的放量是需求特征而非出货信号, 此时高位放量卖出会砍在主升起点.
+                if (
+                    getattr(self.strategy, "bull_highvol_sell_exempt", False)
+                    and market_regime == "bull"
+                    and _compute_index_above_ma200(trade_date)
+                ):
+                    continue
                 vol_sig = volume_signals.get(pos.ts_code)
                 if (
                     vol_sig is not None
@@ -2111,7 +2131,14 @@ class DailyExecutor:
 
             # ── Trim: partial take-profit ──
             if pnl_pct >= self.t_trim_threshold:
-                trim_shares = int(pos.shares * self.t_trim_ratio // 100) * 100
+                # 实验0004: 牛市确认状态豁免 T+减仓——脉冲段让利润奔跑
+                # (0003 T13: 924 首周 +8~+17% 即被减仓, 错过主升).
+                bull_exempt = (
+                    getattr(self.strategy, "bull_tplus_trim_exempt", False)
+                    and market_regime == "bull"
+                    and _compute_index_above_ma200(trade_date)
+                )
+                trim_shares = 0 if bull_exempt else int(pos.shares * self.t_trim_ratio // 100) * 100
                 if trim_shares >= 100:
                     trade = self.account.sell(
                         ts_code=pos.ts_code,
