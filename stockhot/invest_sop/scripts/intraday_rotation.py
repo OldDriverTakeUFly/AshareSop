@@ -288,6 +288,7 @@ def _rotate_one(
         c6 = s.ts_code.split(".")[0]
         px = prices_ts.get(s.ts_code)
         if px is None:
+            print(f"[{acc.name}] {s.name} {s.ts_code} 无实时报价，卖出顺延（次日重试）")
             continue
         if pct_map.get(c6, 0.0) <= -(_limit_pct(s.ts_code) - 0.5):
             print(f"[{acc.name}] {s.name} 接近跌停（{pct_map.get(c6, 0):+.1f}%），卖出顺延")
@@ -322,7 +323,13 @@ def _rotate_one(
             executed_buys.append(_trade_dict(trade))
 
     # ── 记 NAV（标记当日已决策，19:00 inject 自动跳过）──
-    nav = acc.record_nav(today, prices_ts)
+    # 缺价持仓用成本价兜底：record_nav 对无价持仓按 0 计价，曾把持有
+    # 无报价标的（停牌/行情源缺口）的账户记成单日 -13% 的假亏损
+    nav_prices = dict(prices_ts)
+    for p in acc.get_positions():
+        if p.ts_code not in nav_prices or nav_prices.get(p.ts_code, 0) <= 0:
+            nav_prices[p.ts_code] = p.avg_cost
+    nav = acc.record_nav(today, nav_prices)
     final_positions = acc.get_positions()
     summary = {
         "initial_capital": acc.initial_capital,
