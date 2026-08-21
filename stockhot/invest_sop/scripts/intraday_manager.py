@@ -73,6 +73,33 @@ WARN_PROXIMITY = 0.01  # 接近预警 1%
 # 事件日阈值收窄（CPI/交割日等波动大的日子，更快落袋为安）
 T_TRIM_THRESHOLD_EVENT = 0.05  # 事件日 T+减仓从 +8% 收窄到 +5%
 
+# ── 预警推送冷却（2026-08-21）──
+# warn_stop/warn_target 是电平型信号：价格贴着止损/目标线 1% 以内时每轮
+# （2 分钟）都触发，同一标的一天能刷几十条推送。同一 (账户, 标的, 预警
+# 类型) 在冷却期内只推一次；进程每日 9:25 由 cron 重启，状态自然复位。
+WARN_COOLDOWN_SEC = 30 * 60
+_warn_push_at: dict[tuple[str, str, str], float] = {}
+
+
+# ── 减仓/加仓每日一次守卫（2026-08-21）──
+# t_trim/take_profit/pullback_add 是电平型信号，浮盈持续 ≥8% 时每轮都会
+# 再触发，曾在一天内把单只持仓连减 7 次。语义与 executor 对齐：部分
+# 减仓/加仓每（账户, 标的）每天最多一次；stop_loss（清仓）不受限——
+# 允许"先止盈减仓、随后下杀触发止损清仓"的连续场景。进程每日 9:25 由
+# cron 重启，状态自然按日复位。
+_partial_action_done_today: set[tuple[str, str]] = set()
+_PARTIAL_ACTION_TYPES = frozenset({"t_trim", "take_profit", "pullback_add"})
+
+
+def _warn_push_allowed(key: tuple[str, str, str], now: float | None = None) -> bool:
+    """同标的同类型预警的推送冷却判定（True=放行并记账）."""
+    now = now if now is not None else time.time()
+    last = _warn_push_at.get(key)
+    if last is not None and now - last < WARN_COOLDOWN_SEC:
+        return False
+    _warn_push_at[key] = now
+    return True
+
 # 板手（A 股最小交易单位）
 BOARD_LOT = 100
 
@@ -530,11 +557,19 @@ def run_one_cycle(dry_run: bool = False) -> dict:
 
         for sig in signals:
             if sig["type"] in ("warn_stop", "warn_target"):
-                # 预警信号
-                w = {"type": sig["type"], "name": h["name"], "code": h["code"],
-                     "price": current, "source": h["source"], **sig}
-                warnings.append(w)
+                # 预警信号（冷却去重：同账户+标的+类型 30 分钟内只推一次）
+                wkey = (h["source"], h["code"], sig["type"])
+                if _warn_push_allowed(wkey):
+                    w = {"type": sig["type"], "name": h["name"], "code": h["code"],
+                         "price": current, "source": h["source"], **sig}
+                    warnings.append(w)
+                else:
+                    print(f"  [冷却] {h['name']} {sig['type']} 预警 30min 内已推过，静默")
             elif dedup_key not in executed_keys_today:
+                # 每日一次守卫：部分减仓/加仓每标的每天最多一次；止损清仓豁免
+                if sig["type"] in _PARTIAL_ACTION_TYPES and dedup_key in _partial_action_done_today:
+                    print(f"  [每日一次] {h['name']} {sig['type']} 今日已执行过，静默")
+                    continue
                 # 执行信号（用持仓自带的 account 引用，支持多账户）
                 if dry_run:
                     executed.append({
@@ -545,12 +580,16 @@ def run_one_cycle(dry_run: bool = False) -> dict:
                         "source": h["source"],
                     })
                     executed_keys_today.add(dedup_key)
+                    if sig["type"] in _PARTIAL_ACTION_TYPES:
+                        _partial_action_done_today.add(dedup_key)
                 elif h.get("can_execute") and h.get("account"):
                     result = _execute_signal(h, sig, h["account"], trade_date)
                     if result:
                         result["source"] = h["source"]
                         executed.append(result)
                         executed_keys_today.add(dedup_key)
+                        if sig["type"] in _PARTIAL_ACTION_TYPES:
+                            _partial_action_done_today.add(dedup_key)
                         print(f"  执行[{h['source']}]: {result['type']} {result['name']} @{result['price']:.2f}")
 
     # 推送（有持仓执行/预警 或 恐慌状态变化时）
