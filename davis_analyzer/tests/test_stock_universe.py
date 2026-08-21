@@ -33,6 +33,10 @@ _ROWS = [
     # ST 家族（既有排除逻辑）
     {"ts_code": "600001.SH", "name": "ST宏盛", "industry": "贸易", "list_status": "L"},
     {"ts_code": "600002.SH", "name": "*ST新亿", "industry": "贸易", "list_status": "L"},
+    # 北交所（2026-08-21 整体剔除：行情降级源无报价，NAV 0 计价/卖出顺延）
+    {"ts_code": "920107.BJ", "name": "N恒兴", "industry": "电子", "list_status": "L"},
+    {"ts_code": "920065.BJ", "name": "千岸科技", "industry": "机械", "list_status": "L"},
+    {"ts_code": "835185.BJ", "name": "老三板股", "industry": "综合", "list_status": "L"},
 ]
 
 
@@ -42,6 +46,22 @@ class TestBuildStockUniverseActiveOnly:
         stocks = build_stock_universe(client)
         codes = {s.ts_code for s in stocks}
         assert codes == {"600000.SH", "688002.SH"}
+
+    def test_default_drops_beijing_exchange(self):
+        """北交所（.BJ 后缀，含老 83 系）整体剔除——行情源缺口无法定价."""
+        client = _FakeClient(_ROWS)
+        codes = {s.ts_code for s in build_stock_universe(client)}
+        assert "920107.BJ" not in codes
+        assert "920065.BJ" not in codes
+        assert "835185.BJ" not in codes
+
+    def test_active_only_false_still_drops_beijing(self):
+        """回测场景保留退市股，但北交所同样剔除（政策性整体排除）."""
+        client = _FakeClient(_ROWS)
+        codes = {s.ts_code for s in build_stock_universe(client, active_only=False)}
+        assert "300280.SZ" in codes  # D 保留
+        assert "920107.BJ" not in codes  # BJ 仍剔除
+        assert "835185.BJ" not in codes
 
     def test_default_drops_delisting_period_by_name(self):
         """整理期股票 list_status=L 但名称含"退" → 名称兜底剔除."""

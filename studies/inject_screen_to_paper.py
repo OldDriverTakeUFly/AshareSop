@@ -44,6 +44,9 @@ def bridge_to_davis_scores(top20: list[dict]) -> dict[str, dict]:
 
     screen_top20: {ts_code, name, composite, ...}
     davis_double: {ts_code: {"final_score": float, "name": str}}
+
+    北交所（.BJ）整体剔除（2026-08-21）：实时行情降级源不含其报价，
+    模拟盘无法定价/成交，在桥接层统一过滤（inject 与尾盘轮动共用）。
     """
     return {
         r["ts_code"]: {
@@ -52,6 +55,7 @@ def bridge_to_davis_scores(top20: list[dict]) -> dict[str, dict]:
             "rank": i,
         }
         for i, r in enumerate(top20)
+        if not r["ts_code"].endswith(".BJ")
     }
 
 

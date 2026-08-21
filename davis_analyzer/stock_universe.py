@@ -30,6 +30,13 @@ def build_stock_universe(
 
     total = len(df)
 
+    # 北交所（.BJ 后缀）整体剔除（2026-08-21，政策性无条件）：实时行情
+    # 降级源（新浪）不含北交所报价，缺价持仓会被 NAV 按 0 计价、卖出
+    # 静默顺延，尾盘轮动也无法定价——宇宙源头排除，下游不再特殊处理
+    bj_mask = df["ts_code"].str.endswith(".BJ")
+    if bj_mask.any():
+        df = df[~bj_mask].copy()
+
     if active_only:
         if "list_status" in df.columns:
             df = df[df["list_status"] == "L"].copy()
@@ -37,7 +44,7 @@ def build_stock_universe(
         delist_mask = df["name"].str.contains("退", case=False, na=False, regex=False)
         df = df[~delist_mask].copy()
         logger.info(
-            "Stock universe: {} → {} after dropping delisted/suspended",
+            "Stock universe: {} → {} after dropping delisted/suspended/BJ",
             total,
             len(df),
         )
