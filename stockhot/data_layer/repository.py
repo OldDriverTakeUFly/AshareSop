@@ -243,16 +243,43 @@ class MarketDataRepository:
             conn.commit()
             return cur.rowcount
 
+    @staticmethod
+    def _guard_adj_blast(df: pd.DataFrame) -> None:
+        """单值广播防呆：批内同票相邻交易日 adj_factor 跳变>3x 的行占比
+        超过 20% 视为合并事故，拒写（宁拒勿污；调用方外层 best-effort
+        会捕获告警，不阻断盘后主流程）。真实除权极少超过 3 倍且一天只有
+        几只票，广播事故则是全批污染，阈值天然区分两者。"""
+        valid = df.dropna(subset=["adj_factor"])
+        if valid.empty:
+            return
+        ratio = (
+            valid.sort_values(["ts_code", "trade_date"])
+            .groupby("ts_code")["adj_factor"]
+            .transform(lambda s: s / s.shift(1))
+        )
+        bad = ((ratio > 3) | (ratio < 1 / 3)).sum()
+        if bad / len(valid) > 0.20:
+            raise ValueError(
+                f"adj_factor 疑似单值广播: {bad}/{len(valid)} 行相邻日跳变>3x, 拒写"
+            )
+
     def _save_daily_prices(self, daily_df: pd.DataFrame, adj_df: pd.DataFrame) -> int:
         """批量写日线（内部，合并 daily + adj_factor）."""
         ts = now_ts()
-        # 合并复权因子
+        # 合并复权因子 —— 必须按 (ts_code, trade_date) 复合键。
+        # 历史事故(2026-07~08)：曾用 trade_date 单键 dict，全市场同日 5500+ 行
+        # 在 dict 构造时互相覆盖只剩最后一行票的因子，再 map 广播到全市场，
+        # 污染 16568 行 adj_factor（2026-08-22 定位修复）。
+        daily_df = daily_df.drop(columns=["adj_factor"], errors="ignore")
         if not adj_df.empty:
-            adj_map = dict(zip(adj_df["trade_date"], adj_df["adj_factor"]))
-            daily_df = daily_df.copy()
-            daily_df["adj_factor"] = daily_df["trade_date"].map(adj_map)
+            daily_df = daily_df.merge(
+                adj_df[["ts_code", "trade_date", "adj_factor"]],
+                on=["ts_code", "trade_date"], how="left",
+            )
         else:
+            daily_df = daily_df.copy()
             daily_df["adj_factor"] = None
+        self._guard_adj_blast(daily_df)
 
         records = []
         for r in daily_df.itertuples():

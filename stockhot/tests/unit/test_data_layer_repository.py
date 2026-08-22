@@ -129,7 +129,16 @@ def _daily_df() -> pd.DataFrame:
 
 
 def _adj_df() -> pd.DataFrame:
-    return pd.DataFrame({"trade_date": ["20260817"], "adj_factor": [1.25]})
+    # 与真实 adj_factor 接口返回形态一致(必含 ts_code); 旧 fixture 缺该列,
+    # 恰是 2026-07~08 单值广播事故的镜像——按 (ts_code, trade_date) 复合键
+    # 合并后该形态不再合法
+    return pd.DataFrame(
+        {
+            "ts_code": ["000001.SZ", "000002.SZ", "600000.SH"],
+            "trade_date": ["20260817"] * 3,
+            "adj_factor": [1.25] * 3,
+        }
+    )
 
 
 def test_persist_daily_snapshot_drops_null_close(tmp_path, monkeypatch):
