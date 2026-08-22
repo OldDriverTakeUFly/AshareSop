@@ -263,6 +263,7 @@ print(f"景气度: composite={pscore.composite_score}, ΔG={pscore.delta_g}, 阶
 | **研报引用股息率时只写 TTM 一个口径（高股息标的的隐形陷阱）** | TTM 股息率基于上一盈利年，盈利下滑年份（业绩预减）的 forward 股息率可能腰斩（塔牌：TTM 6.68% vs"分红率优先"分支 forward 仅 3.4-3.9%）；2026-08 起协调方将"股息可持续性三重校验"（盈利/现金流/资产负债表覆盖度 + TTM/forward 双口径）列为强制 | 股息章节必须并列 TTM 与 forward 双口径（"承诺优先"金额型 vs"分红率优先"比率型两分支），给出覆盖倍数表；`pro.dividend` 的 `div_proc="实施"` 过滤会漏掉预案阶段分红，需与公司公告口径交叉核对分红率 |
 | **`rtk` 包装 `.venv/bin/python script.py` 报 `ModuleNotFoundError: No module named 'stockhot'`** | rtk 代理执行时工作目录/环境与 shell 的 `cd` 不一致，stockhot（editable 安装于仓库根）不在 sys.path；脚本模式的 sys.path[0] 是脚本所在目录而非 cwd（恒力/恒逸研报 2026-08 首次踩到） | 采集脚本顶部显式 `sys.path.insert(0, "/home/leo/Projects/CodeAgentDashboard")`；或跑长脚本时**不用 rtk 包装**，直接 `.venv/bin/python xxx.py > /tmp/out.log 2>&1` 重定向输出 |
 | **`__editable__.stockhot-0.1.0.pth` 存在但脚本模式 import 仍失败（-c 模式却成功）** | editable 安装的 finder 对 script 模式失效（.pth 映射与实际包路径漂移）；`python -c` 因 cwd 在 sys.path 而侥幸通过，掩盖了安装损坏 | 同上：脚本内 sys.path.insert 兜底；或 `pip install -e .` 重装修复根因 |
+| **`pro.forecast()` 不加过滤返回陈旧预告（如 2009FY/2013H1）** | 新端点对无 ann_date 过滤的请求返回任意历史行，排序不可靠——批量筛选时会把十年前的预告当成最新（创新药 29 标的筛选 2026-08 首次踩到，多只显示 2009/2013/2021 年预告） | 取数后必须 `pd.to_numeric(fc["ann_date"])>=YYYY0101` 过滤再按 end_date 排序取最新；研报场景只取覆盖目标报告期的最近一次预告 |
 
 ## 9. dataclass 字段速查表
 
