@@ -111,29 +111,40 @@ def main() -> None:
     ap.add_argument("--end", default=pd.Timestamp.today().strftime("%Y%m%d"))
     ap.add_argument("--codes", default="")
     ap.add_argument("--from-ledger", action="store_true")
+    ap.add_argument("--all", action="store_true",
+                    help="every stock in stock_basic (L/D/P); fetch only the gap "
+                         "[start, cached_min-1] per stock, never re-pulling existing rows")
     ap.add_argument("--index", default="")
     args = ap.parse_args()
 
     conn = sqlite3.connect(str(MARKET_DB_PATH))
+    pro = get_pro_api(timeout=60)
     codes = [c.strip() for c in args.codes.split(",") if c.strip()]
+    if args.all:
+        allb = pro.stock_basic(fields="ts_code,list_status")
+        allb = allb[allb["list_status"].isin(["L", "D", "P"])]
+        codes += [c for c in allb["ts_code"] if c not in codes]
+        print(f"--all: 全市场 {len(codes)} 只(含退市)")
     if args.from_ledger:
         led = codes_from_ledger(conn)
         print(f"ledger 收集到 {len(led)} 只: {led[:10]}{'...' if len(led) > 10 else ''}")
         codes += [c for c in led if c not in codes]
     indexes = [c.strip() for c in args.index.split(",") if c.strip()]
 
-    pro = get_pro_api(timeout=60)
-
     for code in codes:
         mn, cnt = cached_range(conn, code)
         if mn is not None and mn <= args.start:
-            print(f"  {code}: 已覆盖 {mn} 起 {cnt} 行,跳过")
+            continue  # already covered
+        # only fetch the gap [start, cached_min-1]; never re-pull existing rows
+        gap_end = ((pd.to_datetime(mn) - pd.Timedelta(days=1)).strftime("%Y%m%d")
+                   if mn else args.end)
+        if gap_end < args.start:
             continue
-        daily, adj = fetch_stock_history(pro, code, args.start, args.end)
+        daily, adj = fetch_stock_history(pro, code, args.start, gap_end)
         n = insert_rows(conn, daily, adj, code)
         conn.commit()
         mn2, cnt2 = cached_range(conn, code)
-        print(f"  {code}: 回补 {n} 行 → 缓存 {mn2}..{args.end} 共 {cnt2} 行")
+        print(f"  {code}: 回补 {n} 行 [{args.start}..{gap_end}] → 缓存 {mn2}.. 共 {cnt2} 行", flush=True)
 
     for code in indexes:
         dframes = []
