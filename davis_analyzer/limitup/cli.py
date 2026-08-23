@@ -283,6 +283,9 @@ def _build_parser() -> argparse.ArgumentParser:
 
     p_qs = sub.add_parser("queue-sim", help="打板排队模拟（前日候选×当日分钟线回放）")
     p_qs.add_argument("--date", default=None, help="监控日 YYYYMMDD，默认最新交易日")
+    p_qs.add_argument("--scope", default="strategy", choices=["strategy", "calibration"],
+                      help="strategy=预设候选（精确）/ calibration=全市场首板top20（校准用）")
+    p_qs.add_argument("--top-n", type=int, default=20, help="calibration 模式每日跟踪数")
     p_qs.set_defaults(func=cmd_queue_sim)
 
     return parser
@@ -328,7 +331,8 @@ def cmd_queue_sim(args: argparse.Namespace) -> None:
         if day is None:
             print("queue-sim: daily_price 无数据", file=sys.stderr)
             sys.exit(1)
-        df = queue_sim.run_queue_sim(conn, day, TushareClient())
+        df = queue_sim.run_queue_sim(conn, day, TushareClient(),
+                                     scope=args.scope, top_n=args.top_n)
         print(queue_sim.queue_summary(conn, day))
         if not df.empty:
             print(df[["ts_code", "name", "boarded", "filled", "first_touch",

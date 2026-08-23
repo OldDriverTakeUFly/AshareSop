@@ -96,17 +96,41 @@ def ensure_table(conn: sqlite3.Connection) -> None:
         "trade_date TEXT NOT NULL, ts_code TEXT NOT NULL, name TEXT, "
         "enhanced INTEGER, boarded INTEGER, filled INTEGER, first_touch TEXT, "
         "fill_time TEXT, limit_price REAL, ret_open_1 REAL, "
+        "scope TEXT DEFAULT 'strategy', "
         "PRIMARY KEY (trade_date, ts_code))"
     )
+    # 幂等加列（旧表无 scope 列）
+    cols = [r[1] for r in conn.execute("PRAGMA table_info(limitup_queue_sim)")]
+    if "scope" not in cols:
+        conn.execute(
+            "ALTER TABLE limitup_queue_sim ADD COLUMN scope TEXT DEFAULT 'strategy'")
     conn.commit()
 
 
+def _all_first_boards(conn: sqlite3.Connection, day: str, top_n: int = 20) -> pd.DataFrame:
+    """全市场首板事件（不做预设过滤）——用于成交率校准，非策略标的.
+
+    标注：scope='calibration' 的记录用于校准概率模型的排队成交率，
+    不代表策略实际会交易这些标的（策略有自己的形态/regime 过滤）。
+    按 seal_ratio 降序取 top_n 控制 stk_mins 限频开销。
+    """
+    from davis_analyzer.limitup.events import build_events
+
+    ev = build_events(conn, day, day)
+    if ev.empty:
+        return pd.DataFrame()
+    fb = ev[(ev["consecutive_boards"] == 1)].copy()
+    fb = fb.sort_values("seal_ratio", ascending=False).head(top_n)
+    return fb
+
+
 def run_queue_sim(conn: sqlite3.Connection, monitor_day: str, client: object,
-                  candidates_fn=None) -> pd.DataFrame:
+                  candidates_fn=None, scope: str = "strategy",
+                  top_n: int = 20) -> pd.DataFrame:
     """Simulate queueing for the previous trading day's first_board candidates.
 
-    candidates_fn(conn, prev_day) allows tests to inject; production uses
-    limitup.candidates.build_candidates.
+    scope='strategy': 只模拟策略预设候选（精确但稀疏）
+    scope='calibration': 模拟全市场首板 top_n（密集，用于概率模型校准）
     """
     from davis_analyzer.limitup.candidates import build_candidates
 
@@ -116,9 +140,12 @@ def run_queue_sim(conn: sqlite3.Connection, monitor_day: str, client: object,
     ).fetchone()[0]
     if prev is None:
         return pd.DataFrame()
-    cands = (candidates_fn or build_candidates)(conn, prev)
+    if scope == "calibration":
+        cands = _all_first_boards(conn, prev, top_n=top_n)
+    else:
+        cands = (candidates_fn or build_candidates)(conn, prev)
     if cands.empty:
-        logger.info("queue_sim: {} 无候选（前一日 {}）", monitor_day, prev)
+        logger.info("queue_sim: {} 无候选（前一日 {}，scope={}）", monitor_day, prev, scope)
         return pd.DataFrame()
 
     rows = []
@@ -158,12 +185,12 @@ def run_queue_sim(conn: sqlite3.Connection, monitor_day: str, client: object,
         return df
     conn.executemany(
         "INSERT OR REPLACE INTO limitup_queue_sim (trade_date, ts_code, name, "
-        "enhanced, boarded, filled, first_touch, fill_time, limit_price, ret_open_1) "
-        "VALUES (?,?,?,?,?,?,?,?,?,?)",
+        "enhanced, boarded, filled, first_touch, fill_time, limit_price, ret_open_1, scope) "
+        "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
         [
             (r["trade_date"], r["ts_code"], r["name"], int(r["enhanced"]),
              int(r["boarded"]), int(r["filled"]), r["first_touch"], r["fill_time"],
-             r["limit_price"], r["ret_open_1"])
+             r["limit_price"], r["ret_open_1"], scope)
             for _, r in df.iterrows()
         ],
     )
