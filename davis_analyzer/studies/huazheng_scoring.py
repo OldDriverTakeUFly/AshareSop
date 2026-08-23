@@ -25,7 +25,7 @@ import pandas as pd
 from dotenv import load_dotenv
 from loguru import logger
 
-load_dotenv(".env", override=True)  # 坑点 1b：强制 .env 的新 token
+load_dotenv("/home/leo/Projects/CodeAgentDashboard/.env", override=True)  # 坑点 1b：强制 .env 的新 token
 os.environ["PROJECT_ROOT"] = os.getcwd()  # 坑点 2：防 .env 的 /app 值
 
 # ── davis_analyzer 核心模块（只读调用，不修改源码）──

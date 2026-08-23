@@ -93,5 +93,5 @@ def get_pro_api(timeout: int = 60) -> _ProApi:
     token = os.environ.get("TUSHARE_TOKEN", "")
     if not token:
         raise ValueError("TUSHARE_TOKEN not found in .env or environment")
-    logger.info(f"tushare pro_api configured: {_NEW_HTTP_URL} (token={token[:12]}...)")
+    logger.info(f"tushare pro_api configured: {_NEW_HTTP_URL} (token={token[:4]}***)")
     return _ProApi(token=token, timeout=timeout)

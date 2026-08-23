@@ -8,7 +8,7 @@ import os
 import pandas as pd
 from dotenv import load_dotenv
 
-load_dotenv(".env", override=True)
+load_dotenv("/home/leo/Projects/CodeAgentDashboard/.env", override=True)
 os.environ["PROJECT_ROOT"] = os.getcwd()
 
 from davis_analyzer.tushare_client import TushareClient  # noqa: E402

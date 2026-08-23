@@ -28,7 +28,7 @@ from datetime import date, timedelta
 os.environ.setdefault("PROJECT_ROOT", "/home/leo/Projects/CodeAgentDashboard")
 sys.path.insert(0, "/home/leo/Projects/CodeAgentDashboard")
 from dotenv import load_dotenv
-load_dotenv('.env', override=True)
+load_dotenv('/home/leo/Projects/CodeAgentDashboard/.env', override=True)
 # load_dotenv 后重新 pin PROJECT_ROOT, 防 .env 的 /app 值破坏 stockhot mkdir
 os.environ["PROJECT_ROOT"] = "/home/leo/Projects/CodeAgentDashboard"
 

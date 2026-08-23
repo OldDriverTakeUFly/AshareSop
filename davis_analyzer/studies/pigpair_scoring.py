@@ -19,7 +19,7 @@ from datetime import date, timedelta
 
 from dotenv import load_dotenv
 
-load_dotenv(".env", override=True)   # 坑点1b: 防 shell 导出 stale token
+load_dotenv("/home/leo/Projects/CodeAgentDashboard/.env", override=True)   # 坑点1b: 防 shell 导出 stale token
 os.environ["PROJECT_ROOT"] = os.getcwd()  # 坑点2b: 防 .env 的 /app 破坏 mkdir
 
 import pandas as pd  # noqa: E402

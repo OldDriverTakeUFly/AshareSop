@@ -9,7 +9,7 @@ from datetime import date, timedelta
 import pandas as pd
 from dotenv import load_dotenv
 
-load_dotenv(".env", override=True)  # 防 shell 导出 stale token
+load_dotenv("/home/leo/Projects/CodeAgentDashboard/.env", override=True)  # 防 shell 导出 stale token
 os.environ["PROJECT_ROOT"] = os.getcwd()  # 防 .env 的 /app 值破坏 stockhot mkdir
 
 from stockhot.tushare_config import get_pro_api  # noqa: E402

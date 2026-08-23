@@ -30,7 +30,7 @@ from loguru import logger
 import os
 import sys
 
-load_dotenv(".env", override=True)
+load_dotenv("/home/leo/Projects/CodeAgentDashboard/.env", override=True)
 PROJECT_ROOT = str(Path(__file__).resolve().parents[2])
 os.environ["PROJECT_ROOT"] = PROJECT_ROOT
 if PROJECT_ROOT not in sys.path:

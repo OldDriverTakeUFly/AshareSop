@@ -29,7 +29,7 @@ from dotenv import load_dotenv
 from loguru import logger
 
 # ── 坑点 1b/2b：stale token 覆盖 + PROJECT_ROOT 固定（必须在 import 引擎前）──
-load_dotenv(".env", override=True)
+load_dotenv("/home/leo/Projects/CodeAgentDashboard/.env", override=True)
 os_proj_root = "/home/leo/Projects/CodeAgentDashboard"
 os.environ["PROJECT_ROOT"] = os_proj_root
 

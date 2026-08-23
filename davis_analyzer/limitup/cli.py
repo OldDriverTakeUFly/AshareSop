@@ -288,6 +288,9 @@ def _build_parser() -> argparse.ArgumentParser:
     p_qs.add_argument("--top-n", type=int, default=20, help="calibration 模式每日跟踪数")
     p_qs.set_defaults(func=cmd_queue_sim)
 
+    p_qb = sub.add_parser("queue-backfill", help="历史分钟线排队模拟回补（每小时1只）")
+    p_qb.set_defaults(func=cmd_queue_backfill)
+
     return parser
 
 
@@ -339,3 +342,20 @@ def cmd_queue_sim(args: argparse.Namespace) -> None:
                       "fill_time", "ret_open_1"]].to_string(index=False))
     finally:
         conn.close()
+
+
+def cmd_queue_backfill(args: argparse.Namespace) -> None:
+    from davis_analyzer.limitup import db, queue_backfill
+
+    conn = db.connect()
+    try:
+        result = queue_backfill.run_backfill_step(conn, _make_tushare_client())
+        print(f"backfill: {result}")
+    finally:
+        conn.close()
+
+
+def _make_tushare_client():
+    from davis_analyzer.tushare_client import TushareClient
+
+    return TushareClient()

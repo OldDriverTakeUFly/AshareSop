@@ -9,7 +9,7 @@ from datetime import date, timedelta
 
 from dotenv import load_dotenv
 
-load_dotenv(".env", override=True)
+load_dotenv("/home/leo/Projects/CodeAgentDashboard/.env", override=True)
 os.environ["PROJECT_ROOT"] = os.getcwd()
 
 import pandas as pd  # noqa: E402

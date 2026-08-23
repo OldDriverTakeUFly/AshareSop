@@ -31,7 +31,7 @@ import pandas as pd
 from dotenv import load_dotenv
 from loguru import logger
 
-load_dotenv(".env", override=True)  # 防 stale token
+load_dotenv("/home/leo/Projects/CodeAgentDashboard/.env", override=True)  # 防 stale token
 if os.environ.get("PROJECT_ROOT") in ("/app", "", None):
     os.environ["PROJECT_ROOT"] = str(Path.cwd())
 

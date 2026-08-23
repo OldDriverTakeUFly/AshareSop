@@ -32,7 +32,7 @@ from dotenv import load_dotenv
 from loguru import logger
 
 # ── 环境:先 load_dotenv(拿新 token),再 pin PROJECT_ROOT(修路径),再 import 引擎 ──
-load_dotenv(".env", override=True)
+load_dotenv("/home/leo/Projects/CodeAgentDashboard/.env", override=True)
 os.environ["PROJECT_ROOT"] = os.getcwd()
 
 from davis_analyzer.distress import calculate_distress_score

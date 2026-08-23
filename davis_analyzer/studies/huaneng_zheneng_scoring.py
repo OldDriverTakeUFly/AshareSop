@@ -31,7 +31,7 @@ from loguru import logger
 from dotenv import load_dotenv
 
 # ── 标准 env(防 stale token + 防 /app PROJECT_ROOT)──
-load_dotenv(".env", override=True)
+load_dotenv("/home/leo/Projects/CodeAgentDashboard/.env", override=True)
 
 import os
 

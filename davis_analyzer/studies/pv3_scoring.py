@@ -19,7 +19,7 @@ from dotenv import load_dotenv
 from loguru import logger
 
 # ── 标准 env:先 load_dotenv(override 防 stale token),再 pin PROJECT_ROOT ──
-load_dotenv(".env", override=True)
+load_dotenv("/home/leo/Projects/CodeAgentDashboard/.env", override=True)
 os_env_pin = __import__("os")
 os_env_pin.environ["PROJECT_ROOT"] = os_env_pin.getcwd()
 

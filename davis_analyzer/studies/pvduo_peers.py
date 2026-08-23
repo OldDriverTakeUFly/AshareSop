@@ -13,7 +13,7 @@ from pathlib import Path
 import pandas as pd
 from dotenv import load_dotenv
 
-load_dotenv(".env", override=True)
+load_dotenv("/home/leo/Projects/CodeAgentDashboard/.env", override=True)
 if os.environ.get("PROJECT_ROOT") in ("/app", "", None):
     os.environ["PROJECT_ROOT"] = str(Path.cwd())
 

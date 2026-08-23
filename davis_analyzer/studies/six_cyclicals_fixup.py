@@ -10,7 +10,7 @@ import json
 os.environ.setdefault("PROJECT_ROOT", "/home/leo/Projects/CodeAgentDashboard")
 sys.path.insert(0, "/home/leo/Projects/CodeAgentDashboard")
 from dotenv import load_dotenv
-load_dotenv('.env', override=True)
+load_dotenv('/home/leo/Projects/CodeAgentDashboard/.env', override=True)
 os.environ["PROJECT_ROOT"] = "/home/leo/Projects/CodeAgentDashboard"
 
 import pandas as pd
