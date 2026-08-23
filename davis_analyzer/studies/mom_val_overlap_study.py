@@ -31,7 +31,7 @@ from stockhot.tushare_config import get_pro_api
 
 pro = get_pro_api(timeout=60)
 
-START, END = "20230801", "20260821"
+START, END = "20140601", "20260821"
 CACHE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mom_val_panel.pkl")
 if os.path.exists(CACHE):
     close, pb = pd.read_pickle(CACHE)
@@ -53,7 +53,7 @@ else:
     print(f"panel pulled & cached: {close.shape}")
 
 basic = pro.stock_basic(fields="ts_code,name,industry,list_date,list_status").set_index("ts_code")
-basic = basic[basic["list_status"] == "L"]
+basic = basic[basic["list_status"].isin(["L", "D", "P"])]  # 含退市,消幸存者偏差
 
 idx = pro.index_daily(ts_code="000300.SH", start_date=START, end_date=END,
                       fields="trade_date,close").set_index("trade_date")["close"]
@@ -61,7 +61,7 @@ idx.index = pd.to_datetime(idx.index, format="%Y%m%d")
 
 # screening dates: month-end trade days from 2024-07 to 2026-08
 scr = []
-for me in pd.date_range("2024-07-31", "2026-08-31", freq="ME"):
+for me in pd.date_range("2015-01-31", "2026-08-31", freq="ME"):
     dts = [c for c in close.columns if c <= me]
     if dts:
         scr.append(dts[-1])

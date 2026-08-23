@@ -35,8 +35,8 @@ from stockhot.tushare_config import get_pro_api
 
 STUDIES = os.path.dirname(os.path.abspath(__file__))
 CACHE = os.path.join(STUDIES, "mom_val_panel.pkl")
-START, END = "20230801", "20260821"
-SCR_FROM, SCR_TO = "2024-07-31", "2026-08-31"  # month-end screening dates, generated
+START, END = "20140601", "20260821"
+SCR_FROM, SCR_TO = "2015-01-31", "2026-08-31"  # month-end screening dates, generated
 
 if os.path.exists(CACHE):
     close, pb = pd.read_pickle(CACHE)
@@ -60,7 +60,7 @@ else:
 
 pro = get_pro_api(timeout=60)
 basic = pro.stock_basic(fields="ts_code,name,industry,list_date,list_status").set_index("ts_code")
-basic = basic[basic["list_status"] == "L"]
+basic = basic[basic["list_status"].isin(["L", "D", "P"])]  # 含退市,消幸存者偏差
 idx = pro.index_daily(ts_code="000300.SH", start_date=START, end_date=END,
                       fields="trade_date,close").set_index("trade_date")["close"]
 idx.index = pd.to_datetime(idx.index, format="%Y%m%d")

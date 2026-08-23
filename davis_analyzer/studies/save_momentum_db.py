@@ -32,10 +32,10 @@ os.makedirs(os.path.dirname(DB), exist_ok=True)
 close, pb = pd.read_pickle(os.path.join(STUDIES, "mom_val_panel.pkl"))
 pro = get_pro_api(timeout=60)
 basic = pro.stock_basic(fields="ts_code,name,industry,list_date,list_status").set_index("ts_code")
-basic = basic[basic["list_status"] == "L"]
+basic = basic[basic["list_status"].isin(["L", "D", "P"])]  # 含退市,消幸存者偏差
 
 SCR = []
-for me in pd.date_range("2024-07-31", "2026-08-31", freq="ME"):
+for me in pd.date_range("2015-01-31", "2026-08-31", freq="ME"):
     dts_all = [c for c in close.columns if c <= me]
     if dts_all:
         SCR.append(dts_all[-1].strftime("%Y%m%d"))
