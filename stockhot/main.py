@@ -16,9 +16,9 @@ def main():
     parser.add_argument("--version", action="version", version="%(prog)s 0.1.0")
     parser.add_argument(
         "--mode",
-        choices=["collect", "analyze", "generate", "publish", "all", "scheduler"],
+        choices=["collect", "analyze", "generate", "publish", "all"],
         default="all",
-        help="运行模式: collect(数据采集) analyze(AI分析) generate(图片生成) publish(发布) all(全部) scheduler(定时运行)",
+        help="运行模式: collect(数据采集) analyze(AI分析) generate(图片生成) publish(发布) all(全部)",
     )
     parser.add_argument("--date", help="指定日期 (YYYY-MM-DD), 默认今日")
     parser.add_argument("--dry-run", action="store_true", help="试运行, 不实际发布")
@@ -28,16 +28,6 @@ def main():
     print("StockHot-CN 启动中...")
     print(f"运行模式: {args.mode}")
     print(f"日期: {args.date or '今日'}")
-
-    if args.mode == "scheduler":
-        print(
-            "⚠️  scheduler 模式已废弃（自 2026-04 停用，含重复采集 + 无隔离）。\n"
-            "    盘后采集请改用系统 cron + run_daily_scan.py：\n"
-            "      bash stockhot/invest_sop/install.sh   # 安装 cron\n"
-            "      .venv/bin/python stockhot/invest_sop/scripts/run_daily_scan.py\n"
-            "    详见 docs/方法论/统一市场数据架构.md"
-        )
-        return
 
     from stockhot.storage.database import init_database
 
