@@ -1479,8 +1479,31 @@ class BoardChasingStrategy:
         # 当日持仓全部 SELL 且 executor 先卖后买，BUY 名额不因持仓扣减；
         # 持仓 code 当日不重复买入（T+1 打板节奏：卖旧买新，不自成交）.
         held_codes = {p.ts_code for p in positions}
-        weight = 1.0 / self.max_positions
-        slots = self.max_positions
+
+        # ── 高潮增强仓位：涨停>150 家的超级高潮日仓位集中（max_pos 3→2）──
+        # 样本集中在 2024 牛市段（23 天中 18 天），标注为牛市增强因子；
+        # 不触发时策略行为零变化（纯增量规则）.
+        day_max_positions = self.max_positions
+        try:
+            from davis_analyzer.limitup.candidates import candidate_context
+            conn_ctx = _limitup_db.connect()
+            try:
+                ctx = candidate_context(conn_ctx, snapshot.trade_date)
+            finally:
+                conn_ctx.close()
+            lu_count = ctx.get("limit_up_count")
+            if (lu_count is not None and lu_count > 150
+                    and self.max_positions >= 3):
+                day_max_positions = 2
+                logger.info(
+                    "board_chasing: {} 超级高潮日（涨停 {} 家 > 150），仓位集中 max_pos→2",
+                    snapshot.trade_date, int(lu_count),
+                )
+        except Exception:
+            pass  # regime 数据不可用时用默认仓位
+
+        weight = 1.0 / day_max_positions
+        slots = day_max_positions
         for _, row in cands.iterrows():
             if slots <= 0:
                 break

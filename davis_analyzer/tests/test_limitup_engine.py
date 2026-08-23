@@ -187,3 +187,35 @@ def test_open_hold_locked_limit_down_still_postpones() -> None:
     )
     assert trades[0].exit_date == "20240104"
     assert abs(trades[0].exit_price - 9.5 * (1 - 10 / 1e4)) < 1e-9
+
+
+def test_dynamic_slots_super_hot_day() -> None:
+    """高潮增强仓位：dynamic_slots 覆盖指定日期的 max_positions."""
+    from davis_analyzer.limitup.engine import LimitupBacktestConfig
+
+    # 两候选同日（用 _cand 的 base dict 拼帧）
+    base = {"trade_date": "20240102", "limit_price": 11.0,
+            "first_seal_time": "093000", "broken_count": 0, "open": 10.2,
+            "low": 10.0, "close": 11.0, "pre_close": 10.0, "seal_ratio": 0.05}
+    cands = pd.DataFrame([
+        {**base, "ts_code": "600001.SH"},
+        {**base, "ts_code": "600002.SH", "seal_ratio": 0.08},  # 封单比更高
+    ])
+    prices = pd.DataFrame([
+        ("600001.SH", "20240102", 10.2, 11.0, 10.0, 11.0, 10.0),
+        ("600001.SH", "20240103", 10.8, 11.2, 10.5, 10.9, 11.0),
+        ("600002.SH", "20240102", 10.2, 11.0, 10.0, 11.0, 10.0),
+        ("600002.SH", "20240103", 10.8, 11.2, 10.5, 10.9, 11.0),
+    ], columns=["ts_code", "trade_date", "open", "high", "low", "close", "pre_close"])
+
+    cfg3 = LimitupBacktestConfig()
+    t3, _ = run_backtest(cands, prices, PRESETS["first_board"], cfg3,
+                          scenario="always", seed=42)
+    cfg1 = LimitupBacktestConfig(dynamic_slots={"20240102": 1})
+    t1, _ = run_backtest(cands, prices, PRESETS["first_board"], cfg1,
+                          scenario="always", seed=42)
+    assert len(t3) == 2  # 默认 max_pos=3 → 两只各买
+    assert len(t1) == 1  # 仓位集中 max_pos=1 → 只买封单比最高的 600002
+    assert cfg3.effective_max_positions("20240102") == 3
+    assert cfg1.effective_max_positions("20240102") == 1
+    assert cfg1.effective_max_positions("20240103") == 3  # 未指定日用默认

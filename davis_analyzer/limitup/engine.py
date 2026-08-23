@@ -24,6 +24,14 @@ class LimitupBacktestConfig:
     commission_bps: float = 2.5
     stamp_tax_bps: float = 10.0
     slippage_bps: float = 10.0
+    # 高潮增强仓位：dict[trade_date → max_positions]，覆盖全局默认
+    # （仅当日期在此 dict 中时使用该值，否则用 max_positions）
+    dynamic_slots: dict[str, int] | None = None
+
+    def effective_max_positions(self, trade_date: str) -> int:
+        if self.dynamic_slots and trade_date in self.dynamic_slots:
+            return self.dynamic_slots[trade_date]
+        return self.max_positions
 
 
 @dataclass
@@ -158,14 +166,15 @@ def run_backtest(
                                     config, positions, trades)
                     cash += pos["_cash_credit"]
         # 4) 打板买入（先卖后买，空出的 slot 当日可用）
-        slots = config.max_positions - len(positions)
+        day_max_pos = config.effective_max_positions(d)
+        slots = day_max_pos - len(positions)
         if slots > 0 and d in cand_by_date:
             ranked = cand_by_date[d].sort_values(
                 preset.rank_key if preset.rank_key in cand_by_date[d].columns
                 else "seal_ratio", ascending=False
             )
             equity_now = cash + _positions_market_value(positions, px, d)
-            per_slot = equity_now / config.max_positions
+            per_slot = equity_now / day_max_pos
             taken = 0
             for _, row in ranked.iterrows():
                 if taken >= slots:
