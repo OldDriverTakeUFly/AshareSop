@@ -34,8 +34,11 @@ pro = get_pro_api(timeout=60)
 basic = pro.stock_basic(fields="ts_code,name,industry,list_date,list_status").set_index("ts_code")
 basic = basic[basic["list_status"] == "L"]
 
-SCR = ["20251128", "20251231", "20260130", "20260227", "20260331",
-       "20260430", "20260529", "20260630", "20260731", "20260821"]
+SCR = []
+for me in pd.date_range("2024-07-31", "2026-08-31", freq="ME"):
+    dts_all = [c for c in close.columns if c <= me]
+    if dts_all:
+        SCR.append(dts_all[-1].strftime("%Y%m%d"))
 
 con = sqlite3.connect(DB)
 con.execute("""CREATE TABLE IF NOT EXISTS momentum_snapshots (

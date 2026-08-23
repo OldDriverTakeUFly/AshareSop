@@ -31,24 +31,26 @@ from stockhot.tushare_config import get_pro_api
 
 pro = get_pro_api(timeout=60)
 
-START, END = "20240901", "20260821"
-cal = pro.trade_cal(exchange="SSE", start_date=START, end_date=END, fields="cal_date,is_open")
-dates = sorted(cal[cal["is_open"] == 1]["cal_date"].tolist())
-print(f"trade dates {dates[0]}..{dates[-1]} n={len(dates)}")
-
-# ── pull daily_basic whole-market snapshots (1 call/day) ──
-frames = {}
-for d in dates:
-    df = pro.daily_basic(trade_date=d, fields="ts_code,close,pb,pe_ttm")
-    if len(df):
-        frames[d] = df.set_index("ts_code")
-close = pd.DataFrame({d: f["close"] for d, f in frames.items()})
-pb = pd.DataFrame({d: f["pb"] for d, f in frames.items()})
-close.columns = pd.to_datetime(close.columns)
-pb.columns = pd.to_datetime(pb.columns)
-close = close.sort_index(axis=1)
-pb = pb.sort_index(axis=1)
-print(f"panel: {close.shape[0]} stocks x {close.shape[1]} days")
+START, END = "20230801", "20260821"
+CACHE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "mom_val_panel.pkl")
+if os.path.exists(CACHE):
+    close, pb = pd.read_pickle(CACHE)
+    print(f"panel loaded from cache: {close.shape}")
+else:
+    cal = pro.trade_cal(exchange="SSE", start_date=START, end_date=END,
+                        fields="cal_date,is_open")
+    dates = sorted(cal[cal["is_open"] == 1]["cal_date"].tolist())
+    frames = {}
+    for d in dates:
+        df = pro.daily_basic(trade_date=d, fields="ts_code,close,pb,pe_ttm")
+        if len(df):
+            frames[d] = df.set_index("ts_code")
+    close = pd.DataFrame({d: f["close"] for d, f in frames.items()})
+    pb = pd.DataFrame({d: f["pb"] for d, f in frames.items()})
+    close.columns = pd.to_datetime(close.columns); close = close.sort_index(axis=1)
+    pb.columns = pd.to_datetime(pb.columns); pb = pb.sort_index(axis=1)
+    pd.to_pickle((close, pb), CACHE)
+    print(f"panel pulled & cached: {close.shape}")
 
 basic = pro.stock_basic(fields="ts_code,name,industry,list_date,list_status").set_index("ts_code")
 basic = basic[basic["list_status"] == "L"]
@@ -57,11 +59,10 @@ idx = pro.index_daily(ts_code="000300.SH", start_date=START, end_date=END,
                       fields="trade_date,close").set_index("trade_date")["close"]
 idx.index = pd.to_datetime(idx.index, format="%Y%m%d")
 
-# screening dates: last trade day of each month from 2025-11 to 2026-07, plus 2026-08-21
+# screening dates: month-end trade days from 2024-07 to 2026-08
 scr = []
-for m_end in ["20251128", "20251231", "20260130", "20260227", "20260331",
-              "20260430", "20260529", "20260630", "20260731", "20260821"]:
-    dts = [d for d in dates if d <= m_end]
+for me in pd.date_range("2024-07-31", "2026-08-31", freq="ME"):
+    dts = [c for c in close.columns if c <= me]
     if dts:
         scr.append(dts[-1])
 

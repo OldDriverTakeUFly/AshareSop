@@ -35,7 +35,8 @@ from stockhot.tushare_config import get_pro_api
 
 STUDIES = os.path.dirname(os.path.abspath(__file__))
 CACHE = os.path.join(STUDIES, "mom_val_panel.pkl")
-START, END = "20240901", "20260821"
+START, END = "20230801", "20260821"
+SCR_FROM, SCR_TO = "2024-07-31", "2026-08-31"  # month-end screening dates, generated
 
 if os.path.exists(CACHE):
     close, pb = pd.read_pickle(CACHE)
@@ -65,9 +66,8 @@ idx = pro.index_daily(ts_code="000300.SH", start_date=START, end_date=END,
 idx.index = pd.to_datetime(idx.index, format="%Y%m%d")
 
 scr = []
-for m_end in ["20251128", "20251231", "20260130", "20260227", "20260331",
-              "20260430", "20260529", "20260630", "20260731", "20260821"]:
-    dts = [c for c in close.columns if c.strftime("%Y%m%d") <= m_end]
+for me in pd.date_range(SCR_FROM, SCR_TO, freq="ME"):
+    dts = [c for c in close.columns if c <= me]
     if dts:
         scr.append(dts[-1])
 
