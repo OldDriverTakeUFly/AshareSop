@@ -264,6 +264,9 @@ print(f"景气度: composite={pscore.composite_score}, ΔG={pscore.delta_g}, 阶
 | **`rtk` 包装 `.venv/bin/python script.py` 报 `ModuleNotFoundError: No module named 'stockhot'`** | rtk 代理执行时工作目录/环境与 shell 的 `cd` 不一致，stockhot（editable 安装于仓库根）不在 sys.path；脚本模式的 sys.path[0] 是脚本所在目录而非 cwd（恒力/恒逸研报 2026-08 首次踩到） | 采集脚本顶部显式 `sys.path.insert(0, "/home/leo/Projects/CodeAgentDashboard")`；或跑长脚本时**不用 rtk 包装**，直接 `.venv/bin/python xxx.py > /tmp/out.log 2>&1` 重定向输出 |
 | **`__editable__.stockhot-0.1.0.pth` 存在但脚本模式 import 仍失败（-c 模式却成功）** | editable 安装的 finder 对 script 模式失效（.pth 映射与实际包路径漂移）；`python -c` 因 cwd 在 sys.path 而侥幸通过，掩盖了安装损坏 | 同上：脚本内 sys.path.insert 兜底；或 `pip install -e .` 重装修复根因 |
 | **`pro.forecast()` 不加过滤返回陈旧预告（如 2009FY/2013H1）** | 新端点对无 ann_date 过滤的请求返回任意历史行，排序不可靠——批量筛选时会把十年前的预告当成最新（创新药 29 标的筛选 2026-08 首次踩到，多只显示 2009/2013/2021 年预告） | 取数后必须 `pd.to_numeric(fc["ann_date"])>=YYYY0101` 过滤再按 end_date 排序取最新；研报场景只取覆盖目标报告期的最近一次预告 |
+| **`pro.income` 新端点已裁剪 `gross_margin` 字段（KeyError）** | api.tushare.pro/dataapi 的 income 只返回营收/净利等基础字段，`gross_margin` 列不存在（中芯/华虹研报 2026-08 首次踩到，与 balancesheet 裁剪 monetary_capital 同族） | 毛利率改用 `pro.fina_indicator` 的 `grossprofit_margin`（该接口未裁剪）；切勿在 income fields 里带 gross_margin |
+| **`pro.income` 的 revenue/n_income/n_income_attr_p 均为年初至今累计值（非单季）** | 把 H1 累计值当单季会导致 TTM/单季拆分全错——中芯 2025 归母曾因此算成 22.94 亿"单季"（实为 H1 累计），TTM PE 与 Tushare 211.75x 对不上才暴露（中芯/华虹研报 2026-08 踩到） | 单季值必须累计差分（Q2 单季 = H1 累计 − Q1 累计）；**与 `daily_basic.pe_ttm` 反推互验**是发现口径错误的最快方法：PE_TTM×隐含分母应等于"年报归母 − 上年同期季 + 本季"的滚动和 |
+| **`pro.hk_daily` 频率超限（5 次/天）即报"频率超限"** | 港股日线接口配额极低，研报一天内多次取 H 股价必炸（中芯/华虹研报 2026-08 踩到） | H 股现价 fallback 新浪公开接口：`curl -s "https://hq.sinajs.cn/list=rt_hk00981,rt_hk01347" -H "Referer: https://finance.sina.com.cn"`（返回 GBK 需 iconv，含最新价/52 周高低/日期），A/H 溢价计算够用 |
 
 ## 9. dataclass 字段速查表
 
