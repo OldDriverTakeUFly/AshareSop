@@ -4,10 +4,13 @@ from __future__ import annotations
 
 import argparse
 import sys
+from pathlib import Path
 
 from loguru import logger
 
-_DEFAULT_CHECKLIST_DIR = "davis_analyzer/studies/checklists/"
+# 锚定包内绝对路径, 任意 cwd 下 deep-research/rescore 落位一致
+# (原相对路径仅从父仓库根目录运行时正确, 2026-08-23 修复)
+_DEFAULT_CHECKLIST_DIR = str(Path(__file__).resolve().parent / "studies" / "checklists")
 
 
 def main() -> None:

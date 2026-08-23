@@ -45,6 +45,21 @@ def _safe_float(value) -> float | None:
         return 0.0
 
 
+def _is_yoy_aligned(cur_end: str, prev_end: str) -> bool:
+    """同比基准对齐校验: 两期 end_date(YYYYMMDD) 须严格隔年同期.
+
+    纯位置位移(排序后 shift(4) / 索引 i-4)在缺季(新股/退市/漏报)时会
+    静默错配财报期, 产出错误的 yoy —— 2026-08-23 修复, 未对齐期返回 False
+    (视为无上年基数, 与 yoy=None 哨兵语义一致).
+    """
+    try:
+        if len(cur_end) != 8 or len(prev_end) != 8:
+            return False
+        return cur_end[4:] == prev_end[4:] and int(cur_end[:4]) - int(prev_end[:4]) == 1
+    except (ValueError, TypeError, IndexError):
+        return False
+
+
 def _calculate_yoy_growth(df: pd.DataFrame, col: str) -> pd.Series:
     result = pd.Series([None] * len(df), index=df.index, dtype=object)
 
@@ -53,10 +68,20 @@ def _calculate_yoy_growth(df: pd.DataFrame, col: str) -> pd.Series:
 
     sorted_idx = df.sort_values("report_period").index
     sorted_vals = df.loc[sorted_idx, col].astype(float)
+    sorted_periods = df.loc[sorted_idx, "report_period"].astype(str)
 
     prev_vals = sorted_vals.shift(4)
+    prev_periods = sorted_periods.shift(4)
 
-    has_base = (prev_vals.notna()) & (prev_vals != 0)
+    aligned = pd.Series(
+        [
+            _is_yoy_aligned(cur, prev) if isinstance(prev, str) else False
+            for cur, prev in zip(sorted_periods, prev_periods)
+        ],
+        index=sorted_periods.index,
+    )
+
+    has_base = aligned & (prev_vals.notna()) & (prev_vals != 0)
     growth = (sorted_vals - prev_vals) / prev_vals
 
     for idx in sorted_idx:
@@ -196,11 +221,12 @@ def _fetch_financial_data_fast(
         operating_cf = _safe_float(row.get("n_cashflow_act"))
         gross_margin = _safe_float(row.get("grossprofit_margin"))
 
-        # YoY = compare with 4 quarters ago (shift(4))
+        # YoY = compare with 4 quarters ago (shift(4)) — 且财报期须严格
+        # 隔年同期(缺季时位置 i-4 不再是去年同季, 置 None 跳过)
         # Match pandas: result is a ratio (0.42 = 42%), NOT multiplied by 100
         yoy_rev = None
         yoy_prof = None
-        if i >= 4:
+        if i >= 4 and _is_yoy_aligned(sorted_ends[i], sorted_ends[i - 4]):
             prev_rev = revenues[i - 4]
             prev_prof = profits[i - 4]
             if prev_rev and prev_rev != 0 and revenue:

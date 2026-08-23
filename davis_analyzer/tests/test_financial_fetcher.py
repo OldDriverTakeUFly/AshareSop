@@ -7,6 +7,7 @@ import pytest
 
 from davis_analyzer.financial_fetcher import (
     _calculate_yoy_growth,
+    _is_yoy_aligned,
     _compute_date_range,
     _safe_float,
     fetch_batch_financial,
@@ -47,6 +48,24 @@ class TestSafeFloat:
             result = _safe_float(bad)
             assert result is not None, f"_safe_float({bad!r}) returned None"
             assert isinstance(result, float)
+
+
+class TestIsYoyAligned:
+    def test_exact_year_apart_same_mmdd(self):
+        assert _is_yoy_aligned("20240331", "20230331") is True
+
+    def test_two_years_apart(self):
+        assert _is_yoy_aligned("20240331", "20220331") is False
+
+    def test_same_year(self):
+        assert _is_yoy_aligned("20240331", "20240331") is False
+
+    def test_different_mmdd(self):
+        assert _is_yoy_aligned("20231130", "20221231") is False
+
+    def test_garbage_format(self):
+        assert _is_yoy_aligned("", "20230331") is False
+        assert _is_yoy_aligned("2024", "2023") is False
 
 
 class TestCalculateYoyGrowth:
@@ -91,20 +110,43 @@ class TestCalculateYoyGrowth:
         assert growth_2024q1 == pytest.approx(0.5, abs=0.001)
 
     def test_yoy_with_zero_base(self):
+        # 连续 8 期, 2023Q1 基期为 0 → 2024Q1 yoy=None(无有效基数)
         df = pd.DataFrame(
             {
                 "report_period": [
-                    "20220630",
-                    "20220930",
-                    "20221231",
-                    "20230331",
-                    "20240331",
+                    "20220630", "20220930", "20221231", "20230331",
+                    "20230630", "20230930", "20231231", "20240331",
                 ],
-                "total_revenue": [100, 200, 300, 0, 100],
+                "total_revenue": [100, 200, 300, 0, 500, 600, 700, 100],
             }
         )
         result = _calculate_yoy_growth(df, "total_revenue")
-        assert result.iloc[4] == 0.0
+        assert result.iloc[7] is None
+
+    def test_yoy_missing_quarter_yields_none(self):
+        # 缺 2023 年三季(退市/漏报场景): 20240331 的位置 i-4 是 20220630,
+        # 财报期错配 → 必须置 None 而非与错误基期比较(2026-08-23 修复)
+        df = pd.DataFrame(
+            {
+                "report_period": [
+                    "20220630", "20220930", "20221231", "20230331", "20240331",
+                ],
+                "total_revenue": [100, 200, 300, 80, 100],
+            }
+        )
+        result = _calculate_yoy_growth(df, "total_revenue")
+        assert result.iloc[4] is None
+
+    def test_yoy_misaligned_mmdd_yields_none(self):
+        # 两期隔 1 年但 MMDD 不同(如 20231130 vs 20221231, 非标准财报期) → None
+        df = pd.DataFrame(
+            {
+                "report_period": ["20221231", "20231130"],
+                "total_revenue": [100, 200],
+            }
+        )
+        result = _calculate_yoy_growth(df, "total_revenue")
+        assert all(v is None for v in result)
 
     def test_yoy_fewer_than_5_periods(self):
         df = pd.DataFrame(

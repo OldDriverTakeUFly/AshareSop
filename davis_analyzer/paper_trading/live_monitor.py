@@ -16,6 +16,7 @@ sleeps outside market hours, and is idempotent (won't double-execute).
 
 from __future__ import annotations
 
+import threading
 import time
 from datetime import date, datetime, timedelta
 from zoneinfo import ZoneInfo
@@ -49,24 +50,83 @@ def is_market_open(now: datetime | None = None) -> bool:
 
 
 def is_trading_day(date_str: str | None = None) -> bool:
-    """Check if a date is a trading day using the market_data.db calendar."""
-    if date_str is None:
-        date_str = datetime.now(_TZ_SHANGHAI).strftime("%Y%m%d")
+    """Check if a date is a trading day using the market_data.db calendar.
+
+    判据(2026-08-23 放宽): 库中最近行情行距今 ≤5 个自然日即视为交易日。
+    原版要求「当日有行」, 但 daily_price 的写入方全部盘后运行, 节后首个
+    交易日盘中启动时当日无行会被误判为非交易日(此前依赖旁路写入兜底)。
+    长假最后 1-2 天误判 True 仅导致空转轮询, 不产生交易。
+    """
+    target = date_str or datetime.now(_TZ_SHANGHAI).strftime("%Y%m%d")
     with get_market_conn() as conn:
-        row = conn.execute(
-            "SELECT 1 FROM daily_price WHERE trade_date=? LIMIT 1",
-            (date_str,),
-        ).fetchone()
-    return row is not None
+        row = conn.execute("SELECT MAX(trade_date) FROM daily_price").fetchone()
+    latest = row[0] if row else None
+    if not latest:
+        return False
+    t = datetime.strptime(target, "%Y%m%d")
+    l = datetime.strptime(str(latest), "%Y%m%d")
+    return 0 <= (t - l).days <= 5
+
+
+# ── 盘中实时价: AKShare 东财 spot 全市场快照(60s TTL 模块缓存) ──
+# 一次快照服务全部持仓查询, 模式与 intraday_manager 的实时价轮询一致。
+_SPOT_TTL_SEC = 60.0
+_spot_cache: dict[str, float] = {}
+_spot_cache_at: float = 0.0
+_spot_lock = threading.Lock()
+
+
+def _spot_suffix(code: str) -> str:
+    if code[:2] in ("60", "68"):
+        return ".SH"
+    if code[:2] in ("00", "30"):
+        return ".SZ"
+    return ".BJ"
+
+
+def _refresh_spot_map(force: bool = False) -> dict[str, float]:
+    """Return ts_code→最新价 快照; 拉取失败时退回旧缓存(可能为空)."""
+    global _spot_cache, _spot_cache_at
+    with _spot_lock:
+        if not force and _spot_cache and time.time() - _spot_cache_at < _SPOT_TTL_SEC:
+            return _spot_cache
+    try:
+        import akshare as ak
+
+        df = ak.stock_zh_a_spot_em()
+        fresh: dict[str, float] = {}
+        for code, px in zip(df["代码"].astype(str), df["最新价"]):
+            try:
+                f = float(px)
+            except (TypeError, ValueError):
+                continue
+            if f > 0:
+                fresh[code + _spot_suffix(code)] = f
+        if fresh:
+            with _spot_lock:
+                _spot_cache = fresh
+                _spot_cache_at = time.time()
+        return fresh
+    except Exception as e:
+        logger.warning("AKShare spot 快照失败, 沿用旧缓存: {}", e)
+        with _spot_lock:
+            return _spot_cache
 
 
 def get_realtime_price(ts_code: str) -> float | None:
     """Get the latest price for a stock.
 
-    Uses the DAL repository (cached close for EOD, or the latest available).
-    For true intraday, AKShare spot would be needed, but the DAL close is
-    sufficient for paper-trading at EOD granularity.
+    盘中(market hours)优先 AKShare 东财 spot 实时价(60s TTL 快照缓存),
+    失败或盘后回落到 DAL daily_price 缓存的最近收盘价。(2026-08-23 修复:
+    原版盘中也读 DAL close=昨日价, 硬止损/止盈判定失真——已知债
+    「live_monitor 读缓存收盘价」, 日内策略上线的前置条件。)
     """
+    if is_market_open():
+        spot = _refresh_spot_map()
+        px = spot.get(ts_code)
+        if px is not None:
+            return px
+        logger.debug("spot miss {}, fallback DAL close", ts_code)
     repo = get_repository()
     today = datetime.now(_TZ_SHANGHAI).strftime("%Y%m%d")
     # Look back a few days in case today's data isn't cached yet
