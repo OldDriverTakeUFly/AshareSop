@@ -192,6 +192,16 @@ def cmd_shadow_report(args: argparse.Namespace) -> None:
     print(paper_shadow.shadow_report(args.db))
 
 
+def cmd_amp_study(args: argparse.Namespace) -> None:
+    from davis_analyzer.intraday import amplitude_study
+
+    split = args.split or amplitude_study.SPLIT_DATE
+    text, paths = amplitude_study.run_study(args.db, args.out, split=split)
+    print(text)
+    for p in paths:
+        print(f"导出: {p}")
+
+
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="davis_analyzer.intraday")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -240,6 +250,12 @@ def main(argv: list[str] | None = None) -> None:
     p_srep = sub.add_parser("shadow-report", help="影子台账累计报表")
     p_srep.add_argument("--db")
     p_srep.set_defaults(func=cmd_shadow_report)
+
+    p_amp = sub.add_parser("amp", help="日内振幅 × 做T胜率研究（A/B/C 三段）")
+    p_amp.add_argument("--split", help="训练/留出切分日 YYYYMMDD（默认 20260501）")
+    p_amp.add_argument("--db")
+    p_amp.add_argument("--out", help="报告输出目录")
+    p_amp.set_defaults(func=cmd_amp_study)
 
     args = parser.parse_args(argv)
     args.func(args)

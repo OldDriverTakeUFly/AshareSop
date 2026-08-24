@@ -5,6 +5,8 @@ trend_up     昨收 > 昨日 MA20（中期趋势过滤）
 ret5/ret20   前 5/20 日收益（shift 一日）
 vol_ratio1   首 5 分钟 bar 量 / 前 20 日首bar量中位（开盘承接量能）
 norm_gap     跳空深度 / 前 20 日平均振幅（跨股标准化）
+atr20/atr5   前 20/5 日平均振幅（shift 一日）——日内振幅的可预测代理
+prev_amp     前一交易日振幅（(high-low)/pre_close，shift 一日）
 mkt_ret0940  宇宙内个股 09:40 bar 开盘相对昨收的截面中位——自建大盘温度计
              （baostock 无指数分钟线，2026-08-19 实测；指数日线粒度不够）
 """
@@ -42,12 +44,18 @@ def build_features(
     d["ret20"] = g.apply(
         lambda x: (x["close"] / x["close"].shift(20) - 1).shift(1)
     ).reset_index(level=0, drop=True)
-    d["atr20"] = g.apply(
-        lambda x: ((x["high"] - x["low"]) / x["pre_close"]).rolling(20).mean().shift(1)
-    ).reset_index(level=0, drop=True)
+    amp = (d["high"] - d["low"]) / d["pre_close"]
+    d["atr20"] = amp.groupby(d["ts_code"]).transform(
+        lambda s: s.rolling(20).mean().shift(1)
+    )
+    d["atr5"] = amp.groupby(d["ts_code"]).transform(
+        lambda s: s.rolling(5).mean().shift(1)
+    )
+    d["prev_amp"] = amp.groupby(d["ts_code"]).shift(1)
 
     feat = first.merge(
-        d[["ts_code", "trade_date", "pre_close", "trend_up", "ret5", "ret20", "atr20"]],
+        d[["ts_code", "trade_date", "pre_close", "trend_up", "ret5", "ret20",
+           "atr20", "atr5", "prev_amp"]],
         on=["ts_code", "trade_date"], how="left",
     )
     feat["gap_pct"] = feat["day_open"] / feat["pre_close"] - 1.0
@@ -76,5 +84,6 @@ def build_features(
     feat = feat.merge(mkt, on="trade_date", how="left")
 
     keep = ["ts_code", "trade_date", "gap_pct", "norm_gap", "trend_up",
-            "ret5", "ret20", "vol_ratio1", "mkt_ret0940"]
+            "ret5", "ret20", "atr20", "atr5", "prev_amp",
+            "vol_ratio1", "mkt_ret0940"]
     return feat[keep]
