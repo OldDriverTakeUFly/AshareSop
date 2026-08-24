@@ -117,7 +117,8 @@ def main() -> None:
     ap.add_argument("--index", default="")
     args = ap.parse_args()
 
-    conn = sqlite3.connect(str(MARKET_DB_PATH))
+    conn = sqlite3.connect(str(MARKET_DB_PATH), timeout=120)
+    conn.execute("PRAGMA busy_timeout=120000")
     pro = get_pro_api(timeout=60)
     codes = [c.strip() for c in args.codes.split(",") if c.strip()]
     if args.all:
