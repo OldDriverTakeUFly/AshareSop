@@ -50,6 +50,67 @@ def _latest_month_str(lookback: int = 12) -> str:
     return (datetime.now() - timedelta(days=lookback * 31)).strftime("%Y%m")
 
 
+def _month_label(period) -> str:
+    """202607 / '202607' / '20260820'[:6] → '7月'（趋势列展示用）."""
+    try:
+        s = str(int(float(period)))
+    except (TypeError, ValueError):
+        return str(period)
+    if len(s) >= 6:
+        return f"{int(s[4:6])}月"
+    return s
+
+
+def _tail_points(periods, values, n: int = 3) -> list[tuple[str, float]]:
+    """取序列末尾 n 个 (月份标签, 值) 点，NaN 剔除，升序保留."""
+    pts = [(_month_label(p), float(v)) for p, v in zip(periods, values) if pd.notna(v)]
+    return pts[-n:]
+
+
+def _trend_arrow(points: list[tuple[str, float]], eps: float = 0.05) -> str:
+    """首末对比的趋势箭头（|Δ|≤eps 视为持平）."""
+    if len(points) < 2:
+        return ""
+    delta = points[-1][1] - points[0][1]
+    if delta > eps:
+        return "↗"
+    if delta < -eps:
+        return "↘"
+    return "→"
+
+
+def _fmt_monthly_trend(points: list[tuple[str, float]], signed: bool = False) -> str:
+    """月频指标趋势：'5月48.3→6月48.8→7月49.0 ↗'."""
+    if not points:
+        return "—"
+    fmt = "{:+.1f}" if signed else "{:.1f}"
+    seq = "→".join(f"{m}{fmt.format(v)}" for m, v in points)
+    return f"{seq} {_trend_arrow(points)}".strip()
+
+
+def _fmt_shibor_trend(points: list[tuple[str, float]]) -> str:
+    """日频 Shibor 趋势：'30日均值1.45，1.52→1.38 ↘'."""
+    if len(points) < 2:
+        return "—"
+    vals = [v for _, v in points]
+    mean_v = sum(vals) / len(vals)
+    return f"{len(vals)}日均值{mean_v:.2f}，{vals[0]:.2f}→{vals[-1]:.2f} {_trend_arrow(points)}"
+
+
+def _fmt_lpr_trend(points: list[tuple[str, float]]) -> str:
+    """LPR 趋势：长期不变 → '近12个月持平'；近期调整 → '5月 3.10→3.00（-10bp）后持平'."""
+    if len(points) < 2:
+        return "—"
+    latest = points[-1][1]
+    if all(abs(v - latest) < 1e-9 for _, v in points):
+        return f"近{len(points)}个月持平"
+    for i in range(len(points) - 1, 0, -1):
+        if abs(points[i][1] - points[i - 1][1]) > 1e-9:
+            bp = (points[i][1] - points[i - 1][1]) * 100
+            return f"{points[i][0]} {points[i-1][1]:.2f}→{points[i][1]:.2f}（{bp:+.0f}bp）后持平"
+    return "—"
+
+
 def fetch_pmi(pro, lookback_months: int = 12) -> pd.DataFrame:
     """制造业 PMI 历史序列. PMI020100 is 制造业 PMI (headline number)."""
     start = _latest_month_str(lookback_months)
@@ -143,6 +204,9 @@ class MacroSnapshot:
     prosperity_score: float = 50.0
     prosperity_label: str = "中性"
     signals: list[str] = field(default_factory=list)
+    # 各指标近期走势（升序 (period_label, value) 点列），供趋势列渲染。
+    # 月频指标存近 3 期，Shibor 存近 30 日，LPR 存近 12 期。
+    trends: dict[str, list[tuple[str, float]]] = field(default_factory=dict)
 
 
 def collect_macro_snapshot(pro=None) -> MacroSnapshot:
@@ -160,6 +224,7 @@ def collect_macro_snapshot(pro=None) -> MacroSnapshot:
             latest = pmi_df.iloc[-1]
             snap.pmi = latest["pmi"]
             snap.pmi_month = str(int(latest["month"]))
+            snap.trends["PMI"] = _tail_points(pmi_df["month"], pmi_df["pmi"], 3)
     except Exception as e:
         logger.warning(f"macro: PMI fetch failed: {e}")
 
@@ -169,10 +234,21 @@ def collect_macro_snapshot(pro=None) -> MacroSnapshot:
         if not cpi_df.empty:
             snap.cpi_yoy = cpi_df.iloc[-1]["cpi_yoy"]
             snap.inflation_month = str(cpi_df.iloc[-1]["month"])
+            snap.trends["CPI_YoY"] = _tail_points(cpi_df["month"], cpi_df["cpi_yoy"], 3)
         if not ppi_df.empty:
             snap.ppi_yoy = ppi_df.iloc[-1]["ppi_yoy"]
+            snap.trends["PPI_YoY"] = _tail_points(ppi_df["month"], ppi_df["ppi_yoy"], 3)
             if not snap.inflation_month:
                 snap.inflation_month = str(ppi_df.iloc[-1]["month"])
+        if not cpi_df.empty and not ppi_df.empty:
+            merged = pd.merge(
+                cpi_df[["month", "cpi_yoy"]], ppi_df[["month", "ppi_yoy"]], on="month"
+            )
+            if not merged.empty:
+                scissors = (merged["cpi_yoy"] - merged["ppi_yoy"]).round(2)
+                snap.trends["CPI_PPI_SCISSORS"] = _tail_points(
+                    merged["month"], scissors, 3
+                )
     except Exception as e:
         logger.warning(f"macro: CPI/PPI fetch failed: {e}")
 
@@ -183,6 +259,11 @@ def collect_macro_snapshot(pro=None) -> MacroSnapshot:
             snap.m1_yoy = latest["m1_yoy"]
             snap.m2_yoy = latest["m2_yoy"]
             snap.money_month = str(int(latest["month"]))
+            snap.trends["M1_YoY"] = _tail_points(m_df["month"], m_df["m1_yoy"], 3)
+            snap.trends["M2_YoY"] = _tail_points(m_df["month"], m_df["m2_yoy"], 3)
+            snap.trends["M1_M2_GAP"] = _tail_points(
+                m_df["month"], (m_df["m1_yoy"] - m_df["m2_yoy"]).round(2), 3
+            )
     except Exception as e:
         logger.warning(f"macro: money supply fetch failed: {e}")
 
@@ -191,6 +272,10 @@ def collect_macro_snapshot(pro=None) -> MacroSnapshot:
         if not shib_df.empty:
             snap.shibor_on = shib_df.iloc[-1].get("on")
             snap.shibor_1y = shib_df.iloc[-1].get("1y")
+            if "on" in shib_df.columns:
+                snap.trends["Shibor_ON"] = _tail_points(shib_df["date"], shib_df["on"], 30)
+            if "1y" in shib_df.columns:
+                snap.trends["Shibor_1Y"] = _tail_points(shib_df["date"], shib_df["1y"], 30)
     except Exception as e:
         logger.warning(f"macro: Shibor fetch failed: {e}")
 
@@ -199,6 +284,10 @@ def collect_macro_snapshot(pro=None) -> MacroSnapshot:
         if not lpr_df.empty:
             snap.lpr_1y = lpr_df.iloc[-1].get("1y")
             snap.lpr_5y = lpr_df.iloc[-1].get("5y")
+            if "1y" in lpr_df.columns:
+                snap.trends["LPR_1Y"] = _tail_points(lpr_df["date"], lpr_df["1y"], 12)
+            if "5y" in lpr_df.columns:
+                snap.trends["LPR_5Y"] = _tail_points(lpr_df["date"], lpr_df["5y"], 12)
     except Exception as e:
         logger.warning(f"macro: LPR fetch failed: {e}")
 
@@ -352,30 +441,41 @@ def format_macro_section(snap: MacroSnapshot) -> str:
     ]
 
     lines.append("### 核心宏观指标\n")
-    lines.append("| 指标 | 最新值 | 月份 | 含义 |")
-    lines.append("|------|:---:|:---:|------|")
+    lines.append("| 指标 | 最新值 | 月份 | 近期趋势 | 含义 |")
+    lines.append("|------|:---:|:---:|------|------|")
     if snap.pmi is not None:
-        lines.append(f"| **制造业 PMI** | **{snap.pmi:.1f}** | {snap.pmi_month} | {'扩张（>50）' if snap.pmi >= 50 else '收缩（<50）'} |")
+        trend = _fmt_monthly_trend(snap.trends.get("PMI", []))
+        lines.append(f"| **制造业 PMI** | **{snap.pmi:.1f}** | {snap.pmi_month} | {trend} | {'扩张（>50）' if snap.pmi >= 50 else '收缩（<50）'} |")
     if snap.cpi_yoy is not None:
-        lines.append(f"| CPI 同比 | {snap.cpi_yoy:.1f}% | {snap.inflation_month} | 居民消费价格 |")
+        trend = _fmt_monthly_trend(snap.trends.get("CPI_YoY", []))
+        lines.append(f"| CPI 同比 | {snap.cpi_yoy:.1f}% | {snap.inflation_month} | {trend} | 居民消费价格 |")
     if snap.ppi_yoy is not None:
-        lines.append(f"| PPI 同比 | {snap.ppi_yoy:.1f}% | {snap.inflation_month} | 工业生产者价格 |")
+        trend = _fmt_monthly_trend(snap.trends.get("PPI_YoY", []))
+        lines.append(f"| PPI 同比 | {snap.ppi_yoy:.1f}% | {snap.inflation_month} | {trend} | 工业生产者价格 |")
     if snap.cpi_ppi_scissors is not None:
-        lines.append(f"| CPI-PPI 剪刀差 | {snap.cpi_ppi_scissors:+.1f}pp | — | 上下游需求温差 |")
+        trend = _fmt_monthly_trend(snap.trends.get("CPI_PPI_SCISSORS", []), signed=True)
+        lines.append(f"| CPI-PPI 剪刀差 | {snap.cpi_ppi_scissors:+.1f}pp | — | {trend} | 上下游需求温差 |")
     if snap.m1_yoy is not None:
-        lines.append(f"| M1 同比 | {snap.m1_yoy:.1f}% | {snap.money_month} | 企业活期存款（资金活化度） |")
+        trend = _fmt_monthly_trend(snap.trends.get("M1_YoY", []))
+        lines.append(f"| M1 同比 | {snap.m1_yoy:.1f}% | {snap.money_month} | {trend} | 企业活期存款（资金活化度） |")
     if snap.m2_yoy is not None:
-        lines.append(f"| M2 同比 | {snap.m2_yoy:.1f}% | {snap.money_month} | 广义货币（流动性总量） |")
+        trend = _fmt_monthly_trend(snap.trends.get("M2_YoY", []))
+        lines.append(f"| M2 同比 | {snap.m2_yoy:.1f}% | {snap.money_month} | {trend} | 广义货币（流动性总量） |")
     if snap.m1_m2_gap is not None:
-        lines.append(f"| M1-M2 增速差 | {snap.m1_m2_gap:+.1f}pp | — | {'资金活化' if snap.m1_m2_gap > 0 else '资金沉淀'} |")
+        trend = _fmt_monthly_trend(snap.trends.get("M1_M2_GAP", []), signed=True)
+        lines.append(f"| M1-M2 增速差 | {snap.m1_m2_gap:+.1f}pp | — | {trend} | {'资金活化' if snap.m1_m2_gap > 0 else '资金沉淀'} |")
     if snap.shibor_on is not None:
-        lines.append(f"| Shibor 隔夜 | {snap.shibor_on:.3f}% | 最新 | 银行间超短期流动性 |")
+        trend = _fmt_shibor_trend(snap.trends.get("Shibor_ON", []))
+        lines.append(f"| Shibor 隔夜 | {snap.shibor_on:.3f}% | 最新 | {trend} | 银行间超短期流动性 |")
     if snap.shibor_1y is not None:
-        lines.append(f"| Shibor 1年 | {snap.shibor_1y:.3f}% | 最新 | 银行间中期利率 |")
+        trend = _fmt_shibor_trend(snap.trends.get("Shibor_1Y", []))
+        lines.append(f"| Shibor 1年 | {snap.shibor_1y:.3f}% | 最新 | {trend} | 银行间中期利率 |")
     if snap.lpr_1y is not None:
-        lines.append(f"| LPR 1年 | {snap.lpr_1y:.1f}% | 最新 | 贷款基准利率 |")
+        trend = _fmt_lpr_trend(snap.trends.get("LPR_1Y", []))
+        lines.append(f"| LPR 1年 | {snap.lpr_1y:.1f}% | 最新 | {trend} | 贷款基准利率 |")
     if snap.lpr_5y is not None:
-        lines.append(f"| LPR 5年 | {snap.lpr_5y:.1f}% | 最新 | 中长期贷款利率（房贷锚） |")
+        trend = _fmt_lpr_trend(snap.trends.get("LPR_5Y", []))
+        lines.append(f"| LPR 5年 | {snap.lpr_5y:.1f}% | 最新 | {trend} | 中长期贷款利率（房贷锚） |")
     lines.append("")
 
     if snap.signals:
