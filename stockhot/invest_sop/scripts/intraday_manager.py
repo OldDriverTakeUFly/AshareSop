@@ -80,6 +80,11 @@ T_TRIM_THRESHOLD_EVENT = 0.05  # 事件日 T+减仓从 +8% 收窄到 +5%
 WARN_COOLDOWN_SEC = 30 * 60
 _warn_push_at: dict[tuple[str, str, str], float] = {}
 
+# 执行异常告警（2026-08-24）：_execute_signal 抛异常时曾只 print 不推送，
+# 止损执行静默失败了一整天无人察觉。同 (账户, 标的) 30 分钟冷却收集一条，
+# run_one_cycle 轮末统一推送。
+_exec_failures: list[dict] = []
+
 
 # ── 减仓/加仓每日一次守卫（2026-08-21）──
 # t_trim/take_profit/pullback_add 是电平型信号，浮盈持续 ≥8% 时每轮都会
@@ -386,7 +391,7 @@ def _execute_signal(
 
     try:
         if sig_type == "stop_loss":
-            trade = account.sell_all(h["ts_code"], price, trade_date, f"盘中止损@{price:.2f}")
+            trade = account.sell_all(h["ts_code"], h["name"], price, trade_date, f"盘中止损@{price:.2f}")
         elif sig_type in ("take_profit", "t_trim"):
             reason = "盘中止盈" if sig_type == "take_profit" else f"盘中T+减仓{shares}股"
             trade = account.sell(h["ts_code"], h["name"], shares, price, trade_date, signal_reason=reason)
@@ -407,6 +412,11 @@ def _execute_signal(
             }
     except Exception as e:
         print(f"[ERROR] 执行失败 {h['name']}: {e}")
+        fkey = (h.get("source", ""), h["code"], "exec_fail")
+        if _warn_push_allowed(fkey):
+            _exec_failures.append({
+                "name": h["name"], "code": h["code"], "type": sig_type, "error": str(e),
+            })
     return None
 
 
@@ -624,6 +634,17 @@ def run_one_cycle(dry_run: bool = False) -> dict:
             msg_parts.append(part)
 
         msg = "\n\n".join(msg_parts)
+        print(msg)
+        if not dry_run:
+            asyncio.run(_push_message(msg))
+
+    # 执行异常单独推送（与调仓/恐慌消息分开，冷却外的失败轮末合并一条）
+    if _exec_failures:
+        fails = _exec_failures[:]
+        _exec_failures.clear()
+        msg = "⚠️ 盘中信号执行异常\n" + "\n".join(
+            f"• {f['name']}({f['code']}) {f['type']}: {f['error']}" for f in fails
+        )
         print(msg)
         if not dry_run:
             asyncio.run(_push_message(msg))
