@@ -260,6 +260,10 @@ class FactorThresholdStrategy:
         # 病灶年 2025 -3.0%→+18.6%, 2021-23 零伤害.
         # 复现 G2 之前的基线需显式传 bull_relaxed_buy_momentum=0.0.
         bull_relaxed_buy_momentum: float = 60.0,
+        # 实验0005(G4): 放宽带(60<mom<=70)候选在槽位竞争中稳定排在严门槛
+        # 候选之后——修复 G2 挤占(2026 新入场-1.3万且挤掉原赢家+6.3万,
+        # 2024 同病). 仅排序降级不改综合分, 默认 False = G2 行为零变化.
+        bull_relaxed_rank_behind: bool = False,
         # 指数在 MA200 上方时, HMM 的 bear 判定不阻断新开仓 (按 neutral 的
         # 半仓上限处理). 修复 924 式行情起点踏空 (2024-09 bear 37%/暴露0.95格).
         # False = 关闭 (生产默认).
@@ -535,6 +539,7 @@ class FactorThresholdStrategy:
         self.max_positions = max_positions
         self.buy_momentum = buy_momentum
         self.bull_relaxed_buy_momentum = bull_relaxed_buy_momentum
+        self.bull_relaxed_rank_behind = bull_relaxed_rank_behind
         self.ma200_bear_override = ma200_bear_override
         self.bull_highvol_sell_exempt = bull_highvol_sell_exempt
         self.bull_tplus_trim_exempt = bull_tplus_trim_exempt
@@ -726,6 +731,7 @@ class FactorThresholdStrategy:
         # one secondary dimension (holder/dividend/forecast/prosperity) passes.
         held_codes = {p.ts_code for p in positions}
         all_qualified: list[tuple] = []  # (code, composite_score, details_str, industry, passed_dims)
+        relaxed_band_codes: set[str] = set()  # 仅靠放宽门槛入场的候选 (G4 排序用)
 
         for code, factors in snapshot.factor_scores.items():
             if code not in snapshot.prices or snapshot.prices[code] <= 0:
@@ -742,6 +748,8 @@ class FactorThresholdStrategy:
                 mom_gate = self.bull_relaxed_buy_momentum
             if mom is None or mom <= mom_gate:
                 continue
+            if mom_gate < self.buy_momentum and mom <= self.buy_momentum:
+                relaxed_band_codes.add(code)
 
             # Sector filter
             industry = snapshot.industries.get(code, "")
@@ -944,6 +952,9 @@ class FactorThresholdStrategy:
 
         # Rank by composite score descending
         all_qualified.sort(key=lambda x: x[1], reverse=True)
+        if self.bull_relaxed_rank_behind and relaxed_band_codes:
+            # G4 稳定重排: 严门槛候选优先, 组内综合分序保持 (False 组先于 True 组)
+            all_qualified.sort(key=lambda x: x[0] in relaxed_band_codes)
 
         # Pre-compute portfolio industry concentration for negative-factor
         # rule ③ (used during buy-candidate check above).

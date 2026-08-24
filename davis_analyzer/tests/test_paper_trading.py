@@ -250,6 +250,41 @@ class TestFactorThresholdStrategy:
         buys = [s for s in signals if s.action == "BUY"]
         assert len(buys) == 0
 
+    def test_bull_relaxed_rank_behind_protects_strict_candidates(self):
+        """实验0005 G4: 放宽带候选综合分更高时, 默认挤占唯一槽位; rank_behind 让严门槛候选优先."""
+        from davis_analyzer.paper_trading.strategy import (
+            FactorThresholdStrategy,
+            MarketSnapshot,
+        )
+
+        def make_snapshot() -> MarketSnapshot:
+            # R 综合分 62+ > S 的 48+ (mom*0.4 + holder*0.4), 但动量在放宽带 60-70
+            return MarketSnapshot(
+                trade_date="20260101",
+                prices={"S.SZ": 10.0, "R.SZ": 20.0},
+                factor_scores={
+                    "S.SZ": {"momentum": 75, "holder": 45},  # 严门槛带 (mom>70)
+                    "R.SZ": {"momentum": 65, "holder": 90},  # 放宽带 (60<mom<=70)
+                },
+                market_regime="bull",
+                index_above_ma200=True,
+            )
+
+        base = dict(max_positions=1, buy_momentum=70, buy_holder_min=40,
+                    bull_relaxed_buy_momentum=60)
+
+        # 默认 (G2 现行): 纯综合分排序 → 放宽带 R 挤占唯一槽位
+        strategy_default = FactorThresholdStrategy(**base)
+        buys = [s for s in strategy_default.evaluate([], make_snapshot(), 1_000_000)
+                if s.action == "BUY"]
+        assert [b.ts_code for b in buys] == ["R.SZ"]
+
+        # G4: 放宽带候选稳定重排在严门槛之后 → S 入选
+        strategy_g4 = FactorThresholdStrategy(**base, bull_relaxed_rank_behind=True)
+        buys_g4 = [s for s in strategy_g4.evaluate([], make_snapshot(), 1_000_000)
+                   if s.action == "BUY"]
+        assert [b.ts_code for b in buys_g4] == ["S.SZ"]
+
     def test_sell_signal_momentum_collapse(self):
         from davis_analyzer.paper_trading.strategy import (
             FactorThresholdStrategy,
