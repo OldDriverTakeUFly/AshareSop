@@ -87,3 +87,14 @@ BOARD_CHASING_GENOME = Genome(
         ParamSpec("max_positions", 1, 5, kind="choice", choices=[1, 2, 3, 4, 5]),
     ]
 )
+
+
+# ── six-vein genome (frozen v1) ──
+# 仅开放 max_positions；六脉信号参数（3/5/8/13 斐波那契族）全部冻结——
+# 原教旨复刻同花顺「浩坚六脉神剑」，防止进化把指标结构洗成另一个策略
+
+SIX_VEIN_GENOME = Genome(
+    [
+        ParamSpec("max_positions", 1, 5, kind="choice", choices=[1, 2, 3, 4, 5]),
+    ]
+)

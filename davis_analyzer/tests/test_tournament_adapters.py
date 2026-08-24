@@ -150,3 +150,63 @@ def test_default_participants_universe_passthrough() -> None:
     # 不传 universe → 默认全缓存（回归不变）
     assert all(p._universe is None
                for p in default_participants() if isinstance(p, DavisPresetAdapter))
+
+
+# ═══════════════════════════════════════════════════════════════════
+# board-chasing TradeRecord → Trade 归一化（回归：曾用 code=/缺 amount、cost 直接 TypeError）
+# ═══════════════════════════════════════════════════════════════════
+
+
+def test_board_chasing_adapter_converts_trades(monkeypatch, mock_client) -> None:
+    from davis_analyzer.limitup.engine import TradeRecord
+    from davis_analyzer.tournament.adapters import BoardChasingAdapter
+
+    class _FakeConn:
+        def close(self) -> None:
+            pass
+
+    record = TradeRecord(
+        ts_code="600000.SH", entry_date="20240105", entry_price=10.0, shares=1000,
+        exit_date="20240108", exit_price=11.0, exit_reason="T+1_open",
+        fill_scenario="pessimistic", gross_pnl=983.75, fees=16.25, ret_pct=9.8375,
+    )
+    nav = pd.DataFrame({
+        "date": ["20240102", "20240103", "20240104", "20240105"],
+        "equity": [1_000_000.0, 1_000_000.0, 1_000_500.0, 1_001_000.0],
+        "cash": [1_000_000.0, 1_000_000.0, 999_500.0, 999_000.0],
+    })
+    monkeypatch.setattr(
+        "davis_analyzer.tournament.adapters._limitup_db.connect", lambda: _FakeConn())
+    monkeypatch.setattr(
+        "davis_analyzer.tournament.adapters._build_ev",
+        lambda conn, s, e: pd.DataFrame({"ts_code": ["600000.SH"]}))
+    monkeypatch.setattr(
+        "davis_analyzer.tournament.adapters._attach_pat", lambda ev, conn, s, e: ev)
+    monkeypatch.setattr(
+        "davis_analyzer.tournament.adapters._build_regime",
+        lambda conn, s, e: pd.DataFrame())
+    monkeypatch.setattr(
+        "davis_analyzer.tournament.adapters._lap",
+        lambda ev, preset, regime=None: pd.DataFrame({"ts_code": ["600000.SH"]}))
+    monkeypatch.setattr(
+        "davis_analyzer.tournament.adapters._limitup_db.read_daily_prices",
+        lambda conn, codes, s, e: pd.DataFrame({"ts_code": ["600000.SH"]}))
+    monkeypatch.setattr(
+        "davis_analyzer.tournament.adapters._lrun",
+        lambda cands, prices, preset, cfg, scenario: ([record], nav))
+
+    run = BoardChasingAdapter().run_window(mock_client, date(2024, 1, 2), date(2024, 1, 31))
+
+    assert run is not None
+    assert len(run.trades) == 2
+    buy, sell = run.trades
+    assert buy.action == "BUY" and buy.ts_code == "600000.SH"
+    assert buy.amount == pytest.approx(10_000.0)
+    assert buy.cost == pytest.approx(10_000.0 * 2.5e-4)
+    assert sell.action == "SELL"
+    assert sell.amount == pytest.approx(11_000.0)
+    assert sell.cost == pytest.approx(11_000.0 * 12.5e-4)
+    # 单腿 cost 复算之和与引擎记账的往返 fees 一致（同式同参）
+    assert buy.cost + sell.cost == pytest.approx(record.fees)
+    assert len(run.equity_curve) == len(nav)
+    assert run.equity_curve[-1].equity == pytest.approx(1_001_000.0)
