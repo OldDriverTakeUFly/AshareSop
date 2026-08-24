@@ -16,6 +16,7 @@ build/
 *.db-wal
 *.db-shm
 *.sqlite
+*.pkl
 data/
 
 # Allow stockhot/storage code but not runtime data
@@ -77,5 +78,6 @@ davis_analyzer/studies/rally_screening/*_result.txt
 davis_analyzer/run_output.log
 .coverage
 storage/sector_rv_cache/
+storage/database/
 .worktrees
 .superpowers
