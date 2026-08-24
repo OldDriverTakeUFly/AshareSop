@@ -1,0 +1,866 @@
+{
+ "688981.SH": {
+  "name": "中芯国际",
+  "code": "688981.SH",
+  "basic": {
+   "ts_code": "688981.SH",
+   "name": "中芯国际",
+   "industry": "半导体",
+   "market": "科创板",
+   "list_date": "20200716"
+  },
+  "freshness": {
+   "income_latest_periods": [
+    {
+     "ts_code": "688981.SH",
+     "ann_date": "20260515",
+     "end_date": "20260331",
+     "f_ann_date": "20260515"
+    },
+    {
+     "ts_code": "688981.SH",
+     "ann_date": "20260327",
+     "end_date": "20251231",
+     "f_ann_date": "20260327"
+    },
+    {
+     "ts_code": "688981.SH",
+     "ann_date": "20260327",
+     "end_date": "20251231",
+     "f_ann_date": "20260327"
+    }
+   ],
+   "latest_trade_date": "20260821"
+  },
+  "fin": [
+   {
+    "report_period": "20260331",
+    "revenue": 17617218000.0,
+    "net_profit": 1593998000.0,
+    "eps": 0.17,
+    "roe": 0.9056,
+    "operating_cf": 5131729000.0,
+    "grossprofit_margin": 21.4759,
+    "rd_exp": null,
+    "yoy_rev": 0.08073898148497477,
+    "yoy_np": -0.3132027670121482
+   },
+   {
+    "report_period": "20251231",
+    "revenue": 67323192000.0,
+    "net_profit": 7208910000.0,
+    "eps": 0.63,
+    "roe": 3.3716,
+    "operating_cf": 20080979000.0,
+    "grossprofit_margin": 21.6242,
+    "rd_exp": null,
+    "yoy_rev": 0.1658596225529587,
+    "yoy_np": 0.3915932900278283
+   },
+   {
+    "report_period": "20250930",
+    "revenue": 49510416000.0,
+    "net_profit": 5770359000.0,
+    "eps": 0.48,
+    "roe": 2.5507,
+    "operating_cf": 12287551000.0,
+    "grossprofit_margin": 23.1511,
+    "rd_exp": null,
+    "yoy_rev": 0.1822332678744718,
+    "yoy_np": 0.7850188389747144
+   },
+   {
+    "report_period": "20250630",
+    "revenue": 32348049000.0,
+    "net_profit": 3367678000.0,
+    "eps": 0.29,
+    "roe": 1.539,
+    "operating_cf": 5897793000.0,
+    "grossprofit_margin": 21.909,
+    "rd_exp": null,
+    "yoy_rev": 0.23140078669748082,
+    "yoy_np": 1.0510259764621048
+   },
+   {
+    "report_period": "20250331",
+    "revenue": 16301085000.0,
+    "net_profit": 2320915000.0,
+    "eps": 0.17,
+    "roe": 0.9112,
+    "operating_cf": -1171520000.0,
+    "grossprofit_margin": 23.0969,
+    "rd_exp": null,
+    "yoy_rev": 0.2943756688816751,
+    "yoy_np": 4.15575573129554
+   },
+   {
+    "report_period": "20241231",
+    "revenue": 57745538740.4,
+    "net_profit": 5180328226.4,
+    "eps": 0.46,
+    "roe": 2.545,
+    "operating_cf": 22658629000.0,
+    "grossprofit_margin": 18.5902,
+    "rd_exp": null,
+    "yoy_rev": 0.27613251677525685,
+    "yoy_np": -0.19008675428601451
+   },
+   {
+    "report_period": "20240930",
+    "revenue": 41878720000.0,
+    "net_profit": 3232660000.0,
+    "eps": 0.34,
+    "roe": 1.8858,
+    "operating_cf": 12264180000.0,
+    "grossprofit_margin": 17.6393,
+    "rd_exp": null,
+    "yoy_rev": 0.265285251991012,
+    "yoy_np": -0.32670492473527224
+   },
+   {
+    "report_period": "20240630",
+    "revenue": 26269310000.0,
+    "net_profit": 1641948000.0,
+    "eps": 0.21,
+    "roe": 1.1484,
+    "operating_cf": 3246325000.0,
+    "grossprofit_margin": 13.9065,
+    "rd_exp": null,
+    "yoy_rev": null,
+    "yoy_np": null
+   },
+   {
+    "report_period": "20240331",
+    "revenue": 12593782000.0,
+    "net_profit": 450160000.0,
+    "eps": 0.06,
+    "roe": 0.357,
+    "operating_cf": 3566576000.0,
+    "grossprofit_margin": 14.1856,
+    "rd_exp": null,
+    "yoy_rev": null,
+    "yoy_np": null
+   },
+   {
+    "report_period": "20231231",
+    "revenue": 45250425000.0,
+    "net_profit": 6396152000.0,
+    "eps": 0.61,
+    "roe": 3.4967,
+    "operating_cf": 23047761000.0,
+    "grossprofit_margin": 21.8874,
+    "rd_exp": null,
+    "yoy_rev": null,
+    "yoy_np": null
+   },
+   {
+    "report_period": "20230930",
+    "revenue": 33098244000.0,
+    "net_profit": 4801253000.0,
+    "eps": 0.46,
+    "roe": 2.6592,
+    "operating_cf": 16347526000.0,
+    "grossprofit_margin": 23.0112,
+    "rd_exp": null,
+    "yoy_rev": null,
+    "yoy_np": null
+   }
+  ],
+  "prosperity": {
+   "composite": 65.43,
+   "delta_g": -5.07,
+   "revenue_score": 62.19,
+   "profit_score": 52.23,
+   "slope_score": 64.39,
+   "duration_score": 100.0,
+   "stage": "下降拐点"
+  },
+  "valuation": {
+   "rows": 719,
+   "last_trade": "20260821",
+   "last_close": 124.8,
+   "last_total_mv_yi": 10684.2,
+   "last_dv_ttm": null,
+   "pe": {
+    "n": 719,
+    "current": 211.75,
+    "pct": 83.2,
+    "p10": 62.36,
+    "p25": 91.63,
+    "p50": 165.18,
+    "p75": 202.11,
+    "p90": 220.93,
+    "p95": 238.07
+   },
+   "pb": {
+    "n": 719,
+    "current": 7.13,
+    "pct": 92.4,
+    "p10": 2.51,
+    "p25": 2.78,
+    "p50": 4.8,
+    "p75": 5.97,
+    "p90": 6.88,
+    "p95": 7.48
+   },
+   "ps": {
+    "n": 719,
+    "current": 15.87,
+    "pct": 74.1,
+    "p10": 7.59,
+    "p25": 8.47,
+    "p50": 12.44,
+    "p75": 15.91,
+    "p90": 17.51,
+    "p95": 18.28
+   }
+  },
+  "momentum": {
+   "score": 53.18,
+   "abs": 53.18,
+   "rs_pct": null,
+   "window_returns": {
+    "60": -14.28,
+    "120": 17.76,
+    "250": 10.43
+   }
+  },
+  "momentum_manual": {
+   "last_trade": "20260821",
+   "last_close": 124.8,
+   "r20d_pct": -13.17,
+   "r60d_pct": -18.8,
+   "r120d_pct": 8.52,
+   "r250d_pct": 41.35
+  },
+  "dividend": {
+   "score": 10.0,
+   "years": 0,
+   "yield_pct": null
+  },
+  "forecast_sig": null,
+  "forecast_rev": null,
+  "holder_conc": {
+   "score": 52.82,
+   "trend": "集中(动能增强)",
+   "latest_chg": 0.08
+  },
+  "profit_quality": {
+   "score": 48.7,
+   "gm": 21.48,
+   "gm_delta": -0.43,
+   "rd": null
+  },
+  "relative_val": {
+   "pe_ratio": 14.919201882565135,
+   "pe_ratio_pct": 73.0,
+   "stock_pe": 211.7542,
+   "stock_pe_pct": 83.2,
+   "index_pe": 14.1934,
+   "index_pe_pct": 81.0,
+   "erp": -1.71,
+   "risk_free": 2.18,
+   "quadrant": 1,
+   "quadrant_label": "①两者都贵（最危险）",
+   "verdict": "★ 相对高估（横向比较偏贵）",
+   "signals": [
+    "相对PE溢价率 14.92x，近3年73.0%分位 → 相对中性",
+    "ERP -1.71%（盈利收益率0.47% - 无风险利率2.18%）→ 股票偏贵（ERP<0，不如国债）",
+    "PE-Band 第1象限：个股PE分位83.2% / 市场PE分位81.0% → ①两者都贵（最危险）"
+   ]
+  },
+  "holder_num": {
+   "rows": [
+    {
+     "end_date": "20241231",
+     "holder_num": 263374,
+     "chg_pct": null
+    },
+    {
+     "end_date": "20250228",
+     "holder_num": 248801,
+     "chg_pct": -5.53
+    },
+    {
+     "end_date": "20250331",
+     "holder_num": 257979,
+     "chg_pct": 3.69
+    },
+    {
+     "end_date": "20250630",
+     "holder_num": 252297,
+     "chg_pct": -2.2
+    },
+    {
+     "end_date": "20250930",
+     "holder_num": 336231,
+     "chg_pct": 33.27
+    },
+    {
+     "end_date": "20251231",
+     "holder_num": 322045,
+     "chg_pct": -4.22
+    },
+    {
+     "end_date": "20260228",
+     "holder_num": 319066,
+     "chg_pct": -0.93
+    },
+    {
+     "end_date": "20260331",
+     "holder_num": 319319,
+     "chg_pct": 0.08
+    }
+   ]
+  },
+  "top10_float": {
+   "20250630": 81.32,
+   "20250930": 80.3,
+   "20251231": 80.19,
+   "20260331": 79.84
+  },
+  "dividend_hist": [],
+  "forecast_raw": [],
+  "fina_indicator": [
+   {
+    "ts_code": "688981.SH",
+    "end_date": "20230630",
+    "ann_date": "20230826",
+    "roe": 2.1726,
+    "grossprofit_margin": 22.4387,
+    "netprofit_margin": 17.2459,
+    "debt_to_assets": 34.5926
+   },
+   {
+    "ts_code": "688981.SH",
+    "end_date": "20230930",
+    "ann_date": "20231110",
+    "roe": 2.6592,
+    "grossprofit_margin": 23.0112,
+    "netprofit_margin": 14.5061,
+    "debt_to_assets": 34.586
+   },
+   {
+    "ts_code": "688981.SH",
+    "end_date": "20231231",
+    "ann_date": "20240329",
+    "roe": 3.4967,
+    "grossprofit_margin": 21.8874,
+    "netprofit_margin": 14.135,
+    "debt_to_assets": 35.4523
+   },
+   {
+    "ts_code": "688981.SH",
+    "end_date": "20240331",
+    "ann_date": "20240510",
+    "roe": 0.357,
+    "grossprofit_margin": 14.1856,
+    "netprofit_margin": 3.5745,
+    "debt_to_assets": 36.0021
+   },
+   {
+    "ts_code": "688981.SH",
+    "end_date": "20240630",
+    "ann_date": "20240830",
+    "roe": 1.1484,
+    "grossprofit_margin": 13.9065,
+    "netprofit_margin": 6.2504,
+    "debt_to_assets": 34.5966
+   },
+   {
+    "ts_code": "688981.SH",
+    "end_date": "20240930",
+    "ann_date": "20241108",
+    "roe": 1.8858,
+    "grossprofit_margin": 17.6393,
+    "netprofit_margin": 7.7191,
+    "debt_to_assets": 33.4352
+   },
+   {
+    "ts_code": "688981.SH",
+    "end_date": "20241231",
+    "ann_date": "20250328",
+    "roe": 2.545,
+    "grossprofit_margin": 18.5902,
+    "netprofit_margin": 9.2968,
+    "debt_to_assets": 35.1732
+   },
+   {
+    "ts_code": "688981.SH",
+    "end_date": "20250331",
+    "ann_date": "20250509",
+    "roe": 0.9112,
+    "grossprofit_margin": 23.0969,
+    "netprofit_margin": 14.2378,
+    "debt_to_assets": 32.8131
+   },
+   {
+    "ts_code": "688981.SH",
+    "end_date": "20250630",
+    "ann_date": "20250829",
+    "roe": 1.539,
+    "grossprofit_margin": 21.909,
+    "netprofit_margin": 10.4108,
+    "debt_to_assets": 33.783
+   },
+   {
+    "ts_code": "688981.SH",
+    "end_date": "20250930",
+    "ann_date": "20251114",
+    "roe": 2.5507,
+    "grossprofit_margin": 23.1511,
+    "netprofit_margin": 11.6548,
+    "debt_to_assets": 33.0798
+   },
+   {
+    "ts_code": "688981.SH",
+    "end_date": "20251231",
+    "ann_date": "20260327",
+    "roe": 3.3716,
+    "grossprofit_margin": 21.6242,
+    "netprofit_margin": 10.7079,
+    "debt_to_assets": 33.0024
+   },
+   {
+    "ts_code": "688981.SH",
+    "end_date": "20260331",
+    "ann_date": "20260515",
+    "roe": 0.9056,
+    "grossprofit_margin": 21.4759,
+    "netprofit_margin": 9.048,
+    "debt_to_assets": 34.8944
+   }
+  ]
+ },
+ "688347.SH": {
+  "name": "华虹公司",
+  "code": "688347.SH",
+  "basic": {
+   "ts_code": "688347.SH",
+   "name": "华虹宏力",
+   "industry": "半导体",
+   "market": "科创板",
+   "list_date": "20230807"
+  },
+  "freshness": {
+   "income_latest_periods": [
+    {
+     "ts_code": "688347.SH",
+     "ann_date": "20260515",
+     "end_date": "20260331",
+     "f_ann_date": "20260515"
+    },
+    {
+     "ts_code": "688347.SH",
+     "ann_date": "20260327",
+     "end_date": "20251231",
+     "f_ann_date": "20260327"
+    },
+    {
+     "ts_code": "688347.SH",
+     "ann_date": "20251107",
+     "end_date": "20250930",
+     "f_ann_date": "20251107"
+    }
+   ],
+   "latest_trade_date": "20260821"
+  },
+  "fin": [
+   {
+    "report_period": "20260331",
+    "revenue": 4625372637.73,
+    "net_profit": -127230051.31,
+    "eps": 0.08,
+    "roe": 0.3087,
+    "operating_cf": 911282349.92,
+    "grossprofit_margin": null,
+    "rd_exp": null,
+    "yoy_rev": 0.18219183133092934,
+    "yoy_np": -0.6637753428595246
+   },
+   {
+    "report_period": "20251231",
+    "revenue": 17291450660.78,
+    "net_profit": -807142983.69,
+    "eps": 0.22,
+    "roe": 0.8486,
+    "operating_cf": 5065421315.35,
+    "grossprofit_margin": null,
+    "rd_exp": null,
+    "yoy_rev": 0.2017709800082446,
+    "yoy_np": -0.21802393992855543
+   },
+   {
+    "report_period": "20250930",
+    "revenue": 12583393068.62,
+    "net_profit": -680770213.32,
+    "eps": 0.15,
+    "roe": 0.5704,
+    "operating_cf": 2974191123.6,
+    "grossprofit_margin": null,
+    "rd_exp": null,
+    "yoy_rev": 0.19815788769228565,
+    "yoy_np": 1.0767521725603821
+   },
+   {
+    "report_period": "20250630",
+    "revenue": 8017656907.53,
+    "net_profit": -621025434.75,
+    "eps": 0.04,
+    "roe": 0.1701,
+    "operating_cf": 1620396625.79,
+    "grossprofit_margin": null,
+    "rd_exp": null,
+    "yoy_rev": 0.19094887569465988,
+    "yoy_np": 0.28125270721954515
+   },
+   {
+    "report_period": "20250331",
+    "revenue": 3912539839.26,
+    "net_profit": -378407855.01,
+    "eps": 0.01,
+    "roe": 0.0521,
+    "operating_cf": 361199684.0,
+    "grossprofit_margin": null,
+    "rd_exp": null,
+    "yoy_rev": null,
+    "yoy_np": null
+   },
+   {
+    "report_period": "20241231",
+    "revenue": 14388307712.89,
+    "net_profit": -1032183752.04,
+    "eps": 0.22,
+    "roe": 0.8753,
+    "operating_cf": 3608289668.76,
+    "grossprofit_margin": null,
+    "rd_exp": null,
+    "yoy_rev": null,
+    "yoy_np": null
+   },
+   {
+    "report_period": "20240930",
+    "revenue": 10502282877.64,
+    "net_profit": -327805225.06,
+    "eps": 0.34,
+    "roe": 1.3283,
+    "operating_cf": 1295515635.81,
+    "grossprofit_margin": null,
+    "rd_exp": null,
+    "yoy_rev": null,
+    "yoy_np": null
+   },
+   {
+    "report_period": "20240630",
+    "revenue": 6732158761.1,
+    "net_profit": -484701754.19,
+    "eps": 0.15,
+    "roe": 0.6107,
+    "operating_cf": 1328909045.07,
+    "grossprofit_margin": null,
+    "rd_exp": null,
+    "yoy_rev": null,
+    "yoy_np": null
+   },
+   {
+    "report_period": "20240331",
+    "revenue": 0.0,
+    "net_profit": 0.0,
+    "eps": 0.0,
+    "roe": 0.0,
+    "operating_cf": 443549494.96,
+    "grossprofit_margin": null,
+    "rd_exp": null,
+    "yoy_rev": null,
+    "yoy_np": null
+   },
+   {
+    "report_period": "20231231",
+    "revenue": 0.0,
+    "net_profit": 0.0,
+    "eps": 0.0,
+    "roe": 0.0,
+    "operating_cf": 5104987996.61,
+    "grossprofit_margin": null,
+    "rd_exp": null,
+    "yoy_rev": null,
+    "yoy_np": null
+   }
+  ],
+  "prosperity": {
+   "composite": 56.48,
+   "delta_g": -0.8,
+   "revenue_score": 63.87,
+   "profit_score": 31.76,
+   "slope_score": 51.17,
+   "duration_score": 100.0,
+   "stage": "下降拐点"
+  },
+  "valuation": {
+   "rows": 715,
+   "last_trade": "20260821",
+   "last_close": 233.22,
+   "last_total_mv_yi": 4052.7,
+   "last_dv_ttm": null,
+   "pe": {
+    "n": 715,
+    "current": 821.37,
+    "pct": 76.8,
+    "p10": 24.82,
+    "p25": 47.79,
+    "p50": 113.41,
+    "p75": 772.81,
+    "p90": 3500.11,
+    "p95": 4008.4
+   },
+   "pb": {
+    "n": 715,
+    "current": 8.96,
+    "pct": 93.1,
+    "p10": 1.26,
+    "p25": 1.61,
+    "p50": 1.93,
+    "p75": 4.37,
+    "p90": 6.15,
+    "p95": 10.03
+   },
+   "ps": {
+    "n": 715,
+    "current": 23.44,
+    "pct": 93.1,
+    "p10": 3.33,
+    "p25": 4.15,
+    "p50": 5.33,
+    "p75": 13.05,
+    "p90": 16.98,
+    "p95": 26.25
+   }
+  },
+  "momentum": {
+   "score": 84.43,
+   "abs": 84.43,
+   "rs_pct": null,
+   "window_returns": {
+    "60": -16.71,
+    "120": 88.7,
+    "250": 132.06
+   }
+  },
+  "momentum_manual": {
+   "last_trade": "20260821",
+   "last_close": 233.22,
+   "r20d_pct": -29.31,
+   "r60d_pct": -6.58,
+   "r120d_pct": 83.96,
+   "r250d_pct": 288.25
+  },
+  "dividend": {
+   "score": 25.0,
+   "years": 1,
+   "yield_pct": null
+  },
+  "forecast_sig": null,
+  "forecast_rev": null,
+  "holder_conc": {
+   "score": 0.0,
+   "trend": "分散(动能减弱)",
+   "latest_chg": 11.68
+  },
+  "profit_quality": {
+   "score": 50.0,
+   "gm": null,
+   "gm_delta": null,
+   "rd": null
+  },
+  "relative_val": {
+   "pe_ratio": 57.869833866444964,
+   "pe_ratio_pct": 77.3,
+   "stock_pe": 821.3697,
+   "stock_pe_pct": 76.8,
+   "index_pe": 14.1934,
+   "index_pe_pct": 81.0,
+   "erp": -2.06,
+   "risk_free": 2.18,
+   "quadrant": 1,
+   "quadrant_label": "①两者都贵（最危险）",
+   "verdict": "★ 相对高估（横向比较偏贵）",
+   "signals": [
+    "相对PE溢价率 57.87x，近3年77.3%分位 → 相对溢价（贵）",
+    "ERP -2.06%（盈利收益率0.12% - 无风险利率2.18%）→ 股票偏贵（ERP<0，不如国债）",
+    "PE-Band 第1象限：个股PE分位76.8% / 市场PE分位81.0% → ①两者都贵（最危险）"
+   ]
+  },
+  "holder_num": {
+   "rows": [
+    {
+     "end_date": "20241231",
+     "holder_num": 51360,
+     "chg_pct": null
+    },
+    {
+     "end_date": "20250228",
+     "holder_num": 46140,
+     "chg_pct": -10.16
+    },
+    {
+     "end_date": "20250331",
+     "holder_num": 47090,
+     "chg_pct": 2.06
+    },
+    {
+     "end_date": "20250630",
+     "holder_num": 37424,
+     "chg_pct": -20.53
+    },
+    {
+     "end_date": "20250930",
+     "holder_num": 49015,
+     "chg_pct": 30.97
+    },
+    {
+     "end_date": "20251231",
+     "holder_num": 54936,
+     "chg_pct": 12.08
+    },
+    {
+     "end_date": "20260228",
+     "holder_num": 50920,
+     "chg_pct": -7.31
+    },
+    {
+     "end_date": "20260331",
+     "holder_num": 56866,
+     "chg_pct": 11.68
+    }
+   ]
+  },
+  "top10_float": {
+   "20250815": 82.42,
+   "20250930": 82.18,
+   "20251231": 82.31,
+   "20260331": 82.29
+  },
+  "dividend_hist": [
+   {
+    "ts_code": "688347.SH",
+    "end_date": "20231231",
+    "ann_date": "20240510",
+    "cash_div_tax": 0.15,
+    "cash_div": 0.15,
+    "div_proc": "实施",
+    "base_share": 171691.0178
+   }
+  ],
+  "forecast_raw": [],
+  "fina_indicator": [
+   {
+    "ts_code": "688347.SH",
+    "end_date": "20230630",
+    "ann_date": "20230830",
+    "roe": 7.7162,
+    "grossprofit_margin": 34.2596,
+    "netprofit_margin": 11.4454,
+    "debt_to_assets": 37.7166
+   },
+   {
+    "ts_code": "688347.SH",
+    "end_date": "20230930",
+    "ann_date": "20231110",
+    "roe": 5.404,
+    "grossprofit_margin": 30.3287,
+    "netprofit_margin": 6.3545,
+    "debt_to_assets": 26.9686
+   },
+   {
+    "ts_code": "688347.SH",
+    "end_date": "20231231",
+    "ann_date": "20240329",
+    "roe": 6.1274,
+    "grossprofit_margin": 27.102,
+    "netprofit_margin": 5.2204,
+    "debt_to_assets": 27.2026
+   },
+   {
+    "ts_code": "688347.SH",
+    "end_date": "20240331",
+    "ann_date": "20240510",
+    "roe": 0.5101,
+    "grossprofit_margin": 14.8944,
+    "netprofit_margin": -5.5682,
+    "debt_to_assets": 25.9888
+   },
+   {
+    "ts_code": "688347.SH",
+    "end_date": "20240630",
+    "ann_date": "20240830",
+    "roe": 0.6107,
+    "grossprofit_margin": 16.3448,
+    "netprofit_margin": -7.1998,
+    "debt_to_assets": 25.6597
+   },
+   {
+    "ts_code": "688347.SH",
+    "end_date": "20240930",
+    "ann_date": "20241108",
+    "roe": 1.3283,
+    "grossprofit_margin": 17.1961,
+    "netprofit_margin": -3.1213,
+    "debt_to_assets": 29.9796
+   },
+   {
+    "ts_code": "688347.SH",
+    "end_date": "20241231",
+    "ann_date": "20250328",
+    "roe": 0.8753,
+    "grossprofit_margin": 17.4334,
+    "netprofit_margin": -7.1738,
+    "debt_to_assets": 28.6742
+   },
+   {
+    "ts_code": "688347.SH",
+    "end_date": "20250331",
+    "ann_date": "20250509",
+    "roe": 0.0521,
+    "grossprofit_margin": 17.7529,
+    "netprofit_margin": -9.6717,
+    "debt_to_assets": 28.1391
+   },
+   {
+    "ts_code": "688347.SH",
+    "end_date": "20250630",
+    "ann_date": "20250829",
+    "roe": 0.1701,
+    "grossprofit_margin": 17.5743,
+    "netprofit_margin": -7.7457,
+    "debt_to_assets": 27.9046
+   },
+   {
+    "ts_code": "688347.SH",
+    "end_date": "20250930",
+    "ann_date": "20251107",
+    "roe": 0.5704,
+    "grossprofit_margin": 18.9195,
+    "netprofit_margin": -5.4101,
+    "debt_to_assets": 28.3564
+   },
+   {
+    "ts_code": "688347.SH",
+    "end_date": "20251231",
+    "ann_date": "20260327",
+    "roe": 0.8486,
+    "grossprofit_margin": 18.7239,
+    "netprofit_margin": -4.6679,
+    "debt_to_assets": 36.9829
+   },
+   {
+    "ts_code": "688347.SH",
+    "end_date": "20260331",
+    "ann_date": "20260515",
+    "roe": 0.3087,
+    "grossprofit_margin": 17.6255,
+    "netprofit_margin": -2.7507,
+    "debt_to_assets": 38.2869
+   }
+  ]
+ }
+}
