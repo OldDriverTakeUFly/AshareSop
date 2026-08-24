@@ -2,6 +2,18 @@
 
 This repository expects coding agents to follow the local development environment skill for any environment-related work.
 
+## Agent 工作方式（Karpathy 四条，本地化版）
+
+1. 动手前先想清楚方案，非平凡改动先出计划再写代码。
+2. 从能解决问题的最简单方案开始，不过度设计。
+3. 只做与任务直接相关的最小修改，不顺手重构。
+4. 交互式会话中遇歧义先问再动手；**定时/无人值守任务**（盘面扫描、盘后总结、盘前报告等 cron 流程）不等待人工——按各 SOP 纪律记录异常后继续执行，事后在报告中说明。
+
+## Python 解释器（硬性）
+
+- 统一使用仓库根目录的 `.venv/bin/python`。系统无 `python` 命令，系统 `python3` 未安装 pandas 等依赖，直接调用必然失败。
+- 示例（从仓库根目录运行）：`.venv/bin/python -m stockhot.eod_review.push_eod_feishu`
+
 ## 命令输出截断规则（硬性）
 
 所有可能产生长输出的命令，**必须主动加截断/过滤**，防止大量无关输出进入上下文浪费 token：
@@ -650,3 +662,12 @@ Agents must not:
 ## Source of Truth
 
 If this section and the skill differ in detail, treat `.agents/skills/research-report/SKILL.md` as the source of truth for research-report authoring workflow. The methodology details defer to `docs/方法论/` (9 篇方法论文档) and the `davis_analyzer` engine for all quantitative computations.
+
+## 公司中枢 · 项目管理协议（davis-analyzer 试点）
+
+本仓库的 `davis_analyzer` 子系统作为首个试点接入"公司中枢"项目管理流程（数据源：`~/ZCodeProject/公司中枢/`，协议见其 `README.md`）。Agent 在本仓库工作时的约定：
+
+1. **读上下文**：涉及 davis/stockhot 的任务规划时，先读项目卡 `~/ZCodeProject/公司中枢/projects/davis-analyzer.yaml` 了解里程碑与当前状态。
+2. **写进度**：会话中完成了里程碑级进展（如某引擎上线、回测达标、部署变更），按协议直接更新项目卡（milestones/review.updated/note），新工作项追加到 `tasks.yaml`（id 规则 T+三位自增，project 填 `davis-analyzer`），改完提醒用户 `git add 公司中枢 && git commit`（在 ZCodeProject 仓库）。
+3. **命令行**：`~/ZCodeProject/公司中枢/tools/.venv/bin/plan -r ~/ZCodeProject/公司中枢 ls|today|check|scan` 可随时查看全局进度（输出已按本文件规则保持精简）。
+4. **边界**：中枢只管状态与任务索引，不复制代码细节；本文件与本节冲突时，工程规则以本文件为准，管理协议以中枢 README 为准。
