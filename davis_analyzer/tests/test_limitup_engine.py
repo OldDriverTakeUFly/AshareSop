@@ -33,15 +33,18 @@ def _prices() -> pd.DataFrame:
 
 
 def test_fill_probability_bands() -> None:
+    """校准后档位（63k 排队模拟，2026-08-24）：早盘/午盘 45%，尾盘 35%."""
     hard = _cand().iloc[0]                          # 早盘 09:30 封板未炸
     mid = _cand(first_seal_time="133000").iloc[0]   # 午盘封板未炸
+    late = _cand(first_seal_time="143000").iloc[0]  # 尾盘封板未炸
     yizi = _cand(open=11.0, low=11.0).iloc[0]       # 一字板
     broken = _cand(broken_count=2, first_seal_time="140000").iloc[0]
-    assert fill_probability(hard) == 0.20
-    assert fill_probability(mid) == 0.35
+    assert fill_probability(hard) == 0.45   # 早盘→45%（旧 20%）
+    assert fill_probability(mid) == 0.45    # 午盘→45%（旧 35%）
+    assert fill_probability(late) == 0.35   # 尾盘→35%（新增档）
     assert fill_probability(yizi) == 0.05
     assert fill_probability(broken) == 0.70
-    assert fill_probability(hard, "optimistic") == 0.30
+    assert fill_probability(hard, "optimistic") == round(0.45 * 1.5, 10)
     assert fill_probability(hard, "always") == 1.0
 
 
@@ -133,9 +136,9 @@ def test_compute_limitup_performance() -> None:
 
 
 def test_fill_probability_early_board_unpadded_time() -> None:
-    """9 点档封板时间无前导零（'95321'）也必须落入早盘 0.20 档而非 0.35."""
+    """9 点档封板时间无前导零（'95321'）归一后落早盘 45% 档."""
     row = _cand(first_seal_time="95321").iloc[0]
-    assert fill_probability(row) == 0.20
+    assert fill_probability(row) == 0.45
 
 
 # ── open_hold_locked 可观测卖出变体（规格 §3.2.1 第 4 条）──

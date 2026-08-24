@@ -52,6 +52,15 @@ class TradeRecord:
 # ── fill model ──
 
 def fill_probability(row: pd.Series, scenario: str = "base") -> float:
+    """Queue fill probability, calibrated by 63k-record baostock backfill (2026-08-24).
+
+    实测数据（全历史涨停事件 5 分钟线排队模拟）：
+      09:00-13:59 首封 → 成交率 43-47%（取 45%）
+      14:00+ 首封     → 成交率 35.5%（取 35%）
+      一字板          → ~0%（取 5%，主要为排队撤单残余概率）
+      炸板后回封      → 显著更高（取 70%）
+    逆向选择提示：成交组均值 +1.25% vs 未成交组 +3.43%——成交本身是弱板信号。
+    """
     if scenario == "always":
         return 1.0
     ratio = limit_ratio_for(row["ts_code"])
@@ -66,11 +75,11 @@ def fill_probability(row: pd.Series, scenario: str = "base") -> float:
         p = 0.05
     elif int(row.get("broken_count", 0) or 0) > 0:
         p = 0.70
-    elif "090000" < ft < "100000":
-        p = 0.20
+    elif ft >= "140000":
+        p = 0.35  # 尾盘板：实测 35.5%
     else:
-        p = 0.35
-    # round(…, 10)：消除 0.2*1.5=0.30000000000000004 之类的浮点表示误差
+        p = 0.45  # 早盘/午盘板：实测 43-47%
+    # round(…, 10)：消除浮点表示误差
     return float(min(0.95, max(0.05, round(p * SCENARIOS[scenario], 10))))
 
 

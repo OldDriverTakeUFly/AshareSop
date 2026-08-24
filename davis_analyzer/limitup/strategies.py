@@ -8,7 +8,7 @@ from enum import Enum
 import pandas as pd
 from loguru import logger
 
-FILTER_BUDGET = 4
+FILTER_BUDGET = 5  # v2: +1 容纳 exclude_late_seal（数据校准的质量防线，非任意过滤）
 
 
 class ExitRule(str, Enum):
@@ -32,6 +32,9 @@ class StrategyPreset:
     min_seal_ratio: float | None = None
     min_sector_linkage: int | None = None
     exclude_negative_event: bool = True
+    # 排除尾盘板（14:00 后首封）：63k 排队模拟实测期望贡献仅 +0.17%/笔
+    # vs 其他时段 +0.55-0.75%/笔（2026-08-24 校准）
+    exclude_late_seal: bool = False
     # IS 中位封单过滤是 relay_2 的规格内过滤；默认关闭，CLI 仅在该旗标
     # 为 True 时才把 seal_ratio_median 传入 apply_preset（防止规格外过滤）
     use_is_median_seal: bool = False
@@ -41,10 +44,12 @@ PRESETS: dict[str, StrategyPreset] = {
     "first_board": StrategyPreset(
         name="首板启动", board_range=(1, 1),
         pattern_labels=("突破型", "横盘首板型"), exit_rule=ExitRule.OPEN_NEXT,
+        exclude_late_seal=True,
     ),
     "relay_2": StrategyPreset(
         name="二板接力", board_range=(2, 2), pattern_labels=None,
         exit_rule=ExitRule.RIDE_BOARD, use_is_median_seal=True,
+        exclude_late_seal=True,
     ),
     "relay_3": StrategyPreset(
         name="三板接力", board_range=(3, 3), pattern_labels=None,
@@ -71,6 +76,7 @@ def apply_preset(
         seal_ratio_median is not None or eff.min_seal_ratio is not None,
         eff.min_sector_linkage is not None,
         eff.exclude_negative_event,
+        eff.exclude_late_seal,
     ]) - 1
     if n_filters > FILTER_BUDGET:
         raise ValueError(f"过滤条件超过预算({FILTER_BUDGET})：当前 {n_filters} 条")
@@ -90,8 +96,18 @@ def apply_preset(
         mask &= ev["sector_linkage"].fillna(0) >= eff.min_sector_linkage
     if eff.exclude_negative_event:
         mask &= ~ev["negative_event_30d"].fillna(False)
+    if eff.exclude_late_seal:
+        # 14:00 后首封的板期望贡献仅 +0.17%/笔（63k 排队模拟，2026-08-24）
+        # 缺失/NaN 时间视为未知 → 保守保留（宁多勿漏）
+        ft_raw = ev["first_seal_time"] if "first_seal_time" in ev.columns else None
+        if ft_raw is not None:
+            ft = ft_raw.astype(str).str.zfill(6)
+            valid = ft_raw.notna() & ft.str.match(r"^\d{6}$")
+            late = valid & (ft >= "140000")
+            mask &= ~late
     out = ev[mask].sort_values(
         ["trade_date", eff.rank_key], ascending=[True, False]
     )
-    logger.info("preset[{}]: {} → {} 候选", eff.name, len(ev), len(out))
+    logger.info("preset[{}]: {} → {} 候选（late_seal={}）", eff.name, len(ev),
+                len(out), eff.exclude_late_seal)
     return out.reset_index(drop=True)

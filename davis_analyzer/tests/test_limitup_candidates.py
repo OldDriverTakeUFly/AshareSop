@@ -59,7 +59,7 @@ def _seed_day(conn: sqlite3.Connection, day: str = EVENT_DAY) -> None:
         _pool_row("600200", day, "乙", "Y业", 1, 3e7, 2, "103000"),
         _pool_row("600300", day, "丙", "Z业", 2, 1e8, 0, "093000"),
         _pool_row("600400", day, "丁", "W业", 1, 1e8, 0, "093000"),
-        _pool_row("600500", day, "戊", "V业", 1, 5e7, 0, "143000"),
+        _pool_row("600500", day, "戊", "V业", 1, 5e7, 0, "133000"),
     ]
     # 陪跑股仅池行（无日线/无 basic → build_events 剔除，但 _limit_axes 计数）
     pool += [
@@ -116,7 +116,7 @@ def test_build_candidates_filters_order_and_annotations(
     # 首封时间档 / 炸板次数透传
     assert a["first_seal_band"] == "早盘"
     assert b["first_seal_band"] == "午盘"
-    assert e["first_seal_band"] == "尾盘"
+    assert e["first_seal_band"] == "午盘"
     assert b["broken_count"] == 2
     # 卖出结构：lg_sell_share = (大单+特大单卖出)/总卖出
     assert abs(a["lg_sell_share"] - 0.6) < 1e-9
@@ -126,9 +126,9 @@ def test_build_candidates_filters_order_and_annotations(
     assert bool(a["enhanced"]) and a["enhanced"] is not None
     assert not bool(e["enhanced"])  # lg NaN → False
     assert not bool(b["enhanced"])  # seal 0.03 < 0.05
-    # fill_prob（engine base 档）：早盘硬板 0.20 / 尾盘 0.35 / 炸板回封 0.70
-    assert abs(a["fill_prob"] - 0.20) < 1e-9
-    assert abs(e["fill_prob"] - 0.35) < 1e-9
+    # fill_prob（校准后）：早盘/午盘 0.45 / 炸板回封 0.70（63k 排队模拟，2026-08-24）
+    assert abs(a["fill_prob"] - 0.45) < 1e-9
+    assert abs(e["fill_prob"] - 0.45) < 1e-9
     assert abs(b["fill_prob"] - 0.70) < 1e-9
     assert df["fill_prob"].between(0.05, 0.95).all()
 
