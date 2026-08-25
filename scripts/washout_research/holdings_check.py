@@ -204,24 +204,29 @@ def main() -> None:
                                 "状态": "无数据(非沪深/ST名)", "警报": "-"})
             continue
         c, v = s["c"], s["v"]
-        last = c[today_pos]
-        # MA 与 250 日位置
+        # 本股有效"现在"=最近一根有效K线位置(停牌/数据缺失时不产生NaN特征,
+        # 2026-0825 事故:缺失股被NaN误分最差分桶,概率严重低估)
+        end_pos = int(s["end"])
+        last = c[end_pos]
+        data_date = date_of.get(end_pos, 0)
+        # MA 与 250 日位置(均以 end_pos 为锚)
         def ma(win: int) -> float:
-            seg = c[today_pos - win + 1:today_pos + 1]
+            seg = c[end_pos - win + 1:end_pos + 1]
             seg = seg[np.isfinite(seg)]
             return float(seg.mean()) if seg.size else np.nan
         ma10, ma20 = ma(10), ma(20)
         hist = valid_pos.get(code, np.array([]))
-        hist = hist[hist <= today_pos][-250:]
+        hist = hist[hist <= end_pos][-250:]
         win = c[hist]
         win = win[np.isfinite(win)]
         pos_pct = dw.pct_rank(float(last), win) if win.size > 60 else np.nan
 
         # 最近锚
         lp_pos = limit_pos.get(code, (np.array([]), np.array([])))[0]
-        recent = lp_pos[(lp_pos <= today_pos) & (lp_pos >= today_pos - ANCHOR_LOOKBACK)]
+        recent = lp_pos[(lp_pos <= end_pos) & (lp_pos >= end_pos - ANCHOR_LOOKBACK)]
         row = {"code": code, "name": names_db.get(code, "?"), "pos_pct": pos_pct,
-               "avg_cost": avg_cost, "状态": "无近期涨停锚", "警报": ""}
+               "avg_cost": avg_cost, "状态": "无近期涨停锚", "警报": "",
+               "数据日": data_date}
 
         if len(recent):
             t0 = int(recent[-1])
@@ -236,19 +241,19 @@ def main() -> None:
             elif r["outcome"] == "timeout":
                 row["状态"] = f"超时未决(锚{date_of[t0]})"
             else:  # open:回调进行中 → 查表
-                k_now = today_pos - r["peak_pos"]
+                k_now = end_pos - r["peak_pos"]
                 sup_now = float(last / r["_support"] - 1.0)
                 dd_now = float(last / r["_peak"] - 1.0)
                 grp = "low" if pos_pct <= 30 else ("high" if pos_pct >= 70 else "mid")
                 key = (grp, kbucket(k_now), supbucket(sup_now), ddbucket(dd_now))
                 p, n = lookup_p(table, key)
-                # 量能与资金辅助(近3日)
-                w = v[r["peak_pos"] + 1:today_pos + 1]
+                # 量能与资金辅助(近3日,以 end_pos 为锚)
+                w = v[r["peak_pos"] + 1:end_pos + 1]
                 w = w[np.isfinite(w)]
                 lv = v[t0:r["peak_pos"] + 1]
                 lv = lv[np.isfinite(lv)]
                 volr = float(np.nanmean(w) / np.nanmean(lv)) if w.size and lv.size else np.nan
-                mf3 = dw.mf_net_intensity(aux_mf, code, today_pos - 2, today_pos, s["a"])
+                mf3 = dw.mf_net_intensity(aux_mf, code, end_pos - 2, end_pos, s["a"])
                 row.update({
                     "状态": f"回调第{k_now}天(锚{date_of[t0]},峰{date_of[r['peak_pos']]})",
                     "P续涨": p, "n": n, "dd": dd_now, "sup": sup_now,
@@ -278,12 +283,13 @@ def main() -> None:
 
     lines = [f"# 持仓洗盘概率与破位提醒 — 数据截至 {cal[-1]} 收盘", "",
              f"> 底仓 {len(hold_rows)} 只(paper_positions 全账户合计) | "
-             f"查表样本:三组 episodes {len(episodes)} | P续涨=条件续涨率(历史同状态样本,n≥30 层级回退)", ""]
+             f"查表样本:三组 episodes {len(episodes)} | P续涨=条件续涨率(历史同状态样本,n≥30 层级回退) | "
+             f"个股特征以其最近有效K线为锚(数据日列,停牌/缺数据不产生NaN分桶)", ""]
     in_wash = df[df["状态"].str.contains("回调第", na=False)]
     lines.append("## 一、回调进行中(洗盘概率查表)")
     if len(in_wash):
-        lines.append("| 代码 | 名称 | 位置分位 | 回调状态 | P续涨 | n | 回撤 | 距平台 | 量比 | 近3日主力 | 警报 |")
-        lines.append("|------|------|---------|---------|-------|---|------|--------|------|----------|------|")
+        lines.append("| 代码 | 名称 | 数据日 | 位置分位 | 回调状态 | P续涨 | n | 回撤 | 距平台 | 量比 | 近3日主力 | 警报 |")
+        lines.append("|------|------|--------|---------|---------|-------|---|------|--------|------|----------|------|")
         for _, r in in_wash.iterrows():
             p = f"{r['P续涨']:.0f}%" if np.isfinite(r.get("P续涨", np.nan)) else "—"
             dd = f"{r.get('dd', np.nan)*100:.1f}%" if np.isfinite(r.get("dd", np.nan)) else "—"
@@ -291,7 +297,7 @@ def main() -> None:
             volr = f"{r.get('volr', np.nan):.2f}" if np.isfinite(r.get("volr", np.nan)) else "—"
             mf3 = f"{r.get('mf3', np.nan)*100:+.1f}%" if np.isfinite(r.get("mf3", np.nan)) else "—"
             pos = f"{r['pos_pct']:.0f}" if np.isfinite(r.get("pos_pct", np.nan)) else "—"
-            lines.append(f"| {r['code']} | {r['name']} | {pos} | {r['状态']} | **{p}** | {r.get('n','-')} | "
+            lines.append(f"| {r['code']} | {r['name']} | {r.get('数据日','-')} | {pos} | {r['状态']} | **{p}** | {r.get('n','-')} | "
                          f"{dd} | {sup} | {volr} | {mf3} | {r.get('警报','') or '—'} |")
     else:
         lines.append("(无回调进行中的持仓)")
@@ -308,14 +314,15 @@ def main() -> None:
         lines.append("(无)")
 
     lines += ["", "## 三、全持仓支撑位速览(原始价位)"]
-    lines.append("| 代码 | 名称 | 现价(adj) | 距MA10 | 距MA20 | 250日分位 | 警报 |")
-    lines.append("|------|------|---------|--------|--------|----------|------|")
+    lines.append("| 代码 | 名称 | 数据日 | 现价(adj) | 距MA10 | 距MA20 | 250日分位 | 警报 |")
+    lines.append("|------|------|--------|---------|--------|--------|----------|------|")
     for _, r in df.iterrows():
-        last = stocks.get(r["code"], {}).get("c", [np.nan])[-1] if r["code"] in stocks else np.nan
+        s_ = stocks.get(r["code"])
+        last = float(s_["c"][s_["end"]]) if s_ else np.nan
         d10 = (last / r["MA10"] - 1) * 100 if np.isfinite(r.get("MA10", np.nan)) and r["MA10"] else np.nan
         d20 = (last / r["MA20"] - 1) * 100 if np.isfinite(r.get("MA20", np.nan)) and r["MA20"] else np.nan
         pos = f"{r['pos_pct']:.0f}" if np.isfinite(r.get("pos_pct", np.nan)) else "—"
-        lines.append(f"| {r['code']} | {r['name']} | {last:.2f} | "
+        lines.append(f"| {r['code']} | {r['name']} | {r.get('数据日','-')} | {last:.2f} | "
                      f"{d10:+.1f}% | {d20:+.1f}% | {pos} | {r.get('警报','') or '—'} |")
 
     md = "\n".join(lines)

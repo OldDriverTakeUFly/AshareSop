@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import sqlite3
+import time
 from datetime import datetime
 
 import pandas as pd
@@ -246,50 +247,88 @@ def refresh_corp_events(
 
 _NULL_OHLC_THRESHOLD = 100    # 单日 NULL high 超此数视为写入方污染（正常<10）
 _PLACEHOLDER_ADJ_THRESHOLD = 1000  # 单日 adj=1.0 超此数视为占位（正常~116 只）
-_FULL_DAY_THRESHOLD = 1000    # 当日行数低于此数视为未完成落库（正常 ~5500）
+_FULL_DAY_THRESHOLD = 1000    # 行数绝对下限（stock_basic 不可用时兜底）
+_FULL_DAY_RATIO = 0.98        # 行数/上市股票数低于此比例视为未完成。
+# 2026-0825 事故：上游 19:20 前后时序不稳，增量只落 1659 行（>1000 旧闸门），
+# 兜底被跳过，当日覆盖卡死 30%，且近 7 日有 4 天不完整（0818 仅 1064 行）。
+# 闸门改为动态比例判定，且兜底需覆盖全部近端日期而非仅最后一天。
+
+
+def _full_day_threshold(conn: sqlite3.Connection) -> int:
+    """当日完整行数判定线：上市股票数 × 0.98（正常满额 ~5545/5550）。"""
+    try:
+        listed = conn.execute(
+            "SELECT COUNT(*) FROM stock_basic WHERE list_status='L'"
+        ).fetchone()[0]
+    except sqlite3.Error:
+        listed = 0
+    if listed <= 0:
+        return _FULL_DAY_THRESHOLD
+    return max(_FULL_DAY_THRESHOLD, int(listed * _FULL_DAY_RATIO))
 
 
 def ensure_daily_price_full(conn: sqlite3.Connection, day: str, client: object) -> int:
     """Ensure the day's full-market daily_price exists (fallback for slow writers).
 
-    If the day has fewer than _FULL_DAY_THRESHOLD rows, fetch the full market
+    If the day has fewer rows than the completeness line, fetch the full market
     from Tushare `daily` + `adj_factor` and upsert (INSERT OR REPLACE).
-    Returns rows upserted (0 if already complete / fetch failed).
+    After upsert, re-verifies; if upstream was still partial, retries once
+    after a wait. Returns rows upserted (0 if already complete / fetch failed).
     """
-    n = conn.execute(
-        "SELECT COUNT(*) FROM daily_price WHERE trade_date=?", (day,)
-    ).fetchone()[0]
-    if n >= _FULL_DAY_THRESHOLD:
-        return 0
-    logger.info("daily_price {} 仅 {} 行（<{}），全市场兜底拉取", day, n,
-                _FULL_DAY_THRESHOLD)
-    df = client._call("daily", client._pro.daily, {"trade_date": day})
-    if df is None or df.empty:
-        logger.warning("daily 兜底拉取失败 {}", day)
-        return 0
-    adj = client._call("adj_factor", client._pro.adj_factor, {"trade_date": day})
-    adj_map: dict[str, float] = {}
-    if adj is not None and not adj.empty:
-        adj_map = dict(zip(adj["ts_code"], adj["adj_factor"].astype(float)))
-    now = datetime.now().timestamp()
-    upserted = 0
-    for _, r in df.iterrows():
-        code = r.get("ts_code")
-        if not code:
-            continue
-        conn.execute(
-            "INSERT OR REPLACE INTO daily_price (ts_code, trade_date, open, high, "
-            "low, close, pre_close, pct_chg, vol, amount, adj_factor, fetched_at) "
-            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
-            (code, day, _num(r.get("open")), _num(r.get("high")),
-             _num(r.get("low")), _num(r.get("close")), _num(r.get("pre_close")),
-             _num(r.get("pct_chg")), _num(r.get("vol")), _num(r.get("amount")),
-             adj_map.get(code), now),
-        )
-        upserted += 1
-    conn.commit()
-    logger.info("daily_price {} 兜底完成: {} 行 upsert（此前 {}）", day, upserted, n)
-    return upserted
+    threshold = _full_day_threshold(conn)
+    is_today = day == datetime.now().strftime("%Y%m%d")
+    total_upserted = 0
+    for attempt in (1, 2):
+        n = conn.execute(
+            "SELECT COUNT(*) FROM daily_price WHERE trade_date=?", (day,)
+        ).fetchone()[0]
+        if n >= threshold:
+            return total_upserted
+        logger.info("daily_price {} 仅 {} 行（<{}），全市场兜底拉取（第{}次）",
+                    day, n, threshold, attempt)
+        df = client._call("daily", client._pro.daily, {"trade_date": day})
+        if df is None or df.empty:
+            logger.warning("daily 兜底拉取失败 {}", day)
+            return total_upserted
+        adj = client._call("adj_factor", client._pro.adj_factor, {"trade_date": day})
+        adj_map: dict[str, float] = {}
+        if adj is not None and not adj.empty:
+            adj_map = dict(zip(adj["ts_code"], adj["adj_factor"].astype(float)))
+        now = datetime.now().timestamp()
+        upserted = 0
+        for _, r in df.iterrows():
+            code = r.get("ts_code")
+            if not code:
+                continue
+            conn.execute(
+                "INSERT OR REPLACE INTO daily_price (ts_code, trade_date, open, high, "
+                "low, close, pre_close, pct_chg, vol, amount, adj_factor, fetched_at) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+                (code, day, _num(r.get("open")), _num(r.get("high")),
+                 _num(r.get("low")), _num(r.get("close")), _num(r.get("pre_close")),
+                 _num(r.get("pct_chg")), _num(r.get("vol")), _num(r.get("amount")),
+                 adj_map.get(code), now),
+            )
+            upserted += 1
+        conn.commit()
+        total_upserted += upserted
+        logger.info("daily_price {} 兜底完成: {} 行 upsert（此前 {}）", day, upserted, n)
+        n_after = conn.execute(
+            "SELECT COUNT(*) FROM daily_price WHERE trade_date=?", (day,)
+        ).fetchone()[0]
+        if n_after >= threshold:
+            return total_upserted
+        if attempt == 1:
+            if is_today:
+                logger.warning("daily_price {} 兜底后仍 {} 行（<{}），当日上游未就绪，"
+                               "120s 后重试一次", day, n_after, threshold)
+                time.sleep(120)
+            else:
+                # 历史日期上游早已定型,补不齐即为终态,不重试不阻塞
+                logger.warning("daily_price {} 兜底后仍 {} 行（<{}），历史日期不重试",
+                               day, n_after, threshold)
+                return total_upserted
+    return total_upserted
 
 
 def repair_daily_price_gaps(conn: sqlite3.Connection, dates: list[str], client: object) -> dict:
@@ -372,7 +411,8 @@ def run_daily_refresh(conn: sqlite3.Connection, lookback_days: int = 7) -> dict:
         return client._call("top_list", client._pro.top_list, {"trade_date": d})
 
     steps: list[tuple[str, object]] = [
-        ("daily_price_full", lambda: ensure_daily_price_full(conn, dates[-1], client)),
+        ("daily_price_full", lambda: sum(
+            ensure_daily_price_full(conn, d, client) for d in dates)),
         ("daily_price_repair", lambda: repair_daily_price_gaps(conn, dates, client)),
         ("limit_pool", lambda: refresh_limit_pool(
             conn, dates, lambda d, t: client._call(
