@@ -40,7 +40,7 @@ def fetch_with_fallback(
 
     用法示例：
         df = fetch_with_fallback(
-            primary_fn=lambda: safe_tushare_call("limit_list_d", trade_date=date, limit="U"),
+            primary_fn=lambda: get_gateway().call("limit_list_d", trade_date=date, limit="U"),
             fallback_fn=lambda: safe_akshare_call(ak.stock_zt_pool_em, date=date),
             label="涨停池",
         )
@@ -77,9 +77,9 @@ def fetch_tushare_only(api_name: str, label: str, fields: str = "", **params) ->
 
     用于宏观、财务等 Tushare 独占的数据。
     """
-    from stockhot.core.tushare_client_safe import safe_tushare_call
+    from stockhot.data_layer import get_gateway
 
-    df = safe_tushare_call(api_name, fields=fields, **params)
+    df = get_gateway().call(api_name, fields=fields, **params)
     if not df.empty:
         logger.info(f"[{label}] via Tushare: {len(df)} rows")
     return df

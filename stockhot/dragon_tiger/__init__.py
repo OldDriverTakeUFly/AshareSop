@@ -105,7 +105,7 @@ def fetch_lhb_detail(start_date: str, end_date: str) -> list[dict]:
     2026-07-07 调整：Tushare ``top_list`` 优先，AKShare ``stock_lhb_detail_em`` 兜底。
     """
     # Tushare 优先（top_list 是单日接口，按日期循环取）
-    from stockhot.core.tushare_client_safe import safe_tushare_call
+    from stockhot.data_layer import get_gateway
     from datetime import datetime, timedelta
 
     start = start_date.replace("-", "")
@@ -115,7 +115,7 @@ def fetch_lhb_detail(start_date: str, end_date: str) -> list[dict]:
     end_dt = datetime.strptime(end, "%Y%m%d")
     while cur <= end_dt:
         d = cur.strftime("%Y%m%d")
-        df_ts = safe_tushare_call("top_list", trade_date=d)
+        df_ts = get_gateway().call("top_list", trade_date=d)
         if df_ts is not None and not df_ts.empty:
             all_rows.extend(_extract_rows(df_ts, _LHB_DETAIL_FIELDS_TUSHARE))
         cur += timedelta(days=1)
@@ -143,7 +143,7 @@ def fetch_institutional_trading(start_date: str, end_date: str) -> list[dict]:
     2026-07-07 调整：Tushare ``top_inst`` 优先，AKShare ``stock_lhb_jgmmtj_em`` 兜底。
     """
     # Tushare 优先
-    from stockhot.core.tushare_client_safe import safe_tushare_call
+    from stockhot.data_layer import get_gateway
     from datetime import datetime, timedelta
 
     start = start_date.replace("-", "")
@@ -153,7 +153,7 @@ def fetch_institutional_trading(start_date: str, end_date: str) -> list[dict]:
     end_dt = datetime.strptime(end, "%Y%m%d")
     while cur <= end_dt:
         d = cur.strftime("%Y%m%d")
-        df_ts = safe_tushare_call("top_inst", trade_date=d)
+        df_ts = get_gateway().call("top_inst", trade_date=d)
         if df_ts is not None and not df_ts.empty:
             all_rows.extend(_extract_rows(df_ts, _INST_FIELDS_TUSHARE))
         cur += timedelta(days=1)

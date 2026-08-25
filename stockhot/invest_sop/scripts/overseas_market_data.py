@@ -117,12 +117,11 @@ def collect_overseas_data(target_date: str) -> dict:
     # AKShare bond_zh_us_rate() was used before but never succeeded (0% fill rate),
     # replaced 2026-07-30. us_tycr returns y10/y2 as decimals (e.g. 4.65 = 4.65%).
     try:
-        from davis_analyzer.tushare_client import TushareClient
+        from stockhot.data_layer import get_gateway
 
-        client = TushareClient()
         end = target_date.replace("-", "")
         start = (datetime.strptime(target_date, "%Y-%m-%d") - timedelta(days=10)).strftime("%Y%m%d")
-        df = client._pro.us_tycr(start_date=start, end_date=end)
+        df = get_gateway().call("us_tycr", start_date=start, end_date=end)
         if df is not None and len(df) >= 1:
             df = df.sort_values("date")
             cur_10y = float(df["y10"].iloc[-1])
@@ -157,12 +156,11 @@ def collect_overseas_data(target_date: str) -> dict:
     # unwind risk (the trigger of the 2024-08-05 global crash). Critical for
     # the international overlay's 套息风险 signal.
     try:
-        from davis_analyzer.tushare_client import TushareClient
+        from stockhot.data_layer import get_gateway
 
-        client = TushareClient()
         end = target_date.replace("-", "")
         start = (datetime.strptime(target_date, "%Y-%m-%d") - timedelta(days=7)).strftime("%Y%m%d")
-        df = client._pro.fx_daily(ts_code="USDJPY.FXCM", start_date=start, end_date=end)
+        df = get_gateway().call("fx_daily", ts_code="USDJPY.FXCM", start_date=start, end_date=end)
         if df is not None and len(df) >= 1:
             df = df.sort_values("trade_date")
             results["usd_jpy"] = round(float(df["bid_close"].iloc[-1]), 4)

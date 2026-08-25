@@ -43,9 +43,9 @@ def fetch_st_stocks() -> list[dict]:
     Returns a list of dicts with keys: 代码, 名称, 最新价, 涨跌幅.
     """
     # Tushare 优先
-    from stockhot.core.tushare_client_safe import safe_tushare_call
+    from stockhot.data_layer import get_gateway
 
-    df_ts = safe_tushare_call("stock_basic", list_status="L", fields="ts_code,name")
+    df_ts = get_gateway().call("stock_basic", list_status="L", fields="ts_code,name")
     if df_ts is not None and not df_ts.empty:
         st_df = df_ts[df_ts["name"].str.contains("ST", na=False)]
         rows = [{"代码": safe_text(r.get("ts_code")), "名称": safe_text(r.get("name")),

@@ -38,11 +38,11 @@ def _fetch_market_fund_flow_tushare(days: int = 30) -> list[dict]:
     """
     try:
         from datetime import datetime, timedelta
-        from stockhot.core.tushare_client_safe import safe_tushare_call
+        from stockhot.data_layer import get_gateway
 
         end = datetime.now().strftime("%Y%m%d")
         start = (datetime.now() - timedelta(days=days)).strftime("%Y%m%d")
-        df = safe_tushare_call("moneyflow_mkt_dc", start_date=start, end_date=end)
+        df = get_gateway().call("moneyflow_mkt_dc", start_date=start, end_date=end)
         if df is None or df.empty:
             logger.info(f"fetch_market_fund_flow (Tushare): no data {start}-{end}")
             return []
@@ -444,13 +444,13 @@ def _fetch_individual_fund_flow_tushare(stock: str, market: str = "sh") -> list[
     buy_elg_amount/elg_vol_amount(超大单), net_mf_amount(主力净流入)。
     """
     from datetime import datetime, timedelta
-    from stockhot.core.tushare_client_safe import safe_tushare_call
+    from stockhot.data_layer import get_gateway
 
     # 构造 ts_code
     ts_code = f"{stock}.{market.upper()}" if "." not in stock else stock
     end = datetime.now().strftime("%Y%m%d")
     start = (datetime.now() - timedelta(days=30)).strftime("%Y%m%d")
-    df = safe_tushare_call("moneyflow", ts_code=ts_code, start_date=start, end_date=end)
+    df = get_gateway().call("moneyflow", ts_code=ts_code, start_date=start, end_date=end)
     if df is None or df.empty:
         return []
 

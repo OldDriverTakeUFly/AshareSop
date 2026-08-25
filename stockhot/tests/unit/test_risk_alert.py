@@ -30,8 +30,10 @@ def _patch_tushare(monkeypatch, responder):
 
     responder: callable(endpoint, **kw) -> DataFrame | None
     """
+    # 类方法 patch 会注入 self, 包一层适配保持 responder(endpoint, **kw) 契约
     monkeypatch.setattr(
-        "stockhot.core.tushare_client_safe.safe_tushare_call", responder
+        "stockhot.data_layer.tushare_gateway.TushareGateway.call",
+        lambda self, api_name, *args, **kw: responder(api_name, *args, **kw),
     )
 
 

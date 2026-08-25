@@ -1,4 +1,10 @@
-"""Tushare safe-call wrapper — unified, retryable, rate-limited Tushare access.
+"""
+.. deprecated:: 2026-08-25
+   生产路径已全部迁移至 ``stockhot.data_layer.tushare_gateway.TushareGateway.call``
+   （同端点/同"永不抛异常"契约/更强限流与分页）。本模块仅存量研究脚本引用,
+   将在客户端统一工程 P4 删除——新代码禁止使用。
+
+Tushare safe-call wrapper — unified, retryable, rate-limited Tushare access.
 
 与 ``safe_akshare_call`` 平行的 Tushare 版本。所有 Tushare 调用应通过本模块，
 确保：①统一走新端点 ``api.tushare.pro/dataapi``（绕过旧版 waditu.com 超时问题）

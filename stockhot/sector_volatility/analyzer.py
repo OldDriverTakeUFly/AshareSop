@@ -107,9 +107,9 @@ def _fetch_sector_limits(date: str) -> dict[str, dict]:
         pass  # DAL 失败则回退
 
     # 回退：Tushare limit_list_d（原逻辑）
-    from stockhot.core.tushare_client_safe import safe_tushare_call
+    from stockhot.data_layer import get_gateway
 
-    df = safe_tushare_call("limit_list_d", trade_date=date.replace("-", ""))
+    df = get_gateway().call("limit_list_d", trade_date=date.replace("-", ""))
     if df is None or df.empty or "industry" not in df.columns:
         return {}
 

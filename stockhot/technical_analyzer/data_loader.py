@@ -23,7 +23,6 @@ import pandas as pd
 from stockhot.core.datasource import fetch_with_fallback
 from stockhot.core.logging import logger
 from stockhot.core.rate_limiter import safe_akshare_call
-from stockhot.core.tushare_client_safe import safe_tushare_call
 
 _COLUMN_MAP_AK = {
     "日期": "date",

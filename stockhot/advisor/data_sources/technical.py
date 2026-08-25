@@ -156,9 +156,9 @@ def fetch_realtime_price(code: str) -> dict:
         pass  # DAL 失败则回退到原始路径
 
     # 回退：Tushare daily_basic（原逻辑）
-    from stockhot.core.tushare_client_safe import safe_tushare_call
+    from stockhot.data_layer import get_gateway
 
-    df_ts = safe_tushare_call("daily_basic", ts_code=ts_code, limit=1)
+    df_ts = get_gateway().call("daily_basic", ts_code=ts_code, limit=1)
     if df_ts is not None and not df_ts.empty:
         r = df_ts.iloc[0]
         return {

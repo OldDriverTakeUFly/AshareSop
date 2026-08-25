@@ -160,10 +160,10 @@ def _fetch_pool_via_tushare(date: str, limit_type: str):
 
     返回：过滤后的 DataFrame，失败返回 None（触发上层 fallback）。
     """
-    from stockhot.core.tushare_client_safe import safe_tushare_call
+    from stockhot.data_layer import get_gateway
 
     tushare_date = date.replace("-", "")
-    df = safe_tushare_call("limit_list_d", trade_date=tushare_date)
+    df = get_gateway().call("limit_list_d", trade_date=tushare_date)
     if df is None or df.empty:
         return None
     # 客户端过滤

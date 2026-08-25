@@ -73,9 +73,9 @@ def fetch_sector_members(sw_code: str, use_cache: bool = True) -> list[str]:
                 return members
 
     # Tushare 拉取
-    from stockhot.core.tushare_client_safe import safe_tushare_call
+    from stockhot.data_layer import get_gateway
 
-    df = safe_tushare_call("index_member", index_code=sw_code, fields="con_code,is_new")
+    df = get_gateway().call("index_member", index_code=sw_code, fields="con_code,is_new")
     if df is None or df.empty:
         logger.warning(f"fetch_sector_members({sw_code}): empty")
         return []
