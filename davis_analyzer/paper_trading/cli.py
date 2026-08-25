@@ -100,6 +100,10 @@ def cmd_run(args):
 
     account = PaperAccount.load(args.name)
     strategy = create_strategy(account.strategy_name, account.config)
+    # 重启后从 paper_trades 重建 5 日卖出冷却(内存 dict 重启即丢, 2026-08-25)
+    n_cd = strategy.rebuild_cooldown_from_trades(account.get_trades(limit=200))
+    if n_cd:
+        print(f"已重建卖出冷却 {n_cd} 条(最近 5 交易日内 SELL)")
     executor = DailyExecutor(account, strategy)
 
     trade_date = args.date or _get_recent_trade_day()
@@ -127,6 +131,10 @@ def cmd_backfill(args):
 
     account = PaperAccount.load(args.name)
     strategy = create_strategy(account.strategy_name, account.config)
+    # 重启后从 paper_trades 重建 5 日卖出冷却(内存 dict 重启即丢, 2026-08-25)
+    n_cd = strategy.rebuild_cooldown_from_trades(account.get_trades(limit=200))
+    if n_cd:
+        print(f"已重建卖出冷却 {n_cd} 条(最近 5 交易日内 SELL)")
 
     start = args.start.replace("-", "")
     end = args.end.replace("-", "") if args.end else None
@@ -175,6 +183,10 @@ def cmd_live(args):
 
     account = PaperAccount.load(args.name)
     strategy = create_strategy(account.strategy_name, account.config)
+    # 重启后从 paper_trades 重建 5 日卖出冷却(内存 dict 重启即丢, 2026-08-25)
+    n_cd = strategy.rebuild_cooldown_from_trades(account.get_trades(limit=200))
+    if n_cd:
+        print(f"已重建卖出冷却 {n_cd} 条(最近 5 交易日内 SELL)")
 
     monitor = LiveMonitor(
         account=account,

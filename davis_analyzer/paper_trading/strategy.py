@@ -606,6 +606,27 @@ class FactorThresholdStrategy:
         self._cooldown: dict[str, str] = {}
         self._cooldown_days = 5  # don't rebuy within 5 trading days of selling
 
+    def rebuild_cooldown_from_trades(self, trades: list) -> int:
+        """从持久化交易记录重建卖出冷却(进程重启后调用), 返回重建条数.
+
+        内存 dict 冷却随进程退出即丢, 重启后会违反 5 日回购纪律
+        (2026-08-25 修复)。paper_trades 表是单一真相源: 以记录中最新
+        trade_date 为"今天", 5 日内 SELL 的 (ts_code → 最近卖出日) 重建。
+        同一标的多次卖出保留最近日期(冷却保守取长)。
+        """
+        if not trades:
+            return 0
+        latest = max(t.trade_date for t in trades)
+        for t in trades:
+            if t.action != "SELL":
+                continue
+            if _days_between(t.trade_date, latest) >= self._cooldown_days:
+                continue
+            prev = self._cooldown.get(t.ts_code)
+            if prev is None or t.trade_date > prev:
+                self._cooldown[t.ts_code] = t.trade_date
+        return len(self._cooldown)
+
     def _oversold_bounce_evaluate(
         self, positions, snapshot, signals, total_equity,
         held_codes: set | None = None,

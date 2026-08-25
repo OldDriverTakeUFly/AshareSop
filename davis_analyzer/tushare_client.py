@@ -346,6 +346,26 @@ class TushareClient:
 
         return self._daily_prices_from_cache(ts_code, start_date, end_date)
 
+    def get_daily_basic_by_date(
+        self,
+        trade_date: str,
+        fields: str = (
+            "ts_code,trade_date,pe_ttm,pb,ps,total_mv,"
+            "turnover_rate,circ_mv,free_share"
+        ),
+    ) -> pd.DataFrame:
+        """全市场某日 daily_basic 快照(按日直拉, 无按票缓存).
+
+        供日度采集场景(daily_scan Wave 0); 走 _call 获得限流+重试。
+        取代调用方直接伸手私有属性 ``client._pro.daily_basic`` 的写法
+        (2026-08-25 收敛).
+        """
+        return self._call(
+            "daily_basic",
+            self._pro.daily_basic,
+            {"trade_date": trade_date, "fields": fields},
+        )
+
     def get_dividend(self, ts_code: str, start_date: str, end_date: str) -> pd.DataFrame:
         """Return 分红送股 (dividend) rows for the requested date range.
 

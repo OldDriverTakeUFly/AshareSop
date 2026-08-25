@@ -75,9 +75,12 @@ def run_wave_0(trade_date: str) -> bool:
             from davis_analyzer.tushare_client import TushareClient
 
             client = TushareClient()
-            basic_df = client._pro.daily_basic(
-                trade_date=trade_date,
-                fields="ts_code,trade_date,pe_ttm,pb,ps,total_mv,turnover_rate,circ_mv,free_share",
+            basic_df = client.get_daily_basic_by_date(
+                trade_date,
+                fields=(
+                    "ts_code,trade_date,pe_ttm,pb,ps,total_mv,"
+                    "turnover_rate,circ_mv,free_share"
+                ),
             )
             if basic_df is not None and not basic_df.empty:
                 from stockhot.data_layer.market_db import get_connection
