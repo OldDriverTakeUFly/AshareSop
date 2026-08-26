@@ -383,7 +383,8 @@ def test_sector_structure_strong_sorted_by_limit_up(monkeypatch):
     """
     import stockhot.alert.panic_detector as pd_mod
     monkeypatch.setattr(pd_mod, "_fetch_sw_daily_pct", lambda: ({}, ""))
-    monkeypatch.setattr(pd_mod, "_fetch_sector_main_net", lambda: {})
+    monkeypatch.setattr(pd_mod, "_fetch_realtime_sector_pct", lambda: ({}, ""))
+    monkeypatch.setattr(pd_mod, "_fetch_sector_main_net", lambda: ({}, ""))
 
     sector_counts = {
         "计算机": {"limit_up": 8, "limit_down": 0, "broken": 1},
@@ -406,7 +407,8 @@ def test_sector_structure_weak_sorted_by_limit_down(monkeypatch):
     """弱势板块按跌停数降序."""
     import stockhot.alert.panic_detector as pd_mod
     monkeypatch.setattr(pd_mod, "_fetch_sw_daily_pct", lambda: ({}, ""))
-    monkeypatch.setattr(pd_mod, "_fetch_sector_main_net", lambda: {})
+    monkeypatch.setattr(pd_mod, "_fetch_realtime_sector_pct", lambda: ({}, ""))
+    monkeypatch.setattr(pd_mod, "_fetch_sector_main_net", lambda: ({}, ""))
 
     sector_counts = {
         "房地产": {"limit_up": 0, "limit_down": 7, "broken": 2},
@@ -431,7 +433,8 @@ def test_sector_structure_weak_fallback_to_pct_when_no_limit_down(monkeypatch):
         pd_mod, "_fetch_sw_daily_pct",
         lambda: ({"银行": -1.5, "食品饮料": -0.8, "钢铁": -0.3, "电子": 2.0}, "07-31"),
     )
-    monkeypatch.setattr(pd_mod, "_fetch_sector_main_net", lambda: {})
+    monkeypatch.setattr(pd_mod, "_fetch_realtime_sector_pct", lambda: ({}, ""))
+    monkeypatch.setattr(pd_mod, "_fetch_sector_main_net", lambda: ({}, ""))
 
     # 全市场无跌停（只有涨停的电子板块）
     sector_counts = {"电子": {"limit_up": 5, "limit_down": 0}}
@@ -461,7 +464,8 @@ def test_sector_structure_top_n_limit(monkeypatch):
     """最多只返回 top N（_SECTOR_TOP_N=3）个."""
     import stockhot.alert.panic_detector as pd_mod
     monkeypatch.setattr(pd_mod, "_fetch_sw_daily_pct", lambda: ({}, ""))
-    monkeypatch.setattr(pd_mod, "_fetch_sector_main_net", lambda: {})
+    monkeypatch.setattr(pd_mod, "_fetch_realtime_sector_pct", lambda: ({}, ""))
+    monkeypatch.setattr(pd_mod, "_fetch_sector_main_net", lambda: ({}, ""))
 
     # 构造 5 个不同申万一级的涨停板块
     sector_counts = {
@@ -479,7 +483,8 @@ def test_sector_structure_empty_counts(monkeypatch):
     """sector_counts 为空 + 无外部数据 → available=False."""
     import stockhot.alert.panic_detector as pd_mod
     monkeypatch.setattr(pd_mod, "_fetch_sw_daily_pct", lambda: ({}, ""))
-    monkeypatch.setattr(pd_mod, "_fetch_sector_main_net", lambda: {})
+    monkeypatch.setattr(pd_mod, "_fetch_realtime_sector_pct", lambda: ({}, ""))
+    monkeypatch.setattr(pd_mod, "_fetch_sector_main_net", lambda: ({}, ""))
 
     result = _detect_sector_structure({})
     assert not result.available
@@ -494,7 +499,8 @@ def test_sector_structure_merges_pct_change(monkeypatch):
         pd_mod, "_fetch_sw_daily_pct",
         lambda: ({"电子": -7.02, "食品饮料": 2.14}, "07-28"),
     )
-    monkeypatch.setattr(pd_mod, "_fetch_sector_main_net", lambda: {})
+    monkeypatch.setattr(pd_mod, "_fetch_realtime_sector_pct", lambda: ({}, ""))
+    monkeypatch.setattr(pd_mod, "_fetch_sector_main_net", lambda: ({}, ""))
 
     sector_counts = {
         "电子": {"limit_up": 6, "limit_down": 1},
@@ -514,7 +520,8 @@ def test_sector_structure_fallback_to_pct_when_no_limits(monkeypatch):
         pd_mod, "_fetch_sw_daily_pct",
         lambda: ({"钢铁": -3.0, "电子": 2.5, "食品": 1.0}, "07-28"),
     )
-    monkeypatch.setattr(pd_mod, "_fetch_sector_main_net", lambda: {})
+    monkeypatch.setattr(pd_mod, "_fetch_realtime_sector_pct", lambda: ({}, ""))
+    monkeypatch.setattr(pd_mod, "_fetch_sector_main_net", lambda: ({}, ""))
 
     # sector_counts 为空，但有 sw_daily 数据
     result = _detect_sector_structure({})

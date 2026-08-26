@@ -25,7 +25,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass, field
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any
 
 import numpy as np
@@ -131,7 +131,8 @@ class SectorStrength:
     """单个板块的强弱读数（多源合并）.
 
     数据来源（时效不同，消息里会标注）：
-    - pct_change: sw_daily 最近可得交易日（盘中可能是昨日，盘后是当日）
+    - pct_change: 盘中/盘后优先 AkShare 实时板块快照（与涨跌停同日），
+      失败回退 sw_daily 最近可得交易日（盘中为 T-1）
     - limit_up/down/broken: zt_pool 所属行业聚合（盘中实时）
     - main_net: fund_flow_sector 表（上一交易日，Tushare moneyflow 非实时）
     """
@@ -152,7 +153,8 @@ class SectorStructure:
 
     strong: list[SectorStrength] = field(default_factory=list)   # 综合强势 top 3
     weak: list[SectorStrength] = field(default_factory=list)     # 综合弱势 top 3
-    pct_change_as_of: str = ""            # 涨跌幅数据时效标注（如"07-28"或"上一交易日"）
+    pct_change_as_of: str = ""            # 涨跌幅数据时效标注（如"07-28"或"07-28 盘中10:30"）
+    main_net_as_of: str = ""              # 主力净额数据日期标注（如"07-28"）
     available: bool = False
 
 
@@ -998,11 +1000,101 @@ def _fetch_sw_daily_pct() -> tuple[dict[str, float], str]:
         return {}, ""
 
 
-def _fetch_sector_main_net() -> dict[str, float]:
+def _realtime_phase_label(now: datetime) -> str:
+    """实时板块快照的时效标签；空串 = 快照不可用（盘前/周末，仍是昨收数据）.
+
+    09:35-15:05 → "MM-DD 盘中HH:MM"（开盘初期数据未稳定，09:35 前不用）
+    15:05 之后  → "MM-DD 收盘"
+    """
+    if now.weekday() >= 5:
+        return ""
+    hm = now.hour * 100 + now.minute
+    if 935 <= hm <= 1505:
+        return f"{now:%m-%d} 盘中{now:%H:%M}"
+    if hm > 1505:
+        return f"{now:%m-%d} 收盘"
+    return ""
+
+
+def _aggregate_sector_pct(
+    df: pd.DataFrame, name_col: str, pct_col: str, amt_col: str | None = None,
+) -> dict[str, float]:
+    """行业板块涨跌幅 → 申万一级聚合（成交额加权，缺权重列时等权）."""
+    from stockhot.alert.sector_mapping import normalize_sector_name
+
+    has_amt = amt_col is not None and amt_col in df.columns
+    acc: dict[str, float] = {}
+    wts: dict[str, float] = {}
+    for _, row in df.iterrows():
+        name = str(row.get(name_col, "")).strip()
+        pct = row.get(pct_col)
+        if not name or pct is None or pd.isna(pct):
+            continue
+        l1 = normalize_sector_name(name)
+        w = 1.0
+        if has_amt:
+            amt = row.get(amt_col)
+            if amt is not None and pd.notna(amt) and float(amt) > 0:
+                w = float(amt)
+        acc[l1] = acc.get(l1, 0.0) + float(pct) * w
+        wts[l1] = wts.get(l1, 0.0) + w
+    return {k: acc[k] / wts[k] for k in acc}
+
+
+def _fetch_realtime_sector_pct() -> tuple[dict[str, float], str]:
+    """AkShare 实时行业板块涨跌幅（东财优先，新浪兜底），归一化到申万一级.
+
+    背景（2026-0826 修复）：此前盘中板块涨跌幅用 sw_daily T-1 回退，
+    与当日涨停数排序混排，推出「强势板块 + 负涨幅」的矛盾消息。
+    返回 ({L1名: 涨跌幅%}, 时效标签)；盘前/周末/双源失败返回 ({}, ""),
+    由调用方回退 sw_daily 并如实标注 T-1 日期。
+    """
+    label = _realtime_phase_label(datetime.now())
+    if not label:
+        return {}, ""
+
+    import akshare as ak
+
+    from stockhot.core.rate_limiter import safe_akshare_call
+
+    df: pd.DataFrame | None = None
+    try:
+        em = safe_akshare_call(ak.stock_board_industry_name_em)
+        if (em is not None and not em.empty
+                and "板块名称" in em.columns and "涨跌幅" in em.columns):
+            df = em
+    except Exception:
+        df = None
+    if df is None:
+        try:
+            sina = safe_akshare_call(ak.stock_sector_spot, indicator="新浪行业")
+            if (sina is not None and not sina.empty
+                    and "板块" in sina.columns and "涨跌幅" in sina.columns):
+                df = sina.rename(columns={"板块": "板块名称"})
+        except Exception:
+            df = None
+    if df is None or df.empty:
+        return {}, ""
+
+    amt_col = None
+    for col in ("成交额", "总成交额"):
+        if col in df.columns:
+            amt_col = col
+            break
+    pct_map = _aggregate_sector_pct(df, "板块名称", "涨跌幅", amt_col)
+    if len(pct_map) < 10:
+        # 归一化覆盖过少（如接口字段变化）视为数据不可信
+        logger.warning(f"[panic] 实时板块涨跌幅归一化仅 {len(pct_map)} 个一级，放弃")
+        return {}, ""
+    logger.info(f"[panic] 实时板块涨跌幅: {len(pct_map)} 个一级（{label}）")
+    return pct_map, label
+
+
+def _fetch_sector_main_net() -> tuple[dict[str, float], str]:
     """从 fund_flow_sector 表拿最近交易日的板块主力净额.
 
-    返回 {板块名: 主力净额(亿元)}。数据来源是 Tushare moneyflow 聚合，
-    时效为上一交易日（非实时）。
+    返回 ({板块名: 主力净额(亿元)}, 数据日期标签 MM-DD)。
+    数据来源是 Tushare moneyflow 聚合，时效为上一交易日（非实时）。
 
     注意：fund_flow_sector 表的 trade_date 是 ISO 格式（2026-07-31），
     与 index_daily 的紧凑格式（20260731）不同。
@@ -1029,11 +1121,11 @@ def _fetch_sector_main_net() -> dict[str, float]:
                 if name and net is not None:
                     net_map[name] = float(net)
             if net_map:
-                return net_map
-        return {}
+                return net_map, d.strftime("%m-%d")
+        return {}, ""
     except Exception as e:
         logger.warning(f"[panic] fund_flow_sector 获取失败: {e}")
-        return {}
+        return {}, ""
 
 
 def _detect_sector_structure(sector_counts: dict[str, dict]) -> SectorStructure:
@@ -1045,10 +1137,13 @@ def _detect_sector_structure(sector_counts: dict[str, dict]) -> SectorStructure:
     返回：
         SectorStructure，strong/weak 各 top N
     """
-    # 数据源 1：板块涨跌幅（sw_daily，最近交易日）
-    pct_map, pct_as_of = _fetch_sw_daily_pct()
+    # 数据源 1：板块涨跌幅——盘中/盘后优先 AkShare 实时快照（与涨跌停同日），
+    # 失败/盘前回退 sw_daily 最近交易日（盘中为 T-1，日期如实标注）
+    pct_map, pct_as_of = _fetch_realtime_sector_pct()
+    if not pct_map:
+        pct_map, pct_as_of = _fetch_sw_daily_pct()
     # 数据源 2：板块主力净额（fund_flow_sector，上一交易日）
-    net_map = _fetch_sector_main_net()
+    net_map, net_as_of = _fetch_sector_main_net()
 
     # ── 板块名归一化：三个数据源统一到申万一级口径 ──
     # zt_pool 用东财细分（"元件""半导体"），fund_flow 用 Tushare 细分（"化学制药"），
@@ -1158,6 +1253,7 @@ def _detect_sector_structure(sector_counts: dict[str, dict]) -> SectorStructure:
     return SectorStructure(
         strong=strong, weak=weak,
         pct_change_as_of=pct_as_of,
+        main_net_as_of=net_as_of,
         available=available,
     )
 
@@ -1393,9 +1489,14 @@ def _format_sector_section(sectors: SectorStructure) -> list[str]:
         return []
 
     lines = ["【板块结构】"]
-    # 涨跌幅时效标注
+    # 涨跌幅/主力时效标注（两源日期可能不同，分别标注避免误读）
     if sectors.pct_change_as_of:
-        lines[0] += f"（涨跌幅截至 {sectors.pct_change_as_of}）"
+        lines[0] += f"（涨跌幅截至 {sectors.pct_change_as_of}"
+        if sectors.main_net_as_of:
+            lines[0] += f" | 主力截至 {sectors.main_net_as_of}"
+        lines[0] += "）"
+    elif sectors.main_net_as_of:
+        lines[0] += f"（主力截至 {sectors.main_net_as_of}）"
 
     show_pct = bool(sectors.pct_change_as_of)
 

@@ -170,3 +170,16 @@ All 6 failures are **ConnectionError** from East Money (东方财富) endpoints 
 5. **Missing data sources**: Lithium, solar, coal spot prices are NOT in AKShare. These will need web scraping or paid API access (SMM, 百川盈孚, etc.)
 
 6. **AKShare version**: 1.18.56. Function signatures may change between versions — always pin the version in dependencies
+
+---
+
+## Category 6: 板块行情 (Sector Quotes, 2026-08-26 实测)
+
+| Endpoint | Function | Status | Return Fields | Notes |
+|----------|----------|--------|---------------|-------|
+| Sina 行业板块快照 | `stock_sector_spot(indicator='新浪行业')` | ✅ PASS | label, 板块, 公司家数, 平均价格, 涨跌额, 涨跌幅, 总成交量, 总成交额, 领涨股 (49 rows) | **盘中实时可用**（EM 被墙时的主力兜底）。板块名为新浪口径（"玻璃行业"），需经 `normalize_sector_name` 归一到申万一级（实测 49→24 个一级） |
+| EM 行业板块列表 | `stock_board_industry_name_em()` | ⚠️ FLAKY | 板块名称, 涨跌幅, 成交额... (86 rows) | 本机网络下代理+直连均被远端重置（RemoteDisconnected），间歇可用。代码里作 EM 优先、Sina 兜底的次序 |
+
+### Key Findings — Sector Quotes
+- **盘中板块涨跌幅**：`stock_sector_spot` (Sina) 稳定可用；`stock_board_industry_name_em` (EM) 间歇失败，双源链路见 `stockhot/alert/panic_detector.py:_fetch_realtime_sector_pct`
+- **盘前 9:35 前**：快照仍是昨收数据，不可当当日实时用（`_realtime_phase_label` 时段守卫）
