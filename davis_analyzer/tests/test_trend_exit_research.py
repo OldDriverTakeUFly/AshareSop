@@ -13,6 +13,7 @@ sys.path.insert(0, os.path.join(
 
 from trend_machine import Episode, TrendParams, find_episodes  # noqa: E402
 from pullback import LabelerParams, find_pullbacks  # noqa: E402
+from features import exante_features, pullback_features  # noqa: E402
 
 
 LP = LabelerParams()
@@ -74,6 +75,31 @@ class TestPullback:
         pbs = find_pullbacks("T.SZ", s, ep, LP)
         assert len(pbs) == 1 and pbs[0].outcome == "continue"
         assert pbs[0].end_pos == 464 and pbs[0].end_pos > ep.exit_pos
+
+
+class TestFeatures:
+    def _mk(self):
+        base = rising(150, 9.5, 0.0005)
+        closes = base + [11.5, 10.8, 10.75, 10.9, 11.7]   # 峰11.5(450) 谷10.75(452) +3日10.9(453) 新高11.7(454)
+        s = mk_stock(closes)
+        ep = Episode("T.SZ", 300 + 145, s["end"], "open", 11.7)
+        pb = find_pullbacks("T.SZ", s, ep, LP)[0]
+        return s, ep, pb
+
+    def test_pullback_features_price_cols(self):
+        s, ep, pb = self._mk()
+        f = pullback_features("T.SZ", s, ep, pb, None, None)
+        assert f["pb_days"] == 2                        # 10.8 → 10.75 两天
+        assert f["pb_depth"] == pytest.approx(10.75 / 11.5 - 1, rel=1e-6)
+        assert f["vol_ratio"] == pytest.approx(1.0, rel=1e-6)   # v 全 1.0
+        assert np.isnan(f["mf_wash"])                   # aux_mf=None
+        assert 0.0 < f["pos_pct_entry"] <= 100.0
+
+    def test_exante_features(self):
+        s, ep, pb = self._mk()
+        f = exante_features("T.SZ", s, ep, pb)
+        assert f["ex_dd3"] == pytest.approx(10.9 / 11.5 - 1, rel=1e-6)
+        assert f["ex_vol3"] == pytest.approx(1.0, rel=1e-6)
 
 
 def mk_stock(closes: list[float], start: int = 300) -> dict:
