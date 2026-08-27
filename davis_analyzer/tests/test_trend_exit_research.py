@@ -12,6 +12,68 @@ sys.path.insert(0, os.path.join(
     "/home/leo/Projects/CodeAgentDashboard", "scripts", "trend_exit_research"))
 
 from trend_machine import Episode, TrendParams, find_episodes  # noqa: E402
+from pullback import LabelerParams, find_pullbacks  # noqa: E402
+
+
+LP = LabelerParams()
+
+
+def episode_of(s: dict, entry_pos: int, exit_pos: int | None = None) -> Episode:
+    return Episode("T.SZ", entry_pos, s["end"] if exit_pos is None else exit_pos,
+                   "open", float(np.nanmax(s["c"][entry_pos:])))
+
+
+class TestPullback:
+    def test_labeler_params_disjoint_from_machine(self):
+        # 结构断言(spec §8):标注器判死线严于状态机退出线,参数不同源
+        assert LabelerParams().term_dd < TrendParams().exit_dd   # -0.25 < -0.20
+        assert LabelerParams().term_low_win != TrendParams().exit_ma60_days
+
+    def test_multiple_pullbacks_continue(self):
+        # 打底缓涨到 ~10.2(保证 40 日低点 ~10.0 足够低),动作段远离 40 日低点
+        base = rising(150, 9.5, 0.0005)
+        closes = base + [11.5, 10.8, 11.7, 11.0, 11.9]   # 峰11.5 回调10.8(-6.1%) 新高11.7;峰11.7 回调11.0(-6.0%) 新高11.9
+        s = mk_stock(closes)
+        ep = episode_of(s, 300 + 145)                   # 缓涨尾段进入
+        pbs = find_pullbacks("T.SZ", s, ep, LP)
+        assert [p.outcome for p in pbs] == ["continue", "continue"]
+        assert pbs[1].peak_px > pbs[0].peak_px          # 峰值重置
+        assert pbs[0].idx == 0 and pbs[1].idx == 1
+
+    def test_terminate_on_deep_drawdown(self):
+        up = rising(160)
+        peak = up[-1] * 1.10
+        closes = up + [peak, peak * 0.90, peak * 0.72]  # -28% ≤ -25% → terminate
+        s = mk_stock(closes)
+        ep = episode_of(s, 300 + 155)
+        pbs = find_pullbacks("T.SZ", s, ep, LP)
+        assert len(pbs) == 1 and pbs[0].outcome == "terminate"
+        assert pbs[0].trough_px == pytest.approx(peak * 0.72, rel=1e-6)
+
+    def test_timeout_flat_pullback(self):
+        up = rising(160)
+        peak = up[-1] * 1.08
+        flat = [peak * 0.94] * 26                        # -6% 触发后横盘 26 日
+        closes = up + [peak] + flat
+        s = mk_stock(closes)
+        ep = episode_of(s, 300 + 155)
+        pbs = find_pullbacks("T.SZ", s, ep, LP)
+        assert len(pbs) == 1 and pbs[0].outcome == "timeout"
+
+    def test_outcome_observed_beyond_episode_exit(self):
+        # 状态机在 -21% 处退出,但 25 日内收盘创前高 → 回调结局是 continue(观察窗独立)。
+        # 构造要点:前期必须长期横盘在 10(否则缓涨尾巴抬高 40 日低点,跌 -21% 会先触发
+        # 「创40日新低」的 terminate 判死,而不是走到 V 型修复)。
+        flat = [10.0] * 140                              # 300..439
+        run = [10.0 * (13.4 / 10.0) ** (i / 19) for i in range(20)]   # 440..459 冲到 13.4
+        peak = 13.4
+        closes = flat + run + [peak * 0.93, peak * 0.79,   # 460 触发回调;461 -21% 状态机dd退出
+                               peak * 0.86, peak * 0.95, peak * 1.02]  # 464 创前高 → continue
+        s = mk_stock(closes)
+        ep = Episode("T.SZ", 455, 461, "dd", peak)
+        pbs = find_pullbacks("T.SZ", s, ep, LP)
+        assert len(pbs) == 1 and pbs[0].outcome == "continue"
+        assert pbs[0].end_pos == 464 and pbs[0].end_pos > ep.exit_pos
 
 
 def mk_stock(closes: list[float], start: int = 300) -> dict:
