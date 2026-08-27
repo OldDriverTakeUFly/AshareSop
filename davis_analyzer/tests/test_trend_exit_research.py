@@ -14,6 +14,7 @@ sys.path.insert(0, os.path.join(
 from trend_machine import Episode, TrendParams, find_episodes  # noqa: E402
 from pullback import LabelerParams, find_pullbacks  # noqa: E402
 from features import exante_features, pullback_features  # noqa: E402
+from exits import ExitRule, default_rules, exit_metrics, run_exit_rule  # noqa: E402
 
 
 LP = LabelerParams()
@@ -100,6 +101,67 @@ class TestFeatures:
         f = exante_features("T.SZ", s, ep, pb)
         assert f["ex_dd3"] == pytest.approx(10.9 / 11.5 - 1, rel=1e-6)
         assert f["ex_vol3"] == pytest.approx(1.0, rel=1e-6)
+
+
+class TestExits:
+    def _mk_ep(self):
+        # entry 附近 10 → 峰 12.0 → 回落到 11.0(-8.3%) → 反弹到 12.5
+        base = rising(150)
+        closes = base + [11.0, 12.0, 11.0, 11.5, 12.5]
+        s = mk_stock(closes)
+        ep = Episode("T.SZ", 300 + 148, s["end"], "open", 12.5)
+        return s, ep
+
+    def test_trailing_8_exits_at_11(self):
+        s, ep = self._mk_ep()
+        r = run_exit_rule("T.SZ", s, ep, ExitRule("trail8", "trail", 0.08), LP)
+        assert r["exit_px"] == pytest.approx(11.0)
+        assert r["reason"] == "trail"
+
+    def test_capture_and_sellfly_hand_numbers(self):
+        s, ep = self._mk_ep()
+        m = exit_metrics(s, ep, s["end"] - 1, 11.0)     # 在 11.0 那天卖出
+        # episode最高收盘 = 12.5(含状态机退出日=数据尽头)→ capture = 11/12.5
+        assert m["capture"] == pytest.approx(11.0 / 12.5, rel=1e-6)
+        assert m["sellfly20"] == 1                       # 之后 12.5 > 卖前高点 12.0
+        assert m["gain20"] == pytest.approx(12.5 / 11.0 - 1, rel=1e-6)
+
+    def test_ma_rule_sells_on_break(self):
+        base = rising(150)
+        closes = base + [11.0, 12.0, 11.5, 11.0, 10.5, 10.0, 9.5]
+        s = mk_stock(closes)
+        ep = Episode("T.SZ", 300 + 148, s["end"], "open", 12.0)
+        r = run_exit_rule("T.SZ", s, ep, ExitRule("ma10", "ma", 10.0), LP)
+        assert r["reason"] == "ma_break"
+        assert r["exit_px"] < 11.5                       # 深度跌破才触发
+
+    def test_ma_recover_exempt_needs_two_days(self):
+        base = rising(150)
+        # 单日下破次日收回 → 不卖;随后连续两日下破 → 第二日卖
+        closes = base + [11.0, 12.0, 11.0, 11.6, 10.9, 10.8]
+        s = mk_stock(closes)
+        ep = Episode("T.SZ", 300 + 148, s["end"], "open", 12.0)
+        r = run_exit_rule("T.SZ", s, ep, ExitRule("ma10r", "ma", 10.0, True), LP)
+        assert r["reason"] == "ma_break2"
+        assert r["exit_px"] == pytest.approx(10.8)
+
+    def test_split_blended_price(self):
+        base = rising(150)
+        closes = base + [11.0, 12.0, 11.0, 10.6, 10.2, 9.9, 9.6]
+        s = mk_stock(closes)
+        ep = Episode("T.SZ", 300 + 148, s["end"], "open", 12.0)
+        r = run_exit_rule("T.SZ", s, ep, ExitRule("split", "split"), LP)
+        assert r["reason"] == "split_full"
+        # 卖价 = 0.5×破MA10日收盘 + 0.5×破MA20日收盘(两日由实现确定,按恒等式验证)
+        c_at = {300 + i: v for i, v in enumerate(closes)}
+        assert r["exit_px"] == pytest.approx(
+            0.5 * 11.0 + 0.5 * c_at[r["exit_pos"]], rel=1e-6)
+
+    def test_default_rules_count(self):
+        names = [r.name for r in default_rules()]
+        assert names[:4] == ["trail8", "trail10", "trail12", "trail15"]
+        assert "bench_machine" in names and "bench_label" in names
+        assert len(names) == 4 + 8 + 1 + 2
 
 
 def mk_stock(closes: list[float], start: int = 300) -> dict:
