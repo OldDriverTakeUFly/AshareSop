@@ -15,6 +15,62 @@ from trend_machine import Episode, TrendParams, find_episodes  # noqa: E402
 from pullback import LabelerParams, find_pullbacks  # noqa: E402
 from features import exante_features, pullback_features  # noqa: E402
 from exits import ExitRule, default_rules, exit_metrics, run_exit_rule  # noqa: E402
+from bootstrap import (filter_events, run_bootstrap,  # noqa: E402
+                       sample_pool, sample_window)
+
+CAL = np.arange(1, 401) * 10          # 假日期 10..4000,窗口运算按数值即可
+
+
+def _mk_pullbacks(n_stocks: int = 30) -> pd.DataFrame:
+    rows = []
+    for k in range(n_stocks):
+        for j in range(6):
+            rows.append({
+                "ts_code": f"S{k:03d}.SZ", "ep_entry_date": 500 + 30 * j,
+                "peak_date": 510 + 30 * j,
+                "outcome": "continue" if (k + j) % 2 == 0 else "terminate",
+                "pb_depth": -0.05 - 0.002 * k, "pb_days": j % 5,
+                "vol_ratio": 0.5 + 0.02 * k, "ex_dd3": -0.04, "ex_vol3": 0.9,
+            })
+    return pd.DataFrame(rows)
+
+
+def _mk_exits(pb: pd.DataFrame) -> pd.DataFrame:
+    eps = pb[["ts_code", "ep_entry_date"]].drop_duplicates()
+    offset = {"bench_machine": 0, "trail8": 1, "ma20": 2}   # 确定性偏移,不用 hash()
+    rows = []
+    for rule, cap in (("bench_machine", 0.90), ("trail8", 0.85), ("ma20", 0.80)):
+        for _, r in eps.iterrows():
+            rows.append({"ts_code": r["ts_code"], "ep_entry_date": r["ep_entry_date"],
+                         "rule": rule, "capture": cap + offset[rule] * 0.001,
+                         "sellfly20": int(rule != "bench_machine")})
+    return pd.DataFrame(rows)
+
+
+class TestBootstrap:
+    def test_seeded_reproducible(self):
+        pb, ex = _mk_pullbacks(), _mk_exits(_mk_pullbacks())
+        a = run_bootstrap(pb, ex, CAL, trials=4)
+        b = run_bootstrap(pb, ex, CAL, trials=4)
+        pd.testing.assert_frame_equal(a, b)
+
+    def test_pool_sampling_is_stock_level(self):
+        rng = np.random.default_rng(7)
+        pool = sample_pool(rng, set(f"S{k:03d}.SZ" for k in range(100)), 0.5)
+        sub = filter_events(_mk_pullbacks(100), (0, 10**9), pool, "peak_date")
+        assert set(sub["ts_code"]) <= pool
+        assert 40 <= len(pool) <= 60                     # 100×50%
+
+    def test_window_membership_by_peak_date(self):
+        pb = _mk_pullbacks()
+        sub = filter_events(pb, (530, 560), None, "peak_date")
+        assert ((sub["peak_date"] >= 530) & (sub["peak_date"] <= 560)).all()
+
+    def test_small_samples_dropped_and_counted(self):
+        pb = _mk_pullbacks(2)                            # 12 事件 < 30
+        ex = _mk_exits(pb)
+        out = run_bootstrap(pb, ex, CAL, trials=2, min_events=30)
+        assert (out["n_dropped"] >= 1).any() or len(out) == 0
 
 
 LP = LabelerParams()
