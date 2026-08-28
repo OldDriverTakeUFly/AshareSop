@@ -274,6 +274,14 @@ class FactorThresholdStrategy:
         # 时豁免这两个止盈型卖出(硬止损不受影响). 均默认关闭.
         bull_highvol_sell_exempt: bool = False,
         bull_tplus_trim_exempt: bool = False,
+        # ── 回调结构门控卖出 (实验0009, 2026-08-28) ──
+        # 0008 趋势回调研究: 守 MA10(+69%续涨)/MA60 的良性回调不宜止盈卖出,
+        # 卖飞代价中位 +14~24%; 0004 的市场级豁免(bull+MA200)被 2022 否决,
+        # 本次换成个股级结构门控: 收盘 > MA10 且 > MA60 时豁免止盈型卖出
+        # (高位放量/T+减仓). 硬止损/负因子/动量崩塌等其余卖出不受影响.
+        # 默认关闭 = 行为零变化.
+        pb_struct_highvol_exempt: bool = False,
+        pb_struct_tplus_exempt: bool = False,
         # sell_momentum: Fine-param sweep (2026-07-23) showed 30 beats 40/45.
         # Lower threshold = exit sooner when momentum fades (better in bear markets).
         #   sell=30 → Sharpe +0.252 (BEST)
@@ -543,6 +551,8 @@ class FactorThresholdStrategy:
         self.ma200_bear_override = ma200_bear_override
         self.bull_highvol_sell_exempt = bull_highvol_sell_exempt
         self.bull_tplus_trim_exempt = bull_tplus_trim_exempt
+        self.pb_struct_highvol_exempt = pb_struct_highvol_exempt
+        self.pb_struct_tplus_exempt = pb_struct_tplus_exempt
         self.sell_momentum = sell_momentum
         self.enable_adaptive_sell = enable_adaptive_sell
         self.enable_dynamic_weight = enable_dynamic_weight

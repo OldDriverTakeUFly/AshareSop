@@ -535,6 +535,45 @@ def _compute_index_above_ma200(trade_date: str) -> bool | None:
     return result
 
 
+# ── 回调结构门控 (实验0009, 2026-08-28) ──
+# 0008: 趋势股收盘守 MA10(+69%续涨)/MA60 = 良性回调, 此处止盈卖出大概率卖飞.
+# 按 (日期, 代码集) memoize; 用不复权 close(与执行器价格源一致)——除权日会
+# 假破线 → 返回 False → 不豁免 → 回到基线行为, 失效方向安全.
+_PB_STRUCT_CACHE: dict[tuple[str, tuple], dict[str, bool]] = {}
+
+
+def _holdings_structure_ok(ts_codes: list[str], trade_date: str) -> dict[str, bool]:
+    """每股收盘是否同时站上 MA10 与 MA60 (回调结构完好, 0008 判别层+触发层).
+
+    数据不足 60 根收盘的股票返回 False (不豁免, 与基线行为一致).
+    """
+    key = (trade_date, tuple(sorted(ts_codes)))
+    if key in _PB_STRUCT_CACHE:
+        return _PB_STRUCT_CACHE[key]
+    lookback_start = (
+        datetime.strptime(trade_date, "%Y%m%d") - timedelta(days=150)
+    ).strftime("%Y%m%d")
+    repo = get_repository()
+    out: dict[str, bool] = {}
+    for code in ts_codes:
+        ok = False
+        try:
+            df = repo.get_daily_prices(code, lookback_start, trade_date)
+            if df is not None and not df.empty:
+                close = (pd.to_numeric(df.sort_values("trade_date")["close"],
+                                       errors="coerce").dropna())
+                if len(close) >= 60:
+                    curr = float(close.iloc[-1])
+                    ma10 = float(close.iloc[-10:].mean())
+                    ma60 = float(close.iloc[-60:].mean())
+                    ok = curr > ma10 and curr > ma60
+        except Exception:
+            logger.debug(f"pb-struct fetch failed for {code} on {trade_date}")
+        out[code] = ok
+    _PB_STRUCT_CACHE[key] = out
+    return out
+
+
 def _compute_stock_20d_drops(ts_codes: list[str], trade_date: str) -> dict[str, float]:
     """Compute 20-day return (%) for each stock (for oversold bounce selection).
 
@@ -2063,6 +2102,14 @@ class DailyExecutor:
                     and _compute_index_above_ma200(trade_date)
                 ):
                     continue
+                # 实验0009: 个股回调结构完好(收盘>MA10且>MA60)时豁免——0008:
+                # 守MA10的良性回调 69%+ 续涨且回调放量=有承接, 此时高位放量
+                # 卖出=卖飞(代价中位+14~24%). 结构破了则照常卖出.
+                if (
+                    getattr(self.strategy, "pb_struct_highvol_exempt", False)
+                    and _holdings_structure_ok([pos.ts_code], trade_date)[pos.ts_code]
+                ):
+                    continue
                 vol_sig = volume_signals.get(pos.ts_code)
                 if (
                     vol_sig is not None
@@ -2138,7 +2185,12 @@ class DailyExecutor:
                     and market_regime == "bull"
                     and _compute_index_above_ma200(trade_date)
                 )
-                trim_shares = 0 if bull_exempt else int(pos.shares * self.t_trim_ratio // 100) * 100
+                # 实验0009: 结构完好豁免 T+减仓(同高位放量门控, 0008 纪律)
+                pb_struct_exempt = (
+                    getattr(self.strategy, "pb_struct_tplus_exempt", False)
+                    and _holdings_structure_ok([pos.ts_code], trade_date)[pos.ts_code]
+                )
+                trim_shares = 0 if (bull_exempt or pb_struct_exempt) else int(pos.shares * self.t_trim_ratio // 100) * 100
                 if trim_shares >= 100:
                     trade = self.account.sell(
                         ts_code=pos.ts_code,
