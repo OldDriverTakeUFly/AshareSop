@@ -668,6 +668,6 @@ If this section and the skill differ in detail, treat `.agents/skills/research-r
 本仓库的 `davis_analyzer` 子系统作为首个试点接入"公司中枢"项目管理流程（数据源：`~/ZCodeProject/公司中枢/`，协议见其 `README.md`）。Agent 在本仓库工作时的约定：
 
 1. **读上下文**：涉及 davis/stockhot 的任务规划时，先读项目卡 `~/ZCodeProject/公司中枢/projects/davis-analyzer.yaml` 了解里程碑与当前状态。
-2. **写进度**：会话中完成了里程碑级进展（如某引擎上线、回测达标、部署变更），按协议直接更新项目卡（milestones/review.updated/note），新工作项追加到 `tasks.yaml`（id 规则 T+三位自增，project 填 `davis-analyzer`），改完提醒用户 `git add 公司中枢 && git commit`（在 ZCodeProject 仓库）。
+2. **写进度**：会话中完成了里程碑级进展（如某引擎上线、回测达标、部署变更），按协议直接更新项目卡（milestones/review.updated/note），新工作项追加到 `tasks.yaml`（id 规则 T+三位自增，project 填 `davis-analyzer`）。收尾按 scoped 自动提交协议：`plan check` 通过 → `git -C ~/ZCodeProject status --porcelain -- 公司中枢/` → 只 add 本会话写入的文件 → `git commit -m "plan(<项目id>): 摘要"` 并回报 hash；非本会话变更保留不提交、报告说明（详见中枢 README）。
 3. **命令行**：`~/ZCodeProject/公司中枢/tools/.venv/bin/plan -r ~/ZCodeProject/公司中枢 ls|today|check|scan` 可随时查看全局进度（输出已按本文件规则保持精简）。
 4. **边界**：中枢只管状态与任务索引，不复制代码细节；本文件与本节冲突时，工程规则以本文件为准，管理协议以中枢 README 为准。
