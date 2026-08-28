@@ -192,11 +192,11 @@ ORDER BY recommendation_type, stock_code;
 
 ### 3.9 invest_event_calendar (前瞻事件日历)
 
-Forward-looking calendar of decisive upcoming events: FOMC rate decisions, nonfarm payrolls, CPI/PPI, MLF/LPR, BOJ/BOE decisions, A-share earnings disclosure dates for the holdings/watchlist universe, and agent-added overseas earnings/product launches (NVIDIA earnings etc.). Populated by `stockhot/invest_sop/scripts/event_calendar.py`; the report's §1.6 renders it automatically (no manual filling).
+Forward-looking calendar of decisive upcoming events: FOMC rate decisions, nonfarm payrolls, CPI/PPI, MLF/LPR, BOJ/BOE decisions, A-share earnings disclosure dates for the holdings/watchlist universe, and overseas earnings for a decisive-vendor watchlist (NVIDIA/AMD/TSM/Broadcom/Microsoft etc., 12 tickers). Populated by `stockhot/invest_sop/scripts/event_calendar.py` — **four deterministic sources, zero LLM, collected daily at 08:15 via run_daily_advisor.py** (AKShare Baidu calendar / Tushare disclosure_date / Nasdaq calendar API + agent `--add` for one-off product launches & medical readouts). The report's §1.6 renders it automatically (no manual filling).
 
 > ⚠️ Distinct from `invest_economic_calendar` (a **reactive** actual-vs-expected surprise signal from the broken `economic_calendar.py` — that table was never created; dead code, do not confuse the two).
 
-**Key columns:** `date`, `time`, `category` (`macro_us`/`macro_cn`/`macro_global`/`earnings_a`/`earnings_us`/`product`/`policy`), `event`, `expected`, `importance` (1-3; 3=decisive, auto-assigned to FOMC/nonfarm), `impact_scope`, `source` (`akshare_baidu`/`tushare_disclosure`/`agent_web`), `source_url`
+**Key columns:** `date`, `time`, `category` (`macro_us`/`macro_cn`/`macro_global`/`earnings_a`/`earnings_us`/`product`/`policy`), `event`, `expected`, `importance` (1-3; 3=decisitive, auto-assigned to FOMC/nonfarm/AI-chain earnings), `impact_scope`, `source` (`akshare_baidu`/`tushare_disclosure`/`nasdaq_calendar`/`agent_web`), `source_url`
 
 **Example query:**
 
@@ -207,22 +207,22 @@ WHERE date >= date('now', 'localtime') AND date <= date('now', 'localtime', '+21
 ORDER BY date, time;
 ```
 
-**Collection (run before report generation each evening, ~40s):**
+**Collection (automatic — run_daily_advisor.py at 08:15 calls this before report generation, ~60s):**
 
 ```bash
 PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python \
-    stockhot/invest_sop/scripts/event_calendar.py            # 宏观21天 + 财报披露
+    stockhot/invest_sop/scripts/event_calendar.py   # 宏观21天 + A股披露 + Nasdaq海外财报
 ```
 
-**Agent manual add (weekly Sunday scan — overseas earnings, product launches, medical readouts; URL required, never fabricate):**
+**Agent manual add (weekly Sunday scan — ONLY for one-off events with no calendar source: product launches, medical readouts; URL required, never fabricate):**
 
 ```bash
 PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python \
     stockhot/invest_sop/scripts/event_calendar.py \
-    --add "date=2026-09-10|event=英伟达FY2027Q2财报(盘后)|category=earnings_us|importance=3|scope=AI算力链|url=<来源URL>"
+    --add "date=2026-09-20|event=Moderna mRNA癌症疫苗III期数据|category=product|importance=3|scope=创新药|url=<来源URL>"
 ```
 
-**What to focus on:** 🔴 importance-3 events within the next few days should constrain §3 decisions (e.g., lower aggressiveness on AI-chain holdings the night before an NVIDIA earnings). `earnings_a` rows dated on/next trading day matter directly for those holdings. If the table is empty, run the collector; if AKShare fails, the report shows "数据不可用" — do not fabricate events.
+**What to focus on:** 🔴 importance-3 events within the next few days should constrain §3 decisions (e.g., lower aggressiveness on AI-chain holdings the night before an NVIDIA/Broadcom earnings). `earnings_a` rows dated on/next trading day matter directly for those holdings. If the table is empty, run the collector; if AKShare fails, the report shows "数据不可用" — do not fabricate events.
 
 ## 4. Execution Flow
 

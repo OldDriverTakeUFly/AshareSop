@@ -245,7 +245,7 @@ def _render_event_calendar(rows: list[dict] | None, trade_date: str) -> str:
             f" | {r.get('expected') or '-'} | {stars} |"
         )
     lines.append("")
-    lines.append("（📌=当日事件；🔴=决定性/🟡=重要/🟢=关注。海外财报与产品发布由周频扫描补充，未列出≠不存在）")
+    lines.append("（📌=当日事件；🔴=决定性/🟡=重要/🟢=关注。海外财报由 Nasdaq 日历日频采集；产品发布/readout 类一次性事件由周频扫描补充，未列出≠不存在）")
     return "\n".join(lines)
 
 

@@ -5,14 +5,16 @@
 报告"§1.6 前瞻事件日历"渲染，解决 SOP 有纸面"特殊事件日历"却无人知道
 FOMC/非农/英伟达财报在哪天的问题。
 
-三类来源（按可靠性分层）：
+四类来源（全部确定性数据源，零 LLM，日频采集）：
   1. 宏观日历   ak.news_economic_baidu 查询未来 N 天（实测含 FOMC 联邦基金利率
-                决议、非农、CPI、MLF/LPR、日英央行决议；2026-08-28 实测可通，
-                历史上有 403/TLS 失败期——失败只 WARN 不中断）
+                决议、非农、CPI、MLF/LPR、日英央行决议；百度源历史上有间歇
+                403/TLS 失败——失败只 WARN 不中断）
   2. A股财报    Tushare disclosure_date（预约披露日期），宇宙=active 持仓+
-                active 自选，覆盖最近两个报告期
-  3. 手动事件   --add 子命令：海外财报（英伟达等）/产品发布/医学 readout 由
-                agent 周频 web 搜索后带 URL 写入（SOP 纪律：催化必须附来源）
+                watching 自选，覆盖最近两个报告期
+  3. 海外财报   Nasdaq 官方日历 API（api.nasdaq.com，国内直连可用，实测
+                2026-08-28），匹配决定性厂商名单（英伟达/AMD/台积电等 12 家）
+  4. 手动事件   --add 子命令：产品发布/医学 readout 等无日历源的一次性事件，
+                由 agent 周频 web 搜索后带 URL 写入（纪律：催化必须附来源）
 
 Table: invest_event_calendar (stockhot.db)
   date        TEXT  -- 事件日期 YYYY-MM-DD
@@ -296,6 +298,80 @@ def collect_disclosure() -> int:
     return stored
 
 
+# ── 海外决定性厂商财报：Nasdaq 官方日历 API（国内直连可用，实测 2026-08-28） ──
+
+# AI 算力链核心=3（对 A 股 AI 链有决定性传导）；大型科技/生物=2
+_US_EARNINGS_WATCH = {
+    "NVDA": ("英伟达", 3), "AMD": ("AMD", 3), "AVGO": ("博通", 3),
+    "TSM": ("台积电", 3), "MU": ("美光", 3),
+    "MSFT": ("微软", 2), "GOOGL": ("谷歌", 2), "META": ("Meta", 2),
+    "AMZN": ("亚马逊", 2), "AAPL": ("苹果", 2), "TSLA": ("特斯拉", 2),
+    "MRNA": ("Moderna", 2),
+}
+_NASDAQ_UA = {
+    "User-Agent": (
+        "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+        "(KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+    ),
+    "Accept": "application/json",
+}
+
+
+def collect_us_earnings(days: int = 21) -> int:
+    """Nasdaq 官方财报日历 → 决定性厂商的海外财报日期（确定性数据源，零 LLM）.
+
+    逐日查询未来 days 天，命中名单厂商入库。国内直连可用；
+    若该 API 失效/被墙，兜底方案见 SOP §2.1（Playwright 或周频 agent 扫描）。
+    """
+    import json
+    import time as _time
+    import urllib.request
+
+    stored = 0
+    today = _date.today()
+    for i in range(days):
+        d = (today + timedelta(days=i)).isoformat()
+        url = f"https://api.nasdaq.com/api/calendar/earnings?date={d}"
+        try:
+            req = urllib.request.Request(url, headers=_NASDAQ_UA)
+            with urllib.request.urlopen(req, timeout=15) as r:
+                payload = json.loads(r.read().decode())
+        except Exception as e:
+            print(f"  [WARN] us_earnings {d} fetch failed: {str(e)[:100]}")
+            continue
+
+        rows = (payload.get("data") or {}).get("rows") or []
+        for r in rows:
+            sym = (r.get("symbol") or "").strip().upper()
+            if sym not in _US_EARNINGS_WATCH:
+                continue
+            cn_name, importance = _US_EARNINGS_WATCH[sym]
+            when = {"time-pre-market": "盘前", "time-after-hours": "盘后"}.get(
+                r.get("time") or "", ""
+            )
+            eps = r.get("epsForecast") or ""
+            upsert_record(
+                TABLE,
+                {
+                    "date": d,
+                    "time": "",
+                    "category": "earnings_us",
+                    "event": f"{cn_name}({sym}) 财报披露{f'({when})' if when else ''}",
+                    "expected": f"EPS共识 {eps}" if eps not in ("", "N/A") else "",
+                    "importance": importance,
+                    "impact_scope": "AI算力链" if importance == 3 else "",
+                    "source": "nasdaq_calendar",
+                    "source_url": "https://www.nasdaq.com/market-activity/earnings",
+                },
+                ["date", "event"],
+            )
+            stored += 1
+        _time.sleep(0.4)  # 限速礼貌
+
+    print(f"[OK] us_earnings: {stored} events stored (watchlist {len(_US_EARNINGS_WATCH)}, next {days} days)")
+    return stored
+
+
 # ── 手动事件：agent 周频 web 搜索后写入 ────────────────────────────────
 
 
@@ -343,6 +419,7 @@ def main() -> None:
     parser.add_argument("--days", type=int, default=21, help="宏观日历前瞻天数(默认21,确保FOMC提前可见)")
     parser.add_argument("--skip-macro", action="store_true", help="跳过宏观日历采集")
     parser.add_argument("--skip-disclosure", action="store_true", help="跳过财报披露采集")
+    parser.add_argument("--skip-us-earnings", action="store_true", help="跳过海外财报采集")
     parser.add_argument(
         "--add",
         help='手动添加事件: --add "date=2026-09-10|event=英伟达财报|category=earnings_us|importance=3|scope=AI算力链|url=https://..."',
@@ -358,6 +435,8 @@ def main() -> None:
         collect_macro(args.days)
     if not args.skip_disclosure:
         collect_disclosure()
+    if not args.skip_us_earnings:
+        collect_us_earnings(args.days)
 
 
 if __name__ == "__main__":
