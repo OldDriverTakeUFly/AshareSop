@@ -53,6 +53,17 @@ class TestRenderFailFast:
             render(project, "T", conn)
         assert run_validation(project).passed is False
 
+    def test_expired_project_blocks_render(self, tmp_path: Path, conn):
+        """I1(spec §4.3/§6):expires_at 已过的合法工程,build 须拒绝且不留任何产物。"""
+        (tmp_path / "facts.json").write_text(
+            json.dumps({"facts": [_fact("v1", "17.36", "亿", "17.36亿")]}, ensure_ascii=False)
+            .replace("2026-08-28", "2026-01-01"), encoding="utf-8")
+        (tmp_path / "cards.spec.json").write_text(json.dumps(SPEC, ensure_ascii=False), encoding="utf-8")
+        assert run_validation(tmp_path).passed is True  # 工程本身合法,仅过期
+        with pytest.raises(SystemExit, match="过期"):
+            render(tmp_path, "T", conn)
+        assert not (tmp_path / "output").exists()  # 写盘前拒绝,无任何产物
+
 
 @pytest.mark.skipif(NODE is None, reason="需要 node(playwright)环境")
 class TestRenderIntegration:

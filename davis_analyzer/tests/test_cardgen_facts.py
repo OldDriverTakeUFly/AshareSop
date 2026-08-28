@@ -30,6 +30,50 @@ class TestFactDataclass:
         assert Fact.from_dict(f.to_dict()) == f
 
 
+class TestQuotePassthrough:
+    """C1 回归:quote 必须透传,防 ingest(load→append→save)静默抹掉溯源引句。"""
+
+    def test_nested_quote_roundtrip_preserved(self):
+        d = {"id": "muxi_ps", "value": "143", "unit": "x", "display": "143x",
+             "as_of": "2026-08-28",
+             "source": {"kind": "report", "ref": "docs/x.md#估值",
+                        "quote": "沐曦 PS(TTM) 143x,参照英伟达"}}
+        f = Fact.from_dict(d)
+        assert f.quote == "沐曦 PS(TTM) 143x,参照英伟达"
+        assert Fact.from_dict(f.to_dict()).quote == f.quote  # 二次 round-trip 仍保留
+
+    def test_flat_quote_keys_fallback(self):
+        for key in ("quote", "source_quote"):
+            d = {"id": "f1", "value": "143", "unit": "x", "display": "143x",
+                 "as_of": "2026-08-28",
+                 "source": {"kind": "report", "ref": "docs/x.md#a"},
+                 key: "平铺回退引句"}
+            assert Fact.from_dict(d).quote == "平铺回退引句"
+
+    def test_nested_quote_wins_over_flat(self):
+        d = {"id": "f1", "value": "143", "unit": "x", "display": "143x",
+             "as_of": "2026-08-28",
+             "source": {"kind": "report", "ref": "docs/x.md#a", "quote": "嵌套优先"},
+             "quote": "平铺应被忽略"}
+        assert Fact.from_dict(d).quote == "嵌套优先"
+
+    def test_no_quote_omits_key(self):
+        f = _fact()
+        assert "quote" not in f.to_dict()["source"]
+
+    def test_ingest_chain_preserves_quote(self, tmp_path: Path):
+        # 模拟 cli cmd_ingest 的 load→append→save 链路:既有 quote 不得丢
+        p = tmp_path / "facts.json"
+        save_facts(p, [_fact(quote="原文引句:PS 143x")])
+        existing = load_facts(p)
+        appended = existing + [_fact(fid="b", value="75", unit="%", display="75%",
+                                     quote="新增事实引句:75%")]
+        save_facts(p, appended)
+        reloaded = load_facts(p)
+        assert [f.quote for f in reloaded] == ["原文引句:PS 143x", "新增事实引句:75%"]
+        assert existing[0].quote == "原文引句:PS 143x"
+
+
 class TestCheckFacts:
     def test_all_good(self):
         errors = check_facts([_fact(), _fact(fid="a2", value="75", unit="%", display="75%")])

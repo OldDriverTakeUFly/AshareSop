@@ -54,11 +54,33 @@ class TestExtract:
         assert [(t.value, t.unit) for t in extract_tokens("总市值2700亿")] == [(Decimal("2700"), "亿")]
         assert [(t.value, t.unit) for t in extract_tokens("约4000万")] == [(Decimal("4000"), "万")]
 
+    def test_two_digit_range_with_unit_not_masked_as_mmdd(self):
+        # I2 回归:mm/dd 掩码曾吞掉 20-25x/23-30亿/10-20% 这类两位数区间(fail-open)
+        assert [(t.value, t.unit) for t in extract_tokens("参照英伟达 20-25x")] == \
+            [(Decimal("20"), "x"), (Decimal("25"), "x")]
+        assert [(t.value, t.unit) for t in extract_tokens("23-30亿")] == \
+            [(Decimal("23"), "亿"), (Decimal("30"), "亿")]
+        assert [(t.value, t.unit) for t in extract_tokens("10-20%")] == \
+            [(Decimal("10"), "%"), (Decimal("20"), "%")]
+        # 三位数区间不受 \d{1,2} 掩码影响,照常走区间提取
+        assert [(t.value, t.unit) for t in extract_tokens("60-100x")] == \
+            [(Decimal("60"), "x"), (Decimal("100"), "x")]
+
+    def test_two_digit_range_unregistered_fail_closed(self):
+        # 溯源闸门 fail-closed:未登记的区间数字必须被点名,不得静默豁免
+        t = unmatched_tokens("PS 20-25x", facts=[])
+        assert len(t) == 2 and {str(x.value) for x in t} == {"20", "25"}
+
 
 class TestExemptions:
     def test_dates_masked(self):
         assert extract_tokens("8/31沐曦中报 + 燧原定价") == []
         assert extract_tokens("12/07大解禁1.86亿股") == [extract_tokens("1.86亿")[0]]
+
+    def test_month_range_still_masked(self):
+        # I2 反向:后接"月"/大写数字词等非单位字符的 9-10 仍是时间标签,保持豁免
+        assert extract_tokens("9-10月指引") == []
+        assert extract_tokens("12/07大解禁") == []
 
     def test_year_and_halfyear(self):
         assert extract_tokens("2026H2训推一体量产") == []

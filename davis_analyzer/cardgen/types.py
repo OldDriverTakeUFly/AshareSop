@@ -22,20 +22,26 @@ class Fact:
     as_of: str                 # ISO 日期
     source_kind: str           # report / tushare / manual
     source_ref: str
+    quote: str = ""            # 溯源引句(原文摘录,可选)
     expires: str = ""          # ISO 日期;缺省 as_of + DEFAULT_TTL_DAYS
 
     @classmethod
     def from_dict(cls, d: dict) -> Fact:
         src = d.get("source") or {}
+        # quote 以嵌套 source.quote 为准;兼容平铺 "quote"/"source_quote" 键作回退
+        quote = src.get("quote") or d.get("quote") or d.get("source_quote") or ""
         return cls(id=d["id"], value=Decimal(str(d["value"])), unit=d.get("unit", ""),
                    display=d["display"], as_of=d["as_of"],
                    source_kind=d.get("source_kind", src.get("kind", "manual")),
-                   source_ref=d.get("source_ref", src.get("ref", "")), expires=d.get("expires", ""))
+                   source_ref=d.get("source_ref", src.get("ref", "")),
+                   quote=quote, expires=d.get("expires", ""))
 
     def to_dict(self) -> dict:
         d = {"id": self.id, "value": _plain(self.value),
              "unit": self.unit, "display": self.display, "as_of": self.as_of,
              "source": {"kind": self.source_kind, "ref": self.source_ref}}
+        if self.quote:
+            d["source"]["quote"] = self.quote
         if self.expires:
             d["expires"] = self.expires
         return d

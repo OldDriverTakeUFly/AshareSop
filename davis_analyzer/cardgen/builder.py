@@ -7,6 +7,7 @@ import shutil
 import sqlite3
 import subprocess
 import sys
+from datetime import date
 from pathlib import Path
 
 from davis_analyzer.cardgen import ledger
@@ -46,6 +47,12 @@ def render(project_dir: Path, topic: str, conn: sqlite3.Connection,
         for f in report.failures:
             print(f"✗ [{f.gate}] {f.card} {f.field}: {f.detail}", file=sys.stderr)
         raise SystemExit(f"validate 未通过({len(report.failures)} 项),禁止 build")
+
+    # ── 过期拒绝(spec §4.3/§6):expires_at 已过 → 数据陈旧,禁止 build(写盘前)──
+    today = date.today().isoformat()
+    if report.expires_at and report.expires_at < today:
+        raise SystemExit(
+            f"工程已过期:expires_at={report.expires_at} < 今天 {today},数据陈旧,须更新事实后重新 build")
 
     facts = load_facts(project_dir / "facts.json")
     spec = json.loads((project_dir / "cards.spec.json").read_text(encoding="utf-8"))
