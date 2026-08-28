@@ -18,6 +18,7 @@ _ALLOWED_TABLES = frozenset(
         "invest_sector_rules",
         "invest_watchlist",
         "invest_economic_calendar",
+        "invest_event_calendar",
         "advisor_runs",
     }
 )

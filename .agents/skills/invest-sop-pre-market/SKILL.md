@@ -190,6 +190,40 @@ ORDER BY recommendation_type, stock_code;
 
 **What to focus on:** The report's "AI 综合建议" section groups rows by `recommendation_type` into four subtables (建仓 / 调仓 / 清仓 / 做T). `advisor_runs` is written by `advisor daily`, which runs at 08:15 via `run_daily_advisor.py` before the report is generated. If `advisor daily` failed, this section will be empty — flag as "数据不可用" rather than fabricating.
 
+### 3.9 invest_event_calendar (前瞻事件日历)
+
+Forward-looking calendar of decisive upcoming events: FOMC rate decisions, nonfarm payrolls, CPI/PPI, MLF/LPR, BOJ/BOE decisions, A-share earnings disclosure dates for the holdings/watchlist universe, and agent-added overseas earnings/product launches (NVIDIA earnings etc.). Populated by `stockhot/invest_sop/scripts/event_calendar.py`; the report's §1.6 renders it automatically (no manual filling).
+
+> ⚠️ Distinct from `invest_economic_calendar` (a **reactive** actual-vs-expected surprise signal from the broken `economic_calendar.py` — that table was never created; dead code, do not confuse the two).
+
+**Key columns:** `date`, `time`, `category` (`macro_us`/`macro_cn`/`macro_global`/`earnings_a`/`earnings_us`/`product`/`policy`), `event`, `expected`, `importance` (1-3; 3=decisive, auto-assigned to FOMC/nonfarm), `impact_scope`, `source` (`akshare_baidu`/`tushare_disclosure`/`agent_web`), `source_url`
+
+**Example query:**
+
+```sql
+SELECT date, time, category, event, expected, importance
+FROM invest_event_calendar
+WHERE date >= date('now', 'localtime') AND date <= date('now', 'localtime', '+21 days')
+ORDER BY date, time;
+```
+
+**Collection (run before report generation each evening, ~40s):**
+
+```bash
+PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python \
+    stockhot/invest_sop/scripts/event_calendar.py            # 宏观21天 + 财报披露
+```
+
+**Agent manual add (weekly Sunday scan — overseas earnings, product launches, medical readouts; URL required, never fabricate):**
+
+```bash
+PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python \
+    stockhot/invest_sop/scripts/event_calendar.py \
+    --add "date=2026-09-10|event=英伟达FY2027Q2财报(盘后)|category=earnings_us|importance=3|scope=AI算力链|url=<来源URL>"
+```
+
+**What to focus on:** 🔴 importance-3 events within the next few days should constrain §3 decisions (e.g., lower aggressiveness on AI-chain holdings the night before an NVIDIA earnings). `earnings_a` rows dated on/next trading day matter directly for those holdings. If the table is empty, run the collector; if AKShare fails, the report shows "数据不可用" — do not fabricate events.
+
 ## 4. Execution Flow
 
 Two distinct workflows run at different times.
@@ -200,7 +234,7 @@ This runs after the evening data collection scripts finish. It produces the main
 
 **Steps:**
 
-1. **Query all collected data.** Pull from `invest_overseas_market`, `invest_domestic_events`, `invest_supply_chain`, and `invest_futures_sentiment` for today's date. See Section 3 queries above.
+1. **Query all collected data.** Pull from `invest_overseas_market`, `invest_domestic_events`, `invest_supply_chain`, and `invest_futures_sentiment` for today's date. See Section 3 queries above. Also read `invest_event_calendar` for the forward calendar (§3.9) — the report generator injects §1.6 automatically; if the table is empty, run `stockhot/invest_sop/scripts/event_calendar.py` first (~40s, idempotent).
 
 2. **Query active holdings** from `invest_holdings` where `status = 'active'`.
 

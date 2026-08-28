@@ -35,6 +35,16 @@ def run_advisor(trade_date: str) -> bool:
     return result.returncode == 0
 
 
+def run_event_calendar() -> bool:
+    """采集前瞻事件日历（宏观21天 + 持仓/自选财报披露，~40s）.
+
+    失败只 WARN 不阻断——报告 §1.6 会标注数据不可用。
+    """
+    cmd = [PYTHON, str(PROJECT_ROOT / "stockhot" / "invest_sop" / "scripts" / "event_calendar.py")]
+    result = subprocess.run(cmd, cwd=str(PROJECT_ROOT))
+    return result.returncode == 0
+
+
 def run_report(trade_date: str) -> bool:
     """Generate the premarket report. Returns True on success."""
     cmd = [PYTHON, REPORT_SCRIPT, "--date", trade_date]
@@ -132,6 +142,10 @@ def main(argv: list[str] | None = None) -> int:
     advisor_ok = run_advisor(trade_date)
     if not advisor_ok:
         print(f"[{trade_date}] Advisor completed with errors")
+
+    print(f"[{trade_date}] Collecting forward event calendar...")
+    if not run_event_calendar():
+        print(f"[{trade_date}] [WARN] event calendar collection failed (report §1.6 will flag 数据不可用)")
 
     print(f"[{trade_date}] Generating premarket report...")
     report_ok = run_report(trade_date)

@@ -5,7 +5,7 @@ Usage:
 """
 
 import argparse
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from stockhot.advisor.report_integration import build_advisor_section
@@ -62,6 +62,25 @@ def _fetch_events(date: str) -> list[dict]:
     return query_by_date("invest_domestic_events", date, date_column="date")
 
 
+def _fetch_event_calendar(date: str, days: int = 21) -> list[dict]:
+    """未来 days 天的前瞻事件日历（invest_event_calendar，event_calendar.py 采集）."""
+    try:
+        start = datetime.strptime(date, "%Y-%m-%d")
+        end = (start + timedelta(days=days - 1)).strftime("%Y-%m-%d")
+        conn = get_connection()
+        try:
+            cursor = conn.execute(
+                "SELECT * FROM invest_event_calendar WHERE date >= ? AND date <= ? "
+                "ORDER BY date, time, category",
+                (date, end),
+            )
+            return [dict(row) for row in cursor]
+        finally:
+            conn.close()
+    except Exception:
+        return []  # 表未建/采集未跑 → 报告标注数据不可用
+
+
 def _fetch_futures(date: str) -> dict | None:
     rows = query_by_date("invest_futures_sentiment", date, date_column="date")
     return rows[0] if rows else None
@@ -91,6 +110,8 @@ def build_section_1(
     futures: dict | None,
     index_technical: dict | None = None,
     strategy_signal: dict | None = None,
+    event_calendar: list[dict] | None = None,
+    trade_date: str = "",
 ) -> str:
     lines = ["## 一、市场环境评估\n"]
     lines.append("### 1.1 海外市场")
@@ -184,6 +205,47 @@ def build_section_1(
     tech_table = _format_index_technical_for_premarket(index_technical)
     lines.append(tech_table)
 
+    # §1.6 前瞻事件日历 — 未来 21 天决定性事件（FOMC/非农/财报/产品发布）
+    lines.append("")
+    lines.append(_render_event_calendar(event_calendar, trade_date))
+
+    return "\n".join(lines)
+
+
+_CATEGORY_LABEL = {
+    "macro_us": "🌐美宏观",
+    "macro_cn": "🏛内宏观",
+    "macro_global": "🌐全球央行",
+    "earnings_a": "📊A股财报",
+    "earnings_us": "📈海外财报",
+    "product": "🔬产品/发布",
+    "policy": "🏛政策",
+}
+
+
+def _render_event_calendar(rows: list[dict] | None, trade_date: str) -> str:
+    """渲染 §1.6 前瞻事件日历（数据由 event_calendar.py 采集 + agent 周频补充）."""
+    lines = ["### 1.6 前瞻事件日历（未来 21 天）"]
+    lines.append("> 数据来源：AKShare 百度财经日历 + Tushare 预约披露 + agent 周频扫描（invest_event_calendar 表）")
+    lines.append("")
+    if not rows:
+        lines.append(f"- {NA}（表为空——请先运行 `stockhot/invest_sop/scripts/event_calendar.py` 采集）")
+        return "\n".join(lines)
+
+    lines.append("| 日期 | 时间 | 类别 | 事件 | 预期 | 级别 |")
+    lines.append("|------|:---:|------|------|:---:|:---:|")
+    for r in rows:
+        d = str(r.get("date", ""))
+        mark = "📌 " if d == trade_date else ""
+        cat = _CATEGORY_LABEL.get(r.get("category", ""), r.get("category", "-"))
+        imp = r.get("importance") or 1
+        stars = "🔴" if imp >= 3 else ("🟡" if imp >= 2 else "🟢")
+        lines.append(
+            f"| {mark}{d} | {r.get('time') or '-'} | {cat} | {r.get('event', '')}"
+            f" | {r.get('expected') or '-'} | {stars} |"
+        )
+    lines.append("")
+    lines.append("（📌=当日事件；🔴=决定性/🟡=重要/🟢=关注。海外财报与产品发布由周频扫描补充，未列出≠不存在）")
     return "\n".join(lines)
 
 
@@ -576,7 +638,7 @@ def generate_template(date: str) -> str:
     ]
 
     sections = [
-        build_section_1(None, [], None, None),
+        build_section_1(None, [], None, None, None, [], date),
         build_section_2([]),
         build_section_3([]),
         build_section_holdings_monitor([], date),
@@ -603,6 +665,7 @@ def generate_report(date: str) -> str:
     holdings = _fetch_active_holdings()
     index_technical = _fetch_latest_index_technical(date)
     volatility = _fetch_latest_volatility(date)
+    event_calendar = _fetch_event_calendar(date)
 
     # AI 策略信号（HMM 牛熊 + 持仓 + 买卖信号）
     strategy_signal = _fetch_strategy_signal(date)
@@ -618,7 +681,7 @@ def generate_report(date: str) -> str:
     ]
 
     sections = [
-        build_section_1(overseas, events, futures, index_technical, strategy_signal),
+        build_section_1(overseas, events, futures, index_technical, strategy_signal, event_calendar, date),
         build_section_2(cycles),
         build_section_3(holdings, strategy_signal),
         build_section_holdings_monitor(holdings, date),
