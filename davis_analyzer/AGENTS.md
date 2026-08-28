@@ -62,6 +62,8 @@ tushare_client.py             ← 数据层(API + SQLite 缓存 + 限流 400/min
 
 **日内做T研究子系统**(独立沙盒):`intraday/`(db 独立研究库 + backfill baostock 分钟线断点回补 → engine 闭环回转引擎[T+1 卖出池/次bar成交/涨跌停拒单/收盘竞价] → features 因果特征 → strategies 朴素+增强策略族 → report 对账与汇总 → paper_shadow 模拟盘影子验证[cron 19:55 盘后回放,真实底仓,台账 intraday_shadow_trade/run + 数据增强三表:universe 每日全宇宙特征快照与状态分类(含 near_miss/被过滤样本,防静默排除)/exit_alt 收盘竞价退出反事实与 MAE/mkt 市场环境 regime],CLI: python -m davis_analyzer.intraday {backfill|status|verify|run|shadow|shadow-report|shadow-enrich})。注意:回补按月块记账,当月数据未收盘不完整——增量更新需先删当月 backfill_chunk 记录再重跑,**每月 1 日 cron 例行删上月块+重跑 backfill(宇宙=当前持仓,自动扩容,防新持仓 vol_ratio1=None 被静默过滤)**;影子验证依赖 19:20 daily_refresh 先行,pre_close 自行推导不依赖当日日线完整性;shadow-enrich 只回填快照类台账,不动成交台账(历史底仓不可重建,shares 列为当前快照口径);**历史日补跑前必须核对 daily_price 已含该日与前一日两日行(当日 19:20 daily_refresh 之后),否则 pre_close 用陈旧锚——8/19 台账 10 笔中 6 笔即此病(见 docs/回测记录/做T影子验证数据增强与首期数据体检_2026-08-28.md §四)**。结论见 docs/回测记录/日内做T引擎首测_2026-08-19.md、做T隔夜退出校验_2026-08-25.md。
 
+**金融卡片生成子系统**(独立):`cardgen/`(facts 事实清单溯源 → $fact 物化 → validator 四道机器闸[数字全量核对/合规敏感词+免责/完整性/事实自检] → builder 渲染[复用 scripts/card_factory]→ RELEASE.json 发布包,台账 storage/database/content_cards.db,CLI: python -m davis_analyzer.cardgen {init|ingest|validate|build|status|enqueue})。**agent 纪律**:①卡片上任何数字必须登记 facts.json 且带来源锚点(研报#章节/Tushare查询指纹),叙事观点必须能指回研报章节;②已 rendered 版本变更须 --bump --reason,过期(expires_at)卡片禁止 enqueue;③不得修改 scripts/card_factory 与 scripts/content_publisher(对接只读)。设计 spec:docs/superpowers/specs/2026-08-28-cardgen-design.md
+
 **输出层**:`report_generator.py` + `templates.py`(模板化研报,无 LLM);`checklist_generator.py` + `rescorer.py`(深度调研清单循环,人工定性调整)。
 
 **配置与类型**:`config.py`(路径/token)、`constants.py`(评分权重与阈值,单一真相源)、`types.py`(7 个纯数据 dataclass)。
