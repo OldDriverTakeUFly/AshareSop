@@ -66,6 +66,7 @@ class TestRenderIntegration:
         assert release["expires_at"] == "2026-09-04"
         assert release["validate"]["passed"] is True
         assert len(release["images"]) == 2
+        assert release["images"][0].startswith("output/")  # 契约:images 为相对 project_dir 的路径
         assert ledger.get_card(conn, "烟测卡片")["status"] == "rendered"
 
     def test_change_requires_bump_reason(self, project: Path, conn):
