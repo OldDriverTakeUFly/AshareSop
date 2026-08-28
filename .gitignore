@@ -81,3 +81,6 @@ storage/sector_rv_cache/
 storage/database/
 .worktrees
 .superpowers
+
+# card factory generated artifacts
+scripts/card_factory/output/
