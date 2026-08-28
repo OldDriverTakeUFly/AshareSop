@@ -3,12 +3,14 @@
 import json
 import shutil
 import sqlite3
+from datetime import date, timedelta
 from pathlib import Path
 
 import pytest
 
 from davis_analyzer.cardgen import ledger
 from davis_analyzer.cardgen.builder import load_release, render
+from davis_analyzer.cardgen.facts import DEFAULT_TTL_DAYS
 from davis_analyzer.cardgen.validator import run_validation
 
 NODE = shutil.which("node")
@@ -16,9 +18,11 @@ NODE = shutil.which("node")
 GOOD_FOOT = "数据来源:Tushare · 仅供研究参考,不构成投资建议"
 
 
-def _fact(fid: str, value: str, unit: str, display: str) -> dict:
+def _fact(fid: str, value: str, unit: str, display: str, as_of: str | None = None) -> dict:
+    # as_of 动态化:expires 恒为 today+7,I1 过期拒绝永不会误伤本文件的合法工程用例
     return {"id": fid, "value": value, "unit": unit, "display": display,
-            "as_of": "2026-08-28", "source": {"kind": "report", "ref": "docs/x.md#a"}}
+            "as_of": as_of or date.today().isoformat(),
+            "source": {"kind": "report", "ref": "docs/x.md#a"}}
 
 
 SPEC = {"cards": [
@@ -55,9 +59,10 @@ class TestRenderFailFast:
 
     def test_expired_project_blocks_render(self, tmp_path: Path, conn):
         """I1(spec §4.3/§6):expires_at 已过的合法工程,build 须拒绝且不留任何产物。"""
+        # as_of 直接写死远过去日期(fixture 已动态化,勿用 replace 反查动态值)
         (tmp_path / "facts.json").write_text(
-            json.dumps({"facts": [_fact("v1", "17.36", "亿", "17.36亿")]}, ensure_ascii=False)
-            .replace("2026-08-28", "2026-01-01"), encoding="utf-8")
+            json.dumps({"facts": [_fact("v1", "17.36", "亿", "17.36亿", as_of="2026-01-01")]},
+                       ensure_ascii=False), encoding="utf-8")
         (tmp_path / "cards.spec.json").write_text(json.dumps(SPEC, ensure_ascii=False), encoding="utf-8")
         assert run_validation(tmp_path).passed is True  # 工程本身合法,仅过期
         with pytest.raises(SystemExit, match="过期"):
@@ -74,7 +79,7 @@ class TestRenderIntegration:
         assert (out / "spec.materialized.json").exists()
         assert _png_count_static(out) == 2
         assert release["topic"] == "烟测卡片"
-        assert release["expires_at"] == "2026-09-04"
+        assert release["expires_at"] == (date.today() + timedelta(days=DEFAULT_TTL_DAYS)).isoformat()
         assert release["validate"]["passed"] is True
         assert len(release["images"]) == 2
         assert release["images"][0].startswith("output/")  # 契约:images 为相对 project_dir 的路径
