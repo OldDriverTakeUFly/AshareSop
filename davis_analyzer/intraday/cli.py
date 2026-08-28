@@ -190,6 +190,19 @@ def cmd_shadow_report(args: argparse.Namespace) -> None:
     from davis_analyzer.intraday import paper_shadow
 
     print(paper_shadow.shadow_report(args.db))
+    print(paper_shadow.enrich_report(args.db))
+
+
+def cmd_shadow_enrich(args: argparse.Namespace) -> None:
+    from davis_analyzer.intraday import paper_shadow
+
+    stats = paper_shadow.rebuild_snapshots(args.start, args.end, args.db)
+    print(
+        f"快照回填 {args.start}~{args.end}: {stats['days']} 天 | "
+        f"universe {stats['universe_rows']} 行 | "
+        f"exit_alt {stats['exit_alt_rows']} 行 | mkt {stats['mkt_rows']} 天"
+    )
+
 
 
 def cmd_amp_study(args: argparse.Namespace) -> None:
@@ -257,6 +270,14 @@ def main(argv: list[str] | None = None) -> None:
     p_shadow.add_argument("--dry-run", action="store_true", help="只看可得性不写台账")
     p_shadow.add_argument("--db")
     p_shadow.set_defaults(func=cmd_shadow)
+
+    p_enr = sub.add_parser(
+        "shadow-enrich",
+        help="回填影子日快照/市场环境/退出对照（不动成交台账）")
+    p_enr.add_argument("--start", required=True, help="起始日 YYYYMMDD")
+    p_enr.add_argument("--end", required=True, help="截止日 YYYYMMDD")
+    p_enr.add_argument("--db")
+    p_enr.set_defaults(func=cmd_shadow_enrich)
 
     p_srep = sub.add_parser("shadow-report", help="影子台账累计报表")
     p_srep.add_argument("--db")
