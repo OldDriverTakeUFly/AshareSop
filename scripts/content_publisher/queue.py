@@ -1,17 +1,25 @@
 #!/usr/bin/env python3
 # content_publisher/queue.py — 发稿池台账(SQLite)+ 敏感词扫描 + 状态机 CLI
-# M1 范围:入池(draft)→ 人工审核(reviewed)→ 排期(scheduled);发布动作留人工/未来M2
+# M1:入池(draft)→ 人工审核(reviewed)→ 排期(scheduled)
+# M2(2026-08-29,cardgen session 经用户授权实现):
+#   - enqueue 时若 --source 指向 cardgen 工程目录(含 output/RELEASE.json),自动读 expires_at 入库
+#   - schedule 时效硬闸:排期日超过 expires_at → 拒绝(当天仍有效)
+#   - PUBLISHER_DB 环境变量注入数据库路径(pytest 用)
+#   - due 子命令:扫已到点的 scheduled 行(半自动发布提醒);list --json 供管理台消费
+# 发布动作自动化(浏览器方案)留 M3
 # 用法:
 #   .venv/bin/python scripts/content_publisher/queue.py init
 #   .venv/bin/python scripts/content_publisher/queue.py enqueue --title "..." --images a.png,b.png --tags "#国产GPU" --body "..." --source docs/小红书卡片/GPU四小龙
 #   .venv/bin/python scripts/content_publisher/queue.py scan          # 扫描全部 draft
-#   .venv/bin/python scripts/content_publisher/queue.py list [--status draft]
+#   .venv/bin/python scripts/content_publisher/queue.py list [--status draft] [--json]
 #   .venv/bin/python scripts/content_publisher/queue.py review <id>   # draft→reviewed(人工确认)
 #   .venv/bin/python scripts/content_publisher/queue.py schedule <id> --at "2026-08-30 20:00"
+#   .venv/bin/python scripts/content_publisher/queue.py due           # 已到点待发布清单
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sqlite3
 import sys
@@ -19,7 +27,7 @@ from datetime import datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
-DB = ROOT.parent.parent / "storage" / "database" / "content_publisher.db"
+DB = Path(os.environ.get("PUBLISHER_DB", ROOT.parent.parent / "storage" / "database" / "content_publisher.db"))
 WORDS_FILE = ROOT.parent / "card_factory" / "sensitive_words.txt"
 
 REQUIRED = ["不构成投资建议"]  # 合规必备话术(标题+正文+图片foot合并检查)
@@ -29,7 +37,16 @@ STATUSES = ("draft", "reviewed", "scheduled", "published", "failed")
 def _conn() -> sqlite3.Connection:
     conn = sqlite3.connect(DB)
     conn.row_factory = sqlite3.Row
+    _ensure_cols(conn)
     return conn
+
+
+def _ensure_cols(conn: sqlite3.Connection) -> None:
+    """M2 列迁移:旧库补 release_expires 列(幂等)。"""
+    cols = {r[1] for r in conn.execute("PRAGMA table_info(publish_queue)")}
+    if "release_expires" not in cols and cols:
+        conn.execute("ALTER TABLE publish_queue ADD COLUMN release_expires TEXT")
+        conn.commit()
 
 
 def init_db(_args=None) -> None:
@@ -42,6 +59,7 @@ def init_db(_args=None) -> None:
             images TEXT, platform TEXT DEFAULT 'xiaohongshu',
             status TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','reviewed','scheduled','published','failed')),
             scheduled_at TEXT, published_at TEXT, note_id TEXT,
+            release_expires TEXT,
             scan_result TEXT)""")
         c.execute("""CREATE TABLE IF NOT EXISTS publish_log(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -69,21 +87,37 @@ def scan_text(text: str) -> dict:
             "scanned_at": datetime.now().isoformat(timespec="seconds")}
 
 
+def _load_release_expires(source: str | None) -> str:
+    """--source 指向 cardgen 工程目录时读 output/RELEASE.json 的 expires_at;无契约返回空串。"""
+    if not source:
+        return ""
+    p = Path(source) / "output" / "RELEASE.json"
+    if not p.exists():
+        return ""
+    release = json.loads(p.read_text(encoding="utf-8"))
+    return str(release.get("expires_at", ""))
+
+
 def enqueue(args: argparse.Namespace) -> None:
     images = [p for p in (args.images or "").split(",") if p]
     for p in images:
         if not Path(p).exists():
             sys.exit(f"图片不存在: {p}")
+    expires = _load_release_expires(args.source)
+    if expires and expires < datetime.now().strftime("%Y-%m-%d"):
+        sys.exit(f"卡片数据已过期(expires_at={expires}):须回 cardgen 更新事实后 --bump 重新 build")
     scan = scan_text(args.title + (args.body or "") + (args.tags or ""))
     with _conn() as c:
         cur = c.execute(
-            "INSERT INTO publish_queue(created_at, source, title, body, tags, images, scan_result) "
-            "VALUES(?,?,?,?,?,?,?)",
+            "INSERT INTO publish_queue(created_at, source, title, body, tags, images, release_expires, scan_result) "
+            "VALUES(?,?,?,?,?,?,?,?)",
             (datetime.now().isoformat(timespec="seconds"), args.source, args.title,
-             args.body or "", args.tags or "", json.dumps(images, ensure_ascii=False),
+             args.body or "", args.tags or "", json.dumps(images, ensure_ascii=False), expires,
              json.dumps(scan, ensure_ascii=False)))
-        _log(c, cur.lastrowid, "enqueue", f"scan_passed={scan['passed']}")
-        print(f"入池 #{cur.lastrowid} [{args.title}] 扫描: {'通过' if scan['passed'] else scan}")
+        _log(c, cur.lastrowid, "enqueue",
+             f"scan_passed={scan['passed']}" + (f" release_expires={expires}" if expires else ""))
+        print(f"入池 #{cur.lastrowid} [{args.title}] 扫描: {'通过' if scan['passed'] else scan}"
+              + (f" | 数据有效期至 {expires}" if expires else ""))
 
 
 def rescan(args: argparse.Namespace) -> None:
@@ -113,13 +147,37 @@ def review(args: argparse.Namespace) -> None:
 
 def schedule(args: argparse.Namespace) -> None:
     with _conn() as c:
-        r = c.execute("SELECT status FROM publish_queue WHERE id=?", (args.id,)).fetchone()
+        r = c.execute("SELECT status, release_expires FROM publish_queue WHERE id=?", (args.id,)).fetchone()
         if not r or r["status"] != "reviewed":
             sys.exit(f"#{args.id} 非 reviewed 状态,不能排期")
+        expires = r["release_expires"] or ""
+        sched_day = args.at[:10]
+        if expires and sched_day > expires:
+            sys.exit(f"#{args.id} 排期日 {sched_day} 超过数据有效期 {expires}:数据将过期,"
+                     f"须回 cardgen 更新事实 --bump 后重新入池")
         c.execute("UPDATE publish_queue SET status='scheduled', scheduled_at=? WHERE id=?",
                   (args.at, args.id))
-        _log(c, args.id, "schedule", args.at)
-        print(f"#{args.id} → scheduled @ {args.at}(M1 到此为止,发布动作人工/未来M2)")
+        _log(c, args.id, "schedule", args.at + (f" (数据有效至 {expires})" if expires else ""))
+        print(f"#{args.id} → scheduled @ {args.at}"
+              + (f"(数据有效至 {expires})" if expires else "") + "(发布动作人工/M3 自动化)")
+
+
+def due(_args: argparse.Namespace) -> None:
+    """已到点的 scheduled 行清单——半自动发布提醒(cron 可挂)。"""
+    now = datetime.now().isoformat(timespec="minutes")
+    with _conn() as c:
+        rows = c.execute(
+            "SELECT id,title,scheduled_at,release_expires FROM publish_queue "
+            "WHERE status='scheduled' AND scheduled_at<=? ORDER BY scheduled_at", (now,)).fetchall()
+    if not rows:
+        print(f"无到点待发布项(as of {now})")
+        return
+    today = now[:10]
+    for r in rows:
+        stale = " ⚠️数据已过期" if (r["release_expires"] and r["release_expires"] < today) else ""
+        print(f"#{r['id']:<3} @ {r['scheduled_at']} {r['title'][:40]}"
+              + (f" (有效至 {r['release_expires']})" if r["release_expires"] else "") + stale)
+    print(f"共 {len(rows)} 项到点,发布动作人工执行")
 
 
 def mark(args: argparse.Namespace) -> None:
@@ -133,14 +191,19 @@ def mark(args: argparse.Namespace) -> None:
 
 
 def list_queue(args: argparse.Namespace) -> None:
-    q = "SELECT id,status,title,substr(tags,1,30) tags,scheduled_at FROM publish_queue"
+    q = "SELECT id,created_at,source,title,tags,images,platform,status,scheduled_at,published_at,release_expires,scan_result FROM publish_queue"
     params: tuple = ()
     if args.status:
         q += " WHERE status=?"
         params = (args.status,)
     with _conn() as c:
-        for r in c.execute(q + " ORDER BY id", params):
-            print(f"#{r['id']:<3} [{r['status']:<9}] {r['title'][:38]:<40} {r['tags']} {r['scheduled_at'] or ''}")
+        rows = c.execute(q + " ORDER BY id", params).fetchall()
+        if getattr(args, "json", False):
+            print(json.dumps([dict(r) for r in rows], ensure_ascii=False, indent=2))
+            return
+        for r in rows:
+            print(f"#{r['id']:<3} [{r['status']:<9}] {r['title'][:38]:<40} {r['tags'][:30]} "
+                  f"{r['scheduled_at'] or ''} {('有效至' + r['release_expires']) if r['release_expires'] else ''}")
 
 
 def main() -> None:
@@ -155,7 +218,9 @@ def main() -> None:
     s = sub.add_parser("schedule"); s.add_argument("id", type=int); s.add_argument("--at", required=True)
     s.set_defaults(func=schedule)
     m = sub.add_parser("mark"); m.add_argument("id", type=int); m.add_argument("status"); m.set_defaults(func=mark)
-    l = sub.add_parser("list"); l.add_argument("--status"); l.set_defaults(func=list_queue)
+    l = sub.add_parser("list"); l.add_argument("--status"); l.add_argument("--json", action="store_true")
+    l.set_defaults(func=list_queue)
+    d = sub.add_parser("due"); d.set_defaults(func=due)
     args = ap.parse_args()
     args.func(args)
 
