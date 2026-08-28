@@ -202,6 +202,17 @@ def cmd_amp_study(args: argparse.Namespace) -> None:
         print(f"导出: {p}")
 
 
+def cmd_overnight_study(args: argparse.Namespace) -> None:
+    from davis_analyzer.intraday import overnight_study
+
+    split = args.split or overnight_study.SPLIT_DATE
+    text, paths = overnight_study.run_study(
+        args.db, args.out, split=split, gap=args.gap)
+    print(text)
+    for p in paths:
+        print(f"导出: {p}")
+
+
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="davis_analyzer.intraday")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -256,6 +267,13 @@ def main(argv: list[str] | None = None) -> None:
     p_amp.add_argument("--db")
     p_amp.add_argument("--out", help="报告输出目录")
     p_amp.set_defaults(func=cmd_amp_study)
+
+    p_ovn = sub.add_parser("overnight", help="做T隔夜残余退出校验（同日 vs T+1/T+2）")
+    p_ovn.add_argument("--split", help="训练/留出切分日 YYYYMMDD（默认 20260501）")
+    p_ovn.add_argument("--gap", type=float, default=0.03, help="低开阈值")
+    p_ovn.add_argument("--db")
+    p_ovn.add_argument("--out", help="报告输出目录")
+    p_ovn.set_defaults(func=cmd_overnight_study)
 
     args = parser.parse_args(argv)
     args.func(args)
