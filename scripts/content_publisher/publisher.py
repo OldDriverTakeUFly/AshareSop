@@ -127,6 +127,37 @@ def login(timeout_s: int = 300) -> None:
         sys.exit("超时未登录:重新运行 login,profile 会保留已填账号")
 
 
+def _find_red_button(shot: Path, box: dict) -> tuple[float, float] | None:
+    """在宿主盒范围内用红色像素定位发布按钮(最长连续游程;文字红有间隙不会干扰)。
+
+    XHS 品牌红 ≈ #ff2442:取 r>180 且 g<90 且 b<110;游程宽 60~260px 视为按钮。
+    布局漂移免疫、零 API 依赖——比视觉模型/固定分数可靠(2026-08-29 三法实测交叉验证)。
+    """
+    from PIL import Image
+
+    im = Image.open(shot).convert("RGB")
+    x0, x1 = int(box["x"]), int(box["x"] + box["width"])
+    y0, y1 = int(box["y"]), int(box["y"] + box["height"])
+    y1 = min(y1, im.height - 1)
+    best: tuple[int, int, int] | None = None  # (run_len, cx, cy)
+    for y in range(y0, y1, 2):
+        run_start: int | None = None
+        for x in range(x0, x1):
+            r, g, b = im.getpixel((x, y))
+            red = r > 180 and g < 90 and b < 110
+            if red and run_start is None:
+                run_start = x
+            elif not red and run_start is not None:
+                if best is None or (x - run_start) > best[0]:
+                    best = (x - run_start, (run_start + x) // 2, y)
+                run_start = None
+        if run_start is not None and (best is None or (x1 - run_start) > best[0]):
+            best = (x1 - run_start, (run_start + x1) // 2, y)
+    if best and 60 <= best[0] <= 260:
+        return float(best[1]), float(best[2])
+    return None
+
+
 def publish_one(task: PublishTask, headless: bool = False) -> dict:
     """发布一条:上传图片 → 标题/正文/tags → 点发布 → 等成功页。返回 {note_url}。"""
     if not PROFILE_DIR.exists():  # 先查登录态,再碰 playwright(无浏览器依赖也能干净报错)
@@ -174,7 +205,25 @@ def publish_one(task: PublishTask, headless: bool = False) -> dict:
             if not box:
                 raise RuntimeError("xhs-publish-btn 无包围盒")
             page.screenshot(path=str(REPO_ROOT / "storage" / "publish_click.png"))  # 点击前留痕
-            page.mouse.click(box["x"] + box["width"] * 0.93, box["y"] + box["height"] / 2)
+            # 发布按钮定位三保险(2026-08-29 实测:布局会漂移,固定分数必挂):
+            # ① PIL 红色连续游程(确定性,首选) ② flash 视觉 bbox ③ 宿主盒 0.72 分数兜底
+            click_at = None
+            try:
+                click_at = _find_red_button(REPO_ROOT / "storage" / "publish_click.png", box)
+                if click_at:
+                    print(f"红块定位: {click_at}")
+            except Exception as e:  # noqa: BLE001
+                print(f"红块定位失败({e}),转视觉兜底")
+            if click_at is None:
+                try:
+                    import vision as _v
+                    click_at = _v.locate_button(REPO_ROOT / "storage" / "publish_click.png", "发布")
+                    print(f"视觉定位: {click_at}")
+                except Exception as e:  # noqa: BLE001
+                    print(f"视觉定位失败({e}),分数兜底")
+            if click_at is None:
+                click_at = (box["x"] + box["width"] * 0.72, box["y"] + box["height"] * 0.6)
+            page.mouse.click(*click_at)
             # 成功判定:离开编辑器页;跳管理/成功页=成功,跳回 home=误点暂存离开
             deadline = time.time() + 30
             while time.time() < deadline:

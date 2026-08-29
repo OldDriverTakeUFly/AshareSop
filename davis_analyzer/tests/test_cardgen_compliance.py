@@ -78,3 +78,12 @@ class TestLoaders:
 
     def test_required_constant(self):
         assert REQUIRED_PHRASES == ("不构成投资建议",)
+
+
+class TestEmptyFoot:
+    def test_card_without_foot_fails(self):
+        # 终审清单:无 foot 的非尾卡曾逃过来源标注检查(fail-open 边界)
+        cards = [{"type": "cover", "name": "01", "title": "T"},
+                 _card("06", "summary", GOOD_FOOT)]
+        failures = scan_compliance(cards, waivers=[])
+        assert any("foot 缺失" in f.detail for f in failures)

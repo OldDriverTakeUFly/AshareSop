@@ -63,7 +63,10 @@ def scan_compliance(cards: list[dict], waivers: list[dict]) -> list[Failure]:
             failures.append(Failure("compliance", last_name, "foot", "尾卡 foot 缺少数据来源标注"))
     for idx, card in enumerate(cards):
         foot = str(card.get("foot", ""))
-        if foot and "来源" not in foot and "数据" not in foot:
+        if not foot:
+            failures.append(Failure("compliance", card.get("name", f"cards[{idx}]"), "foot",
+                                    "foot 缺失(每卡必须标注数据来源)"))
+        elif "来源" not in foot and "数据" not in foot:
             failures.append(Failure("compliance", card.get("name", f"cards[{idx}]"), "foot",
                                     "foot 缺少数据来源标注"))
     return failures

@@ -14,14 +14,19 @@ from typing import Iterable
 
 from davis_analyzer.cardgen.types import Fact
 
+# ── 单位字符集(单一真相源:年份/mm/dd 掩码的负向前瞻与 _UNIT 交替序共用其字符,
+#    新增单位若只改一处,两位数区间对新单位会重新 fail-open)──
+_UNIT_CHARS = "xX倍万亿家条道份张只个次笔股强城"
+_UNIT_LOOKAHEAD = rf"(?![\d.%{_UNIT_CHARS}])"
+
 # ── 豁免掩码(顺序敏感:长的/具体的在前)──
 _EXEMPT_RE = [
     re.compile(r"#[0-9a-fA-F]{3,8}"),        # 十六进制色值 #ff2442
     re.compile(r"\d{4}-\d{2}-\d{2}"),        # ISO 日期
     re.compile(r"\d{8}"),                    # 紧凑交易日 20260828
     re.compile(r"\d{4}H\d"),                 # 2026H2
-    re.compile(r"(?<![\d.])\d{4}(?![\d.%xX倍万亿家条道份张只个次笔股强城])"),  # 年份(后不接单位/小数,防误杀 2700亿)
-    re.compile(r"(?<!\d)\d{1,2}[/-]\d{1,2}(?![\d.%xX倍万亿家条道份张只个次笔股强城])"),  # mm/dd、12/07、9-10(月)(两侧无邻位数字且后不接单位,防咬区间 400-600,也防 20-25x 被豁免)
+    re.compile(r"(?<![\d.])\d{4}" + _UNIT_LOOKAHEAD),          # 年份(后不接单位/小数,防误杀 2700亿)
+    re.compile(r"(?<!\d)\d{1,2}[/-]\d{1,2}" + _UNIT_LOOKAHEAD),  # mm/dd、12/07、9-10(月)(两侧无邻位数字且后不接单位,防咬区间 400-600,也防 20-25x 被豁免)
     re.compile(r"\d{1,2}月(?:底|初|末)?"),   # 10月底、12月(裸月视作时间标签)
     re.compile(r"[A-Za-z]+\d+[A-Za-z0-9]*"), # 型号/代号 C600、BR166、B30A、L600、H1
     re.compile(r"\d{6}"),                    # 股票代码 688801

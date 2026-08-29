@@ -70,7 +70,11 @@ def cmd_validate(args: argparse.Namespace) -> None:
         ledger.log_validate(conn, args.topic, int(row["current_version"]) if row else 1,
                             report.passed, report.failures)
         if report.passed:
-            ledger.set_status(conn, args.topic, "validated")
+            # 状态单调:rendered/queued 是更高生命周期态,重复 validate 不降级
+            if row and row["status"] in ("rendered", "queued"):
+                print(f"状态保持 {row['status']}(validate 通过但不降级生命周期)")
+            else:
+                ledger.set_status(conn, args.topic, "validated")
     finally:
         conn.close()
     for f in report.failures:
@@ -112,7 +116,9 @@ def cmd_enqueue(args: argparse.Namespace) -> None:
     release = load_release(proj)
     if release["expires_at"] < date.today().isoformat():
         sys.exit(f"已过期(expires_at={release['expires_at']}):数据陈旧,须更新事实后重新 build")
-    spec = json.loads((proj / "cards.spec.json").read_text(encoding="utf-8"))
+    # 契约:优先读物化 spec($fact 已替换为 display),避免 title/tags 含 $fact 引用时打印 dict
+    mat = proj / "output" / "spec.materialized.json"
+    spec = json.loads((mat if mat.exists() else proj / "cards.spec.json").read_text(encoding="utf-8"))
     title = re.sub(r"<[^>]+>", " ", str(spec["cards"][0].get("title", args.topic))).strip()
     tags = next((str(c["tags"]) for c in spec["cards"] if c.get("tags")), "")
     # 契约:RELEASE.images 为相对 project_dir 的路径,打印前用 proj/img 拼成绝对路径

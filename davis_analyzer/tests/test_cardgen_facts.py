@@ -137,3 +137,10 @@ class TestDigest:
         a = facts_digest([_fact(), _fact(fid="b", value="75", unit="%", display="75%")])
         b = facts_digest([_fact(fid="b", value="75", unit="%", display="75%"), _fact()])
         assert a == b and a.startswith("sha256:")
+
+
+class TestTrailingZeroSelfcheck:
+    def test_value_trailing_zero_not_flagged(self):
+        # 终审清单:手写 facts.json value 带尾零(17.360 vs 17.36亿)曾误报不自洽
+        f = _fact(value="17.360", unit="亿", display="17.36亿")
+        assert check_facts([f]) == []

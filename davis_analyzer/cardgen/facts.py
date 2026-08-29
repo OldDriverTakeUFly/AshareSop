@@ -25,9 +25,20 @@ def save_facts(path: Path, facts: list[Fact]) -> None:
                                ensure_ascii=False, indent=2), encoding="utf-8")
 
 
+def _plain_num(d: Decimal) -> str:
+    """数值字符串归一:去科学计数法与尾零(Decimal('17.360')→'17.36',143→'143')。"""
+    s = format(d, "f")
+    return s.rstrip("0").rstrip(".") if "." in s else s
+
+
 def _display_selfcheck(f: Fact) -> bool:
-    """display 必须以数字边界包含 str(value),且 unit 为空或出现在 display 中。"""
-    if not re.search(rf"(?<![\d.]){re.escape(str(f.value))}(?!\d)", f.display):
+    """display 必须以数字边界包含归一化的 value,且 unit 为空或出现在 display 中。
+
+    归一化匹配:手写 facts.json 的 value 带尾零(如 '17.360' vs display '17.36亿')不误报。
+    """
+    v = _plain_num(f.value)
+    if not re.search(rf"(?<![\d.]){re.escape(v)}(?!\d)", f.display):
+        # 兜底:display 中数字部分归一化后等于 value 也自洽(如 display '17.360亿')
         return False
     return f.unit == "" or f.unit in f.display
 

@@ -10,6 +10,8 @@ import sys
 from datetime import date
 from pathlib import Path
 
+from loguru import logger
+
 from davis_analyzer.cardgen import ledger
 from davis_analyzer.cardgen.facts import facts_digest, load_facts
 from davis_analyzer.cardgen.materialize import materialize_spec, spec_digest
@@ -45,7 +47,7 @@ def render(project_dir: Path, topic: str, conn: sqlite3.Connection,
     report = run_validation(project_dir, topic=topic)
     if not report.passed:
         for f in report.failures:
-            print(f"✗ [{f.gate}] {f.card} {f.field}: {f.detail}", file=sys.stderr)
+            logger.warning(f"validate 未过 [{f.gate}] {f.card} {f.field}: {f.detail}")
         raise SystemExit(f"validate 未通过({len(report.failures)} 项),禁止 build")
 
     # ── 过期拒绝(spec §4.3/§6):expires_at 已过 → 数据陈旧,禁止 build(写盘前)──
