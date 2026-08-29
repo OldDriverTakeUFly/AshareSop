@@ -193,6 +193,12 @@ def publish_one(task: PublishTask, headless: bool = False) -> dict:
             # 正文+tags
             _first(page, _CONTENT_SELECTORS).fill(body_full)
             page.wait_for_timeout(800)
+            # 关掉话题推荐下拉:光标停在 #标签 后会弹 hashtag 建议浮层,盖住发布按钮
+            # (2026-08-29 实战:浮层吞掉点击且遮蔽红块检测,是多轮"点击无反应"主因之一)
+            page.keyboard.press("Escape")
+            page.wait_for_timeout(300)
+            page.keyboard.press("Escape")
+            page.wait_for_timeout(500)
             # 提交:底部操作栏是闭式 Shadow DOM 组件 <xhs-publish-btn>(2026-08-29 实测,
             # 内含 暂存离开+发布 两钮,Playwright 文本选择器不可达)——按盒宽 78% 坐标点击
             # 右侧红色「发布」钮;若误点左侧「暂存离开」会跳回首页,由成功判定识别为失败。

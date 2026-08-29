@@ -107,6 +107,10 @@ tushare_client.py             ← 数据层(API + SQLite 缓存 + 限流 400/min
 - **权重单一真相源**:`constants.py` 里的 `PROSPERITY_WEIGHTS`、`DAVIS_DOUBLE_WEIGHTS` 是评分权重的唯一权威。`SOP.md` 声称权威但实际以代码为准——`tests/test_doc_consistency.py` 在校验两者一致性。**改动权重务必两边同步**。
 - **可变全局字典**:`constants.py` 的权重是模块级 mutable dict,`scoring.py` 按引用读取。**别在运行时修改它**,会静默改变评分行为。
 
+## 视觉任务规范(2026-08-29 固化)
+
+凡需要「看图」的任务——卡片目检、截图诊断、UI 元素描述、图片内容分析——**一律调用 `scripts/content_publisher/vision.py`**(glm-5.3-flash,配置走根目录 .env 的 `LLM_API_KEY/LLM_BASE_URL`,模型可用 `LLM_VISION_MODEL` 覆盖),要求返回结构化 JSON,主模型只消费结论,不直接目检图片。例外:精度要求高于 ±20px 的关键动作(如发布按钮点击)**不得单独依赖视觉模型**,必须用确定性检测优先(publisher._find_red_button 的 PIL 颜色游程先例)。依据:docs/方法论/小红书金融卡片生产方法论_2026-08-29.md §四。
+
 ## 配置与运行
 
 - **Python 解释器**:统一用父仓库根目录的 `.venv/bin/python`(系统 `python` 不存在、`python3` 缺 pandas,直接调用必然报错)。
