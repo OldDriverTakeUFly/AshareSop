@@ -32,15 +32,14 @@ def _plain_num(d: Decimal) -> str:
 
 
 def _display_selfcheck(f: Fact) -> bool:
-    """display 必须以数字边界包含归一化的 value,且 unit 为空或出现在 display 中。
+    """display 必须以数字边界包含 value(原样或去尾零归一任一形态),且 unit 在 display 中。
 
-    归一化匹配:手写 facts.json 的 value 带尾零(如 '17.360' vs display '17.36亿')不误报。
+    双向归一:value '17.360' 配 display '17.36亿'、value '2.40' 配 display '2.40亿' 均自洽。
     """
-    v = _plain_num(f.value)
-    if not re.search(rf"(?<![\d.]){re.escape(v)}(?!\d)", f.display):
-        # 兜底:display 中数字部分归一化后等于 value 也自洽(如 display '17.360亿')
-        return False
-    return f.unit == "" or f.unit in f.display
+    for form in {str(f.value), _plain_num(f.value)}:
+        if form and re.search(rf"(?<![\d.]){re.escape(form)}(?!\d)", f.display):
+            return f.unit == "" or f.unit in f.display
+    return False
 
 
 def check_facts(facts: list[Fact]) -> list[str]:

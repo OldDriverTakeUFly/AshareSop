@@ -1,0 +1,20 @@
+{
+  "topic": "M10级材料",
+  "version": 2,
+  "as_of": "2026-08-28",
+  "expires_at": "2026-09-04",
+  "images": [
+    "output/M10级材料_01_封面.png",
+    "output/M10级材料_02_四强档案.png",
+    "output/M10级材料_03_代际演进.png",
+    "output/M10级材料_04_业绩弹性.png",
+    "output/M10级材料_05_关键日历.png",
+    "output/M10级材料_06_结论与风险.png"
+  ],
+  "facts_digest": "sha256:86b2d2efe982339038c6e07e204d4a8353f9b668f894d9f64684898161c4dd56",
+  "validate": {
+    "passed": true,
+    "failures": 0
+  },
+  "cardgen_version": "0.1"
+}

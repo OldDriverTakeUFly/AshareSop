@@ -1,0 +1,564 @@
+{
+  "facts": [
+    {
+      "id": "sy_np_growth",
+      "value": "130.4",
+      "unit": "%",
+      "display": "+130.4%",
+      "as_of": "2026-08-28",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/生益科技深度研报.md#核心逻辑",
+        "quote": "2026H1 营收 190.26 亿(+50.0%)、归母净利 32.87 亿(+130.4%)"
+      }
+    },
+    {
+      "id": "m10_price_mult",
+      "value": "5",
+      "unit": "倍",
+      "display": "5倍+",
+      "as_of": "2026-08-28",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/生益科技深度研报.md#核心逻辑",
+        "quote": "M8/M9 单价数倍于普通 FR-4，M10 传为 FR-4 的 5 倍以上"
+      }
+    },
+    {
+      "id": "sy_rev",
+      "value": "190.26",
+      "unit": "亿",
+      "display": "190.26亿",
+      "as_of": "2026-08-28",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/生益科技深度研报.md#核心逻辑",
+        "quote": "2026H1 营收 190.26 亿(+50.0%)"
+      }
+    },
+    {
+      "id": "sy_rev_g",
+      "value": "50",
+      "unit": "%",
+      "display": "+50%",
+      "as_of": "2026-08-28",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/生益科技深度研报.md#核心逻辑",
+        "quote": "2026H1 营收 190.26 亿(+50.0%)"
+      }
+    },
+    {
+      "id": "sy_np",
+      "value": "32.87",
+      "unit": "亿",
+      "display": "32.87亿",
+      "as_of": "2026-08-28",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/生益科技深度研报.md#核心逻辑",
+        "quote": "归母净利 32.87 亿(+130.4%)"
+      }
+    },
+    {
+      "id": "sy_gm",
+      "value": "29.2",
+      "unit": "%",
+      "display": "29.2%",
+      "as_of": "2026-08-28",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/生益科技深度研报.md#核心逻辑",
+        "quote": "覆铜板毛利率升至 29.2%(+5.3pct)"
+      }
+    },
+    {
+      "id": "ny_np_low",
+      "value": "4.2",
+      "unit": "亿",
+      "display": "4.2-5.0亿",
+      "as_of": "2026-08-28",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/南亚新材深度研报.md#核心逻辑",
+        "quote": "2026H1 业绩预告归母净利 4.2-5.0 亿元"
+      }
+    },
+    {
+      "id": "ny_np_high",
+      "value": "5.0",
+      "unit": "亿",
+      "display": "4.2-5.0亿",
+      "as_of": "2026-08-28",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/南亚新材深度研报.md#核心逻辑",
+        "quote": "2026H1 业绩预告归母净利 4.2-5.0 亿元"
+      }
+    },
+    {
+      "id": "ny_g_low",
+      "value": "381.71",
+      "unit": "%",
+      "display": "+381.71%~+473.46%",
+      "as_of": "2026-08-28",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/南亚新材深度研报.md#核心逻辑",
+        "quote": "同比 +381.71%~+473.46%(公司公告 20260714)"
+      }
+    },
+    {
+      "id": "ny_g_high",
+      "value": "473.46",
+      "unit": "%",
+      "display": "+381.71%~+473.46%",
+      "as_of": "2026-08-28",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/南亚新材深度研报.md#核心逻辑",
+        "quote": "同比 +381.71%~+473.46%(公司公告 20260714)"
+      }
+    },
+    {
+      "id": "ny_2025_np",
+      "value": "2.40",
+      "unit": "亿",
+      "display": "2.40亿",
+      "as_of": "2026-08-28",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/南亚新材深度研报.md#核心逻辑",
+        "quote": "单半年利润已超 2025 全年(2.40 亿,tushare income 20251231)"
+      }
+    },
+    {
+      "id": "ny_bar_low",
+      "value": "381.71",
+      "unit": "%",
+      "display": "+381.71%",
+      "as_of": "2026-08-28",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/南亚新材深度研报.md#核心逻辑",
+        "quote": "同比 +381.71%~+473.46%(公司公告 20260714)"
+      }
+    },
+    {
+      "id": "ny_pct",
+      "value": "95",
+      "unit": "%",
+      "display": "95%",
+      "as_of": "2026-08-28",
+      "expires": "2026-09-05",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/南亚新材深度研报.md#核心逻辑",
+        "quote": "估值处于近 3 年 95% 分位、相对市场 ERP -1.64%"
+      }
+    },
+    {
+      "id": "sq_ppo_share",
+      "value": "70",
+      "unit": "%",
+      "display": "70%",
+      "as_of": "2026-08-14",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/化工材料/圣泉集团深度研报.md#定位",
+        "quote": "国内电子级 PPO 树脂最大供应商(约占国内高端电子 PPO 市场 70%)"
+      },
+      "expires": "2026-09-12"
+    },
+    {
+      "id": "sq_m9p_old",
+      "value": "78",
+      "unit": "",
+      "display": "78→93.6万元/吨",
+      "as_of": "2026-08-14",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/化工材料/圣泉集团深度研报.md#核心逻辑",
+        "quote": "M9 级长协价 78→93.6 万元/吨,财联社 2026-07-06"
+      },
+      "expires": "2026-09-12"
+    },
+    {
+      "id": "sq_m9p_new",
+      "value": "93.6",
+      "unit": "万",
+      "display": "78→93.6万元/吨",
+      "as_of": "2026-08-14",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/化工材料/圣泉集团深度研报.md#核心逻辑",
+        "quote": "M9 级长协价 78→93.6 万元/吨,财联社 2026-07-06"
+      },
+      "expires": "2026-09-12"
+    },
+    {
+      "id": "sq_raise_low",
+      "value": "15",
+      "unit": "%",
+      "display": "15-20%",
+      "as_of": "2026-08-14",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/化工材料/圣泉集团深度研报.md#核心逻辑",
+        "quote": "对电子级 PPO/PPE/OPE 及 MPPO 低聚物提价 15-20%"
+      },
+      "expires": "2026-09-12"
+    },
+    {
+      "id": "sq_raise_high",
+      "value": "20",
+      "unit": "%",
+      "display": "15-20%",
+      "as_of": "2026-08-14",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/化工材料/圣泉集团深度研报.md#核心逻辑",
+        "quote": "对电子级 PPO/PPE/OPE 及 MPPO 低聚物提价 15-20%"
+      },
+      "expires": "2026-09-12"
+    },
+    {
+      "id": "sq_pe",
+      "value": "36.8",
+      "unit": "x",
+      "display": "36.8x",
+      "as_of": "2026-08-14",
+      "expires": "2026-09-05",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/化工材料/圣泉集团深度研报.md#核心逻辑",
+        "quote": "PE 36.8x 是 AI 涨价链中最低一档(东材 126.7x/宏昌 617x/生益 88.5x)"
+      }
+    },
+    {
+      "id": "sq_ex_g",
+      "value": "4.30",
+      "unit": "%",
+      "display": "+4.30%",
+      "as_of": "2026-08-14",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/化工材料/圣泉集团深度研报.md#核心逻辑",
+        "quote": "剔除 1.12 亿股份支付费用后归母 5.29 亿(+4.30%)"
+      },
+      "expires": "2026-09-12"
+    },
+    {
+      "id": "sq_ex_amt",
+      "value": "1.12",
+      "unit": "亿",
+      "display": "1.12亿",
+      "as_of": "2026-08-14",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/化工材料/圣泉集团深度研报.md#核心逻辑",
+        "quote": "剔除 1.12 亿股份支付费用后归母 5.29 亿(+4.30%)"
+      },
+      "expires": "2026-09-12"
+    },
+    {
+      "id": "sq_bar",
+      "value": "10.68",
+      "unit": "%",
+      "display": "-10.68%",
+      "as_of": "2026-08-14",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/化工材料/圣泉集团深度研报.md#核心逻辑",
+        "quote": "归母净利 4.47 亿(-10.68%,公司 2026 半年报)"
+      },
+      "expires": "2026-09-12"
+    },
+    {
+      "id": "sq_new_line",
+      "value": "2000",
+      "unit": "",
+      "display": "2000吨",
+      "as_of": "2026-08-14",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/化工材料/圣泉集团深度研报.md#演进路径",
+        "quote": "2026-09 前后投产 2000 吨/年 PPO/OPE 共线产线"
+      },
+      "expires": "2026-09-12"
+    },
+    {
+      "id": "dc_monthly",
+      "value": "3000",
+      "unit": "万",
+      "display": "3000万元",
+      "as_of": "2026-08-28",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/化工材料/东材科技深度研报.md#核心逻辑",
+        "quote": "单月供货已超 3000 万元"
+      }
+    },
+    {
+      "id": "dc_gm",
+      "value": "60",
+      "unit": "%",
+      "display": "60%",
+      "as_of": "2026-08-28",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/化工材料/东材科技深度研报.md#核心逻辑",
+        "quote": "媒体口径毛利率超 60%(新浪 2026-07-31)"
+      }
+    },
+    {
+      "id": "dc_cap",
+      "value": "3500",
+      "unit": "",
+      "display": "3500吨",
+      "as_of": "2026-08-28",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/化工材料/东材科技深度研报.md#核心逻辑",
+        "quote": "眉山 3500 吨碳氢 2026Q3 投产"
+      }
+    },
+    {
+      "id": "dc_pe",
+      "value": "126.7",
+      "unit": "x",
+      "display": "126.7x",
+      "as_of": "2026-08-28",
+      "expires": "2026-09-05",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/化工材料/东材科技深度研报.md#核心逻辑",
+        "quote": "市场给它的定价是 AI 树脂链最贵的 PE(126.7x vs 圣泉 36.8x)"
+      }
+    },
+    {
+      "id": "dc_bar",
+      "value": "63.93",
+      "unit": "%",
+      "display": "+63.93%",
+      "as_of": "2026-08-28",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/化工材料/东材科技深度研报.md#核心逻辑",
+        "quote": "H1 归母约 3.12 亿(+63.93%)"
+      }
+    },
+    {
+      "id": "dc_h1",
+      "value": "3.12",
+      "unit": "亿",
+      "display": "3.12亿",
+      "as_of": "2026-08-28",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/化工材料/东材科技深度研报.md#核心逻辑",
+        "quote": "H1 归母约 3.12 亿(+63.93%)"
+      }
+    },
+    {
+      "id": "hc_pe",
+      "value": "617",
+      "unit": "x",
+      "display": "617x",
+      "as_of": "2026-08-14",
+      "expires": "2026-09-05",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/化工材料/圣泉集团深度研报.md#核心逻辑",
+        "quote": "东材 126.7x/宏昌 617x/生益 88.5x"
+      }
+    },
+    {
+      "id": "sy_pe",
+      "value": "88.5",
+      "unit": "x",
+      "display": "88.5x",
+      "as_of": "2026-08-14",
+      "expires": "2026-09-05",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/化工材料/圣泉集团深度研报.md#核心逻辑",
+        "quote": "东材 126.7x/宏昌 617x/生益 88.5x"
+      }
+    },
+    {
+      "id": "q_low",
+      "value": "18",
+      "unit": "",
+      "display": "18-24米",
+      "as_of": "2026-08-28",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/m9电子布深度报告.md#1.4",
+        "quote": "单台GB300 AI服务器需Q布18-24米"
+      }
+    },
+    {
+      "id": "q_high",
+      "value": "24",
+      "unit": "",
+      "display": "18-24米",
+      "as_of": "2026-08-28",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/m9电子布深度报告.md#1.4",
+        "quote": "单台GB300 AI服务器需Q布18-24米"
+      }
+    },
+    {
+      "id": "t_low",
+      "value": "3",
+      "unit": "",
+      "display": "3-5米",
+      "as_of": "2026-08-28",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/m9电子布深度报告.md#1.4",
+        "quote": "传统服务器仅需普通电子布3-5米"
+      }
+    },
+    {
+      "id": "t_high",
+      "value": "5",
+      "unit": "",
+      "display": "3-5米",
+      "as_of": "2026-08-28",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/m9电子布深度报告.md#1.4",
+        "quote": "传统服务器仅需普通电子布3-5米"
+      }
+    },
+    {
+      "id": "d_low",
+      "value": "4",
+      "unit": "倍",
+      "display": "4-6倍",
+      "as_of": "2026-08-28",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/m9电子布深度报告.md#1.4",
+        "quote": "AI服务器对高端电子布的需求密度是传统服务器的4-6倍"
+      }
+    },
+    {
+      "id": "d_high",
+      "value": "6",
+      "unit": "倍",
+      "display": "4-6倍",
+      "as_of": "2026-08-28",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/m9电子布深度报告.md#1.4",
+        "quote": "AI服务器对高端电子布的需求密度是传统服务器的4-6倍"
+      }
+    },
+    {
+      "id": "cpx_layers",
+      "value": "104",
+      "unit": "",
+      "display": "104层",
+      "as_of": "2026-08-28",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/m9电子布深度报告.md#1.4",
+        "quote": "CPX板 104层M9"
+      }
+    },
+    {
+      "id": "back_layers",
+      "value": "78",
+      "unit": "",
+      "display": "78层",
+      "as_of": "2026-08-28",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/m9电子布深度报告.md#1.4",
+        "quote": "正交背板 78层M9"
+      }
+    },
+    {
+      "id": "sy_pct_low",
+      "value": "92",
+      "unit": "%",
+      "display": "92-96%",
+      "as_of": "2026-08-28",
+      "expires": "2026-09-05",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/生益科技深度研报.md#核心逻辑",
+        "quote": "PE/PB/PS 同时处于近 3 年 92%/96%/96% 分位"
+      }
+    },
+    {
+      "id": "sy_pct_high",
+      "value": "96",
+      "unit": "%",
+      "display": "92-96%",
+      "as_of": "2026-08-28",
+      "expires": "2026-09-05",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/生益科技深度研报.md#核心逻辑",
+        "quote": "PE/PB/PS 同时处于近 3 年 92%/96%/96% 分位"
+      }
+    },
+    {
+      "id": "sy_target",
+      "value": "132.6",
+      "unit": "元",
+      "display": "132.6元",
+      "as_of": "2026-08-28",
+      "expires": "2026-09-05",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/生益科技深度研报.md#核心逻辑",
+        "quote": "三情景概率加权中枢约 132.6 元/股"
+      }
+    },
+    {
+      "id": "sy_imply",
+      "value": "9",
+      "unit": "%",
+      "display": "-9%",
+      "as_of": "2026-08-28",
+      "expires": "2026-09-05",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/生益科技深度研报.md#核心逻辑",
+        "quote": "较现价隐含 -9%"
+      }
+    },
+    {
+      "id": "switch_16t",
+      "value": "1.6",
+      "unit": "",
+      "display": "1.6T",
+      "as_of": "2026-08-28",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/南亚新材深度研报.md#产品矩阵",
+        "quote": "已送样 1.6T 交换机、推进海外 GPU/ASIC 大厂认证"
+      }
+    },
+    {
+      "id": "dc_pe_mult",
+      "value": "126",
+      "unit": "倍",
+      "display": "126倍",
+      "as_of": "2026-08-28",
+      "expires": "2026-09-05",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/化工材料/东材科技深度研报.md#标题",
+        "quote": "126 倍 PE 定价了多少确定性"
+      }
+    }
+  ]
+}

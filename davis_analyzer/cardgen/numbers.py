@@ -29,6 +29,7 @@ _EXEMPT_RE = [
     re.compile(r"(?<!\d)\d{1,2}[/-]\d{1,2}" + _UNIT_LOOKAHEAD),  # mm/dd、12/07、9-10(月)(两侧无邻位数字且后不接单位,防咬区间 400-600,也防 20-25x 被豁免)
     re.compile(r"\d{1,2}月(?:底|初|末)?"),   # 10月底、12月(裸月视作时间标签)
     re.compile(r"[A-Za-z]+\d+[A-Za-z0-9]*"), # 型号/代号 C600、BR166、B30A、L600、H1
+    re.compile(r"[A-Za-z]+-\d+[A-Za-z0-9]*"),  # 带连字符型号 FR-4、G-4
     re.compile(r"\d{6}"),                    # 股票代码 688801
     re.compile(r"\d+:\d+"),                  # 时间/比例 20:00、3:4
 ]
