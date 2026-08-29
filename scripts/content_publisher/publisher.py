@@ -209,6 +209,7 @@ def publish_one(task: PublishTask, headless: bool = False) -> dict:
     for p in imgs:
         if not Path(p).exists():
             sys.exit(f"图片不存在: {p}")
+    is_video = any(p.lower().endswith((".mp4", ".mov")) for p in imgs)
     body_full = (task.body or "").rstrip()
     if task.tags:
         body_full = (body_full + "\n\n" + task.tags).strip()
@@ -223,12 +224,21 @@ def publish_one(task: PublishTask, headless: bool = False) -> dict:
             # 选择器,经 expect_file_chooser 拦截;上传后跳 /publish/publish 编辑器
             page.goto(_HOME, wait_until="domcontentloaded", timeout=45000)
             page.wait_for_timeout(9000)  # 首页重前端渲染,等组件挂载
-            card = page.locator(_UPLOAD_CARD).first
+            card = page.locator("发布视频笔记" if is_video else "发布图文笔记").first
             card.wait_for(state="visible", timeout=20000)
             with page.expect_file_chooser() as fc_info:
                 card.click()
             fc_info.value.set_files(imgs)
-            page.wait_for_url("**/publish/publish**", timeout=30000)
+            page.wait_for_url("**/publish/publish**", timeout=60000)
+            if is_video:
+                # 视频须等上传与转码(「上传中」消失;2026-08-29 探测:14MB/99s 上传约数秒)
+                import time as _t
+                deadline = _t.time() + 300
+                while _t.time() < deadline:
+                    if page.get_by_text("上传中").count() == 0:
+                        break
+                    page.wait_for_timeout(5000)
+                page.wait_for_timeout(8000)  # 转码余量
             page.wait_for_timeout(3000)
             # 标题(上限 20 字,防御性截断)
             _first(page, _TITLE_SELECTORS).fill(task.title[:20])
