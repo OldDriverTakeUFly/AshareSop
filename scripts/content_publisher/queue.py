@@ -226,7 +226,8 @@ def _publish_row(c: sqlite3.Connection, r: sqlite3.Row) -> None:
     """发一条 queue 行;成功 published,失败 failed,均留 publish_log。"""
     import publisher as _pub  # 同目录脚本,sys.path[0] 可达
     task = _pub.PublishTask(qid=r["id"], title=r["title"], body=r["body"] or "",
-                            tags=r["tags"] or "", images=json.loads(r["images"] or "[]"))
+                            tags=r["tags"] or "", images=json.loads(r["images"] or "[]"),
+                            group=r["group"] or "")
     try:
         result = _pub.publish_one(task)
         c.execute("UPDATE publish_queue SET status='published', published_at=?, note_id=? WHERE id=?",

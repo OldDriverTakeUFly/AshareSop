@@ -39,6 +39,48 @@ class PublishTask:
     body: str
     tags: str
     images: list[str]
+    group: str = ""  # 内容分组(产业链调研/个股研报·xx),映射为平台合集名
+
+
+def _try_add_collection(page, group: str) -> bool:
+    """发布编辑器中把笔记加入合集(2026-08-29 探测:「加入合集」行可用,右侧「创建合集」)。
+
+    fail-soft:任何失败只告警不阻断发布(合集可事后在笔记管理补);残留弹窗用 Escape 收尾,
+    避免挡住发布按钮——本函数的选择器未经真实提交验证,首战以观察为主。
+    """
+    try:
+        row = page.get_by_text("加入合集", exact=True).first
+        row.scroll_into_view_if_needed()
+        row.click(timeout=8000)
+        page.wait_for_timeout(1500)
+        item = page.get_by_text(group, exact=True)
+        if item.count():
+            item.first.click()  # 已有同名合集,直接选中
+            page.wait_for_timeout(800)
+            print(f"合集: 已加入「{group}」")
+            return True
+        create = page.get_by_text("创建合集", exact=True)
+        if not create.count():
+            print(f"[fail-soft] 未找到「{group}」也没有创建入口,跳过合集")
+            return False
+        create.first.click()
+        page.wait_for_timeout(1000)
+        inp = page.locator("input[placeholder*='合集'], input[placeholder*='名称']").first
+        inp.fill(group, timeout=5000)
+        page.get_by_text("确定", exact=True).last.click(timeout=5000)
+        page.wait_for_timeout(1000)
+        print(f"合集: 新建「{group}」并加入")
+        return True
+    except Exception as e:  # noqa: BLE001
+        try:
+            page.keyboard.press("Escape")
+            cancel = page.get_by_text("取消", exact=True)
+            if cancel.count():
+                cancel.last.click(timeout=2000)
+        except Exception:  # noqa: BLE001
+            pass
+        print(f"[fail-soft] 合集步骤失败({str(e)[:80]}),已尝试关弹窗,继续发布")
+        return False
 
 
 def select_publishable(due_rows: list[dict], published_today: int,
@@ -199,6 +241,9 @@ def publish_one(task: PublishTask, headless: bool = False) -> dict:
             page.wait_for_timeout(300)
             page.keyboard.press("Escape")
             page.wait_for_timeout(500)
+            # 合集(fail-soft):group 非空时尝试加入/新建同名合集
+            if task.group:
+                _try_add_collection(page, task.group)
             # 提交:底部操作栏是闭式 Shadow DOM 组件 <xhs-publish-btn>(2026-08-29 实测,
             # 内含 暂存离开+发布 两钮,Playwright 文本选择器不可达)——按盒宽 78% 坐标点击
             # 右侧红色「发布」钮;若误点左侧「暂存离开」会跳回首页,由成功判定识别为失败。
