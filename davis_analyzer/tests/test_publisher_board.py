@@ -42,6 +42,24 @@ def _enqueue(db_env: dict, tmp: Path, expires: str) -> int:
     return int(r.stdout.split()[1].lstrip("#"))
 
 
+class TestTokenAuth:
+    def test_token_gate(self, tmp_path: Path, monkeypatch):
+        dbp = tmp_path / "pub.db"
+        monkeypatch.setenv("PUBLISHER_DB", str(dbp))
+        monkeypatch.setenv("BOARD_TOKEN", "s3cret")
+        r = subprocess.run([sys.executable, str(QUEUE), "init"], capture_output=True, text=True,
+                           cwd=REPO_ROOT, env={**os.environ})
+        assert r.returncode == 0, r.stderr
+        spec = importlib.util.spec_from_file_location("publisher_board_t", BOARD)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        c = TestClient(mod.app)
+        assert c.get("/api/queue").status_code == 401
+        assert c.get("/api/queue?token=wrong").status_code == 401
+        assert c.get("/api/queue?token=s3cret").status_code == 200
+        assert c.get("/?token=s3cret").status_code == 200
+
+
 class TestRead:
     def test_empty_queue(self, client: TestClient, tmp_path: Path):
         assert client.get("/api/queue").json() == []

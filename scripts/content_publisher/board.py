@@ -38,7 +38,21 @@ def _load_queue():
 _QUEUE = _load_queue()
 _CARDGEN_DB = REPO_ROOT / "storage" / "database" / "content_cards.db"
 
+# 远程访问(ZeroTier/局域网):BOARD_HOST=0.0.0.0 时必须设 BOARD_TOKEN,
+# 所有请求(含页面)须带 ?token=<值>,否则 401——管理台写操作可发帖,不能裸奔。
+_TOKEN = os.environ.get("BOARD_TOKEN", "")
+_HOST = os.environ.get("BOARD_HOST", "127.0.0.1")
+_PORT = int(os.environ.get("BOARD_PORT", "8765"))
+
 app = FastAPI(title="发稿池管理台", version="0.1")
+
+
+@app.middleware("http")
+async def _auth(request, call_next):
+    if _TOKEN and request.query_params.get("token") != _TOKEN:
+        from fastapi.responses import PlainTextResponse
+        return PlainTextResponse("token 无效或缺失:?token=<BOARD_TOKEN>", status_code=401)
+    return await call_next(request)
 
 
 # ── 读接口 ──
@@ -171,12 +185,14 @@ const chip=s=>`<span class="chip s-${s}">${s}</span>`;
 const esc=t=>String(t??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 function expCls(e){if(!e)return'exp-ok';const d=(new Date(e)-new Date(new Date().toISOString().slice(0,10)))/864e5;
 return d<0?'exp-bad':d<=3?'exp-warn':'exp-ok'}
-async function api(url,method,body){const r=await fetch(url,{method,headers:{'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined});
+const TK=new URLSearchParams(location.search).get('token');
+const withT=u=>u+(u.includes('?')?'&':'?')+(TK?'token='+encodeURIComponent(TK):'');
+async function api(url,method,body){const r=await fetch(withT(url),{method,headers:{'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined});
 const j=await r.json();toast((j.ok?'✓ ':'✗ ')+(j.stdout||j.stderr||''));await load();return j}
 function toast(m){const t=$('toast');t.textContent=m;t.style.display='block';setTimeout(()=>t.style.display='none',5000)}
 async function load(){
 const qs=$('f').value?`?status=${$('f').value}`:'';
-const rows=await(await fetch('/api/queue'+qs)).json();
+const rows=await(await fetch(withT('/api/queue'+qs))).json();
 $('rows').innerHTML=rows.map(r=>{
 const acts=[];
 if(r.status==='draft')acts.push(`<button class="primary" onclick="api('/api/queue/${r.id}/review','POST')">审核通过</button>`);
@@ -187,10 +203,10 @@ return`<tr><td>${r.id}</td><td>${esc(r.title)}<div style="color:#64748b;font-siz
 <td>${chip(r.status)}</td><td class="${expCls(r.release_expires)}">${r.release_expires?('至 '+r.release_expires):'—'}</td>
 <td>${esc(r.scheduled_at||'')}</td><td style="white-space:nowrap">${acts.join(' ')}</td></tr>`}).join('')
 ||'<tr><td colspan="6" style="color:#64748b">空</td></tr>';
-const due=await(await fetch('/api/due')).json();
+const due=await(await fetch(withT('/api/due'))).json();
 $('due').innerHTML=due.map(d=>`<div class="due-item">${chip('scheduled')} #${d.id} @ ${esc(d.scheduled_at)} ${esc(d.title)}`
 +(d.stale?'<span class="exp-bad"> ⚠️数据已过期</span>':'')).join('')||'<div class="due-item" style="color:#64748b">无到点项</div>';
-const cards=await(await fetch('/api/cards')).json();
+const cards=await(await fetch(withT('/api/cards'))).json();
 $('cards').innerHTML=cards.map(c=>`<tr><td>${esc(c.topic)} v${c.current_version}</td><td>${esc(c.status)}</td>
 <td class="${c.expired?'exp-bad':'exp-ok'}">${esc(c.as_of||'—')} / ${esc(c.expires_at||'—')}${c.expired?' 已过期':''}</td></tr>`).join('')
 ||'<tr><td colspan="3" style="color:#64748b">无工程</td></tr>';
@@ -209,4 +225,6 @@ if __name__ == "__main__":
     import uvicorn
     print(f"发稿池 DB: {_QUEUE.DB}")
     print(f"cardgen 台账: {_CARDGEN_DB}{' (不存在,忽略)' if not _CARDGEN_DB.exists() else ''}")
-    uvicorn.run(app, host="127.0.0.1", port=8765)
+    if _HOST != "127.0.0.1" and not _TOKEN:
+        sys.exit("BOARD_HOST 非 127.0.0.1 时必须设置 BOARD_TOKEN(远程裸奔拒绝启动)")
+    uvicorn.run(app, host=_HOST, port=_PORT)
