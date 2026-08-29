@@ -190,6 +190,88 @@ def mark(args: argparse.Namespace) -> None:
         print(f"#{args.id} → {args.status}")
 
 
+# ── M3 自动发稿 ──
+def _today() -> str:
+    return datetime.now().strftime("%Y-%m-%d")
+
+
+def _publish_stats(c: sqlite3.Connection) -> tuple[int, str | None]:
+    """(今日已发布条数, 最近发布时间)——护栏输入。"""
+    n = c.execute("SELECT COUNT(*) FROM publish_queue WHERE status='published' "
+                  "AND substr(published_at,1,10)=?", (_today(),)).fetchone()[0]
+    last = c.execute("SELECT MAX(published_at) FROM publish_queue "
+                     "WHERE published_at IS NOT NULL").fetchone()[0]
+    return int(n), last
+
+
+def _publish_row(c: sqlite3.Connection, r: sqlite3.Row) -> None:
+    """发一条 queue 行;成功 published,失败 failed,均留 publish_log。"""
+    import publisher as _pub  # 同目录脚本,sys.path[0] 可达
+    task = _pub.PublishTask(qid=r["id"], title=r["title"], body=r["body"] or "",
+                            tags=r["tags"] or "", images=json.loads(r["images"] or "[]"))
+    try:
+        result = _pub.publish_one(task)
+        c.execute("UPDATE publish_queue SET status='published', published_at=?, note_id=? WHERE id=?",
+                  (datetime.now().isoformat(timespec="seconds"), result.get("note_url", ""), r["id"]))
+        _log(c, r["id"], "publish_ok", str(result.get("note_url", "")))
+        print(f"#{r['id']} 已发布: {result.get('note_url', '')}")
+    except SystemExit as e:
+        c.execute("UPDATE publish_queue SET status='failed' WHERE id=?", (r["id"],))
+        _log(c, r["id"], "publish_fail", str(e))
+        raise
+    except Exception as e:  # noqa: BLE001
+        c.execute("UPDATE publish_queue SET status='failed' WHERE id=?", (r["id"],))
+        _log(c, r["id"], "publish_fail", repr(e)[:500])
+        raise
+
+
+def cmd_login(_args: argparse.Namespace) -> None:
+    import publisher as _pub
+    _pub.login()
+
+
+def publish(args: argparse.Namespace) -> None:
+    """单条人工确认发布(M3 第2步):scheduled 且到点、未过期。"""
+    if not args.confirm:
+        sys.exit("发布是不可逆外发动作,须 --confirm")
+    with _conn() as c:
+        r = c.execute("SELECT * FROM publish_queue WHERE id=?", (args.id,)).fetchone()
+        if not r or r["status"] != "scheduled":
+            sys.exit(f"#{args.id} 非 scheduled 状态")
+        if r["release_expires"] and r["release_expires"] < _today():
+            sys.exit(f"#{args.id} 数据已过期(有效至 {r['release_expires']}),须回 cardgen bump 重发")
+        _publish_row(c, r)
+
+
+def publish_due(args: argparse.Namespace) -> None:
+    """扫 due 自动发布(M3 第3步,cron 挂):护栏=单日上限/最小间隔/过期跳过。--dry-run 只出计划。"""
+    import publisher as _pub
+    now = datetime.now().isoformat(timespec="minutes")
+    with _conn() as c:
+        rows = c.execute(
+            "SELECT * FROM publish_queue WHERE status='scheduled' AND scheduled_at<=? "
+            "ORDER BY scheduled_at", (now,)).fetchall()
+        if not rows:
+            print(f"无到点项(as of {now})")
+            return
+        published_today, last_at = _publish_stats(c)
+        todo, skipped = _pub.select_publishable(
+            [dict(r) for r in rows], published_today, last_at,
+            datetime.now().isoformat(timespec="seconds"))
+        for s in skipped:
+            print(f"跳过: {s}")
+        if not todo:
+            return
+        if args.dry_run:
+            for r in todo:
+                print(f"[dry-run] 将发布 #{r['id']} [{r['title'][:36]}]")
+            print(f"共 {len(todo)} 条待发(今日已发 {published_today})")
+            return
+        by_id = {r["id"]: r for r in rows}
+        for r in todo:
+            _publish_row(c, by_id[r["id"]])  # 首条失败即抛出停整轮,留痕人工介入
+
+
 def list_queue(args: argparse.Namespace) -> None:
     q = "SELECT id,created_at,source,title,tags,images,platform,status,scheduled_at,published_at,release_expires,scan_result FROM publish_queue"
     params: tuple = ()
@@ -221,6 +303,11 @@ def main() -> None:
     l = sub.add_parser("list"); l.add_argument("--status"); l.add_argument("--json", action="store_true")
     l.set_defaults(func=list_queue)
     d = sub.add_parser("due"); d.set_defaults(func=due)
+    sub.add_parser("login").set_defaults(func=cmd_login)
+    p = sub.add_parser("publish"); p.add_argument("id", type=int)
+    p.add_argument("--confirm", action="store_true"); p.set_defaults(func=publish)
+    pd = sub.add_parser("publish-due"); pd.add_argument("--dry-run", action="store_true")
+    pd.set_defaults(func=publish_due)
     args = ap.parse_args()
     args.func(args)
 
