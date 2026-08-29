@@ -8,6 +8,16 @@ from typing import Iterator
 
 from davis_analyzer.cardgen.types import Failure
 
+# 诱导交易句式(2026-08-29 金融专项治理):词表拦不住的交易指向框架,按正则拦截
+import re
+
+INDUCEMENT_PATTERNS: list[tuple[re.Pattern, str]] = [
+    (re.compile(r"买(的)?(是|什么)|买(弹性|确定)"), "交易框架句(买的是什么/买弹性)"),
+    (re.compile(r"赌[A-Za-z0-9\u4e00-\u9fa5]{1,6}|赌徒"), "赌博化表述(赌X/赌徒)"),
+    (re.compile(r"下一个(动作|步骤)"), "行为指令句"),
+    (re.compile(r"你(应该|可以|要|不妨)"), "第二人称劝导"),
+]
+
 REQUIRED_PHRASES = ("不构成投资建议",)
 _WORDS_FILE = Path(__file__).resolve().parents[2] / "scripts" / "card_factory" / "sensitive_words.txt"
 
@@ -42,7 +52,7 @@ def load_waivers(project_dir: Path) -> list[dict]:
 
 
 def scan_compliance(cards: list[dict], waivers: list[dict]) -> list[Failure]:
-    """敏感词命中(可用 {word, card, reason} 豁免)+ 尾卡免责 + 每卡 foot 来源。"""
+    """敏感词命中(可用 {word, card, reason} 豁免)+ 诱导句式 + 尾卡免责 + 每卡 foot 来源。"""
     failures: list[Failure] = []
     words = load_words()
     waiv = {(w["word"], w["card"]) for w in waivers}
@@ -52,6 +62,9 @@ def scan_compliance(cards: list[dict], waivers: list[dict]) -> list[Failure]:
             for w in words:
                 if w in text and (w, name) not in waiv:
                     failures.append(Failure("compliance", name, path, f"敏感词命中: {w}"))
+            for pat, desc in INDUCEMENT_PATTERNS:
+                if pat.search(text):
+                    failures.append(Failure("compliance", name, path, f"诱导交易句式: {desc}"))
     if cards:
         last = cards[-1]
         last_name = last.get("name", f"cards[{len(cards) - 1}]")
