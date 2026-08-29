@@ -165,17 +165,23 @@ def main(argv: list[str] | None = None) -> None:
     e = sub.add_parser("enqueue", help="打印发稿入池命令并置 queued")
     e.add_argument("--topic", required=True)
     e.set_defaults(func=cmd_enqueue)
-    v = sub.add_parser("video", help="卡片→竖屏视频(Ken Burns+edge-tts旁白)")
+    v = sub.add_parser("video", help="卡片→竖屏视频(Ken Burns 或 动效解说风)")
     v.add_argument("--topic", required=True)
     v.add_argument("--voice", default="zh-CN-XiaoxiaoNeural")
     v.add_argument("--no-tts", action="store_true", help="无声版(小红书站内配乐)")
+    v.add_argument("--style", choices=["static", "motion"], default="static",
+                   help="static=v1 Ken Burns 静卡轮播; motion=动效解说(数字滚动/条形生长)")
     v.set_defaults(func=cmd_video)
     args = ap.parse_args(argv)
     args.func(args)
 
 
 def cmd_video(args: argparse.Namespace) -> None:
-    from davis_analyzer.cardgen.video import gen_video
-    final = gen_video(_project(args.topic), args.topic,
-                      voice=args.voice, with_tts=not args.no_tts)
+    if args.style == "motion":
+        from davis_analyzer.cardgen.video2 import gen_motion_video
+        final = gen_motion_video(_project(args.topic), args.topic, voice=args.voice)
+    else:
+        from davis_analyzer.cardgen.video import gen_video
+        final = gen_video(_project(args.topic), args.topic,
+                          voice=args.voice, with_tts=not args.no_tts)
     print(f"视频就绪: {final}")
