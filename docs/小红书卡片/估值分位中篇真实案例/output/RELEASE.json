@@ -1,0 +1,18 @@
+{
+  "topic": "估值分位中篇真实案例",
+  "version": 1,
+  "as_of": "2026-08-29",
+  "expires_at": "2026-09-05",
+  "group": "工具方法",
+  "images": [
+    "output/估值分位中篇真实案例_01_封面.png",
+    "output/估值分位中篇真实案例_02_真实案例.png",
+    "output/估值分位中篇真实案例_03_读案例.png"
+  ],
+  "facts_digest": "sha256:b770670b17bb041038ad1ebbd843f9b53a9c3e999685dc7ac87e97d49c29e312",
+  "validate": {
+    "passed": true,
+    "failures": 0
+  },
+  "cardgen_version": "0.1"
+}

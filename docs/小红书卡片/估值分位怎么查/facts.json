@@ -1,0 +1,64 @@
+{
+  "facts": [
+    {
+      "id": "sy_pe",
+      "value": "88.5",
+      "unit": "倍",
+      "display": "88.5倍",
+      "as_of": "2026-08-29",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/生益科技深度研报.md#估值分析",
+        "quote": "生益科技 PE 88.5x(M10级材料卡片事实同源)"
+      }
+    },
+    {
+      "id": "sy_pct",
+      "value": "92",
+      "unit": "%",
+      "display": "92%",
+      "as_of": "2026-08-29",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/生益科技深度研报.md#估值分析",
+        "quote": "生益/南亚估值分位 92-96%/95%(卡片取下界92%)"
+      }
+    },
+    {
+      "id": "sq_pe",
+      "value": "36.8",
+      "unit": "倍",
+      "display": "36.8倍",
+      "as_of": "2026-08-29",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/M10级材料四强研报#估值断层",
+        "quote": "圣泉PE 36.8x 链内最低(东材126.7x/宏昌617x/生益88.5x)"
+      }
+    },
+    {
+      "id": "dc_pe",
+      "value": "126.7",
+      "unit": "倍",
+      "display": "126.7倍",
+      "as_of": "2026-08-29",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/M10级材料四强研报#估值断层",
+        "quote": "东材科技 PE 126.7x 链内最贵"
+      }
+    },
+    {
+      "id": "pct_window",
+      "value": "3",
+      "unit": "年",
+      "display": "3年",
+      "as_of": "2026-08-29",
+      "source": {
+        "kind": "manual",
+        "ref": "davis_analyzer/valuation.py 估值分位实现(N_VALUE 3年滚动窗口)",
+        "quote": "本项目估值引擎采用3年历史滚动窗口计算PE/PB分位"
+      }
+    }
+  ]
+}

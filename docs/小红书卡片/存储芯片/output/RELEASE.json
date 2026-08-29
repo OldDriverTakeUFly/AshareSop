@@ -1,0 +1,21 @@
+{
+  "topic": "存储芯片",
+  "version": 2,
+  "as_of": "2026-08-29",
+  "expires_at": "2026-09-05",
+  "group": "产业链调研",
+  "images": [
+    "output/存储芯片_01_封面.png",
+    "output/存储芯片_02_五强档案.png",
+    "output/存储芯片_03_产业链分层.png",
+    "output/存储芯片_04_业绩弹性.png",
+    "output/存储芯片_05_观察窗口.png",
+    "output/存储芯片_06_结论与风险.png"
+  ],
+  "facts_digest": "sha256:a5387c630d8b715c7f9e56ebc2278cca98e67a4854adf7fe5d8bc4227bce5f8f",
+  "validate": {
+    "passed": true,
+    "failures": 0
+  },
+  "cardgen_version": "0.1"
+}

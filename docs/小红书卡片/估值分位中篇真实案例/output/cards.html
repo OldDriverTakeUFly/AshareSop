@@ -1,0 +1,70 @@
+<!DOCTYPE html><html lang='zh-CN'><head><meta charset='UTF-8'><style>  * { margin:0; padding:0; box-sizing:border-box; font-family:'Noto Sans CJK SC','PingFang SC','Microsoft YaHei',sans-serif; }
+  body { background:#e8e8e8; display:flex; flex-direction:column; align-items:center; gap:40px; padding:40px 0; }
+  .card { width:1080px; height:1440px; border-radius:48px; position:relative; overflow:hidden; padding:48px 56px; display:flex; flex-direction:column; }
+  .card1 { background:linear-gradient(160deg,#1a1440 0%,#3b1d6e 45%,#8a2be2 100%); color:#fff; }
+  .card2 { background:#fdf6ec; color:#3a2e20; }
+  .card3 { background:#eef4ff; color:#1e2a44; }
+  .card4 { background:#fff1f0; color:#4a1f1c; }
+  .card5 { background:#f0fbf2; color:#1d3a24; }
+  .card6 { background:#f7f3ff; color:#2e2440; }
+  .tag-top { display:inline-block; background:#ff2442; color:#fff; font-size:30px; font-weight:900; padding:12px 30px; border-radius:999px; letter-spacing:2px; width:fit-content; }
+  .badge { display:inline-block; font-size:26px; font-weight:800; padding:8px 22px; border-radius:999px; margin-right:12px; }
+  .b-purple{background:rgba(138,43,226,.18);color:#6b21a8;} .b-blue{background:rgba(37,99,235,.14);color:#1d4ed8;}
+  .b-red{background:rgba(220,38,38,.12);color:#b91c1c;} .b-green{background:rgba(22,163,74,.14);color:#15803d;}
+  .b-org{background:rgba(234,88,12,.15);color:#c2410c;} .b-gray{background:rgba(0,0,0,.07);color:#555;}
+  h1 { font-size:96px; font-weight:900; line-height:1.18; margin:28px 0 10px; letter-spacing:1px; }
+  .sub { font-size:42px; font-weight:700; opacity:.92; line-height:1.5; }
+  .hl { background:linear-gradient(transparent 62%, rgba(255,210,0,.85) 62%); padding:0 6px; }
+  .hl-r { background:linear-gradient(transparent 62%, rgba(255,77,109,.55) 62%); padding:0 6px; }
+  .big-num { font-size:150px; font-weight:900; line-height:1; letter-spacing:-2px; }
+  h2.title { font-size:56px; font-weight:900; margin-bottom:8px; line-height:1.25; }
+  .subtitle { font-size:30px; font-weight:600; opacity:.65; margin-bottom:24px; }
+  .row { background:#fff; border-radius:28px; padding:20px 28px; margin-bottom:16px; box-shadow:0 6px 24px rgba(0,0,0,.06); }
+  .row .name { font-size:36px; font-weight:900; margin-bottom:8px; display:flex; align-items:center; gap:14px; flex-wrap:wrap;}
+  .row .desc { font-size:26px; line-height:1.48; }
+  .dot { width:24px; height:24px; border-radius:50%; display:inline-block; }
+  table { width:100%; border-collapse:separate; border-spacing:0; background:#fff; border-radius:26px; overflow:hidden; font-size:26px; box-shadow:0 6px 24px rgba(0,0,0,.06); }
+  th { background:#2a2050; color:#fff; font-weight:800; padding:16px 12px; font-size:25px; }
+  td { padding:14px 12px; text-align:center; border-bottom:1px solid #f0ecf5; line-height:1.35; }
+  td.l { text-align:left; font-weight:800; }
+  tr:last-child td { border-bottom:none; }
+  .up{color:#dc2626;font-weight:800;} .down{color:#16a34a;font-weight:800;} .warn{color:#d97706;font-weight:800;}
+  .kbox { background:#fff; border-radius:26px; padding:20px 28px; margin-bottom:14px; box-shadow:0 6px 24px rgba(0,0,0,.06); display:flex; gap:20px; align-items:flex-start; }
+  .kdate { min-width:165px; background:#16a34a; color:#fff; font-weight:900; font-size:27px; border-radius:16px; text-align:center; padding:12px 0; line-height:1.3;}
+  .kdate.red{background:#dc2626;} .kdate.org{background:#ea580c;} .kdate.pu{background:#7c3aed;}
+  .ktext { font-size:26px; line-height:1.48; padding-top:4px;}
+  .ktext b { font-size:27px; }
+  .quote { background:rgba(255,255,255,.14); border-left:8px solid #ffd400; border-radius:0 22px 22px 0; padding:22px 26px; font-size:30px; line-height:1.55; font-weight:600; }
+  .foot { margin-top:auto; font-size:21px; opacity:.6; line-height:1.45; }
+  .tags { font-size:25px; font-weight:700; opacity:.85; margin-top:20px; }
+  .card5 .ktext { font-size:25px; line-height:1.42; }
+  .card5 .kdate { min-width:150px; font-size:25px; }
+  .card5 .kbox { padding:16px 24px; gap:16px; margin-bottom:12px; }
+  .card5 .ktext b { font-size:26px; }
+  .card2 .row .desc { font-size:25px; line-height:1.45; }
+  .card2 .row .name { font-size:34px; }
+  .num-badge { display:flex; gap:26px; margin:34px 0 8px; }
+  .nb { background:rgba(255,255,255,.12); border-radius:26px; padding:24px 30px; flex:1; }
+  .nb .v { font-size:58px; font-weight:900; color:#ffd400; }
+  .nb .k { font-size:25px; opacity:.85; margin-top:6px; }
+</style></head><body><div class="card card3" id="card1">
+<span class="tag-top" style="background:#ff2442;">研究方法 · 2026-08-29</span>
+<h1>同一条产业链<br>估值分了三档❗</h1>
+<div class="sub" style="margin-top:24px;">中篇:真实案例实战<br>覆铜板链四强的PE与分位</div>
+<div class="num-badge"><div class="nb"><div class="v">88.5倍</div><div class="k">生益科技PE</div></div><div class="nb"><div class="v">92%</div><div class="k">其历史分位</div></div></div>
+<div style="margin-top:30px;"><div class="quote" style="background:rgba(255,255,255,.14);color:inherit;border-left-color:#ffd400;font-size:30px;">"<span style='color:#ffd400'>PE高不等于贵,PE低不等于便宜</span>——分位把绝对估值翻译成相对位置,这才是比较的正确姿势"</div></div>
+<div class="tags">#估值 #价值投资 #股票入门 #研究方法 #A股</div><div class="foot">方法来源:自研估值引擎口径(PE/PB历史分位) · 仅供研究参考,不构成投资建议</div></div><div class="card card4" id="card2">
+<span class="tag-top" style="background:#ff2442;">同一链条,分位天差地别</span>
+<h2 class="title" style="margin-top:24px;">同一条产业链<br>估值却分了三档❗</h2>
+<div class="subtitle">覆铜板链四家公司 PE(单位:倍)</div>
+<div style="display:flex;flex-direction:column;gap:24px;"><div><div style="display:flex;justify-content:space-between;font-size:30px;font-weight:800;margin-bottom:10px;"><span>🟠 东材科技</span><span style="color:#7c3aed;">126.7倍</span></div><div style="height:38px;border-radius:19px;background:linear-gradient(90deg,#7c3aed 100%,#e9e4f0 100%);"></div></div><div><div style="display:flex;justify-content:space-between;font-size:30px;font-weight:800;margin-bottom:10px;"><span>🔵 生益科技(分位92%以上)</span><span style="color:#2563eb;">88.5倍</span></div><div style="height:38px;border-radius:19px;background:linear-gradient(90deg,#2563eb 70%,#e9e4f0 70%);"></div></div><div><div style="display:flex;justify-content:space-between;font-size:30px;font-weight:800;margin-bottom:10px;"><span>🟢 圣泉集团</span><span style="color:#16a34a;">36.8倍</span></div><div style="height:38px;border-radius:19px;background:linear-gradient(90deg,#16a34a 29%,#e9e4f0 29%);"></div></div></div>
+<div style="font-size:24px;opacity:.6;text-align:right;margin-top:4px;">同一条M10材料链:最贵与最便宜相差三倍多——买链条≠买平均,标的决定赔率</div>
+<div style="margin-top:34px;"><div class="kbox"><div class="kdate" style="background:#dc2626;">读案例</div><div class="ktext">生益PE<b>88.5倍</b>听着吓人,但真正的信号是<b>92%分位</b>:它比自己历史上九成以上的时间都贵——业绩兑现了,赔率不再便宜</div></div><div class="kbox"><div class="kdate" style="background:#c2410c;">反面教训</div><div class="ktext">圣泉<b>36.8倍</b>链内最低≠值得买:低分位可能是对的(市场漏了),也可能是市场在告诉你别的信息——分位是提问的开始,不是答案</div></div></div>
+<div class="foot">数据来源:生益科技等深度研报估值章(2026年8月) · 不构成投资建议</div></div><div class="card card6" id="card3">
+<span class="tag-top" style="background:#0f172a;">怎么读这张图</span>
+<h2 class="title" style="margin-top:24px;">贵,要贵的有道理</h2>
+<div class="subtitle">分位是提问的开始,不是答案</div>
+<div class="row"><div class="desc"><b>生益PE<b>88.5倍</b>听着吓人</b> → 真正的信号是<b>92%分位</b>:比自己历史上九成以上时间都贵——业绩兑现了,赔率不再便宜</div></div><div class="row"><div class="desc"><b>圣泉<b>36.8倍</b>链内最低</b> → 便宜≠值得买:低分位可能是市场漏了,也可能是市场在告诉你别的信息</div></div><div class="row"><div class="desc"><b>东材<b>126.7倍</b>链内最贵</b> → 高估值买的是认证纯度期权——贵本身不是否定的理由,兑现不及预期才是</div></div>
+<div style="margin-top:14px;"><div class="kbox"><div class="kdate" style="background:#dc2626;">提醒</div><div class="ktext">买链条≠买平均,标的决定赔率·分位只回答贵不贵,不回答会不会涨</div></div></div>
+<div style="margin-top:8px;"><div class="quote" style="background:rgba(124,58,237,.10);color:#2e2440;border-left-color:#ffd400;font-size:30px;">估值分位是<b>温度计,不是水晶球</b>——它告诉你现在穿什么衣服,不告诉你明天出不出太阳</div></div>
+<div class="tags">#估值 #价值投资 #产业链 #研究方法 #A股</div><div class="foot">数据来源:生益科技等深度研报估值章(2026年8月) · AI辅助生成,仅供研究参考,不构成投资建议。市场有风险,投资需谨慎。</div></div></body></html>

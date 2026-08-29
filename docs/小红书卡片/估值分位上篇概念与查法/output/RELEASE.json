@@ -1,0 +1,19 @@
+{
+  "topic": "估值分位上篇概念与查法",
+  "version": 1,
+  "as_of": "2026-08-29",
+  "expires_at": "2026-09-05",
+  "group": "工具方法",
+  "images": [
+    "output/估值分位上篇概念与查法_01_封面.png",
+    "output/估值分位上篇概念与查法_02_什么是分位.png",
+    "output/估值分位上篇概念与查法_03_三步查询法.png",
+    "output/估值分位上篇概念与查法_04_小结.png"
+  ],
+  "facts_digest": "sha256:b770670b17bb041038ad1ebbd843f9b53a9c3e999685dc7ac87e97d49c29e312",
+  "validate": {
+    "passed": true,
+    "failures": 0
+  },
+  "cardgen_version": "0.1"
+}

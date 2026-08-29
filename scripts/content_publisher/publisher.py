@@ -18,7 +18,7 @@ PROFILE_DIR = Path(os.environ.get("PUBLISHER_PROFILE_DIR",
 CREATOR = "https://creator.xiaohongshu.com"
 
 # 频控护栏:单日上限 / 最小发布间隔
-GUARD_DAILY_LIMIT = 4
+GUARD_DAILY_LIMIT = 8  # 2026-08-29 用户指令:4→8,配合多内容线排期
 GUARD_MIN_INTERVAL_MIN = 30
 
 # ── 选择器(多级回退,改版维护点;2026-08-29 实测探明)──
@@ -224,7 +224,7 @@ def publish_one(task: PublishTask, headless: bool = False) -> dict:
             # 选择器,经 expect_file_chooser 拦截;上传后跳 /publish/publish 编辑器
             page.goto(_HOME, wait_until="domcontentloaded", timeout=45000)
             page.wait_for_timeout(9000)  # 首页重前端渲染,等组件挂载
-            card = page.locator("发布视频笔记" if is_video else "发布图文笔记").first
+            card = page.locator("text=发布视频笔记" if is_video else _UPLOAD_CARD).first
             card.wait_for(state="visible", timeout=20000)
             with page.expect_file_chooser() as fc_info:
                 card.click()

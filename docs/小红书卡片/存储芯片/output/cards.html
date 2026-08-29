@@ -1,0 +1,86 @@
+<!DOCTYPE html><html lang='zh-CN'><head><meta charset='UTF-8'><style>  * { margin:0; padding:0; box-sizing:border-box; font-family:'Noto Sans CJK SC','PingFang SC','Microsoft YaHei',sans-serif; }
+  body { background:#e8e8e8; display:flex; flex-direction:column; align-items:center; gap:40px; padding:40px 0; }
+  .card { width:1080px; height:1440px; border-radius:48px; position:relative; overflow:hidden; padding:48px 56px; display:flex; flex-direction:column; }
+  .card1 { background:linear-gradient(160deg,#1a1440 0%,#3b1d6e 45%,#8a2be2 100%); color:#fff; }
+  .card2 { background:#fdf6ec; color:#3a2e20; }
+  .card3 { background:#eef4ff; color:#1e2a44; }
+  .card4 { background:#fff1f0; color:#4a1f1c; }
+  .card5 { background:#f0fbf2; color:#1d3a24; }
+  .card6 { background:#f7f3ff; color:#2e2440; }
+  .tag-top { display:inline-block; background:#ff2442; color:#fff; font-size:30px; font-weight:900; padding:12px 30px; border-radius:999px; letter-spacing:2px; width:fit-content; }
+  .badge { display:inline-block; font-size:26px; font-weight:800; padding:8px 22px; border-radius:999px; margin-right:12px; }
+  .b-purple{background:rgba(138,43,226,.18);color:#6b21a8;} .b-blue{background:rgba(37,99,235,.14);color:#1d4ed8;}
+  .b-red{background:rgba(220,38,38,.12);color:#b91c1c;} .b-green{background:rgba(22,163,74,.14);color:#15803d;}
+  .b-org{background:rgba(234,88,12,.15);color:#c2410c;} .b-gray{background:rgba(0,0,0,.07);color:#555;}
+  h1 { font-size:96px; font-weight:900; line-height:1.18; margin:28px 0 10px; letter-spacing:1px; }
+  .sub { font-size:42px; font-weight:700; opacity:.92; line-height:1.5; }
+  .hl { background:linear-gradient(transparent 62%, rgba(255,210,0,.85) 62%); padding:0 6px; }
+  .hl-r { background:linear-gradient(transparent 62%, rgba(255,77,109,.55) 62%); padding:0 6px; }
+  .big-num { font-size:150px; font-weight:900; line-height:1; letter-spacing:-2px; }
+  h2.title { font-size:56px; font-weight:900; margin-bottom:8px; line-height:1.25; }
+  .subtitle { font-size:30px; font-weight:600; opacity:.65; margin-bottom:24px; }
+  .row { background:#fff; border-radius:28px; padding:20px 28px; margin-bottom:16px; box-shadow:0 6px 24px rgba(0,0,0,.06); }
+  .row .name { font-size:36px; font-weight:900; margin-bottom:8px; display:flex; align-items:center; gap:14px; flex-wrap:wrap;}
+  .row .desc { font-size:26px; line-height:1.48; }
+  .dot { width:24px; height:24px; border-radius:50%; display:inline-block; }
+  table { width:100%; border-collapse:separate; border-spacing:0; background:#fff; border-radius:26px; overflow:hidden; font-size:26px; box-shadow:0 6px 24px rgba(0,0,0,.06); }
+  th { background:#2a2050; color:#fff; font-weight:800; padding:16px 12px; font-size:25px; }
+  td { padding:14px 12px; text-align:center; border-bottom:1px solid #f0ecf5; line-height:1.35; }
+  td.l { text-align:left; font-weight:800; }
+  tr:last-child td { border-bottom:none; }
+  .up{color:#dc2626;font-weight:800;} .down{color:#16a34a;font-weight:800;} .warn{color:#d97706;font-weight:800;}
+  .kbox { background:#fff; border-radius:26px; padding:20px 28px; margin-bottom:14px; box-shadow:0 6px 24px rgba(0,0,0,.06); display:flex; gap:20px; align-items:flex-start; }
+  .kdate { min-width:165px; background:#16a34a; color:#fff; font-weight:900; font-size:27px; border-radius:16px; text-align:center; padding:12px 0; line-height:1.3;}
+  .kdate.red{background:#dc2626;} .kdate.org{background:#ea580c;} .kdate.pu{background:#7c3aed;}
+  .ktext { font-size:26px; line-height:1.48; padding-top:4px;}
+  .ktext b { font-size:27px; }
+  .quote { background:rgba(255,255,255,.14); border-left:8px solid #ffd400; border-radius:0 22px 22px 0; padding:22px 26px; font-size:30px; line-height:1.55; font-weight:600; }
+  .foot { margin-top:auto; font-size:21px; opacity:.6; line-height:1.45; }
+  .tags { font-size:25px; font-weight:700; opacity:.85; margin-top:20px; }
+  .card5 .ktext { font-size:25px; line-height:1.42; }
+  .card5 .kdate { min-width:150px; font-size:25px; }
+  .card5 .kbox { padding:16px 24px; gap:16px; margin-bottom:12px; }
+  .card5 .ktext b { font-size:26px; }
+  .card2 .row .desc { font-size:25px; line-height:1.45; }
+  .card2 .row .name { font-size:34px; }
+  .num-badge { display:flex; gap:26px; margin:34px 0 8px; }
+  .nb { background:rgba(255,255,255,.12); border-radius:26px; padding:24px 30px; flex:1; }
+  .nb .v { font-size:58px; font-weight:900; color:#ffd400; }
+  .nb .k { font-size:25px; opacity:.85; margin-top:6px; }
+</style></head><body><div class="card card1" id="card1">
+<span class="tag-top" style="background:#ff2442;">产业链拆解 · 2026-08-29</span>
+<h1>去年还在亏<br>今年半年百亿💰</h1>
+<div class="sub" style="margin-top:24px;">存储超级周期全景<br>模组·设计·接口谁吃到肉</div>
+<div class="num-badge"><div class="nb"><div class="v">+1091.5%</div><div class="k">兆易H1归母增速</div></div><div class="nb"><div class="v">240.9亿</div><div class="k">江波龙H1营收</div></div><div class="nb"><div class="v">+72.3%</div><div class="k">澜起H1归母增速</div></div></div>
+<div style="margin-top:30px;"><div class="quote" style="background:rgba(255,255,255,.14);color:inherit;border-left-color:#ffd400;font-size:30px;">"<span style='color:#ffd400'>短缺是十五年之最</span>,但利润表的爆发才刚开始兑现——上一轮亏掉的钱,这一轮半年就赚回来了"</div></div>
+<div class="tags">#存储芯片 #DRAM #半导体 #A股 #产业链</div><div class="foot">数据来源:Tushare 2026中报(个股income口径) + 证券时报存储短缺报道 · 仅供研究参考,不构成投资建议</div></div><div class="card card2" id="card2">
+<span class="tag-top" style="background:#7c3aed;">存储链五强</span>
+<h2 class="title" style="margin-top:24px;">一张图看懂存储卡位玩家</h2>
+<div class="subtitle">模组三家吃弹性,设计与接口吃格局</div>
+<div class="row"><div class="name"><span class="dot" style="background:#2563eb;"></span>江波龙 301308<span class="badge b-blue">模组龙头</span></div><div class="desc">存储模组双品牌(FORESEE/Lexar)。2026H1营收<b>240.9亿</b>,归母<b>105.77亿</b>——去年同期只有<b>0.15亿</b>,涨价弹性直接打进利润表</div></div><div class="row"><div class="name"><span class="dot" style="background:#16a34a;"></span>佰维存储 688525<span class="badge b-green">涨价Beta最纯</span></div><div class="desc">模组+先进封测一体化。2025H1还亏<b>2.26亿</b>,2026H1归母<b>71.66亿</b>——模组股里对现货价格最敏感的一家</div></div><div class="row"><div class="name"><span class="dot" style="background:#c2410c;"></span>德明利 001309<span class="badge b-org">周期反转标杆</span></div><div class="desc">闪存主控+模组。2025H1亏<b>1.18亿</b>,2026H1归母<b>60.17亿</b>——从亏损到暴利的教科书级反转</div></div><div class="row"><div class="name"><span class="dot" style="background:#7c3aed;"></span>兆易创新 603986<span class="badge b-purple">利基DRAM+MCU</span></div><div class="desc"> NOR/利基DRAM设计龙头。2026H1归母<b>68.57亿</b>,同比<b>+1091.5%</b>——设计公司的定价权回归</div></div><div class="row"><div class="name"><span class="dot" style="background:#0ea5e9;"></span>澜起科技 688008<span class="badge b-org">内存接口寡头</span></div><div class="desc">全球内存接口芯片双寡头之一。2026H1归母<b>19.97亿</b>,同比<b>+72.3%</b>——不赌涨价,赚服务器DDR5渗透的钱</div></div>
+<div class="foot">数据来源:Tushare income 2026-06-30 期(公告日2026年8月)· 模组三家去年同期均亏损或微利</div></div><div class="card card3" id="card3">
+<span class="tag-top" style="background:#2563eb;">产业链分层</span>
+<h2 class="title" style="margin-top:24px;">同一条存储链,赚的不是同一种钱</h2>
+<div class="subtitle">越靠现货端弹性越大,越靠格局端越稳</div>
+<table><tr><th style=text-align:left>环节</th><th>代表公司</th><th>赚什么钱</th><th>本轮特征</th></tr><tr><td class="l">模组</td><td class="up">江波龙/佰维/德明利</td><td class="up">囤货成本与售价差</td><td class="">现货涨价直接暴利,扭亏为盈</td></tr><tr><td class="l">利基设计</td><td class="">兆易创新</td><td class="up">产品定价权</td><td class="">利基DRAM跟涨,利润量级抬升</td></tr><tr><td class="l">接口芯片</td><td class="">澜起科技</td><td class="">DDR5渗透率</td><td class="">量增逻辑,弹性小确定性高</td></tr><tr><td class="l">上游原厂</td><td class="">(海外三巨头)</td><td class="">产能定价权</td><td class="">控产保价,短缺的源头</td></tr></table>
+<div style="margin-top:30px;"><div class="kbox"><div class="kdate" style="background:#dc2626;">周期位置</div><div class="ktext">本轮短缺为<b>十五年之最</b>:AI服务器HBM挤占常规产能+原厂控产,供给缺口传导到DRAM/NAND全品类</div></div><div class="kbox"><div class="kdate" style="background:#c2410c;">关键区别</div><div class="ktext">模组是<b>库存重估</b>生意(价格涨→利润非线性),接口是<b>渗透率</b>生意(量涨→利润线性)——买之前先想清楚赚的哪种钱</div></div></div>
+<div class="foot">数据来源:证券时报存储短缺报道(2026年5月) + Tushare中报数据 · 不构成投资建议</div></div><div class="card card4" id="card4">
+<span class="tag-top" style="background:#ff2442;">2026H1归母净利</span>
+<h2 class="title" style="margin-top:24px;">从亏损到百亿<br>只隔了一个周期❗</h2>
+<div class="subtitle">2026H1 归母净利润(单位:亿元)</div>
+<div style="display:flex;flex-direction:column;gap:24px;"><div><div style="display:flex;justify-content:space-between;font-size:30px;font-weight:800;margin-bottom:10px;"><span>🔵 江波龙(2025H1仅0.15亿)</span><span style="color:#dc2626;">105.77亿</span></div><div style="height:38px;border-radius:19px;background:linear-gradient(90deg,#dc2626 100%,#e9e4f0 100%);"></div></div><div><div style="display:flex;justify-content:space-between;font-size:30px;font-weight:800;margin-bottom:10px;"><span>🟢 佰维存储(2025H1亏损)</span><span style="color:#c2410c;">71.66亿</span></div><div style="height:38px;border-radius:19px;background:linear-gradient(90deg,#c2410c 68%,#e9e4f0 68%);"></div></div><div><div style="display:flex;justify-content:space-between;font-size:30px;font-weight:800;margin-bottom:10px;"><span>🟣 兆易创新(+1091.5%)</span><span style="color:#7c3aed;">68.57亿</span></div><div style="height:38px;border-radius:19px;background:linear-gradient(90deg,#7c3aed 65%,#e9e4f0 65%);"></div></div><div><div style="display:flex;justify-content:space-between;font-size:30px;font-weight:800;margin-bottom:10px;"><span>🟠 德明利(2025H1亏损)</span><span style="color:#dc2626;">60.17亿</span></div><div style="height:38px;border-radius:19px;background:linear-gradient(90deg,#dc2626 57%,#e9e4f0 57%);"></div></div><div><div style="display:flex;justify-content:space-between;font-size:30px;font-weight:800;margin-bottom:10px;"><span>⚪ 澜起科技(+72.3%)</span><span style="color:#64748b;">19.97亿</span></div><div style="height:38px;border-radius:19px;background:linear-gradient(90deg,#64748b 19%,#e9e4f0 19%);"></div></div></div>
+<div style="font-size:24px;opacity:.6;text-align:right;margin-top:4px;">模组三家2025H1归母分别为0.15亿/-2.26亿/-1.18亿——一年时间从周期底部到利润顶点</div>
+<div style="margin-top:34px;"><div class="kbox"><div class="kdate" style="background:#dc2626;">利润从哪来</div><div class="ktext">低价库存+售价飙升=模组厂利润的<b>非线性放大</b>:同样的出货量,价差每上一档,利润放大数倍</div></div><div class="kbox"><div class="kdate" style="background:#c2410c;">反向思考</div><div class="ktext">均值回归是存储的铁律:本轮利润峰值若已现,下一个动作不是追高而是<b>盯现货价格拐点</b></div></div></div>
+<div class="foot">数据来源:Tushare income 2026-06-30 期 · 不构成投资建议</div></div><div class="card card5" id="card5">
+<span class="tag-top" style="background:#16a34a;">关键观察窗口</span>
+<h2 class="title" style="margin-top:24px;">周期顶部怎么盯📅</h2>
+<div class="subtitle">存储股的卖点不在K线,在这四个信号</div>
+<div class="kbox"><div class="kdate" style="background:#dc2626;">现货价格</div><div class="ktext"><b>DXI指数/DRAM现货价周度环比</b>:连续转负是模组利润见顶的前导信号,历史上价格拐点领先利润拐点约一个季度</div></div><div class="kbox"><div class="kdate" style="background:#c2410c;">三季报</div><div class="ktext"><b>2026Q3环比斜率</b>:H1大增基数上,Q3还能环比增长=周期仍在早段;环比走平=兑现期,估值逻辑切换</div></div><div class="kbox"><div class="kdate" style="background:#7c3aed;">原厂资本开支</div><div class="ktext"><b>海外三巨头扩产落地节奏</b>:本轮短缺源于控产+HBM挤占,扩产重启之日就是供给拐点倒计时之时</div></div><div class="kbox"><div class="kdate" style="background:#0ea5e9;">AI需求</div><div class="ktext"><b>HBM订单与服务器出货</b>:AI是本轮需求的边际扰动源,HBM挤占常规产能的强度决定非AI存储的短缺持续性</div></div>
+<div class="foot">数据来源:存储周期框架(公开研报口径) · 事件驱动更新</div></div><div class="card card6" id="card6">
+<span class="tag-top" style="background:#0f172a;">一句话收束</span>
+<h2 class="title" style="margin-top:24px;">买弹性,还是买确定?</h2>
+<div class="subtitle">每个标的赚的什么钱,说清楚</div>
+<div class="row"><div class="desc"><b>江波龙/佰维/德明利</b> → 买<span class='hl'>现货涨价的库存重估</span>,代价是利润与现货价同涨同跌,拐点即顶点</div></div><div class="row"><div class="desc"><b>兆易创新</b> → 买<span class='hl'>利基DRAM的定价权回归</span>,弹性与稳定性介于模组与接口之间</div></div><div class="row"><div class="desc"><b>澜起科技</b> → 买<span class='hl'>DDR5渗透率的量增逻辑</span>,不赌价格,代价是本轮涨幅弹性最小</div></div>
+<div style="margin-top:14px;"><div class="kbox"><div class="kdate" style="background:#dc2626;">风险</div><div class="ktext">现货价格拐点·原厂扩产重启·AI资本开支不及预期·模组利润均值回归·板块筹码拥挤</div></div></div>
+<div style="margin-top:8px;"><div class="quote" style="background:rgba(124,58,237,.10);color:#2e2440;border-left-color:#ffd400;font-size:30px;">存储的规律从来是:<b>短缺时利润不是自己的,是周期的</b>——确认顶部信号之前,赚周期钱的前提是记得周期会转身</div></div>
+<div class="tags">#存储芯片 #DRAM #半导体周期 #A股 #产业链拆解</div><div class="foot">数据来源:Tushare 2026中报(2026年8月公告) + 证券时报·新浪财经存储行情报道 · AI辅助生成,仅供研究参考,不构成投资建议。市场有风险,投资需谨慎。</div></div></body></html>
