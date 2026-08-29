@@ -21,10 +21,13 @@ CREATOR = "https://creator.xiaohongshu.com"
 GUARD_DAILY_LIMIT = 2
 GUARD_MIN_INTERVAL_MIN = 30
 
-# ── 选择器(多级回退,改版维护点)──
-_TITLE_SELECTORS = ["input[placeholder*='标题']", ".d-input input", "input.title-input"]
-_CONTENT_SELECTORS = ["#post-textarea", ".ql-editor", "[contenteditable='true']"]
-_SUBMIT_SELECTORS = ["button.publishBtn", "button:has-text('发布')", ".publish-btn"]
+# ── 选择器(多级回退,改版维护点;2026-08-29 实测探明)──
+_HOME = "https://creator.xiaohongshu.com/new/home"
+_UPLOAD_CARD = "text=发布图文笔记"          # 首页上传卡(点击弹文件选择器)
+_TITLE_SELECTORS = ["input[placeholder*='标题']", ".d-input input"]
+_CONTENT_SELECTORS = ["[contenteditable='true']", ".ql-editor"]
+_SUBMIT_SELECTORS = [".btn-inner:has-text('发布笔记')", ".btn-wrapper:has-text('发布笔记')",
+                     "button.publishBtn", "button:has-text('发布')"]
 
 
 @dataclass
@@ -79,7 +82,28 @@ def _first(page, selectors: list[str], timeout: int = 15000):
 
 
 def _is_logged_in(context) -> bool:
-    return any(c["name"] == "web_session" and c.get("value") for c in context.cookies())
+    # 主站 web_session 或创作者平台 galaxy 会话 cookie 任一存在即视为已登录
+    names = {"web_session", "galaxy_creator_session_id", "galaxy.creator.beaker.session.id"}
+    return any(c["name"] in names and c.get("value") for c in context.cookies())
+
+
+# ── 反自动化检测(2026-08-29 实测:playwright 默认 navigator.webdriver=True,
+#    小红书发布按钮被风控静默拦截,点击无任何反应)──
+_STEALTH_JS = """
+Object.defineProperty(navigator, 'webdriver', {get: () => undefined});
+Object.defineProperty(navigator, 'languages', {get: () => ['zh-CN', 'zh', 'en']});
+window.chrome = window.chrome || {runtime: {}};
+"""
+
+
+def _launch(pw, headless: bool = False):
+    ctx = pw.chromium.launch_persistent_context(
+        str(PROFILE_DIR), headless=headless,
+        args=["--disable-blink-features=AutomationControlled"],
+        ignore_default_args=["--enable-automation"],
+    )
+    ctx.add_init_script(_STEALTH_JS)
+    return ctx
 
 
 def login(timeout_s: int = 300) -> None:
@@ -88,7 +112,7 @@ def login(timeout_s: int = 300) -> None:
 
     PROFILE_DIR.mkdir(parents=True, exist_ok=True)
     with sync_playwright() as pw:
-        ctx = pw.chromium.launch_persistent_context(str(PROFILE_DIR), headless=False)
+        ctx = _launch(pw)
         page = ctx.pages[0] if ctx.pages else ctx.new_page()
         page.goto(f"{CREATOR}/")
         print("请在打开的浏览器中完成登录(扫码),最长等待 5 分钟…")
@@ -117,33 +141,52 @@ def publish_one(task: PublishTask, headless: bool = False) -> dict:
         body_full = (body_full + "\n\n" + task.tags).strip()
 
     with sync_playwright() as pw:
-        ctx = pw.chromium.launch_persistent_context(str(PROFILE_DIR), headless=headless)
+        ctx = _launch(pw)
         try:
             if not _is_logged_in(ctx):
                 sys.exit("登录态已失效:运行 queue.py login 重新扫码(不会自动重试)")
             page = ctx.pages[0] if ctx.pages else ctx.new_page()
-            page.goto(f"{CREATOR}/publish/paste?source=official", wait_until="domcontentloaded")
-            page.wait_for_timeout(2500)
-            # 图片(多选上传)
-            page.locator("input[type='file']").first.set_input_files(imgs)
+            # 实测流程(2026-08-29):首页无静态 file input,点上传卡弹 File System Access
+            # 选择器,经 expect_file_chooser 拦截;上传后跳 /publish/publish 编辑器
+            page.goto(_HOME, wait_until="domcontentloaded", timeout=45000)
+            page.wait_for_timeout(9000)  # 首页重前端渲染,等组件挂载
+            card = page.locator(_UPLOAD_CARD).first
+            card.wait_for(state="visible", timeout=20000)
+            with page.expect_file_chooser() as fc_info:
+                card.click()
+            fc_info.value.set_files(imgs)
+            page.wait_for_url("**/publish/publish**", timeout=30000)
             page.wait_for_timeout(3000)
             # 标题(上限 20 字,防御性截断)
             _first(page, _TITLE_SELECTORS).fill(task.title[:20])
             # 正文+tags
             _first(page, _CONTENT_SELECTORS).fill(body_full)
             page.wait_for_timeout(800)
-            # 提交
-            _first(page, _SUBMIT_SELECTORS).click()
-            # 成功判定:跳转 success 页(带 note id)或出现成功提示
-            try:
-                page.wait_for_url("**/publish/success**", timeout=20000)
-            except Exception:  # noqa: BLE001
-                # 兜底:可能停在原页+失败 toast,人工确认场景下让调用方看截图
-                shot = REPO_ROOT / "storage" / "publish_fail.png"
-                page.screenshot(path=str(shot))
-                raise RuntimeError(f"未跳转成功页,疑似发布失败,截图: {shot}") from None
-            note_url = page.url
-            print(f"发布成功: {note_url}")
-            return {"note_url": note_url}
+            # 提交:底部操作栏是闭式 Shadow DOM 组件 <xhs-publish-btn>(2026-08-29 实测,
+            # 内含 暂存离开+发布 两钮,Playwright 文本选择器不可达)——按盒宽 78% 坐标点击
+            # 右侧红色「发布」钮;若误点左侧「暂存离开」会跳回首页,由成功判定识别为失败。
+            import time
+            bar = page.locator("xhs-publish-btn").first
+            bar.wait_for(state="visible", timeout=10000)
+            bar.scroll_into_view_if_needed()  # 底栏常在折叠线下,必须先滚入视口
+            page.wait_for_timeout(500)
+            box = bar.bounding_box()
+            if not box:
+                raise RuntimeError("xhs-publish-btn 无包围盒")
+            page.screenshot(path=str(REPO_ROOT / "storage" / "publish_click.png"))  # 点击前留痕
+            page.mouse.click(box["x"] + box["width"] * 0.93, box["y"] + box["height"] / 2)
+            # 成功判定:离开编辑器页;跳管理/成功页=成功,跳回 home=误点暂存离开
+            deadline = time.time() + 30
+            while time.time() < deadline:
+                if "/publish/publish" not in page.url:
+                    if "/new/home" in page.url or page.url.rstrip("/") == "https://creator.xiaohongshu.com":
+                        raise RuntimeError("误点「暂存离开」:内容已存草稿未发布,请重跑 publish")
+                    note_url = page.url
+                    print(f"发布成功,跳转: {note_url}")
+                    return {"note_url": note_url}
+                page.wait_for_timeout(2000)
+            shot = REPO_ROOT / "storage" / "publish_fail.png"
+            page.screenshot(path=str(shot))
+            raise RuntimeError(f"30 秒内未离开编辑器页,疑似发布失败,截图: {shot}")
         finally:
             ctx.close()

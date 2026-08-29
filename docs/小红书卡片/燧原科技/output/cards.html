@@ -1,0 +1,86 @@
+<!DOCTYPE html><html lang='zh-CN'><head><meta charset='UTF-8'><style>  * { margin:0; padding:0; box-sizing:border-box; font-family:'Noto Sans CJK SC','PingFang SC','Microsoft YaHei',sans-serif; }
+  body { background:#e8e8e8; display:flex; flex-direction:column; align-items:center; gap:40px; padding:40px 0; }
+  .card { width:1080px; height:1440px; border-radius:48px; position:relative; overflow:hidden; padding:48px 56px; display:flex; flex-direction:column; }
+  .card1 { background:linear-gradient(160deg,#1a1440 0%,#3b1d6e 45%,#8a2be2 100%); color:#fff; }
+  .card2 { background:#fdf6ec; color:#3a2e20; }
+  .card3 { background:#eef4ff; color:#1e2a44; }
+  .card4 { background:#fff1f0; color:#4a1f1c; }
+  .card5 { background:#f0fbf2; color:#1d3a24; }
+  .card6 { background:#f7f3ff; color:#2e2440; }
+  .tag-top { display:inline-block; background:#ff2442; color:#fff; font-size:30px; font-weight:900; padding:12px 30px; border-radius:999px; letter-spacing:2px; width:fit-content; }
+  .badge { display:inline-block; font-size:26px; font-weight:800; padding:8px 22px; border-radius:999px; margin-right:12px; }
+  .b-purple{background:rgba(138,43,226,.18);color:#6b21a8;} .b-blue{background:rgba(37,99,235,.14);color:#1d4ed8;}
+  .b-red{background:rgba(220,38,38,.12);color:#b91c1c;} .b-green{background:rgba(22,163,74,.14);color:#15803d;}
+  .b-org{background:rgba(234,88,12,.15);color:#c2410c;} .b-gray{background:rgba(0,0,0,.07);color:#555;}
+  h1 { font-size:96px; font-weight:900; line-height:1.18; margin:28px 0 10px; letter-spacing:1px; }
+  .sub { font-size:42px; font-weight:700; opacity:.92; line-height:1.5; }
+  .hl { background:linear-gradient(transparent 62%, rgba(255,210,0,.85) 62%); padding:0 6px; }
+  .hl-r { background:linear-gradient(transparent 62%, rgba(255,77,109,.55) 62%); padding:0 6px; }
+  .big-num { font-size:150px; font-weight:900; line-height:1; letter-spacing:-2px; }
+  h2.title { font-size:56px; font-weight:900; margin-bottom:8px; line-height:1.25; }
+  .subtitle { font-size:30px; font-weight:600; opacity:.65; margin-bottom:24px; }
+  .row { background:#fff; border-radius:28px; padding:20px 28px; margin-bottom:16px; box-shadow:0 6px 24px rgba(0,0,0,.06); }
+  .row .name { font-size:36px; font-weight:900; margin-bottom:8px; display:flex; align-items:center; gap:14px; flex-wrap:wrap;}
+  .row .desc { font-size:26px; line-height:1.48; }
+  .dot { width:24px; height:24px; border-radius:50%; display:inline-block; }
+  table { width:100%; border-collapse:separate; border-spacing:0; background:#fff; border-radius:26px; overflow:hidden; font-size:26px; box-shadow:0 6px 24px rgba(0,0,0,.06); }
+  th { background:#2a2050; color:#fff; font-weight:800; padding:16px 12px; font-size:25px; }
+  td { padding:14px 12px; text-align:center; border-bottom:1px solid #f0ecf5; line-height:1.35; }
+  td.l { text-align:left; font-weight:800; }
+  tr:last-child td { border-bottom:none; }
+  .up{color:#dc2626;font-weight:800;} .down{color:#16a34a;font-weight:800;} .warn{color:#d97706;font-weight:800;}
+  .kbox { background:#fff; border-radius:26px; padding:20px 28px; margin-bottom:14px; box-shadow:0 6px 24px rgba(0,0,0,.06); display:flex; gap:20px; align-items:flex-start; }
+  .kdate { min-width:165px; background:#16a34a; color:#fff; font-weight:900; font-size:27px; border-radius:16px; text-align:center; padding:12px 0; line-height:1.3;}
+  .kdate.red{background:#dc2626;} .kdate.org{background:#ea580c;} .kdate.pu{background:#7c3aed;}
+  .ktext { font-size:26px; line-height:1.48; padding-top:4px;}
+  .ktext b { font-size:27px; }
+  .quote { background:rgba(255,255,255,.14); border-left:8px solid #ffd400; border-radius:0 22px 22px 0; padding:22px 26px; font-size:30px; line-height:1.55; font-weight:600; }
+  .foot { margin-top:auto; font-size:21px; opacity:.6; line-height:1.45; }
+  .tags { font-size:25px; font-weight:700; opacity:.85; margin-top:20px; }
+  .card5 .ktext { font-size:25px; line-height:1.42; }
+  .card5 .kdate { min-width:150px; font-size:25px; }
+  .card5 .kbox { padding:16px 24px; gap:16px; margin-bottom:12px; }
+  .card5 .ktext b { font-size:26px; }
+  .card2 .row .desc { font-size:25px; line-height:1.45; }
+  .card2 .row .name { font-size:34px; }
+  .num-badge { display:flex; gap:26px; margin:34px 0 8px; }
+  .nb { background:rgba(255,255,255,.12); border-radius:26px; padding:24px 30px; flex:1; }
+  .nb .v { font-size:58px; font-weight:900; color:#ffd400; }
+  .nb .k { font-size:25px; opacity:.85; margin-top:6px; }
+</style></head><body><div class="card card1" id="card1">
+<span class="tag-top" style="background:#ff2442;">IPO 拆解 · 2026-08-29</span>
+<h1>国产GPU收官战<br>燧原科技全拆解🔥</h1>
+<div class="sub" style="margin-top:24px;">腾讯系DSA推理王者<br>8/31定价 · 9/2申购</div>
+<div class="num-badge"><div class="nb"><div class="v">400-600亿</div><div class="k">发行隐含市值</div></div><div class="nb"><div class="v">75%</div><div class="k">较A股同赛道折价</div></div><div class="nb"><div class="v">+326%~455%</div><div class="k">前三季营收指引增速</div></div></div>
+<div style="margin-top:30px;"><div class="quote" style="background:rgba(255,255,255,.14);color:inherit;border-left-color:#ffd400;font-size:30px;">"燧原是四小龙里<span style='color:#ffd400'>动能最强、质量最弱、身位最独特</span>的一家——营收半年超去年全年,毛利率却垫底"</div></div>
+<div class="tags">#燧原科技 #国产GPU #AI芯片 #科创板 #打新</div><div class="foot">数据来源:燧原科技深度研报(2026-08-28)· 仅供研究参考,不构成投资建议</div></div><div class="card card2" id="card2">
+<span class="tag-top" style="background:#7c3aed;">公司档案</span>
+<h2 class="title" style="margin-top:24px;">一张图看懂燧原科技</h2>
+<div class="subtitle">AMD班底 + 腾讯双绑,DSA路线不兼容CUDA</div>
+<div class="row"><div class="name"><span class="dot" style="background:#2563eb;"></span>出身 · AMD计算事业部<span class="badge b-blue">2018年创立·四小龙最早</span></div><div class="desc">创始人赵立东,AMD计算事业部高级总监出身;联创张亚林在AMD上海深耕芯片十余年。研发人员<b>643人、占员工总数76.73%</b>,标准的芯片设计公司架构</div></div><div class="row"><div class="name"><span class="dot" style="background:#c2410c;"></span>腾讯 · 股东兼客户<span class="badge b-org">IPO 9/2申购</span></div><div class="desc">腾讯既是<b>第一大股东(20.258%)</b>又是<b>第一大客户(2025年占销售83.79%)</b>——连续四轮下注+AVAP模式深度绑定,是靠山也是软肋</div></div><div class="row"><div class="name"><span class="dot" style="background:#7c3aed;"></span>路线 · 唯一的DSA<span class="badge b-purple">不兼容CUDA</span></div><div class="desc">四小龙中<b>唯一DSA专用架构</b>+自建驭算软件生态;推理占加速卡收入<b>98.85%</b>,吃的是推理赛道红利(DSA阵营2025年国内市占57%)</div></div><div class="row"><div class="name"><span class="dot" style="background:#16a34a;"></span>弹药 · 融资与IPO<span class="badge b-green">拟募60亿</span></div><div class="desc">11轮融资累计近<b>70亿</b>;IPO拟募<b>60亿</b>投向第五代/第六代AI芯片——经营现金流连续四年为负,这轮弹药是持续经营的必要条件</div></div>
+<div class="foot">数据来源:燧原科技深度研报 第一章/第三章(招股书口径)</div></div><div class="card card3" id="card3">
+<span class="tag-top" style="background:#2563eb;">财务拆解</span>
+<h2 class="title" style="margin-top:24px;">都在喊爆发,先看三组矛盾</h2>
+<div class="subtitle">收入动能四小龙第一,盈利质量四小龙垫底</div>
+<table><tr><th style=text-align:left>指标</th><th>读数</th><th>什么信号</th></tr><tr><td class="l">📈 H1营收</td><td class="up">11.2亿,超2025全年</td><td class="up">爆发兑现中</td></tr><tr><td class="l">📉 毛利率</td><td class="down">30.37%,同行57.87%</td><td class="down">结构性垫底</td></tr><tr><td class="l">🕳 累计亏损</td><td class="down">三年43.39亿</td><td class="">经营CF连续四年为负</td></tr></table>
+<div style="margin-top:30px;"><div class="kbox"><div class="kdate" style="background:#16a34a;">订单信号</div><div class="ktext">2026Q1负债暴增<b>+554.58%</b>,主因是<b>预收客户款项</b>——"腾讯需求始终远超燧原供应能力"的招股书表述,需求爆发的硬信号</div></div><div class="kbox"><div class="kdate" style="background:#c2410c;">应收隐忧</div><div class="ktext">逾期应收账款占比<b>82.96%</b>,期后回款仅<b>31.37%</b>——爆发的成色要打个折扣</div></div></div>
+<div class="foot">数据来源:燧原科技深度研报 第四章(招股书口径)</div></div><div class="card card4" id="card4">
+<span class="tag-top" style="background:#ff2442;">估值断层</span>
+<h2 class="title" style="margin-top:24px;">发行价和二级市场<br>差了整整75%❗</h2>
+<div class="subtitle">前瞻PS对比 · 2026-08-28</div>
+<div style="display:flex;flex-direction:column;gap:24px;"><div><div style="display:flex;justify-content:space-between;font-size:30px;font-weight:800;margin-bottom:10px;"><span>🟢 沐曦(A股)</span><span style="color:#dc2626;">77x</span></div><div style="height:38px;border-radius:19px;background:linear-gradient(90deg,#dc2626 100%,#e9e4f0 100%);"></div></div><div><div style="display:flex;justify-content:space-between;font-size:30px;font-weight:800;margin-bottom:10px;"><span>🔵 摩尔(A股)</span><span style="color:#c2410c;">67x</span></div><div style="height:38px;border-radius:19px;background:linear-gradient(90deg,#c2410c 87%,#e9e4f0 87%);"></div></div><div><div style="display:flex;justify-content:space-between;font-size:30px;font-weight:800;margin-bottom:10px;"><span>🟣 壁仞(H股)</span><span style="color:#7c3aed;">33x</span></div><div style="height:38px;border-radius:19px;background:linear-gradient(90deg,#7c3aed 43%,#e9e4f0 43%);"></div></div><div><div style="display:flex;justify-content:space-between;font-size:30px;font-weight:800;margin-bottom:10px;"><span>🟠 燧原(发行)</span><span style="color:#16a34a;">9-20x</span></div><div style="height:38px;border-radius:19px;background:linear-gradient(90deg,#16a34a 17%,#e9e4f0 17%);"></div></div></div>
+<div style="font-size:24px;opacity:.6;text-align:right;margin-top:4px;">燧原概率加权稳态约1870亿(分析框架,非预测)</div>
+<div style="margin-top:34px;"><div class="kbox"><div class="kdate" style="background:#dc2626;">断层收敛史</div><div class="ktext">摩尔线程首日<b>+502%</b>、沐曦<b>+693%</b>、壁仞H股<b>+76%</b>——A/H新股定价断层的收敛方向,历史上一次都没缺席,分歧只在幅度</div></div><div class="kbox"><div class="kdate" style="background:#7c3aed;">推演区间</div><div class="ktext">上市后稳态市值推演<b>720~3150亿</b>,概率加权约<b>1870亿</b>——这是<b>分析框架,不是价格预测</b>,情绪决定收敛时点</div></div></div>
+<div class="foot">数据来源:燧原科技深度研报 第六章 · 概率加权区间为分析框架,不构成投资建议</div></div><div class="card card5" id="card5">
+<span class="tag-top" style="background:#16a34a;">关键节点日历</span>
+<h2 class="title" style="margin-top:24px;">未来半年,燧原的六道关📅</h2>
+<div class="subtitle">按时间排序,逐级放大</div>
+<div class="kbox"><div class="kdate" style="background:#dc2626;">8/31</div><div class="ktext"><b>定价公布</b>:若足额募60亿,发行价约<b>139.4元/股</b>——断层大小的最终裁定</div></div><div class="kbox"><div class="kdate" style="background:#dc2626;">9/02</div><div class="ktext"><b>网上申购(代码787801)</b>:四小龙资本化收官,首日表现=科创板风偏温度计</div></div><div class="kbox"><div class="kdate" style="background:#c2410c;">9月中</div><div class="ktext"><b>预计上市</b>:悲观情景推演720亿仍高于发行上限——隐含判断是破发概率低,但前提是稀缺性溢价延续</div></div><div class="kbox"><div class="kdate" style="background:#c2410c;">10月底</div><div class="ktext"><b>三季报</b>:前三季指引<b>23-30亿</b>的兑现度,是上市后第一场硬考</div></div><div class="kbox"><div class="kdate" style="background:#0ea5e9;">2026H2</div><div class="ktext"><b>L600训推一体量产</b>:144GB显存/3.6TB/s带宽,毛利率叙事的裁决点</div></div><div class="kbox"><div class="kdate" style="background:#64748b;">风险</div><div class="ktext"><b>三大尾部</b>:腾讯依赖(83.79%)·实体清单单点(未列入=最强也最脆)·毛利率结构性垫底</div></div>
+<div class="foot">数据来源:燧原科技深度研报 第十章关键日历 · 事件驱动更新</div></div><div class="card card6" id="card6">
+<span class="tag-top" style="background:#0f172a;">一句话收束</span>
+<h2 class="title" style="margin-top:24px;">买的是什么,说清楚</h2>
+<div class="subtitle">发行环节与二级环节是两个游戏</div>
+<div class="row"><div class="desc"><b>发行环节</b> → 买<span class='hl'>定价机制的数学断层</span>(前瞻PS 9-20x vs 同赛道67-77x),这是打新结构优势的本质</div></div><div class="row"><div class="desc"><b>二级环节</b> → 买<span class='hl'>腾讯生态的确定性+L600兑现</span>,代价是毛利率与客户集中的双高波动</div></div><div class="row"><div class="desc"><b>质量短板</b> → 毛利率30.37%垫底、三年累亏43.39亿、逾期应收82.96%——典型的高波动动量型标的</div></div>
+<div style="margin-top:14px;"><div class="kbox"><div class="kdate" style="background:#dc2626;">风险</div><div class="ktext">腾讯资本开支转向·毛利率不及预期·实体清单升级·上市后向基本面收敛·科创板风格逆转</div></div></div>
+<div style="margin-top:8px;"><div class="quote" style="background:rgba(124,58,237,.10);color:#2e2440;border-left-color:#ffd400;font-size:30px;">四小龙至此收官——2027年,行业瓶颈会从<b>"谁有订单"</b>变成<b>"谁拿得到产能"</b></div></div>
+<div class="tags">#燧原科技 #国产GPU四小龙 #AI算力 #科创板IPO</div><div class="foot">数据来源:燧原科技深度研报(2026-08-28,官方公告+招股书多源交叉验证)· ⚠️ AI辅助生成,仅供研究参考,不构成投资建议。市场有风险,投资需谨慎。</div></div></body></html>

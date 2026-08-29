@@ -30,6 +30,15 @@ ROOT = Path(__file__).resolve().parent
 DB = Path(os.environ.get("PUBLISHER_DB", ROOT.parent.parent / "storage" / "database" / "content_publisher.db"))
 WORDS_FILE = ROOT.parent / "card_factory" / "sensitive_words.txt"
 
+# 防自遮蔽:本目录 queue.py 与 stdlib queue 同名,脚本方式启动时本目录在 sys.path[0],
+# publisher→playwright 内部 `import queue` 会解析到本文件——先以 stdlib 路径锁定 queue
+# 模块,再恢复目录供 publisher 导入
+_here = str(ROOT)
+sys.path = [p for p in sys.path if p != _here]
+import queue as _stdlib_queue  # noqa: F401
+sys.modules["queue"] = _stdlib_queue
+sys.path.insert(0, _here)
+
 REQUIRED = ["不构成投资建议"]  # 合规必备话术(标题+正文+图片foot合并检查)
 STATUSES = ("draft", "reviewed", "scheduled", "published", "failed")
 
