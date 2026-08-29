@@ -55,6 +55,8 @@ def _ensure_cols(conn: sqlite3.Connection) -> None:
     cols = {r[1] for r in conn.execute("PRAGMA table_info(publish_queue)")}
     if "release_expires" not in cols and cols:
         conn.execute("ALTER TABLE publish_queue ADD COLUMN release_expires TEXT")
+    if "group" not in cols and cols:
+        conn.execute('ALTER TABLE publish_queue ADD COLUMN "group" TEXT')
         conn.commit()
 
 
@@ -96,15 +98,18 @@ def scan_text(text: str) -> dict:
             "scanned_at": datetime.now().isoformat(timespec="seconds")}
 
 
-def _load_release_expires(source: str | None) -> str:
-    """--source 指向 cardgen 工程目录时读 output/RELEASE.json 的 expires_at;无契约返回空串。"""
+def _load_release(source: str | None) -> dict:
+    """--source 指向 cardgen 工程目录时读 output/RELEASE.json(expires_at/group);无契约返回空。"""
     if not source:
-        return ""
+        return {}
     p = Path(source) / "output" / "RELEASE.json"
     if not p.exists():
-        return ""
-    release = json.loads(p.read_text(encoding="utf-8"))
-    return str(release.get("expires_at", ""))
+        return {}
+    return json.loads(p.read_text(encoding="utf-8"))
+
+
+def _load_release_expires(source: str | None) -> str:
+    return str(_load_release(source).get("expires_at", ""))
 
 
 def enqueue(args: argparse.Namespace) -> None:
@@ -112,21 +117,25 @@ def enqueue(args: argparse.Namespace) -> None:
     for p in images:
         if not Path(p).exists():
             sys.exit(f"图片不存在: {p}")
-    expires = _load_release_expires(args.source)
+    release = _load_release(args.source)
+    expires = str(release.get("expires_at", ""))
+    group = str(release.get("group", ""))
     if expires and expires < datetime.now().strftime("%Y-%m-%d"):
         sys.exit(f"卡片数据已过期(expires_at={expires}):须回 cardgen 更新事实后 --bump 重新 build")
     scan = scan_text(args.title + (args.body or "") + (args.tags or ""))
     with _conn() as c:
         cur = c.execute(
-            "INSERT INTO publish_queue(created_at, source, title, body, tags, images, release_expires, scan_result) "
-            "VALUES(?,?,?,?,?,?,?,?)",
+            "INSERT INTO publish_queue(created_at, source, title, body, tags, images, release_expires, \"group\", scan_result) "
+            "VALUES(?,?,?,?,?,?,?,?,?)",
             (datetime.now().isoformat(timespec="seconds"), args.source, args.title,
-             args.body or "", args.tags or "", json.dumps(images, ensure_ascii=False), expires,
+             args.body or "", args.tags or "", json.dumps(images, ensure_ascii=False), expires, group,
              json.dumps(scan, ensure_ascii=False)))
         _log(c, cur.lastrowid, "enqueue",
-             f"scan_passed={scan['passed']}" + (f" release_expires={expires}" if expires else ""))
+             f"scan_passed={scan['passed']}" + (f" release_expires={expires}" if expires else "")
+             + (f" group={group}" if group else ""))
         print(f"入池 #{cur.lastrowid} [{args.title}] 扫描: {'通过' if scan['passed'] else scan}"
-              + (f" | 数据有效期至 {expires}" if expires else ""))
+              + (f" | 数据有效期至 {expires}" if expires else "")
+              + (f" | 分组[{group}]" if group else ""))
 
 
 def rescan(args: argparse.Namespace) -> None:
@@ -282,7 +291,8 @@ def publish_due(args: argparse.Namespace) -> None:
 
 
 def list_queue(args: argparse.Namespace) -> None:
-    q = "SELECT id,created_at,source,title,tags,images,platform,status,scheduled_at,published_at,release_expires,scan_result FROM publish_queue"
+    q = ("SELECT id,created_at,source,title,tags,images,platform,status,scheduled_at,"
+         "published_at,release_expires,\"group\",scan_result FROM publish_queue")
     params: tuple = ()
     if args.status:
         q += " WHERE status=?"

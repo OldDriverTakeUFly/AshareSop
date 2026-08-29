@@ -58,7 +58,7 @@ async def _auth(request, call_next):
 # ── 读接口 ──
 def _queue_rows(status: str | None) -> list[dict]:
     q = ("SELECT id,created_at,source,title,tags,images,platform,status,"
-         "scheduled_at,published_at,release_expires,scan_result FROM publish_queue")
+         "scheduled_at,published_at,release_expires,\"group\",scan_result FROM publish_queue")
     params: tuple = ()
     if status:
         q += " WHERE status=?"
@@ -193,7 +193,9 @@ function toast(m){const t=$('toast');t.textContent=m;t.style.display='block';set
 async function load(){
 const qs=$('f').value?`?status=${$('f').value}`:'';
 const rows=await(await fetch(withT('/api/queue'+qs))).json();
-$('rows').innerHTML=rows.map(r=>{
+$('rows').innerHTML=Object.entries(rows.reduce((m,r)=>{const g=r.group||'未分组';(m[g]=m[g]||[]).push(r);return m},{}))
+.map(([g,rs])=>`<tr><td colspan="6" style="color:#fbbf24;font-weight:700;background:#111827">📂 ${esc(g)}(${rs.length})</td></tr>`+
+rs.map(r=>{
 const acts=[];
 if(r.status==='draft')acts.push(`<button class="primary" onclick="api('/api/queue/${r.id}/review','POST')">审核通过</button>`);
 if(r.status==='reviewed')acts.push(`<button class="primary" onclick="sched(${r.id})">排期</button>`);
@@ -201,7 +203,7 @@ if(r.status==='scheduled')acts.push(`<button onclick="api('/api/queue/${r.id}/ma
 `<button class="danger" onclick="api('/api/queue/${r.id}/mark','POST',{status:'failed'})">失败</button>`);
 return`<tr><td>${r.id}</td><td>${esc(r.title)}<div style="color:#64748b;font-size:11px">${esc(r.source||'')}</div></td>
 <td>${chip(r.status)}</td><td class="${expCls(r.release_expires)}">${r.release_expires?('至 '+r.release_expires):'—'}</td>
-<td>${esc(r.scheduled_at||'')}</td><td style="white-space:nowrap">${acts.join(' ')}</td></tr>`}).join('')
+<td>${esc(r.scheduled_at||'')}</td><td style="white-space:nowrap">${acts.join(' ')}</td></tr>`}).join('')).join('')
 ||'<tr><td colspan="6" style="color:#64748b">空</td></tr>';
 const due=await(await fetch(withT('/api/due'))).json();
 $('due').innerHTML=due.map(d=>`<div class="due-item">${chip('scheduled')} #${d.id} @ ${esc(d.scheduled_at)} ${esc(d.title)}`

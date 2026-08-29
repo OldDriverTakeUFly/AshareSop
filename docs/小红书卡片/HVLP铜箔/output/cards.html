@@ -1,0 +1,86 @@
+<!DOCTYPE html><html lang='zh-CN'><head><meta charset='UTF-8'><style>  * { margin:0; padding:0; box-sizing:border-box; font-family:'Noto Sans CJK SC','PingFang SC','Microsoft YaHei',sans-serif; }
+  body { background:#e8e8e8; display:flex; flex-direction:column; align-items:center; gap:40px; padding:40px 0; }
+  .card { width:1080px; height:1440px; border-radius:48px; position:relative; overflow:hidden; padding:48px 56px; display:flex; flex-direction:column; }
+  .card1 { background:linear-gradient(160deg,#1a1440 0%,#3b1d6e 45%,#8a2be2 100%); color:#fff; }
+  .card2 { background:#fdf6ec; color:#3a2e20; }
+  .card3 { background:#eef4ff; color:#1e2a44; }
+  .card4 { background:#fff1f0; color:#4a1f1c; }
+  .card5 { background:#f0fbf2; color:#1d3a24; }
+  .card6 { background:#f7f3ff; color:#2e2440; }
+  .tag-top { display:inline-block; background:#ff2442; color:#fff; font-size:30px; font-weight:900; padding:12px 30px; border-radius:999px; letter-spacing:2px; width:fit-content; }
+  .badge { display:inline-block; font-size:26px; font-weight:800; padding:8px 22px; border-radius:999px; margin-right:12px; }
+  .b-purple{background:rgba(138,43,226,.18);color:#6b21a8;} .b-blue{background:rgba(37,99,235,.14);color:#1d4ed8;}
+  .b-red{background:rgba(220,38,38,.12);color:#b91c1c;} .b-green{background:rgba(22,163,74,.14);color:#15803d;}
+  .b-org{background:rgba(234,88,12,.15);color:#c2410c;} .b-gray{background:rgba(0,0,0,.07);color:#555;}
+  h1 { font-size:96px; font-weight:900; line-height:1.18; margin:28px 0 10px; letter-spacing:1px; }
+  .sub { font-size:42px; font-weight:700; opacity:.92; line-height:1.5; }
+  .hl { background:linear-gradient(transparent 62%, rgba(255,210,0,.85) 62%); padding:0 6px; }
+  .hl-r { background:linear-gradient(transparent 62%, rgba(255,77,109,.55) 62%); padding:0 6px; }
+  .big-num { font-size:150px; font-weight:900; line-height:1; letter-spacing:-2px; }
+  h2.title { font-size:56px; font-weight:900; margin-bottom:8px; line-height:1.25; }
+  .subtitle { font-size:30px; font-weight:600; opacity:.65; margin-bottom:24px; }
+  .row { background:#fff; border-radius:28px; padding:20px 28px; margin-bottom:16px; box-shadow:0 6px 24px rgba(0,0,0,.06); }
+  .row .name { font-size:36px; font-weight:900; margin-bottom:8px; display:flex; align-items:center; gap:14px; flex-wrap:wrap;}
+  .row .desc { font-size:26px; line-height:1.48; }
+  .dot { width:24px; height:24px; border-radius:50%; display:inline-block; }
+  table { width:100%; border-collapse:separate; border-spacing:0; background:#fff; border-radius:26px; overflow:hidden; font-size:26px; box-shadow:0 6px 24px rgba(0,0,0,.06); }
+  th { background:#2a2050; color:#fff; font-weight:800; padding:16px 12px; font-size:25px; }
+  td { padding:14px 12px; text-align:center; border-bottom:1px solid #f0ecf5; line-height:1.35; }
+  td.l { text-align:left; font-weight:800; }
+  tr:last-child td { border-bottom:none; }
+  .up{color:#dc2626;font-weight:800;} .down{color:#16a34a;font-weight:800;} .warn{color:#d97706;font-weight:800;}
+  .kbox { background:#fff; border-radius:26px; padding:20px 28px; margin-bottom:14px; box-shadow:0 6px 24px rgba(0,0,0,.06); display:flex; gap:20px; align-items:flex-start; }
+  .kdate { min-width:165px; background:#16a34a; color:#fff; font-weight:900; font-size:27px; border-radius:16px; text-align:center; padding:12px 0; line-height:1.3;}
+  .kdate.red{background:#dc2626;} .kdate.org{background:#ea580c;} .kdate.pu{background:#7c3aed;}
+  .ktext { font-size:26px; line-height:1.48; padding-top:4px;}
+  .ktext b { font-size:27px; }
+  .quote { background:rgba(255,255,255,.14); border-left:8px solid #ffd400; border-radius:0 22px 22px 0; padding:22px 26px; font-size:30px; line-height:1.55; font-weight:600; }
+  .foot { margin-top:auto; font-size:21px; opacity:.6; line-height:1.45; }
+  .tags { font-size:25px; font-weight:700; opacity:.85; margin-top:20px; }
+  .card5 .ktext { font-size:25px; line-height:1.42; }
+  .card5 .kdate { min-width:150px; font-size:25px; }
+  .card5 .kbox { padding:16px 24px; gap:16px; margin-bottom:12px; }
+  .card5 .ktext b { font-size:26px; }
+  .card2 .row .desc { font-size:25px; line-height:1.45; }
+  .card2 .row .name { font-size:34px; }
+  .num-badge { display:flex; gap:26px; margin:34px 0 8px; }
+  .nb { background:rgba(255,255,255,.12); border-radius:26px; padding:24px 30px; flex:1; }
+  .nb .v { font-size:58px; font-weight:900; color:#ffd400; }
+  .nb .k { font-size:25px; opacity:.85; margin-top:6px; }
+</style></head><body><div class="card card1" id="card1">
+<span class="tag-top" style="background:#ff2442;">产业链拆解 · 2026-08-29</span>
+<h1>AI路线之争的<br>稳赢方:HVLP铜箔🔥</h1>
+<div class="sub" style="margin-top:24px;">不管英伟达选PTFE还是Q布<br>低粗糙度铜箔都要用</div>
+<div class="num-badge"><div class="nb"><div class="v">8倍</div><div class="k">AI服务器铜箔用量</div></div><div class="nb"><div class="v">35%</div><div class="k">三井全球HVLP市占</div></div><div class="nb"><div class="v">12-20万/吨</div><div class="k">HVLP加工费(万元/吨)</div></div></div>
+<div style="margin-top:30px;"><div class="quote" style="background:rgba(255,255,255,.14);color:inherit;border-left-color:#ffd400;font-size:30px;">"<span style='color:#ffd400'>M8/M9/M10三代通用</span>——材料路线越不确定,跨代际通用品的确定性越值钱"</div></div>
+<div class="tags">#HVLP #铜箔 #AI算力 #国产替代 #覆铜板</div><div class="foot">数据来源:铜箔行业全景+m10材料链+德福/铜冠/嘉元深度研报 · 仅供研究参考,不构成投资建议</div></div><div class="card card3" id="card2">
+<span class="tag-top" style="background:#2563eb;">代际与格局</span>
+<h2 class="title" style="margin-top:24px;">越薄越难,日系越垄断</h2>
+<div class="subtitle">M8用HVLP3 · M9/M10用HVLP4(沿用)</div>
+<table><tr><th style=text-align:left>代际</th><th>轮廓度</th><th>格局</th></tr><tr><td class="l">HVLP1-2</td><td class="">≤2μm</td><td class="">国内已量产</td></tr><tr><td class="l">HVLP3-4</td><td class="up">≤0.6μm</td><td class="up">仅铜冠/德福等少数量产</td></tr><tr><td class="l">HVLP5</td><td class=""><0.5μm</td><td class="down">日系垄断,国内突破关键指标</td></tr></table>
+<div style="margin-top:30px;"><div class="kbox"><div class="kdate" style="background:#dc2626;">需求</div><div class="ktext">单台AI服务器铜箔用量是传统服务器<b>8倍</b>;2025年全球AI服务器HVLP铜箔产量<b>4439吨</b>,供需持续紧张</div></div><div class="kbox"><div class="kdate" style="background:#c2410c;">供给</div><div class="ktext">三井金属市占近<b>35%</b>,与福田/古河/日进合计垄断高端;内资可稳定量产HVLP的<b>不超过5家</b>,国产化率仅<b>5%-10%</b></div></div></div>
+<div class="foot">数据来源:铜箔行业全景研究报告(2026年5月)</div></div><div class="card card2" id="card3">
+<span class="tag-top" style="background:#7c3aed;">玩家档案</span>
+<h2 class="title" style="margin-top:24px;">一超多追:日系霸主与国产梯队</h2>
+<div class="subtitle">代际受益者 vs 总量搭车者</div>
+<div class="row"><div class="name"><span class="dot" style="background:#dc2626;"></span>三井金属(日)<span class="badge b-org">全球市占近35%</span></div><div class="desc">与福田/古河/日进合计掌控高端绝大部分份额;<b>HVLP5代(<0.5μm)日系独占</b>——国产替代的天花板与靶子</div></div><div class="row"><div class="name"><span class="dot" style="background:#2563eb;"></span>德福科技 301511<span class="badge b-blue">HVLP4适配英伟达</span></div><div class="desc">2025年<b>HVLP4量产供货(适配英伟达项目)</b>,3μm载体铜箔国内首家;电子铜箔内资产能最大(17.5万吨),2025营收124.37亿(+59.33%)</div></div><div class="row"><div class="name"><span class="dot" style="background:#16a34a;"></span>铜冠铜箔 301217<span class="badge b-green">HVLP1-4全谱系</span></div><div class="desc"><b>A股HVLP1-4代全谱系量产、内资RTF产销规模最大</b>;高端占比突破五成,HVLP加工费12-20万/吨——但一年七倍后估值已在高位对赌</div></div><div class="row"><div class="name"><span class="dot" style="background:#64748b;"></span>嘉元科技 688388<span class="badge b-blue">总量搭车者</span></div><div class="desc">HVLP<b>仍在客户验证</b>,主力是锂电铜箔——同涨行情里的「代际受益者(德福/铜冠)与总量搭车者(嘉元)」之辨,是本链条最重要的选股纪律</div></div>
+<div class="foot">数据来源:德福/铜冠/嘉元深度研报 · 「搭车者」定性引自嘉元研报自我辨析</div></div><div class="card card4" id="card4">
+<span class="tag-top" style="background:#ff2442;">困境反转样本</span>
+<h2 class="title" style="margin-top:24px;">一年前每吨都亏钱<br>现在单季赚回全年❗</h2>
+<div class="subtitle">德福科技净利润(亿元)</div>
+<div style="display:flex;flex-direction:column;gap:24px;"><div><div style="display:flex;justify-content:space-between;font-size:30px;font-weight:800;margin-bottom:10px;"><span>2024全年</span><span style="color:#64748b;">-2.45亿</span></div><div style="height:38px;border-radius:19px;background:linear-gradient(90deg,#64748b 18%,#e9e4f0 18%);"></div></div><div><div style="display:flex;justify-content:space-between;font-size:30px;font-weight:800;margin-bottom:10px;"><span>2025全年</span><span style="color:#c2410c;">1.13亿</span></div><div style="height:38px;border-radius:19px;background:linear-gradient(90deg,#c2410c 55%,#e9e4f0 55%);"></div></div><div><div style="display:flex;justify-content:space-between;font-size:30px;font-weight:800;margin-bottom:10px;"><span>2026Q1单季</span><span style="color:#dc2626;">1.47亿</span></div><div style="height:38px;border-radius:19px;background:linear-gradient(90deg,#dc2626 100%,#e9e4f0 100%);"></div></div></div>
+<div style="font-size:24px;opacity:.6;text-align:right;margin-top:4px;">毛利率2.14%→7.12% · 产能利用率不足50%→接近100% · HVLP/RTF出货约3-5倍增长预期</div>
+<div style="margin-top:34px;"><div class="kbox"><div class="kdate" style="background:#64748b;">压力测试</div><div class="ktext">2024年加工费跌破成本线、毛利率仅<b>2.14%</b>、全年亏<b>2.45亿</b>——很多中小企业被淘汰,德福靠规模活了下来</div></div><div class="kbox"><div class="kdate" style="background:#dc2626;">拐点确认</div><div class="ktext">2025扭亏(净利<b>1.13亿</b>),<b>2026Q1单季1.47亿已超2025全年</b>——盈利拐点确立且斜率陡峭</div></div></div>
+<div class="foot">数据来源:德福科技深度研报(2026年8月)· 不构成投资建议</div></div><div class="card card5" id="card5">
+<span class="tag-top" style="background:#16a34a;">关键判断</span>
+<h2 class="title" style="margin-top:24px;">为什么说铜箔是<br>稳赢方📅</h2>
+<div class="subtitle">一次研究结论的公开修正</div>
+<div class="kbox"><div class="kdate" style="background:#64748b;">原判断</div><div class="ktext"><b>M9报告曾认为</b>:中期看「Q布投资价值更优 vs HVLP4」——石英布独占M9、弹性更大</div></div><div class="kbox"><div class="kdate" style="background:#dc2626;">修正</div><div class="ktext"><b>M10材料链报告修正</b>:在M10路线不确定性下,<b>HVLP4作为跨代际通用品(M8/M9/M10)的确定性反而更高</b>——无论PTFE还是Q布,低粗糙度铜箔都要用</div></div><div class="kbox"><div class="kdate" style="background:#7c3aed;">定案组合</div><div class="ktext">推演最可能组合:<b>沪电(PCB)+生益/台光(CCL)+HVLP4铜箔链(德福等)</b>——2026年底方案定案前格局仍会摆动</div></div><div class="kbox"><div class="kdate" style="background:#0ea5e9;">跟踪点</div><div class="ktext"><b>HVLP5(<0.5μm)日系垄断</b>能否突破 · 复合铜箔从零到一的产业化 · 加工费周期见顶信号</div></div>
+<div class="foot">数据来源:m9电子布报告与m10材料链深度研报 · 判断演进如实呈现</div></div><div class="card card6" id="card6">
+<span class="tag-top" style="background:#0f172a;">一句话收束</span>
+<h2 class="title" style="margin-top:24px;">买的是跨代际<br>通用确定性</h2>
+<div class="subtitle">每个标的买的是什么,说清楚</div>
+<div class="row"><div class="desc"><b>德福</b> → 买<span class='hl'>HVLP4量产+载体铜箔首家</span>,叠加困境反转的业绩弹性</div></div><div class="row"><div class="desc"><b>铜冠</b> → 买<span class='hl'>全谱系+RTF规模第一</span>,代价是一年七倍后的估值对赌</div></div><div class="row"><div class="desc"><b>嘉元</b> → 目前是<span class='hl'>总量搭车者</span>,HVLP验证通过才算拿到代际门票</div></div><div class="row"><div class="desc"><b>链条</b> → 买<span class='hl'>「不管哪条路线都要用」的通用性</span>,这是对冲M10不确定性的唯一免费午餐</div></div>
+<div style="margin-top:14px;"><div class="kbox"><div class="kdate" style="background:#dc2626;">风险</div><div class="ktext">HVLP5日系垄断未破·加工费周期见顶·复合铜箔替代(从零到一)·M10定案前格局摆动·国产化率仅5%-10%意味着验证失败概率同样存在</div></div></div>
+<div style="margin-top:8px;"><div class="quote" style="background:rgba(124,58,237,.10);color:#2e2440;border-left-color:#ffd400;font-size:30px;">代际受益者与总量搭车者的区别,<b>会在下一份季报里见分晓</b>——这比任何叙事都诚实</div></div>
+<div class="tags">#HVLP #铜箔 #AI算力 #国产替代 #覆铜板</div><div class="foot">数据来源:铜箔行业全景研究报告+德福/铜冠/嘉元深度研报+m10材料链深度研报(2026年5-8月,多源交叉验证)· AI辅助生成,仅供研究参考,不构成投资建议。市场有风险,投资需谨慎。</div></div></body></html>

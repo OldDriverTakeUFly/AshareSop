@@ -1,0 +1,21 @@
+{
+  "topic": "HVLP铜箔",
+  "version": 1,
+  "as_of": "2026-08-28",
+  "expires_at": "2026-09-04",
+  "group": "产业链调研",
+  "images": [
+    "output/HVLP铜箔_01_封面.png",
+    "output/HVLP铜箔_02_代际与格局.png",
+    "output/HVLP铜箔_03_玩家档案.png",
+    "output/HVLP铜箔_04_德福反转.png",
+    "output/HVLP铜箔_05_确定性反转.png",
+    "output/HVLP铜箔_06_结论与风险.png"
+  ],
+  "facts_digest": "sha256:91492bc9214e94126396bff29f3af9135d7ab1c663eeba80cb635ea47b5fde6e",
+  "validate": {
+    "passed": true,
+    "failures": 0
+  },
+  "cardgen_version": "0.1"
+}

@@ -116,3 +116,16 @@ class TestDue:
 
     def test_due_empty(self, db: Path, tmp_path: Path):
         assert "无到点" in _run(db, tmp_path, "due").stdout
+
+
+class TestGroupPassthrough:
+    def test_enqueue_reads_group_from_release(self, db: Path, tmp_path: Path):
+        proj = _make_project(tmp_path, "2099-01-01")
+        (proj / "output" / "RELEASE.json").write_text(
+            json.dumps({"expires_at": "2099-01-01", "group": "产业链调研"}), encoding="utf-8")
+        img = str(proj / "output" / "card.png")
+        r = _run(db, tmp_path, "enqueue", "--title", TITLE, "--body", BODY_OK,
+                 "--images", img, "--source", str(proj))
+        assert r.returncode == 0 and "分组[产业链调研]" in r.stdout
+        row = json.loads(_run(db, tmp_path, "list", "--json").stdout)[0]
+        assert row["group"] == "产业链调研"

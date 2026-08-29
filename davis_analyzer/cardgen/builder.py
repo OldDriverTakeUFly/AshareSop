@@ -96,7 +96,7 @@ def render(project_dir: Path, topic: str, conn: sqlite3.Connection,
         raise SystemExit(f"渲染产物不完整: PNG {n_png} 张 != manifest {n_names} 张")
 
     release = {"topic": topic, "version": int(version), "as_of": report.as_of,
-               "expires_at": report.expires_at,
+               "expires_at": report.expires_at, "group": spec.get("group", ""),
                "images": [str(p.relative_to(project_dir)) for p in sorted(out.glob(f"{topic}_*.png"))],
                "facts_digest": fd,
                "validate": {"passed": True, "failures": 0},
