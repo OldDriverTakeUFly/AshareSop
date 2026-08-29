@@ -1,0 +1,21 @@
+{
+  "topic": "生益科技",
+  "version": 1,
+  "as_of": "2026-08-28",
+  "expires_at": "2026-09-04",
+  "group": "个股研报·AI材料",
+  "images": [
+    "output/生益科技_01_封面.png",
+    "output/生益科技_02_公司档案.png",
+    "output/生益科技_03_财务兑现.png",
+    "output/生益科技_04_估值透支.png",
+    "output/生益科技_05_关键日历.png",
+    "output/生益科技_06_结论与风险.png"
+  ],
+  "facts_digest": "sha256:b5f22d4124790191dcd9afb700dbe71c43bbb20340d572c3d1d7bac75fa3d33a",
+  "validate": {
+    "passed": true,
+    "failures": 0
+  },
+  "cardgen_version": "0.1"
+}

@@ -1,0 +1,86 @@
+<!DOCTYPE html><html lang='zh-CN'><head><meta charset='UTF-8'><style>  * { margin:0; padding:0; box-sizing:border-box; font-family:'Noto Sans CJK SC','PingFang SC','Microsoft YaHei',sans-serif; }
+  body { background:#e8e8e8; display:flex; flex-direction:column; align-items:center; gap:40px; padding:40px 0; }
+  .card { width:1080px; height:1440px; border-radius:48px; position:relative; overflow:hidden; padding:48px 56px; display:flex; flex-direction:column; }
+  .card1 { background:linear-gradient(160deg,#1a1440 0%,#3b1d6e 45%,#8a2be2 100%); color:#fff; }
+  .card2 { background:#fdf6ec; color:#3a2e20; }
+  .card3 { background:#eef4ff; color:#1e2a44; }
+  .card4 { background:#fff1f0; color:#4a1f1c; }
+  .card5 { background:#f0fbf2; color:#1d3a24; }
+  .card6 { background:#f7f3ff; color:#2e2440; }
+  .tag-top { display:inline-block; background:#ff2442; color:#fff; font-size:30px; font-weight:900; padding:12px 30px; border-radius:999px; letter-spacing:2px; width:fit-content; }
+  .badge { display:inline-block; font-size:26px; font-weight:800; padding:8px 22px; border-radius:999px; margin-right:12px; }
+  .b-purple{background:rgba(138,43,226,.18);color:#6b21a8;} .b-blue{background:rgba(37,99,235,.14);color:#1d4ed8;}
+  .b-red{background:rgba(220,38,38,.12);color:#b91c1c;} .b-green{background:rgba(22,163,74,.14);color:#15803d;}
+  .b-org{background:rgba(234,88,12,.15);color:#c2410c;} .b-gray{background:rgba(0,0,0,.07);color:#555;}
+  h1 { font-size:96px; font-weight:900; line-height:1.18; margin:28px 0 10px; letter-spacing:1px; }
+  .sub { font-size:42px; font-weight:700; opacity:.92; line-height:1.5; }
+  .hl { background:linear-gradient(transparent 62%, rgba(255,210,0,.85) 62%); padding:0 6px; }
+  .hl-r { background:linear-gradient(transparent 62%, rgba(255,77,109,.55) 62%); padding:0 6px; }
+  .big-num { font-size:150px; font-weight:900; line-height:1; letter-spacing:-2px; }
+  h2.title { font-size:56px; font-weight:900; margin-bottom:8px; line-height:1.25; }
+  .subtitle { font-size:30px; font-weight:600; opacity:.65; margin-bottom:24px; }
+  .row { background:#fff; border-radius:28px; padding:20px 28px; margin-bottom:16px; box-shadow:0 6px 24px rgba(0,0,0,.06); }
+  .row .name { font-size:36px; font-weight:900; margin-bottom:8px; display:flex; align-items:center; gap:14px; flex-wrap:wrap;}
+  .row .desc { font-size:26px; line-height:1.48; }
+  .dot { width:24px; height:24px; border-radius:50%; display:inline-block; }
+  table { width:100%; border-collapse:separate; border-spacing:0; background:#fff; border-radius:26px; overflow:hidden; font-size:26px; box-shadow:0 6px 24px rgba(0,0,0,.06); }
+  th { background:#2a2050; color:#fff; font-weight:800; padding:16px 12px; font-size:25px; }
+  td { padding:14px 12px; text-align:center; border-bottom:1px solid #f0ecf5; line-height:1.35; }
+  td.l { text-align:left; font-weight:800; }
+  tr:last-child td { border-bottom:none; }
+  .up{color:#dc2626;font-weight:800;} .down{color:#16a34a;font-weight:800;} .warn{color:#d97706;font-weight:800;}
+  .kbox { background:#fff; border-radius:26px; padding:20px 28px; margin-bottom:14px; box-shadow:0 6px 24px rgba(0,0,0,.06); display:flex; gap:20px; align-items:flex-start; }
+  .kdate { min-width:165px; background:#16a34a; color:#fff; font-weight:900; font-size:27px; border-radius:16px; text-align:center; padding:12px 0; line-height:1.3;}
+  .kdate.red{background:#dc2626;} .kdate.org{background:#ea580c;} .kdate.pu{background:#7c3aed;}
+  .ktext { font-size:26px; line-height:1.48; padding-top:4px;}
+  .ktext b { font-size:27px; }
+  .quote { background:rgba(255,255,255,.14); border-left:8px solid #ffd400; border-radius:0 22px 22px 0; padding:22px 26px; font-size:30px; line-height:1.55; font-weight:600; }
+  .foot { margin-top:auto; font-size:21px; opacity:.6; line-height:1.45; }
+  .tags { font-size:25px; font-weight:700; opacity:.85; margin-top:20px; }
+  .card5 .ktext { font-size:25px; line-height:1.42; }
+  .card5 .kdate { min-width:150px; font-size:25px; }
+  .card5 .kbox { padding:16px 24px; gap:16px; margin-bottom:12px; }
+  .card5 .ktext b { font-size:26px; }
+  .card2 .row .desc { font-size:25px; line-height:1.45; }
+  .card2 .row .name { font-size:34px; }
+  .num-badge { display:flex; gap:26px; margin:34px 0 8px; }
+  .nb { background:rgba(255,255,255,.12); border-radius:26px; padding:24px 30px; flex:1; }
+  .nb .v { font-size:58px; font-weight:900; color:#ffd400; }
+  .nb .k { font-size:25px; opacity:.85; margin-top:6px; }
+</style></head><body><div class="card card1" id="card1">
+<span class="tag-top" style="background:#ff2442;">产业链拆解 · 2026-08-29</span>
+<h1>球形微硅粉:AI材料链<br>最细的一环🔥</h1>
+<div class="sub" style="margin-top:24px;">覆铜板与先进封装的隐形填料<br>卡位极强,预期极满</div>
+<div class="num-badge"><div class="nb"><div class="v">28-31%</div><div class="k">球硅国内市占(全球第二)</div></div><div class="nb"><div class="v">2.6万吨</div><div class="k">高端球硅年缺口(万吨)</div></div><div class="nb"><div class="v">148倍</div><div class="k">PE(透支了几个2027)</div></div></div>
+<div style="margin-top:30px;"><div class="quote" style="background:rgba(255,255,255,.14);color:inherit;border-left-color:#ffd400;font-size:30px;">"赛道、卡位、扩产三重确定性都真——问题是<span style='color:#ffd400'>148倍PE已经把确定性提前兑现了很多年</span>"</div></div>
+<div class="tags">#球形硅微粉 #联瑞新材 #AI材料 #覆铜板 #国产替代</div><div class="foot">数据来源:联瑞新材深度研报+m10材料链研报 · 仅供研究参考,不构成投资建议</div></div><div class="card card3" id="card2">
+<span class="tag-top" style="background:#2563eb;">卡位与格局</span>
+<h2 class="title" style="margin-top:24px;">什么是球硅,谁在做</h2>
+<div class="subtitle">M6-M9覆铜板+芯片基板的核心填料</div>
+<table><tr><th style=text-align:left>维度</th><th>读数</th><th>含义</th></tr><tr><td class="l">联瑞地位</td><td class="up">国内市占28-31%,全球第二</td><td class="">电子级硅微粉龙头</td></tr><tr><td class="l">独门产品</td><td class="up">国内唯一HBM适配Low-α球硅量产</td><td class="up">先进封装入场券</td></tr><tr><td class="l">2025销量</td><td class="">球硅4.21万吨</td><td class="">规模基本盘</td></tr></table>
+<div style="margin-top:30px;"><div class="kbox"><div class="kdate" style="background:#dc2626;">供需缺口</div><div class="ktext">AI覆铜板与先进封装拉动<b>高端球硅年缺口约2.6万吨</b>,部分品种<b>涨价2-3倍</b>——缺口是卡位的变现通道</div></div><div class="kbox"><div class="kdate" style="background:#64748b;">渊源</div><div class="ktext">2002年生益科技现金出资设立联瑞前身(持股72.7%)——<b>与覆铜板龙头同源</b>,客户认证通道与生益系深度绑定</div></div></div>
+<div class="foot">数据来源:联瑞新材深度研报(2026年8月)</div></div><div class="card card2" id="card3">
+<span class="tag-top" style="background:#7c3aed;">三重确定性</span>
+<h2 class="title" style="margin-top:24px;">为什么它是「确定性龙头」</h2>
+<div class="subtitle">赛道+卡位+扩产</div>
+<div class="row"><div class="name"><span class="dot" style="background:#16a34a;"></span>赛道 · 缺口扩张<span class="badge b-green">年缺口2.6万吨</span></div><div class="desc">M6-M9高频高速覆铜板全都需要球硅填充;M10材料链推演组合中<b>联瑞是填料环节的默认答案</b></div></div><div class="row"><div class="name"><span class="dot" style="background:#2563eb;"></span>卡位 · 独门产品<span class="badge b-blue">Low-α球硅唯一</span></div><div class="desc"><b>国内唯一HBM适配Low-α球形硅微粉量产企业</b>——先进封装(存储侧)的入场券,国内无第二家</div></div><div class="row"><div class="name"><span class="dot" style="background:#7c3aed;"></span>扩产 · 弹药到位<span class="badge b-purple">转债6.95亿</span></div><div class="desc">2022年投产1.5万吨高端球封粉体产线;<b>2026H1超纯球形粉体一期1200吨建设完毕</b>;转债募资6.95亿到位</div></div>
+<div class="foot">数据来源:联瑞新材深度研报 发展历程与产品章(2026年8月)</div></div><div class="card card4" id="card4">
+<span class="tag-top" style="background:#ff2442;">预期透支</span>
+<h2 class="title" style="margin-top:24px;">股价过山车之后<br>148倍PE怎么看❗</h2>
+<div class="subtitle">年内股价三段式(元)</div>
+<div style="display:flex;flex-direction:column;gap:24px;"><div><div style="display:flex;justify-content:space-between;font-size:30px;font-weight:800;margin-bottom:10px;"><span>年初</span><span style="color:#16a34a;">59.83元</span></div><div style="height:38px;border-radius:19px;background:linear-gradient(90deg,#16a34a 22%,#e9e4f0 22%);"></div></div><div><div style="display:flex;justify-content:space-between;font-size:30px;font-weight:800;margin-bottom:10px;"><span>年内高点</span><span style="color:#dc2626;">272.54元</span></div><div style="height:38px;border-radius:19px;background:linear-gradient(90deg,#dc2626 100%,#e9e4f0 100%);"></div></div><div><div style="display:flex;justify-content:space-between;font-size:30px;font-weight:800;margin-bottom:10px;"><span>现价区间</span><span style="color:#c2410c;">186.24元</span></div><div style="height:38px;border-radius:19px;background:linear-gradient(90deg,#c2410c 68%,#e9e4f0 68%);"></div></div></div>
+<div style="font-size:24px;opacity:.6;text-align:right;margin-top:4px;">从59.83元到272.54元再到186.24元——叙事与业绩的赛跑</div>
+<div style="margin-top:34px;"><div class="kbox"><div class="kdate" style="background:#dc2626;">估值读数</div><div class="ktext"><b>148倍PE</b>——研报标题问的就是「透支了多少个2027」;确定性越被认可,透支越彻底</div></div><div class="kbox"><div class="kdate" style="background:#64748b;">定价逻辑</div><div class="ktext">市场按<b>「缺口持续+涨价传导+扩产满销」</b>三段论定价;任何一段证伪(缺口收敛/涨价回落)都是估值回归的引信</div></div></div>
+<div class="foot">数据来源:联瑞新材深度研报(2026年8月)· 不构成投资建议</div></div><div class="card card5" id="card5">
+<span class="tag-top" style="background:#16a34a;">关键节点日历</span>
+<h2 class="title" style="margin-top:24px;">未来一年,球硅的四道关📅</h2>
+<div class="subtitle"></div>
+<div class="kbox"><div class="kdate" style="background:#dc2626;">H2</div><div class="ktext"><b>超纯球形粉体一期爬坡</b>:1200吨产能利用率与单价——扩产从图纸变收入的第一步</div></div><div class="kbox"><div class="kdate" style="background:#c2410c;">2026年底</div><div class="ktext"><b>M10方案定案</b>:填料环节份额确认——联瑞在推演组合中的默认地位是否坐实</div></div><div class="kbox"><div class="kdate" style="background:#7c3aed;">持续</div><div class="ktext"><b>涨价持续性</b>:部分品种已涨2-3倍,缺口收敛信号(新产能投放/替代品)是核心跟踪项</div></div><div class="kbox"><div class="kdate" style="background:#0ea5e9;">2027</div><div class="ktext"><b>HBM与先进封装放量</b>:Low-α球硅从唯一量产到规模收入——第二曲线的兑现时点</div></div>
+<div class="foot">数据来源:联瑞新材深度研报+m10材料链研报 · 事件驱动更新</div></div><div class="card card6" id="card6">
+<span class="tag-top" style="background:#0f172a;">一句话收束</span>
+<h2 class="title" style="margin-top:24px;">卡位是真的<br>透支也是真的</h2>
+<div class="subtitle"></div>
+<div class="row"><div class="desc">买的是<span class='hl'>球硅龙头地位+Low-α独门+缺口扩张</span>——三重确定性在材料链里最整齐</div></div><div class="row"><div class="desc">付的是<span class='hl'>148倍PE+年内过山车</span>——确定性龙头的标准代价是几乎没有预期差</div></div><div class="row"><div class="desc">研报之问:<span class='hl'>「透支了多少个2027」</span>——答案取决于缺口何时收敛,而非叙事多动人</div></div>
+<div style="margin-top:14px;"><div class="kbox"><div class="kdate" style="background:#dc2626;">风险</div><div class="ktext">148倍PE对增长零容错·涨价周期见顶·新产能投放致缺口收敛·M10定案份额变化·HBM放量递延·小市值波动放大</div></div></div>
+<div style="margin-top:8px;"><div class="quote" style="background:rgba(124,58,237,.10);color:#2e2440;border-left-color:#ffd400;font-size:30px;">在AI材料链里,<b>最细的一环往往最先被透支</b>——因为确定性最容易讲成故事</div></div>
+<div class="tags">#球形硅微粉 #联瑞新材 #AI材料 #覆铜板 #国产替代</div><div class="foot">数据来源:联瑞新材深度研报+m10材料链深度研报(2026年8月,多源交叉验证)· AI辅助生成,仅供研究参考,不构成投资建议。市场有风险,投资需谨慎。</div></div></body></html>

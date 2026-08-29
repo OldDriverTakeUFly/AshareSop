@@ -1,0 +1,86 @@
+<!DOCTYPE html><html lang='zh-CN'><head><meta charset='UTF-8'><style>  * { margin:0; padding:0; box-sizing:border-box; font-family:'Noto Sans CJK SC','PingFang SC','Microsoft YaHei',sans-serif; }
+  body { background:#e8e8e8; display:flex; flex-direction:column; align-items:center; gap:40px; padding:40px 0; }
+  .card { width:1080px; height:1440px; border-radius:48px; position:relative; overflow:hidden; padding:48px 56px; display:flex; flex-direction:column; }
+  .card1 { background:linear-gradient(160deg,#1a1440 0%,#3b1d6e 45%,#8a2be2 100%); color:#fff; }
+  .card2 { background:#fdf6ec; color:#3a2e20; }
+  .card3 { background:#eef4ff; color:#1e2a44; }
+  .card4 { background:#fff1f0; color:#4a1f1c; }
+  .card5 { background:#f0fbf2; color:#1d3a24; }
+  .card6 { background:#f7f3ff; color:#2e2440; }
+  .tag-top { display:inline-block; background:#ff2442; color:#fff; font-size:30px; font-weight:900; padding:12px 30px; border-radius:999px; letter-spacing:2px; width:fit-content; }
+  .badge { display:inline-block; font-size:26px; font-weight:800; padding:8px 22px; border-radius:999px; margin-right:12px; }
+  .b-purple{background:rgba(138,43,226,.18);color:#6b21a8;} .b-blue{background:rgba(37,99,235,.14);color:#1d4ed8;}
+  .b-red{background:rgba(220,38,38,.12);color:#b91c1c;} .b-green{background:rgba(22,163,74,.14);color:#15803d;}
+  .b-org{background:rgba(234,88,12,.15);color:#c2410c;} .b-gray{background:rgba(0,0,0,.07);color:#555;}
+  h1 { font-size:96px; font-weight:900; line-height:1.18; margin:28px 0 10px; letter-spacing:1px; }
+  .sub { font-size:42px; font-weight:700; opacity:.92; line-height:1.5; }
+  .hl { background:linear-gradient(transparent 62%, rgba(255,210,0,.85) 62%); padding:0 6px; }
+  .hl-r { background:linear-gradient(transparent 62%, rgba(255,77,109,.55) 62%); padding:0 6px; }
+  .big-num { font-size:150px; font-weight:900; line-height:1; letter-spacing:-2px; }
+  h2.title { font-size:56px; font-weight:900; margin-bottom:8px; line-height:1.25; }
+  .subtitle { font-size:30px; font-weight:600; opacity:.65; margin-bottom:24px; }
+  .row { background:#fff; border-radius:28px; padding:20px 28px; margin-bottom:16px; box-shadow:0 6px 24px rgba(0,0,0,.06); }
+  .row .name { font-size:36px; font-weight:900; margin-bottom:8px; display:flex; align-items:center; gap:14px; flex-wrap:wrap;}
+  .row .desc { font-size:26px; line-height:1.48; }
+  .dot { width:24px; height:24px; border-radius:50%; display:inline-block; }
+  table { width:100%; border-collapse:separate; border-spacing:0; background:#fff; border-radius:26px; overflow:hidden; font-size:26px; box-shadow:0 6px 24px rgba(0,0,0,.06); }
+  th { background:#2a2050; color:#fff; font-weight:800; padding:16px 12px; font-size:25px; }
+  td { padding:14px 12px; text-align:center; border-bottom:1px solid #f0ecf5; line-height:1.35; }
+  td.l { text-align:left; font-weight:800; }
+  tr:last-child td { border-bottom:none; }
+  .up{color:#dc2626;font-weight:800;} .down{color:#16a34a;font-weight:800;} .warn{color:#d97706;font-weight:800;}
+  .kbox { background:#fff; border-radius:26px; padding:20px 28px; margin-bottom:14px; box-shadow:0 6px 24px rgba(0,0,0,.06); display:flex; gap:20px; align-items:flex-start; }
+  .kdate { min-width:165px; background:#16a34a; color:#fff; font-weight:900; font-size:27px; border-radius:16px; text-align:center; padding:12px 0; line-height:1.3;}
+  .kdate.red{background:#dc2626;} .kdate.org{background:#ea580c;} .kdate.pu{background:#7c3aed;}
+  .ktext { font-size:26px; line-height:1.48; padding-top:4px;}
+  .ktext b { font-size:27px; }
+  .quote { background:rgba(255,255,255,.14); border-left:8px solid #ffd400; border-radius:0 22px 22px 0; padding:22px 26px; font-size:30px; line-height:1.55; font-weight:600; }
+  .foot { margin-top:auto; font-size:21px; opacity:.6; line-height:1.45; }
+  .tags { font-size:25px; font-weight:700; opacity:.85; margin-top:20px; }
+  .card5 .ktext { font-size:25px; line-height:1.42; }
+  .card5 .kdate { min-width:150px; font-size:25px; }
+  .card5 .kbox { padding:16px 24px; gap:16px; margin-bottom:12px; }
+  .card5 .ktext b { font-size:26px; }
+  .card2 .row .desc { font-size:25px; line-height:1.45; }
+  .card2 .row .name { font-size:34px; }
+  .num-badge { display:flex; gap:26px; margin:34px 0 8px; }
+  .nb { background:rgba(255,255,255,.12); border-radius:26px; padding:24px 30px; flex:1; }
+  .nb .v { font-size:58px; font-weight:900; color:#ffd400; }
+  .nb .k { font-size:25px; opacity:.85; margin-top:6px; }
+</style></head><body><div class="card card1" id="card1">
+<span class="tag-top" style="background:#ff2442;">个股深度 · 2026-08-29</span>
+<h1>生益科技:M9独家<br>双击第一击兑现🔥</h1>
+<div class="sub" style="margin-top:24px;">大陆唯一英伟达M9认证CCL<br>但第二击已被抢跑</div>
+<div class="num-badge"><div class="nb"><div class="v">+130.4%</div><div class="k">H1归母增速</div></div><div class="nb"><div class="v">大陆唯一</div><div class="k">英伟达M9认证(大陆)</div></div><div class="nb"><div class="v">96%</div><div class="k">估值分位(近三年)</div></div></div>
+<div style="margin-top:30px;"><div class="quote" style="background:rgba(255,255,255,.14);color:inherit;border-left-color:#ffd400;font-size:30px;">"业绩的戴维斯双击<span style='color:#ffd400'>已经发生</span>,估值的第二击<span style='color:#ff6b6b'>已被市场抢跑透支</span>"</div></div>
+<div class="tags">#生益科技 #覆铜板 #M9 #AI算力 #国产替代</div><div class="foot">数据来源:生益科技深度研报(2026年8月)· 仅供研究参考,不构成投资建议</div></div><div class="card card2" id="card2">
+<span class="tag-top" style="background:#7c3aed;">公司档案</span>
+<h2 class="title" style="margin-top:24px;">一张图看懂生益科技</h2>
+<div class="subtitle">国有资本控股+职业经理人长期经营</div>
+<div class="row"><div class="name"><span class="dot" style="background:#2563eb;"></span>地位 · 全球第二CCL<span class="badge b-blue">大陆唯一M9批量</span></div><div class="desc">全球第二大硬质覆铜板厂;两任董事长合计超<b>60年覆铜板专注度</b>,技术路线连续性是追赶台光电的组织基础</div></div><div class="row"><div class="name"><span class="dot" style="background:#c2410c;"></span>卡位 · M9→M10<span class="badge b-org">M10双路线送样</span></div><div class="desc">M9通过英伟达核心验证(Rubin/GB30平台)并<b>独家批量供货</b>;M10碳氢/PTFE双路线送样,泰国基地9月投产</div></div><div class="row"><div class="name"><span class="dot" style="background:#7c3aed;"></span>治理 · 国资控股<span class="badge b-purple">无实控人</span></div><div class="desc">第一大股东广新集团(广东国资);2025年11月曾披露不超<b>1.03%</b>的股东退出安排,叠加董监高的类似动作——高位兑现信号需跟踪</div></div>
+<div class="foot">数据来源:生益科技深度研报 第一章(2026年8月)</div></div><div class="card card3" id="card3">
+<span class="tag-top" style="background:#2563eb;">财务兑现</span>
+<h2 class="title" style="margin-top:24px;">M9放量=量价齐升</h2>
+<div class="subtitle">景气度引擎判定「上升拐点」</div>
+<table><tr><th style=text-align:left>指标</th><th>2026H1</th><th>信号</th></tr><tr><td class="l">营收</td><td class="up">190.26亿,+50%</td><td class="up">量:放量兑现</td></tr><tr><td class="l">归母净利</td><td class="up">32.87亿,+130.4%</td><td class="up">价:弹性放大</td></tr><tr><td class="l">覆铜板毛利率</td><td class="up">29.2%,升5.3pct</td><td class="">产品结构升级</td></tr></table>
+<div style="margin-top:30px;"><div class="kbox"><div class="kdate" style="background:#16a34a;">引擎读数</div><div class="ktext">davis_analyzer景气度引擎:<b>ΔG=+5.3pct,「上升拐点」阶段</b>——盈利拐点已兑现且在加速</div></div><div class="kbox"><div class="kdate" style="background:#c2410c;">筹码信号</div><div class="ktext"><b>股东户数半年增长一倍</b>,散户接力的典型画像;ERP为负——风险补偿不足,估值靠情绪撑</div></div></div>
+<div class="foot">数据来源:生益科技深度研报 核心逻辑与景气度章(2026年8月)</div></div><div class="card card4" id="card4">
+<span class="tag-top" style="background:#ff2442;">估值警报</span>
+<h2 class="title" style="margin-top:24px;">分位在92%以上<br>中枢测算隐含-9%❗</h2>
+<div class="subtitle">三情景概率加权(vs现价)</div>
+<div style="display:flex;flex-direction:column;gap:24px;"><div><div style="display:flex;justify-content:space-between;font-size:30px;font-weight:800;margin-bottom:10px;"><span>PB分位</span><span style="color:#dc2626;">96%</span></div><div style="height:38px;border-radius:19px;background:linear-gradient(90deg,#dc2626 100%,#e9e4f0 100%);"></div></div><div><div style="display:flex;justify-content:space-between;font-size:30px;font-weight:800;margin-bottom:10px;"><span>PS分位</span><span style="color:#c2410c;">96%</span></div><div style="height:38px;border-radius:19px;background:linear-gradient(90deg,#c2410c 100%,#e9e4f0 100%);"></div></div><div><div style="display:flex;justify-content:space-between;font-size:30px;font-weight:800;margin-bottom:10px;"><span>PE分位</span><span style="color:#7c3aed;">92%</span></div><div style="height:38px;border-radius:19px;background:linear-gradient(90deg,#7c3aed 92%,#e9e4f0 92%);"></div></div></div>
+<div style="font-size:24px;opacity:.6;text-align:right;margin-top:4px;">概率加权中枢132.6元/股,较现价隐含-9%——不是看空,是透支</div>
+<div style="margin-top:34px;"><div class="kbox"><div class="kdate" style="background:#dc2626;">三角验证</div><div class="ktext">PE/PB/PS同时处<b>92%/96%/96%分位</b>——三个口径一起说贵,比单一口径可信得多</div></div><div class="kbox"><div class="kdate" style="background:#64748b;">对照台光</div><div class="ktext">追赶对象台光电在M8/M9两代的先发优势仍在;生益的估值却已按「追平」定价</div></div></div>
+<div class="foot">数据来源:生益科技深度研报 估值章 · 概率加权为分析框架,不构成投资建议</div></div><div class="card card5" id="card5">
+<span class="tag-top" style="background:#16a34a;">关键节点日历</span>
+<h2 class="title" style="margin-top:24px;">未来半年,生益的四道关📅</h2>
+<div class="subtitle"></div>
+<div class="kbox"><div class="kdate" style="background:#c2410c;">9月</div><div class="ktext"><b>泰国基地投产</b>:海外产能卡位,关税与客户双保险</div></div><div class="kbox"><div class="kdate" style="background:#7c3aed;">H2</div><div class="ktext"><b>M10路线定案窗口</b>:碳氢/PTFE双路线送样中,若延续M9地位则第二击有基本面支撑</div></div><div class="kbox"><div class="kdate" style="background:#0ea5e9;">10月底</div><div class="ktext"><b>三季报</b>:H1的高基数上环比斜率是关键;覆铜板提价的落地成色</div></div><div class="kbox"><div class="kdate" style="background:#64748b;">持续</div><div class="ktext"><b>股东退出跟踪</b>:广新与董监高的兑现节奏——治理信号比财务信号更难粉饰</div></div>
+<div class="foot">数据来源:生益科技深度研报 第十章关键日历(2026年8月)</div></div><div class="card card6" id="card6">
+<span class="tag-top" style="background:#0f172a;">一句话收束</span>
+<h2 class="title" style="margin-top:24px;">买兑现的人<br>和买透支的人</h2>
+<div class="subtitle"></div>
+<div class="row"><div class="desc">买的是<span class='hl'>M9独家放量的业绩兑现</span>+M10延续的概率——基本面没有问题</div></div><div class="row"><div class="desc">代价是<span class='hl'>三个估值口径同时92%分位以上</span>+筹码分散——入场时点承担全部回撤风险</div></div><div class="row"><div class="desc">研报结论:<span class='hl'>概率加权中枢隐含-9%</span>,优质公司与优质股票是两回事</div></div>
+<div style="margin-top:14px;"><div class="kbox"><div class="kdate" style="background:#dc2626;">风险</div><div class="ktext">估值分位极端·M10路线不确定·台光竞争·AI capex 2027指引·股东退出兑现·毛利率周期回落</div></div></div>
+<div style="margin-top:8px;"><div class="quote" style="background:rgba(124,58,237,.10);color:#2e2440;border-left-color:#ffd400;font-size:30px;">戴维斯双击的第一击已在报表里,<b>第二击还没在订单里</b>——中间的差价,就是现在的股价</div></div>
+<div class="tags">#生益科技 #覆铜板 #M9 #AI算力 #国产替代</div><div class="foot">数据来源:生益科技深度研报(2026年8月,多源交叉验证)· AI辅助生成,仅供研究参考,不构成投资建议。市场有风险,投资需谨慎。</div></div></body></html>

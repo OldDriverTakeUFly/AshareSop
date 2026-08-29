@@ -1,0 +1,221 @@
+{
+  "facts": [
+    {
+      "id": "w_np_g",
+      "value": "274",
+      "unit": "%",
+      "display": "+274%",
+      "as_of": "2026-08-28",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/胜宏科技深度研报.md#核心逻辑",
+        "quote": "归母净利 43.12 亿(+274%)"
+      }
+    },
+    {
+      "id": "w_rev_g",
+      "value": "80",
+      "unit": "%",
+      "display": "+80%",
+      "as_of": "2026-08-28",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/胜宏科技深度研报.md#核心逻辑",
+        "quote": "2025 营收 192.9 亿(+80%)"
+      }
+    },
+    {
+      "id": "w_np",
+      "value": "43.12",
+      "unit": "亿",
+      "display": "43.12亿",
+      "as_of": "2026-08-28",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/胜宏科技深度研报.md#核心逻辑",
+        "quote": "归母净利 43.12 亿(+274%)"
+      }
+    },
+    {
+      "id": "w_rev",
+      "value": "192.9",
+      "unit": "亿",
+      "display": "192.9亿",
+      "as_of": "2026-08-28",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/胜宏科技深度研报.md#核心逻辑",
+        "quote": "2025 营收 192.9 亿(+80%)"
+      }
+    },
+    {
+      "id": "w_q1",
+      "value": "28",
+      "unit": "%",
+      "display": "+28%",
+      "as_of": "2026-04-29",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/胜宏科技深度研报.md#核心逻辑",
+        "quote": "2026Q1 营收 +28%"
+      },
+      "expires": "2026-09-05"
+    },
+    {
+      "id": "w_pct_now",
+      "value": "38",
+      "unit": "%",
+      "display": "38%",
+      "as_of": "2026-08-28",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/胜宏科技深度研报.md#标题",
+        "quote": "估值从 94% 分位暴跌至 38%"
+      },
+      "expires": "2026-09-05"
+    },
+    {
+      "id": "h_rev",
+      "value": "189.45",
+      "unit": "亿",
+      "display": "189.45亿",
+      "as_of": "2026-06-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/沪电股份深度研报.md#发展历程",
+        "quote": "营收189.45亿(+42%),1.6T PCB小批量交付"
+      },
+      "expires": "2026-09-12"
+    },
+    {
+      "id": "h_rev_g",
+      "value": "42",
+      "unit": "%",
+      "display": "+42%",
+      "as_of": "2026-06-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/沪电股份深度研报.md#发展历程",
+        "quote": "营收189.45亿(+42%)"
+      },
+      "expires": "2026-09-12"
+    },
+    {
+      "id": "h_gm_low",
+      "value": "28.5",
+      "unit": "%",
+      "display": "28.5%",
+      "as_of": "2026-06-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/沪电股份深度研报.md#核心洞察",
+        "quote": "毛利率从28.5%提升到35.5%"
+      },
+      "expires": "2026-09-12"
+    },
+    {
+      "id": "h_gm_high",
+      "value": "35.5",
+      "unit": "%",
+      "display": "35.5%",
+      "as_of": "2026-06-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/沪电股份深度研报.md#核心洞察",
+        "quote": "毛利率从28.5%提升到35.5%"
+      },
+      "expires": "2026-09-12"
+    },
+    {
+      "id": "h_gm_chg",
+      "value": "7",
+      "unit": "个",
+      "display": "7个百分点",
+      "as_of": "2026-06-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/沪电股份深度研报.md#核心洞察",
+        "quote": "7个百分点的提升几乎全部来自产品结构升级"
+      },
+      "expires": "2026-09-12"
+    },
+    {
+      "id": "h_mix",
+      "value": "43",
+      "unit": "%",
+      "display": "43%",
+      "as_of": "2026-06-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/沪电股份深度研报.md#核心洞察",
+        "quote": "高速PCB占营收比例从不到20%提升到43%"
+      },
+      "expires": "2026-09-12"
+    },
+    {
+      "id": "serdes",
+      "value": "112",
+      "unit": "",
+      "display": "112Gbps",
+      "as_of": "2026-06-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/沪电股份深度研报.md#需求驱动",
+        "quote": "从56Gbps SerDes向112Gbps迁移,单板价值量翻倍"
+      },
+      "expires": "2026-09-12"
+    },
+    {
+      "id": "switch_400",
+      "value": "400",
+      "unit": "",
+      "display": "400G",
+      "as_of": "2026-06-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/沪电股份深度研报.md#需求驱动",
+        "quote": "AI数据中心交换机升级(400G→800G)"
+      },
+      "expires": "2026-09-12"
+    },
+    {
+      "id": "switch_800",
+      "value": "800",
+      "unit": "",
+      "display": "800G",
+      "as_of": "2026-06-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/沪电股份深度研报.md#需求驱动",
+        "quote": "AI数据中心交换机升级(400G→800G)"
+      },
+      "expires": "2026-09-12"
+    },
+    {
+      "id": "switch_16t",
+      "value": "1.6",
+      "unit": "",
+      "display": "1.6T",
+      "as_of": "2026-06-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/沪电股份深度研报.md#发展历程",
+        "quote": "1.6T PCB小批量交付"
+      },
+      "expires": "2026-09-12"
+    },
+    {
+      "id": "w_pct_old",
+      "value": "94",
+      "unit": "%",
+      "display": "94%",
+      "as_of": "2026-08-28",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/胜宏科技深度研报.md#标题",
+        "quote": "估值从 94% 分位暴跌至 38%"
+      },
+      "expires": "2026-09-05"
+    }
+  ]
+}

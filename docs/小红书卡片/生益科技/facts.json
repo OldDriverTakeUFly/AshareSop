@@ -1,0 +1,164 @@
+{
+  "facts": [
+    {
+      "id": "np_g",
+      "value": "130.4",
+      "unit": "%",
+      "display": "+130.4%",
+      "as_of": "2026-08-28",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/生益科技深度研报.md",
+        "quote": "核心逻辑"
+      }
+    },
+    {
+      "id": "cut",
+      "value": "1.03",
+      "unit": "%",
+      "display": "1.03%",
+      "as_of": "2026-08-28",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/生益科技深度研报.md",
+        "quote": "定位"
+      }
+    },
+    {
+      "id": "pct_low",
+      "value": "92",
+      "unit": "%",
+      "display": "92%",
+      "as_of": "2026-08-28",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/生益科技深度研报.md",
+        "quote": "核心逻辑"
+      },
+      "expires": "2026-09-05"
+    },
+    {
+      "id": "pct_high",
+      "value": "96",
+      "unit": "%",
+      "display": "96%",
+      "as_of": "2026-08-28",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/生益科技深度研报.md",
+        "quote": "核心逻辑"
+      },
+      "expires": "2026-09-05"
+    },
+    {
+      "id": "rev",
+      "value": "190.26",
+      "unit": "亿",
+      "display": "190.26亿",
+      "as_of": "2026-08-28",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/生益科技深度研报.md",
+        "quote": "核心逻辑"
+      }
+    },
+    {
+      "id": "rev_g",
+      "value": "50",
+      "unit": "%",
+      "display": "+50%",
+      "as_of": "2026-08-28",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/生益科技深度研报.md",
+        "quote": "核心逻辑"
+      }
+    },
+    {
+      "id": "np",
+      "value": "32.87",
+      "unit": "亿",
+      "display": "32.87亿",
+      "as_of": "2026-08-28",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/生益科技深度研报.md",
+        "quote": "核心逻辑"
+      }
+    },
+    {
+      "id": "gm",
+      "value": "29.2",
+      "unit": "%",
+      "display": "29.2%",
+      "as_of": "2026-08-28",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/生益科技深度研报.md",
+        "quote": "核心逻辑"
+      }
+    },
+    {
+      "id": "gm_chg",
+      "value": "5.3",
+      "unit": "",
+      "display": "5.3pct",
+      "as_of": "2026-08-28",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/生益科技深度研报.md",
+        "quote": "核心逻辑"
+      }
+    },
+    {
+      "id": "dg",
+      "value": "5.3",
+      "unit": "",
+      "display": "+5.3pct",
+      "as_of": "2026-08-28",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/生益科技深度研报.md",
+        "quote": "核心逻辑"
+      }
+    },
+    {
+      "id": "target",
+      "value": "132.6",
+      "unit": "元",
+      "display": "132.6元",
+      "as_of": "2026-08-28",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/生益科技深度研报.md",
+        "quote": "核心逻辑"
+      },
+      "expires": "2026-09-05"
+    },
+    {
+      "id": "imply",
+      "value": "9",
+      "unit": "%",
+      "display": "-9%",
+      "as_of": "2026-08-28",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/生益科技深度研报.md",
+        "quote": "核心逻辑"
+      },
+      "expires": "2026-09-05"
+    },
+    {
+      "id": "focus_years",
+      "value": "60",
+      "unit": "",
+      "display": "60年",
+      "as_of": "2026-08-28",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/生益科技深度研报.md",
+        "quote": "核心洞察"
+      }
+    }
+  ]
+}

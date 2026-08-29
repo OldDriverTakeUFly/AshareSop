@@ -1,0 +1,21 @@
+{
+  "topic": "PCB产业链",
+  "version": 1,
+  "as_of": "2026-08-28",
+  "expires_at": "2026-09-04",
+  "group": "产业链调研",
+  "images": [
+    "output/PCB产业链_01_封面.png",
+    "output/PCB产业链_02_三层链.png",
+    "output/PCB产业链_03_双雄对照.png",
+    "output/PCB产业链_04_业绩对照.png",
+    "output/PCB产业链_05_关键日历.png",
+    "output/PCB产业链_06_结论与风险.png"
+  ],
+  "facts_digest": "sha256:561a7a2be1863d1b431d1930b7054ce8aecfe45f3e5fe0f9d2bd2e90fe702e0d",
+  "validate": {
+    "passed": true,
+    "failures": 0
+  },
+  "cardgen_version": "0.1"
+}

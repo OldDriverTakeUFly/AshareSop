@@ -1,0 +1,86 @@
+<!DOCTYPE html><html lang='zh-CN'><head><meta charset='UTF-8'><style>  * { margin:0; padding:0; box-sizing:border-box; font-family:'Noto Sans CJK SC','PingFang SC','Microsoft YaHei',sans-serif; }
+  body { background:#e8e8e8; display:flex; flex-direction:column; align-items:center; gap:40px; padding:40px 0; }
+  .card { width:1080px; height:1440px; border-radius:48px; position:relative; overflow:hidden; padding:48px 56px; display:flex; flex-direction:column; }
+  .card1 { background:linear-gradient(160deg,#1a1440 0%,#3b1d6e 45%,#8a2be2 100%); color:#fff; }
+  .card2 { background:#fdf6ec; color:#3a2e20; }
+  .card3 { background:#eef4ff; color:#1e2a44; }
+  .card4 { background:#fff1f0; color:#4a1f1c; }
+  .card5 { background:#f0fbf2; color:#1d3a24; }
+  .card6 { background:#f7f3ff; color:#2e2440; }
+  .tag-top { display:inline-block; background:#ff2442; color:#fff; font-size:30px; font-weight:900; padding:12px 30px; border-radius:999px; letter-spacing:2px; width:fit-content; }
+  .badge { display:inline-block; font-size:26px; font-weight:800; padding:8px 22px; border-radius:999px; margin-right:12px; }
+  .b-purple{background:rgba(138,43,226,.18);color:#6b21a8;} .b-blue{background:rgba(37,99,235,.14);color:#1d4ed8;}
+  .b-red{background:rgba(220,38,38,.12);color:#b91c1c;} .b-green{background:rgba(22,163,74,.14);color:#15803d;}
+  .b-org{background:rgba(234,88,12,.15);color:#c2410c;} .b-gray{background:rgba(0,0,0,.07);color:#555;}
+  h1 { font-size:96px; font-weight:900; line-height:1.18; margin:28px 0 10px; letter-spacing:1px; }
+  .sub { font-size:42px; font-weight:700; opacity:.92; line-height:1.5; }
+  .hl { background:linear-gradient(transparent 62%, rgba(255,210,0,.85) 62%); padding:0 6px; }
+  .hl-r { background:linear-gradient(transparent 62%, rgba(255,77,109,.55) 62%); padding:0 6px; }
+  .big-num { font-size:150px; font-weight:900; line-height:1; letter-spacing:-2px; }
+  h2.title { font-size:56px; font-weight:900; margin-bottom:8px; line-height:1.25; }
+  .subtitle { font-size:30px; font-weight:600; opacity:.65; margin-bottom:24px; }
+  .row { background:#fff; border-radius:28px; padding:20px 28px; margin-bottom:16px; box-shadow:0 6px 24px rgba(0,0,0,.06); }
+  .row .name { font-size:36px; font-weight:900; margin-bottom:8px; display:flex; align-items:center; gap:14px; flex-wrap:wrap;}
+  .row .desc { font-size:26px; line-height:1.48; }
+  .dot { width:24px; height:24px; border-radius:50%; display:inline-block; }
+  table { width:100%; border-collapse:separate; border-spacing:0; background:#fff; border-radius:26px; overflow:hidden; font-size:26px; box-shadow:0 6px 24px rgba(0,0,0,.06); }
+  th { background:#2a2050; color:#fff; font-weight:800; padding:16px 12px; font-size:25px; }
+  td { padding:14px 12px; text-align:center; border-bottom:1px solid #f0ecf5; line-height:1.35; }
+  td.l { text-align:left; font-weight:800; }
+  tr:last-child td { border-bottom:none; }
+  .up{color:#dc2626;font-weight:800;} .down{color:#16a34a;font-weight:800;} .warn{color:#d97706;font-weight:800;}
+  .kbox { background:#fff; border-radius:26px; padding:20px 28px; margin-bottom:14px; box-shadow:0 6px 24px rgba(0,0,0,.06); display:flex; gap:20px; align-items:flex-start; }
+  .kdate { min-width:165px; background:#16a34a; color:#fff; font-weight:900; font-size:27px; border-radius:16px; text-align:center; padding:12px 0; line-height:1.3;}
+  .kdate.red{background:#dc2626;} .kdate.org{background:#ea580c;} .kdate.pu{background:#7c3aed;}
+  .ktext { font-size:26px; line-height:1.48; padding-top:4px;}
+  .ktext b { font-size:27px; }
+  .quote { background:rgba(255,255,255,.14); border-left:8px solid #ffd400; border-radius:0 22px 22px 0; padding:22px 26px; font-size:30px; line-height:1.55; font-weight:600; }
+  .foot { margin-top:auto; font-size:21px; opacity:.6; line-height:1.45; }
+  .tags { font-size:25px; font-weight:700; opacity:.85; margin-top:20px; }
+  .card5 .ktext { font-size:25px; line-height:1.42; }
+  .card5 .kdate { min-width:150px; font-size:25px; }
+  .card5 .kbox { padding:16px 24px; gap:16px; margin-bottom:12px; }
+  .card5 .ktext b { font-size:26px; }
+  .card2 .row .desc { font-size:25px; line-height:1.45; }
+  .card2 .row .name { font-size:34px; }
+  .num-badge { display:flex; gap:26px; margin:34px 0 8px; }
+  .nb { background:rgba(255,255,255,.12); border-radius:26px; padding:24px 30px; flex:1; }
+  .nb .v { font-size:58px; font-weight:900; color:#ffd400; }
+  .nb .k { font-size:25px; opacity:.85; margin-top:6px; }
+</style></head><body><div class="card card1" id="card1">
+<span class="tag-top" style="background:#ff2442;">个股深度 · 2026-08-29</span>
+<h1>南亚新材:M10卡位<br>最激进的赌徒🔥</h1>
+<div class="sub" style="margin-top:24px;">碳氢路线通过英伟达初选<br>领先行业约一个季度</div>
+<div class="num-badge"><div class="nb"><div class="v">+381.71%</div><div class="k">H1预告增速(下限)</div></div><div class="nb"><div class="v">95%</div><div class="k">估值分位(近三年)</div></div><div class="nb"><div class="v">+21.25pp</div><div class="k">引擎ΔG读数</div></div></div>
+<div style="margin-top:30px;"><div class="quote" style="background:rgba(255,255,255,.14);color:inherit;border-left-color:#ffd400;font-size:30px;">"<span style='color:#ffd400'>高景气 × 高估值 × 高拥挤</span>——三高状态,波动风险极大,这不是给心脏不好的人准备的标的"</div></div>
+<div class="tags">#南亚新材 #覆铜板 #M10 #AI算力 #国产替代</div><div class="foot">数据来源:南亚新材深度研报(2026年8月)· 仅供研究参考,不构成投资建议</div></div><div class="card card3" id="card2">
+<span class="tag-top" style="background:#2563eb;">业绩爆发</span>
+<h2 class="title" style="margin-top:24px;">半年赚回两个去年</h2>
+<div class="subtitle">2026H1业绩预告(公司公告)</div>
+<table><tr><th style=text-align:left>指标</th><th>读数</th><th>信号</th></tr><tr><td class="l">H1预告归母</td><td class="up">4.2-5.0亿</td><td class="up">半年超2025全年两倍量级</td></tr><tr><td class="l">同比增速</td><td class="up">+381.71%~+473.46%</td><td class="up">AI高速基材放量</td></tr><tr><td class="l">2025全年归母</td><td class="">2.40亿</td><td class="">基数低=弹性大的另一面</td></tr></table>
+<div style="margin-top:30px;"><div class="kbox"><div class="kdate" style="background:#16a34a;">引擎判定</div><div class="ktext">davis_analyzer景气度引擎:<b>「加速期」,ΔG +21.25pp</b>——边际增速强加速,四小龙/材料链里最陡的一档</div></div><div class="kbox"><div class="kdate" style="background:#c2410c;">成色注记</div><div class="ktext">预告口径为<b>归母净利区间</b>,非经审计;高速CCL放量与产品结构升级是主因,但低基数放大了读数</div></div></div>
+<div class="foot">数据来源:南亚新材深度研报 核心逻辑(2026年8月)</div></div><div class="card card2" id="card3">
+<span class="tag-top" style="background:#7c3aed;">M10卡位</span>
+<h2 class="title" style="margin-top:24px;">为什么说它最激进</h2>
+<div class="subtitle">三张牌:初选领先+半年测试+纯内资</div>
+<div class="row"><div class="name"><span class="dot" style="background:#16a34a;"></span>牌一 · 初选领先<span class="badge b-green">领先约一个季度</span></div><div class="desc">M10(英伟达Rubin Ultra/Feynman下一代基材)<b>碳氢路线已通过英伟达初选</b>,媒体称进度领先行业约一个季度(卖方口径,非公司公告确认)</div></div><div class="row"><div class="name"><span class="dot" style="background:#2563eb;"></span>牌二 · 测试深度<span class="badge b-blue">已完成半年测试</span></div><div class="desc">M10层级材料<b>已完成半年测试</b>;M8/M9正推进海外两家GPU大厂及一家ASIC大厂认证;1.6T交换机已送样</div></div><div class="row"><div class="name"><span class="dot" style="background:#7c3aed;"></span>牌三 · 纯内资<span class="badge b-purple">与台塑无关</span></div><div class="desc"><b>纯内资民营家族企业</b>,与台湾台塑系无任何股权关系——M8/M9/M10认证全是自主路线,国产替代成色更纯,但没有台系技术溢出</div></div>
+<div class="foot">数据来源:南亚新材深度研报 第二/三章(2026年8月)</div></div><div class="card card4" id="card4">
+<span class="tag-top" style="background:#ff2442;">三高对赌</span>
+<h2 class="title" style="margin-top:24px;">便宜的理由没有了<br>贵的理由全在了❗</h2>
+<div class="subtitle">估值与拥挤度读数</div>
+<div style="display:flex;flex-direction:column;gap:24px;"><div><div style="display:flex;justify-content:space-between;font-size:30px;font-weight:800;margin-bottom:10px;"><span>估值分位(近三年)</span><span style="color:#dc2626;">95%</span></div><div style="height:38px;border-radius:19px;background:linear-gradient(90deg,#dc2626 100%,#e9e4f0 100%);"></div></div><div><div style="display:flex;justify-content:space-between;font-size:30px;font-weight:800;margin-bottom:10px;"><span>股东户数(一年变化)</span><span style="color:#c2410c;">增长一倍</span></div><div style="height:38px;border-radius:19px;background:linear-gradient(90deg,#c2410c 70%,#e9e4f0 70%);"></div></div><div><div style="display:flex;justify-content:space-between;font-size:30px;font-weight:800;margin-bottom:10px;"><span>ERP(相对市场)</span><span style="color:#7c3aed;">-1.64%</span></div><div style="height:38px;border-radius:19px;background:linear-gradient(90deg,#7c3aed 35%,#e9e4f0 35%);"></div></div></div>
+<div style="font-size:24px;opacity:.6;text-align:right;margin-top:4px;">直销占比98.97%绑定国内PCB头部——业绩真实性与客户集中度是同一枚硬币</div>
+<div style="margin-top:34px;"><div class="kbox"><div class="kdate" style="background:#dc2626;">对赌本质</div><div class="ktext"><b>95%分位+ERP -1.64%+筹码一年增长一倍</b>——市场已按「M10初选领先=定案」定价,任何认证反复都是双杀剧本</div></div><div class="kbox"><div class="kdate" style="background:#64748b;">时间表</div><div class="ktext">M10层级材料预计<b>2027H2量产</b>(Rubin Ultra/Feynman节奏)——从初选到量产还有完整的认证长坡</div></div></div>
+<div class="foot">数据来源:南亚新材深度研报 核心逻辑与估值章 · 不构成投资建议</div></div><div class="card card5" id="card5">
+<span class="tag-top" style="background:#16a34a;">关键节点日历</span>
+<h2 class="title" style="margin-top:24px;">未来一年,南亚的四道关📅</h2>
+<div class="subtitle"></div>
+<div class="kbox"><div class="kdate" style="background:#dc2626;">中报正式披露</div><div class="ktext"><b>预告的兑现与细项拆分</b>:高速CCL占比、毛利率、扣非成色——预告区间4.2-5.0亿落点在哪一端很重要</div></div><div class="kbox"><div class="kdate" style="background:#7c3aed;">H2</div><div class="ktext"><b>M10从初选到送样</b>:英伟达评估碳氢vs回退Low-Dk2——路线即生死,南亚的全部溢价都押在这里</div></div><div class="kbox"><div class="kdate" style="background:#c2410c;">三季报</div><div class="ktext"><b>环比斜率</b>:H1近五倍基数上的连续性;海外GPU/ASIC认证进展</div></div><div class="kbox"><div class="kdate" style="background:#0ea5e9;">2027H2</div><div class="ktext"><b>M10量产窗口</b>:从初选领先到批量供货还有一年长坡,中间每一步都是波动源</div></div>
+<div class="foot">数据来源:南亚新材深度研报 第十章(2026年8月)</div></div><div class="card card6" id="card6">
+<span class="tag-top" style="background:#0f172a;">一句话收束</span>
+<h2 class="title" style="margin-top:24px;">买的是M10期权<br>付的是三高溢价</h2>
+<div class="subtitle"></div>
+<div class="row"><div class="desc">买的是<span class='hl'>碳氢初选领先的时间差</span>——若M10定案且南亚延续卡位,弹性冠绝材料链</div></div><div class="row"><div class="desc">付的是<span class='hl'>95%分位+负ERP+筹码分散</span>——认证任何反复都按双杀计价</div></div><div class="row"><div class="desc">研报结论:<span class='hl'>高波动动量型标的</span>,仓位纪律比观点正确更重要</div></div>
+<div style="margin-top:14px;"><div class="kbox"><div class="kdate" style="background:#dc2626;">风险</div><div class="ktext">M10回退Low-Dk2(郭明錤评估中)·初选≠定案·海外认证不确定·估值95%分位·客户集中·预告与审计差异</div></div></div>
+<div style="margin-top:8px;"><div class="quote" style="background:rgba(124,58,237,.10);color:#2e2440;border-left-color:#ffd400;font-size:30px;">初选领先一个季度,量产还有一年长坡——<b>中间的每一步,都是给三高估值洗澡的机会</b></div></div>
+<div class="tags">#南亚新材 #覆铜板 #M10 #AI算力 #国产替代</div><div class="foot">数据来源:南亚新材深度研报(2026年8月,公司公告+卖方研报交叉验证)· AI辅助生成,仅供研究参考,不构成投资建议。市场有风险,投资需谨慎。</div></div></body></html>

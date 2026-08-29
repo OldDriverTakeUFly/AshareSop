@@ -18,7 +18,7 @@ PROFILE_DIR = Path(os.environ.get("PUBLISHER_PROFILE_DIR",
 CREATOR = "https://creator.xiaohongshu.com"
 
 # 频控护栏:单日上限 / 最小发布间隔
-GUARD_DAILY_LIMIT = 2
+GUARD_DAILY_LIMIT = 4
 GUARD_MIN_INTERVAL_MIN = 30
 
 # ── 选择器(多级回退,改版维护点;2026-08-29 实测探明)──

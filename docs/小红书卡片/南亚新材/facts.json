@@ -1,0 +1,124 @@
+{
+  "facts": [
+    {
+      "id": "g_low",
+      "value": "381.71",
+      "unit": "%",
+      "display": "+381.71%",
+      "as_of": "2026-08-28",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/南亚新材深度研报.md#核心逻辑",
+        "quote": "同比 +381.71%~+473.46%(公司公告 20260714)"
+      }
+    },
+    {
+      "id": "g_high",
+      "value": "473.46",
+      "unit": "%",
+      "display": "+473.46%",
+      "as_of": "2026-08-28",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/南亚新材深度研报.md#核心逻辑",
+        "quote": "同比 +381.71%~+473.46%(公司公告 20260714)"
+      }
+    },
+    {
+      "id": "np_low",
+      "value": "4.2",
+      "unit": "亿",
+      "display": "4.2-5.0亿",
+      "as_of": "2026-08-28",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/南亚新材深度研报.md#核心逻辑",
+        "quote": "2026H1 业绩预告归母净利 4.2-5.0 亿元"
+      }
+    },
+    {
+      "id": "np_high",
+      "value": "5.0",
+      "unit": "亿",
+      "display": "4.2-5.0亿",
+      "as_of": "2026-08-28",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/南亚新材深度研报.md#核心逻辑",
+        "quote": "2026H1 业绩预告归母净利 4.2-5.0 亿元"
+      }
+    },
+    {
+      "id": "np25",
+      "value": "2.40",
+      "unit": "亿",
+      "display": "2.40亿",
+      "as_of": "2026-08-28",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/南亚新材深度研报.md#核心逻辑",
+        "quote": "单半年利润已超 2025 全年(2.40 亿,tushare income 20251231)"
+      }
+    },
+    {
+      "id": "dg",
+      "value": "21.25",
+      "unit": "",
+      "display": "+21.25pp",
+      "as_of": "2026-08-28",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/南亚新材深度研报.md#核心逻辑",
+        "quote": "ΔG +21.25pp(引擎 prosperity, 20260828 计算)"
+      }
+    },
+    {
+      "id": "pct",
+      "value": "95",
+      "unit": "%",
+      "display": "95%",
+      "as_of": "2026-08-28",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/南亚新材深度研报.md#核心逻辑",
+        "quote": "估值处于近 3 年 95% 分位"
+      }
+    },
+    {
+      "id": "erp",
+      "value": "1.64",
+      "unit": "%",
+      "display": "-1.64%",
+      "as_of": "2026-08-28",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/南亚新材深度研报.md#核心逻辑",
+        "quote": "相对市场 ERP -1.64%(引擎 relative_valuation)"
+      }
+    },
+    {
+      "id": "direct",
+      "value": "98.97",
+      "unit": "%",
+      "display": "98.97%",
+      "as_of": "2026-08-28",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/南亚新材深度研报.md#核心逻辑",
+        "quote": "直销占比 98.97%(2025 年报)"
+      }
+    },
+    {
+      "id": "switch_16t",
+      "value": "1.6",
+      "unit": "",
+      "display": "1.6T",
+      "as_of": "2026-08-28",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/南亚新材深度研报.md#产品矩阵",
+        "quote": "已送样 1.6T 交换机、推进海外 GPU/ASIC 大厂认证"
+      }
+    }
+  ]
+}

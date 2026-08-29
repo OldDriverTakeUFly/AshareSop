@@ -1,0 +1,86 @@
+<!DOCTYPE html><html lang='zh-CN'><head><meta charset='UTF-8'><style>  * { margin:0; padding:0; box-sizing:border-box; font-family:'Noto Sans CJK SC','PingFang SC','Microsoft YaHei',sans-serif; }
+  body { background:#e8e8e8; display:flex; flex-direction:column; align-items:center; gap:40px; padding:40px 0; }
+  .card { width:1080px; height:1440px; border-radius:48px; position:relative; overflow:hidden; padding:48px 56px; display:flex; flex-direction:column; }
+  .card1 { background:linear-gradient(160deg,#1a1440 0%,#3b1d6e 45%,#8a2be2 100%); color:#fff; }
+  .card2 { background:#fdf6ec; color:#3a2e20; }
+  .card3 { background:#eef4ff; color:#1e2a44; }
+  .card4 { background:#fff1f0; color:#4a1f1c; }
+  .card5 { background:#f0fbf2; color:#1d3a24; }
+  .card6 { background:#f7f3ff; color:#2e2440; }
+  .tag-top { display:inline-block; background:#ff2442; color:#fff; font-size:30px; font-weight:900; padding:12px 30px; border-radius:999px; letter-spacing:2px; width:fit-content; }
+  .badge { display:inline-block; font-size:26px; font-weight:800; padding:8px 22px; border-radius:999px; margin-right:12px; }
+  .b-purple{background:rgba(138,43,226,.18);color:#6b21a8;} .b-blue{background:rgba(37,99,235,.14);color:#1d4ed8;}
+  .b-red{background:rgba(220,38,38,.12);color:#b91c1c;} .b-green{background:rgba(22,163,74,.14);color:#15803d;}
+  .b-org{background:rgba(234,88,12,.15);color:#c2410c;} .b-gray{background:rgba(0,0,0,.07);color:#555;}
+  h1 { font-size:96px; font-weight:900; line-height:1.18; margin:28px 0 10px; letter-spacing:1px; }
+  .sub { font-size:42px; font-weight:700; opacity:.92; line-height:1.5; }
+  .hl { background:linear-gradient(transparent 62%, rgba(255,210,0,.85) 62%); padding:0 6px; }
+  .hl-r { background:linear-gradient(transparent 62%, rgba(255,77,109,.55) 62%); padding:0 6px; }
+  .big-num { font-size:150px; font-weight:900; line-height:1; letter-spacing:-2px; }
+  h2.title { font-size:56px; font-weight:900; margin-bottom:8px; line-height:1.25; }
+  .subtitle { font-size:30px; font-weight:600; opacity:.65; margin-bottom:24px; }
+  .row { background:#fff; border-radius:28px; padding:20px 28px; margin-bottom:16px; box-shadow:0 6px 24px rgba(0,0,0,.06); }
+  .row .name { font-size:36px; font-weight:900; margin-bottom:8px; display:flex; align-items:center; gap:14px; flex-wrap:wrap;}
+  .row .desc { font-size:26px; line-height:1.48; }
+  .dot { width:24px; height:24px; border-radius:50%; display:inline-block; }
+  table { width:100%; border-collapse:separate; border-spacing:0; background:#fff; border-radius:26px; overflow:hidden; font-size:26px; box-shadow:0 6px 24px rgba(0,0,0,.06); }
+  th { background:#2a2050; color:#fff; font-weight:800; padding:16px 12px; font-size:25px; }
+  td { padding:14px 12px; text-align:center; border-bottom:1px solid #f0ecf5; line-height:1.35; }
+  td.l { text-align:left; font-weight:800; }
+  tr:last-child td { border-bottom:none; }
+  .up{color:#dc2626;font-weight:800;} .down{color:#16a34a;font-weight:800;} .warn{color:#d97706;font-weight:800;}
+  .kbox { background:#fff; border-radius:26px; padding:20px 28px; margin-bottom:14px; box-shadow:0 6px 24px rgba(0,0,0,.06); display:flex; gap:20px; align-items:flex-start; }
+  .kdate { min-width:165px; background:#16a34a; color:#fff; font-weight:900; font-size:27px; border-radius:16px; text-align:center; padding:12px 0; line-height:1.3;}
+  .kdate.red{background:#dc2626;} .kdate.org{background:#ea580c;} .kdate.pu{background:#7c3aed;}
+  .ktext { font-size:26px; line-height:1.48; padding-top:4px;}
+  .ktext b { font-size:27px; }
+  .quote { background:rgba(255,255,255,.14); border-left:8px solid #ffd400; border-radius:0 22px 22px 0; padding:22px 26px; font-size:30px; line-height:1.55; font-weight:600; }
+  .foot { margin-top:auto; font-size:21px; opacity:.6; line-height:1.45; }
+  .tags { font-size:25px; font-weight:700; opacity:.85; margin-top:20px; }
+  .card5 .ktext { font-size:25px; line-height:1.42; }
+  .card5 .kdate { min-width:150px; font-size:25px; }
+  .card5 .kbox { padding:16px 24px; gap:16px; margin-bottom:12px; }
+  .card5 .ktext b { font-size:26px; }
+  .card2 .row .desc { font-size:25px; line-height:1.45; }
+  .card2 .row .name { font-size:34px; }
+  .num-badge { display:flex; gap:26px; margin:34px 0 8px; }
+  .nb { background:rgba(255,255,255,.12); border-radius:26px; padding:24px 30px; flex:1; }
+  .nb .v { font-size:58px; font-weight:900; color:#ffd400; }
+  .nb .k { font-size:25px; opacity:.85; margin-top:6px; }
+</style></head><body><div class="card card1" id="card1">
+<span class="tag-top" style="background:#ff2442;">产业链拆解 · 2026-08-29</span>
+<h1>AI PCB产业链<br>一张图讲透🔥</h1>
+<div class="sub" style="margin-top:24px;">定义级玩家与出货之王<br>PCB→CCL→材料三层链</div>
+<div class="num-badge"><div class="nb"><div class="v">+274%</div><div class="k">胜宏2025归母增速</div></div><div class="nb"><div class="v">+42%</div><div class="k">沪电2025营收增速</div></div><div class="nb"><div class="v">112Gbps</div><div class="k">交换机SerDes升级</div></div></div>
+<div style="margin-top:30px;"><div class="quote" style="background:rgba(255,255,255,.14);color:inherit;border-left-color:#ffd400;font-size:30px;">"沪电是<span style='color:#ffd400'>定义级参与</span>(确定性最高),胜宏是<span style='color:#ff6b6b'>出货之王</span>(弹性最大)——产业链的两种买法"</div></div>
+<div class="tags">#PCB #AI算力 #沪电股份 #胜宏科技 #产业链</div><div class="foot">数据来源:沪电/胜宏深度研报+m10材料链研报 · 仅供研究参考,不构成投资建议</div></div><div class="card card3" id="card2">
+<span class="tag-top" style="background:#2563eb;">三层结构</span>
+<h2 class="title" style="margin-top:24px;">从英伟达的板卡到一克填料</h2>
+<div class="subtitle">M10定案组合推演(m10材料链研报)</div>
+<table><tr><th style=text-align:left>层</th><th>环节</th><th>推演组合</th></tr><tr><td class="l">PCB</td><td class="">板卡制造</td><td class="up">沪电(定义级)+胜宏(出货第一)</td></tr><tr><td class="l">CCL</td><td class="">覆铜板</td><td class="">生益主供/台光二供(券商口径)</td></tr><tr><td class="l">材料</td><td class="">树脂/填料/铜箔/布</td><td class="">大金或昊华(PTFE)+联瑞(填料)+HVLP4链</td></tr></table>
+<div style="margin-top:30px;"><div class="kbox"><div class="kdate" style="background:#dc2626;">定案时点</div><div class="ktext"><b>2026年底方案定案前都有翻盘概率</b>——台光若在PTFE良率攻关中认证反超,CCL格局会回摆;材料侧同理</div></div><div class="kbox"><div class="kdate" style="background:#16a34a;">需求引擎</div><div class="ktext">交换机400G→800G升级是最大贡献:<b>单板价值量增长一倍</b>;1.6T PCB沪电已小批量交付</div></div></div>
+<div class="foot">数据来源:m10材料链深度研报 组合推演节 + 沪电股份深度研报</div></div><div class="card card2" id="card3">
+<span class="tag-top" style="background:#7c3aed;">双雄对照</span>
+<h2 class="title" style="margin-top:24px;">定义级 vs 出货之王</h2>
+<div class="subtitle">同一条链的两种买法</div>
+<div class="row"><div class="name"><span class="dot" style="background:#2563eb;"></span>沪电股份 002463<span class="badge b-blue">定义级参与</span></div><div class="desc">交换机PCB核心供应商,<b>参与下一代平台定义</b>;2025营收189.45亿(+42%),1.6T PCB小批量交付;毛利率28.5%→35.5%,高速PCB占比从两成到<b>43%</b></div></div><div class="row"><div class="name"><span class="dot" style="background:#dc2626;"></span>胜宏科技 300476<span class="badge b-org">AI PCB出货第一</span></div><div class="desc">英伟达核心供应商,<b>全球AI PCB出货量第一</b>;2025营收192.9亿(+80%)、归母43.12亿(+274%);估值已从94%分位回落至<b>38%</b>——大涨之后的第一个回调样本</div></div><div class="row"><div class="name"><span class="dot" style="background:#64748b;"></span>怎么选<span class="badge b-blue">确定性与弹性</span></div><div class="desc"><b>沪电买确定性</b>(定义级地位+交换机升级β),<b>胜宏买弹性</b>(出货第一+估值已消化)——组合优于单押</div></div>
+<div class="foot">数据来源:沪电/胜宏深度研报(2026年6-8月)</div></div><div class="card card4" id="card4">
+<span class="tag-top" style="background:#ff2442;">2025业绩对照</span>
+<h2 class="title" style="margin-top:24px;">同一浪潮<br>弹性差七倍❗</h2>
+<div class="subtitle">2025年同比增速</div>
+<div style="display:flex;flex-direction:column;gap:24px;"><div><div style="display:flex;justify-content:space-between;font-size:30px;font-weight:800;margin-bottom:10px;"><span>🟢 胜宏·归母净利</span><span style="color:#dc2626;">+274%</span></div><div style="height:38px;border-radius:19px;background:linear-gradient(90deg,#dc2626 100%,#e9e4f0 100%);"></div></div><div><div style="display:flex;justify-content:space-between;font-size:30px;font-weight:800;margin-bottom:10px;"><span>🔵 胜宏·营收</span><span style="color:#c2410c;">+80%</span></div><div style="height:38px;border-radius:19px;background:linear-gradient(90deg,#c2410c 29%,#e9e4f0 29%);"></div></div><div><div style="display:flex;justify-content:space-between;font-size:30px;font-weight:800;margin-bottom:10px;"><span>🟣 沪电·营收</span><span style="color:#7c3aed;">+42%</span></div><div style="height:38px;border-radius:19px;background:linear-gradient(90deg,#7c3aed 15%,#e9e4f0 15%);"></div></div><div><div style="display:flex;justify-content:space-between;font-size:30px;font-weight:800;margin-bottom:10px;"><span>⚪ 胜宏·2026Q1营收</span><span style="color:#64748b;">+28%</span></div><div style="height:38px;border-radius:19px;background:linear-gradient(90deg,#64748b 10%,#e9e4f0 10%);"></div></div></div>
+<div style="font-size:24px;opacity:.6;text-align:right;margin-top:4px;">沪电毛利率28.5%→35.5%:7个百分点的提升几乎全部来自产品结构升级</div>
+<div style="margin-top:34px;"><div class="kbox"><div class="kdate" style="background:#2563eb;">结构洞察</div><div class="ktext">沪电的启示:<b>高速化比总量更重要</b>——高速PCB占比从不到两成到43%,毛利率抬升7个百分点,这是AI对PCB的真实改造方式</div></div><div class="kbox"><div class="kdate" style="background:#c2410c;">胜宏注记</div><div class="ktext">归母+274%含低基数与产品结构双击;2026Q1营收增速回落——高基数下的连续性是新问题</div></div></div>
+<div class="foot">数据来源:沪电/胜宏深度研报 财务章 · 不构成投资建议</div></div><div class="card card5" id="card5">
+<span class="tag-top" style="background:#16a34a;">关键节点日历</span>
+<h2 class="title" style="margin-top:24px;">未来一年,PCB链的五道关📅</h2>
+<div class="subtitle"></div>
+<div class="kbox"><div class="kdate" style="background:#dc2626;">8月底</div><div class="ktext"><b>胜宏中报披露</b>:+274%之后的第一个完整半年答卷,Q1回落的增速是否企稳</div></div><div class="kbox"><div class="kdate" style="background:#7c3aed;">H2</div><div class="ktext"><b>800G交换机放量节奏</b>与1.6T从送样到批量——沪电的两级火箭</div></div><div class="kbox"><div class="kdate" style="background:#c2410c;">2026年底</div><div class="ktext"><b>M10方案定案</b>:PCB/CCL/材料组合最终名单,定案即产业链估值重排</div></div><div class="kbox"><div class="kdate" style="background:#0ea5e9;">2027</div><div class="ktext"><b>Rubin Ultra/Feynman量产</b>:正交背板、交换刀片主板的新增量</div></div><div class="kbox"><div class="kdate" style="background:#64748b;">外部</div><div class="ktext"><b>AI capex 2027指引</b>与竞争格局:产能竞赛下PCB环节的毛利率能否守住</div></div>
+<div class="foot">数据来源:三份研报关键日历汇编 · 事件驱动更新</div></div><div class="card card6" id="card6">
+<span class="tag-top" style="background:#0f172a;">一句话收束</span>
+<h2 class="title" style="margin-top:24px;">PCB是AI的骨架<br>材料是PCB的血脉</h2>
+<div class="subtitle"></div>
+<div class="row"><div class="desc"><b>确定性排序</b>:<span class='hl'>定义级地位(沪电)>出货规模(胜宏)>材料替代</span>——越靠近英伟达定义权,越早锁定订单</div></div><div class="row"><div class="desc"><b>弹性排序</b>:<span class='hl'>胜宏归母>沪电营收>材料链</span>——基数越低、占比越低,爆发越猛</div></div><div class="row"><div class="desc"><b>节奏提醒</b>:2026年底M10定案是全链的<span class='hl'>估值重排日</span>,此前一切溢价都是预付款</div></div>
+<div style="margin-top:14px;"><div class="kbox"><div class="kdate" style="background:#dc2626;">风险</div><div class="ktext">AI capex 2027指引·定案前组合翻盘·产能竞赛压毛利·胜宏高基数增速回落·1.6T量产递延·估值分位回摆</div></div></div>
+<div style="margin-top:8px;"><div class="quote" style="background:rgba(124,58,237,.10);color:#2e2440;border-left-color:#ffd400;font-size:30px;">AI把PCB从「配套加工」改造成了<b>「算力定义权的物理载体」</b>——这是本链全部溢价的来源</div></div>
+<div class="tags">#PCB #AI算力 #沪电股份 #胜宏科技 #产业链</div><div class="foot">数据来源:沪电股份+胜宏科技深度研报+m10材料链深度研报(2026年6-8月,多源交叉验证)· AI辅助生成,仅供研究参考,不构成投资建议。市场有风险,投资需谨慎。</div></div></body></html>
