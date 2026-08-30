@@ -1,0 +1,75 @@
+<!DOCTYPE html><html lang='zh-CN'><head><meta charset='UTF-8'><style>  * { margin:0; padding:0; box-sizing:border-box; font-family:'Noto Sans CJK SC','PingFang SC','Microsoft YaHei',sans-serif; }
+  body { background:#e8e8e8; display:flex; flex-direction:column; align-items:center; gap:40px; padding:40px 0; }
+  .card { width:1080px; height:1440px; border-radius:48px; position:relative; overflow:hidden; padding:48px 56px; display:flex; flex-direction:column; }
+  .card1 { background:linear-gradient(160deg,#1a1440 0%,#3b1d6e 45%,#8a2be2 100%); color:#fff; }
+  .card2 { background:#fdf6ec; color:#3a2e20; }
+  .card3 { background:#eef4ff; color:#1e2a44; }
+  .card4 { background:#fff1f0; color:#4a1f1c; }
+  .card5 { background:#f0fbf2; color:#1d3a24; }
+  .card6 { background:#f7f3ff; color:#2e2440; }
+  .tag-top { display:inline-block; background:#ff2442; color:#fff; font-size:30px; font-weight:900; padding:12px 30px; border-radius:999px; letter-spacing:2px; width:fit-content; }
+  .badge { display:inline-block; font-size:26px; font-weight:800; padding:8px 22px; border-radius:999px; margin-right:12px; }
+  .b-purple{background:rgba(138,43,226,.18);color:#6b21a8;} .b-blue{background:rgba(37,99,235,.14);color:#1d4ed8;}
+  .b-red{background:rgba(220,38,38,.12);color:#b91c1c;} .b-green{background:rgba(22,163,74,.14);color:#15803d;}
+  .b-org{background:rgba(234,88,12,.15);color:#c2410c;} .b-gray{background:rgba(0,0,0,.07);color:#555;}
+  h1 { font-size:96px; font-weight:900; line-height:1.18; margin:28px 0 10px; letter-spacing:1px; }
+  .sub { font-size:42px; font-weight:700; opacity:.92; line-height:1.5; }
+  .hl { background:linear-gradient(transparent 62%, rgba(255,210,0,.85) 62%); padding:0 6px; }
+  .hl-r { background:linear-gradient(transparent 62%, rgba(255,77,109,.55) 62%); padding:0 6px; }
+  .big-num { font-size:150px; font-weight:900; line-height:1; letter-spacing:-2px; }
+  h2.title { font-size:56px; font-weight:900; margin-bottom:8px; line-height:1.25; }
+  .subtitle { font-size:30px; font-weight:600; opacity:.65; margin-bottom:24px; }
+  .row { background:#fff; border-radius:28px; padding:20px 28px; margin-bottom:16px; box-shadow:0 6px 24px rgba(0,0,0,.06); }
+  .row .name { font-size:36px; font-weight:900; margin-bottom:8px; display:flex; align-items:center; gap:14px; flex-wrap:wrap;}
+  .row .desc { font-size:26px; line-height:1.48; }
+  .dot { width:24px; height:24px; border-radius:50%; display:inline-block; }
+  table { width:100%; border-collapse:separate; border-spacing:0; background:#fff; border-radius:26px; overflow:hidden; font-size:26px; box-shadow:0 6px 24px rgba(0,0,0,.06); }
+  th { background:#2a2050; color:#fff; font-weight:800; padding:16px 12px; font-size:25px; }
+  td { padding:14px 12px; text-align:center; border-bottom:1px solid #f0ecf5; line-height:1.35; }
+  td.l { text-align:left; font-weight:800; }
+  tr:last-child td { border-bottom:none; }
+  .up{color:#dc2626;font-weight:800;} .down{color:#16a34a;font-weight:800;} .warn{color:#d97706;font-weight:800;}
+  .kbox { background:#fff; border-radius:26px; padding:20px 28px; margin-bottom:14px; box-shadow:0 6px 24px rgba(0,0,0,.06); display:flex; gap:20px; align-items:flex-start; }
+  .kdate { min-width:165px; background:#16a34a; color:#fff; font-weight:900; font-size:27px; border-radius:16px; text-align:center; padding:12px 0; line-height:1.3;}
+  .kdate.red{background:#dc2626;} .kdate.org{background:#ea580c;} .kdate.pu{background:#7c3aed;}
+  .ktext { font-size:26px; line-height:1.48; padding-top:4px;}
+  .ktext b { font-size:27px; }
+  .quote { background:rgba(255,255,255,.14); border-left:8px solid #ffd400; border-radius:0 22px 22px 0; padding:22px 26px; font-size:30px; line-height:1.55; font-weight:600; }
+  .foot { margin-top:auto; font-size:21px; opacity:.6; line-height:1.45; }
+  .tags { font-size:25px; font-weight:700; opacity:.85; margin-top:20px; }
+  .card5 .ktext { font-size:25px; line-height:1.42; }
+  .card5 .kdate { min-width:150px; font-size:25px; }
+  .card5 .kbox { padding:16px 24px; gap:16px; margin-bottom:12px; }
+  .card5 .ktext b { font-size:26px; }
+  .card2 .row .desc { font-size:25px; line-height:1.45; }
+  .card2 .row .name { font-size:34px; }
+  .num-badge { display:flex; gap:26px; margin:34px 0 8px; }
+  .nb { background:rgba(255,255,255,.12); border-radius:26px; padding:24px 30px; flex:1; }
+  .nb .v { font-size:58px; font-weight:900; color:#ffd400; }
+  .nb .k { font-size:25px; opacity:.85; margin-top:6px; }
+</style><style class='cardgen-fill'>.card{justify-content:space-between;}.card>.foot{margin-top:0 !important;}</style></head><body><div class="card card4" id="card1">
+<span class="tag-top" style="background:#ff2442;">个股拆解 · 2026-08-30</span>
+<h1>AI封装材料的「全球第二」<br>涨完之后,先拆增速🔍</h1>
+<div class="sub" style="margin-top:24px;">华海诚科(688535)中报拆解篇<br>并表·低基数·真景气,三因分离</div>
+<div class="num-badge"><div class="nb"><div class="v">+161.77%</div><div class="k">中报营收增速</div></div><div class="nb"><div class="v">479.9倍</div><div class="k">滚动市盈率</div></div><div class="nb"><div class="v">+153.7%</div><div class="k">上季股东户数增幅</div></div></div>
+<div style="margin-top:30px;"><div class="quote" style="background:rgba(255,255,255,.14);color:inherit;border-left-color:#ffd400;font-size:30px;">"<span style='color:#ffd400'>市值146.7亿的定价里,有多少是并表,多少是景气,多少是想象</span>——拆开看才知道自己在为哪一种买单"</div></div>
+<div class="tags">#华海诚科 #半导体材料 #环氧塑封料 #中报拆解 #先进封装</div><div class="foot">数据来源:华海诚科深度研报(2026年8月版)+公司公告 · 仅供研究参考,不构成投资建议</div></div><div class="card card3" id="card2">
+<span class="tag-top" style="background:#2563eb;">增速归因</span>
+<h2 class="title" style="margin-top:24px;">161.77%的增速,拆成三份</h2>
+<div class="subtitle"></div>
+<table><tr><th style=text-align:left>成分</th><th>是什么</th><th>分量判断</th></tr><tr><td class="l">并表跃迁</td><td class="">衡所华威(常州,汉高体系)去年十月底完成收购交割,今年上半年报表含其全年,而基数还是纯本部</td><td class="down">主因</td></tr><tr><td class="l">低基数</td><td class="">上年同期净利同比下滑近半,利润端读数被低基数放大</td><td class="">次因</td></tr><tr><td class="l">行业景气</td><td class="up">全球标杆住友电木六月起全系提价,公司毛利率真实改善,但排第三</td><td class="up">真实但偏小</td></tr></table>
+<div style="margin-top:30px;"><div class="kbox"><div class="kdate" style="background:#dc2626;">关键提醒</div><div class="ktext">增速里的最大成分是<b>报表口径变化</b>——同口径的环比要等三季报(衡所华威已进基数)才看得清</div></div><div class="kbox"><div class="kdate" style="background:#c2410c;">口径纪律</div><div class="ktext">公司公告口径:HBM方向的颗粒塑封料仍在<b>客户送样验证,尚未形成批量销售</b>——市面上的批量供货说法没有公告依据</div></div></div>
+<div class="foot">数据来源:华海诚科深度研报(2026年8月版)+公司公告 · 仅供研究参考,不构成投资建议</div></div><div class="card card6" id="card3">
+<span class="tag-top" style="background:#7c3aed;">引擎信号</span>
+<h2 class="title" style="margin-top:24px;">两个向上,四个向下</h2>
+<div class="subtitle"></div>
+<table><tr><th style=text-align:left>信号</th><th>读数</th><th>方向</th></tr><tr><td class="l">景气加速</td><td class="up">引擎二阶导 +61.83,营收端强加速</td><td class="up">向上</td></tr><tr><td class="l">盈利质量</td><td class="up">毛利率 30.34%、研发强度 9.33%,改善是真的</td><td class="up">向上</td></tr><tr><td class="l">估值</td><td class="down">滚动市盈率 479.9倍,相对板块溢价 34.68倍</td><td class="down">向下</td></tr><tr><td class="l">安全边际</td><td class="down">风险溢价 -1.97%,盈利收益率不如国债</td><td class="down">向下</td></tr><tr><td class="l">筹码</td><td class="down">上季股东户数 +153.7%(34527户),集中度引擎评分档位垫底</td><td class="down">向下</td></tr><tr><td class="l">动量</td><td class="down">近六十个交易日 -44.95%,高位腰斩</td><td class="down">向下</td></tr></table>
+<div style="margin-top:30px;"><div class="kbox"><div class="kdate" style="background:#dc2626;">赔率结构</div><div class="ktext">三情景概率加权中枢<b>约104亿</b>,对当前市值146.7亿隐含 <b>-29%</b>;即便按乐观情景,上行空间也有限——向下大于向上</div></div><div class="kbox"><div class="kdate" style="background:#c2410c;">现金裂口</div><div class="ktext">上半年经营现金流与净利之比仅 <b>0.28</b>——并表跃迁的收入先挂在应收上,纸面利润转现金还要等账期</div></div></div>
+<div class="foot">数据来源:华海诚科深度研报(2026年8月版)+davis_analyzer引擎 · 仅供研究参考,不构成投资建议</div></div><div class="card card4" id="card4">
+<span class="tag-top" style="background:#0f172a;">一句话收束</span>
+<h2 class="title" style="margin-top:24px;">好公司,坏价格</h2>
+<div class="subtitle">产业卡位是真的,定价透支也是真的</div>
+<div class="row"><div class="desc"><b>真的</b> → 销量口径全球第二(合并约18%份额)、研发真投入、整合已完成、行业量价齐升</div></div><div class="row"><div class="desc"><b>透支的</b> → 滚动市盈率 479.9倍,把两三年后的完美剧本提前定价</div></div><div class="row"><div class="desc"><b>等什么</b> → 三季报同口径环比·颗粒塑封料首个批量订单公告·现金流与利润裂口收敛</div></div>
+<div style="margin-top:14px;"><div class="kbox"><div class="kdate" style="background:#dc2626;">风险</div><div class="ktext">商誉约10亿且多数收购无业绩承诺·AI资本开支周期波动·估值与筹码双杀风险·研究框架演示不构成投资建议</div></div></div>
+<div style="margin-top:8px;"><div class="quote" style="background:rgba(124,58,237,.10);color:#2e2440;border-left-color:#ffd400;font-size:30px;">把<b>「公司好不好」</b>和<b>「价格贵不贵」</b>分开回答——两个问题的答案可以相反,这才是拆解的价值</div></div>
+<div class="tags">#华海诚科 #半导体材料 #中报拆解 #估值 #研究方法</div><div class="foot">数据来源:华海诚科深度研报(2026年8月版)+公司公告 · AI辅助生成,仅供研究参考,不构成投资建议。市场有风险,投资需谨慎。</div></div></body></html>

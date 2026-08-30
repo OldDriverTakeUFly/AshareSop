@@ -1,0 +1,19 @@
+{
+  "topic": "华海诚科卡",
+  "version": 1,
+  "as_of": "2026-08-30",
+  "expires_at": "2026-09-30",
+  "group": "个股拆解",
+  "images": [
+    "output/华海诚科卡_01_封面.png",
+    "output/华海诚科卡_02_三因拆解.png",
+    "output/华海诚科卡_03_四面共振.png",
+    "output/华海诚科卡_04_小结.png"
+  ],
+  "facts_digest": "sha256:81ae2b3780d21ea734b05c5e84cbf56e0f77a127dc70eccf62a86acf1d45f3fa",
+  "validate": {
+    "passed": true,
+    "failures": 0
+  },
+  "cardgen_version": "0.1"
+}
