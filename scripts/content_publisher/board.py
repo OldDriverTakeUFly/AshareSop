@@ -262,7 +262,7 @@ if(!j.ok){toast('✗ '+j.stderr);return}
 const cp=(txt,tag)=>`<button class="copy" onclick="navigator.clipboard.writeText(document.getElementById('${tag}').textContent).then(()=>toast('✓ 已复制'))">复制</button>`;
 $('mbox').innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center"><b>#${id} 发布材料</b>
 <button onclick="$('modal').style.display='none'">关闭</button></div>
-<h3>图片(按顺序上传 ${j.images.length} 张)</h3><pre>${esc(j.images.join('\n'))}</pre>
+<h3>图片(按顺序上传 ${j.images.length} 张)</h3><pre>${esc(j.images.join('\\n'))}</pre>
 <h3>标题 ${cp(0,'m-title')}</h3><pre id="m-title">${esc(j.title)}</pre>
 <h3>正文+标签 ${cp(0,'m-body')}</h3><pre id="m-body">${esc(j.body)}</pre>
 <h3>发布清单</h3><pre>${esc(j.checklist)}</pre>
