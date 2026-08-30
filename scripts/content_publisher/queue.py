@@ -6,7 +6,8 @@
 #   - schedule 时效硬闸:排期日超过 expires_at → 拒绝(当天仍有效)
 #   - PUBLISHER_DB 环境变量注入数据库路径(pytest 用)
 #   - due 子命令:扫已到点的 scheduled 行(半自动发布提醒);list --json 供管理台消费
-# 发布动作自动化(浏览器方案)留 M3
+# M4(2026-08-30):小红书判定账号使用自动化浏览/发布 → 自动发帖(publish/publish-due/login)停用,
+#   改为 prep 备料(机器整理图片+文案+CHECKLIST 到本地目录)→ 人工在官方 App 发布 → mark published
 # 用法:
 #   .venv/bin/python scripts/content_publisher/queue.py init
 #   .venv/bin/python scripts/content_publisher/queue.py enqueue --title "..." --images a.png,b.png --tags "#国产GPU" --body "..." --source docs/小红书卡片/GPU四小龙
@@ -15,12 +16,14 @@
 #   .venv/bin/python scripts/content_publisher/queue.py review <id>   # draft→reviewed(人工确认)
 #   .venv/bin/python scripts/content_publisher/queue.py schedule <id> --at "2026-08-30 20:00"
 #   .venv/bin/python scripts/content_publisher/queue.py due           # 已到点待发布清单
+#   .venv/bin/python scripts/content_publisher/queue.py prep [id]     # 备料(无 id=全部到点项)→ 人工发布 → mark <id> published
 from __future__ import annotations
 
 import argparse
 import json
 import os
 import re
+import shutil
 import sqlite3
 import sys
 from datetime import datetime
@@ -40,7 +43,13 @@ sys.modules["queue"] = _stdlib_queue
 sys.path.insert(0, _here)
 
 REQUIRED = ["不构成投资建议"]  # 合规必备话术(标题+正文+图片foot合并检查)
-STATUSES = ("draft", "reviewed", "scheduled", "published", "failed")
+STATUSES = ("draft", "reviewed", "scheduled", "prepped", "published", "failed")
+
+# 2026-08-30 平台判定后自动发帖停用;publish/publish-due/login 只留提示
+_AUTO_PUBLISH_DISABLED = (
+    "自动发帖已停用(2026-08-30 小红书判定账号使用自动化浏览/发布,继续自动化会加重处罚)。\n"
+    "改用: queue.py prep [id] 备料 → 人工在官方 App 发布 → queue.py mark <id> published")
+PREP_DIR = ROOT.parent.parent / "storage" / "publish_prep"
 
 
 def _conn() -> sqlite3.Connection:
@@ -51,13 +60,30 @@ def _conn() -> sqlite3.Connection:
 
 
 def _ensure_cols(conn: sqlite3.Connection) -> None:
-    """M2 列迁移:旧库补 release_expires 列(幂等)。"""
+    """M2 列迁移 + M4 CHECK 迁移(补 prepped 状态,SQLite 改 CHECK 须重建表)。"""
     cols = {r[1] for r in conn.execute("PRAGMA table_info(publish_queue)")}
     if "release_expires" not in cols and cols:
         conn.execute("ALTER TABLE publish_queue ADD COLUMN release_expires TEXT")
     if "group" not in cols and cols:
         conn.execute('ALTER TABLE publish_queue ADD COLUMN "group" TEXT')
-        conn.commit()
+    if cols and "prepped" not in (conn.execute(
+            "SELECT sql FROM sqlite_master WHERE name='publish_queue'").fetchone()[0] or ""):
+        conn.execute("PRAGMA foreign_keys=OFF")
+        conn.execute("ALTER TABLE publish_queue RENAME TO publish_queue_old")
+        conn.execute("""CREATE TABLE publish_queue(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            created_at TEXT NOT NULL,
+            source TEXT, title TEXT NOT NULL, body TEXT, tags TEXT,
+            images TEXT, platform TEXT DEFAULT 'xiaohongshu',
+            status TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','reviewed','scheduled','prepped','published','failed')),
+            scheduled_at TEXT, published_at TEXT, note_id TEXT,
+            release_expires TEXT, "group" TEXT,
+            scan_result TEXT)""")
+        conn.execute("INSERT INTO publish_queue SELECT id,created_at,source,title,body,tags,images,"
+                     'platform,status,scheduled_at,published_at,note_id,release_expires,"group",scan_result '
+                     "FROM publish_queue_old")
+        conn.execute("DROP TABLE publish_queue_old")
+    conn.commit()
 
 
 def init_db(_args=None) -> None:
@@ -68,9 +94,9 @@ def init_db(_args=None) -> None:
             created_at TEXT NOT NULL,
             source TEXT, title TEXT NOT NULL, body TEXT, tags TEXT,
             images TEXT, platform TEXT DEFAULT 'xiaohongshu',
-            status TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','reviewed','scheduled','published','failed')),
+            status TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','reviewed','scheduled','prepped','published','failed')),
             scheduled_at TEXT, published_at TEXT, note_id TEXT,
-            release_expires TEXT,
+            release_expires TEXT, "group" TEXT,
             scan_result TEXT)""")
         c.execute("""CREATE TABLE IF NOT EXISTS publish_log(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -208,87 +234,79 @@ def mark(args: argparse.Namespace) -> None:
         print(f"#{args.id} → {args.status}")
 
 
-# ── M3 自动发稿 ──
+# ── M4 备料(机器备料、人工发布;2026-08-30 平台判定后 M3 自动发稿停用)──
 def _today() -> str:
     return datetime.now().strftime("%Y-%m-%d")
 
 
-def _publish_stats(c: sqlite3.Connection) -> tuple[int, str | None]:
-    """(今日已发布条数, 最近发布时间)——护栏输入。"""
-    n = c.execute("SELECT COUNT(*) FROM publish_queue WHERE status='published' "
-                  "AND substr(published_at,1,10)=?", (_today(),)).fetchone()[0]
-    last = c.execute("SELECT MAX(published_at) FROM publish_queue "
-                     "WHERE published_at IS NOT NULL").fetchone()[0]
-    return int(n), last
+def _checklist_md(r: sqlite3.Row, imgs: list[str]) -> str:
+    return f"""# 人工发布清单 #{r['id']} {r['title']}
+
+- 排期: {r['scheduled_at'] or '(未排期)'} | 数据有效期至: {r['release_expires'] or '无'}
+- 合集(如有): {r['group'] or '无'}
+
+## 步骤(全部在手机 App 或本人手开的浏览器里操作,勿用脚本驱动)
+
+1. 上传图片,按顺序: {', '.join(imgs) if imgs else '(无图片)'}
+2. 标题 ← 复制 `标题.txt`
+3. 正文+话题标签 ← 复制 `正文.txt`(末段已含 tags)
+4. 若图片为 AI 生成,勾选平台的「AI 生成内容」声明
+5. 加入合集「{r['group']}」(如有)
+6. 发布前核对图片 foot 处免责话术仍在
+7. 发布成功后回填台账: `.venv/bin/python scripts/content_publisher/queue.py mark {r['id']} published`
+"""
 
 
-def _publish_row(c: sqlite3.Connection, r: sqlite3.Row) -> None:
-    """发一条 queue 行;成功 published,失败 failed,均留 publish_log。"""
-    import publisher as _pub  # 同目录脚本,sys.path[0] 可达
-    task = _pub.PublishTask(qid=r["id"], title=r["title"], body=r["body"] or "",
-                            tags=r["tags"] or "", images=json.loads(r["images"] or "[]"),
-                            group=r["group"] or "")
-    try:
-        result = _pub.publish_one(task)
-        c.execute("UPDATE publish_queue SET status='published', published_at=?, note_id=? WHERE id=?",
-                  (datetime.now().isoformat(timespec="seconds"), result.get("note_url", ""), r["id"]))
-        _log(c, r["id"], "publish_ok", str(result.get("note_url", "")))
-        print(f"#{r['id']} 已发布: {result.get('note_url', '')}")
-    except SystemExit as e:
-        c.execute("UPDATE publish_queue SET status='failed' WHERE id=?", (r["id"],))
-        _log(c, r["id"], "publish_fail", str(e))
-        raise
-    except Exception as e:  # noqa: BLE001
-        c.execute("UPDATE publish_queue SET status='failed' WHERE id=?", (r["id"],))
-        _log(c, r["id"], "publish_fail", repr(e)[:500])
-        raise
+def prep(args: argparse.Namespace) -> None:
+    """备料:scheduled 且到点的行(或指定 id)落盘图片+文案+CHECKLIST,状态 → prepped。"""
+    now = datetime.now().isoformat(timespec="minutes")
+    with _conn() as c:
+        if args.id:
+            rows = c.execute("SELECT * FROM publish_queue WHERE id=?", (args.id,)).fetchall()
+        else:
+            rows = c.execute(
+                "SELECT * FROM publish_queue WHERE status='scheduled' AND scheduled_at<=? "
+                "ORDER BY scheduled_at", (now,)).fetchall()
+    if not rows:
+        print(f"无可备料项(不带 id 时取已到点的 scheduled,as of {now})")
+        return
+    today = _today()
+    for r in rows:
+        if r["status"] != "scheduled":
+            sys.exit(f"#{r['id']} 状态为 {r['status']},仅 scheduled 可备料")
+        if r["release_expires"] and r["release_expires"] < today:
+            print(f"跳过 #{r['id']}: 数据已过期(有效至 {r['release_expires']}),须回 cardgen bump 重发")
+            continue
+        safe = re.sub(r"[^\w\u4e00-\u9fff-]", "_", r["title"])[:24]
+        out = PREP_DIR / f"{today}_{r['id']}_{safe}"
+        out.mkdir(parents=True, exist_ok=True)
+        imgs: list[str] = []
+        for p in json.loads(r["images"] or "[]"):
+            src = Path(p)
+            if not src.exists():
+                sys.exit(f"#{r['id']} 图片不存在: {p}(源被移动/清理,重新 enqueue)")
+            shutil.copy2(src, out / src.name)
+            imgs.append(src.name)
+        (out / "标题.txt").write_text(r["title"], encoding="utf-8")
+        (out / "正文.txt").write_text((r["body"] or "").strip() + "\n\n" + (r["tags"] or ""),
+                                      encoding="utf-8")
+        (out / "CHECKLIST.md").write_text(_checklist_md(r, imgs), encoding="utf-8")
+        with _conn() as c:
+            c.execute("UPDATE publish_queue SET status='prepped' WHERE id=?", (r["id"],))
+            _log(c, r["id"], "prep", str(out))
+        print(f"#{r['id']} 备料完成 → {out}")
 
 
 def cmd_login(_args: argparse.Namespace) -> None:
-    import publisher as _pub
-    _pub.login()
+    sys.exit(_AUTO_PUBLISH_DISABLED)
 
 
-def publish(args: argparse.Namespace) -> None:
-    """单条人工确认发布(M3 第2步):scheduled 且到点、未过期。"""
-    if not args.confirm:
-        sys.exit("发布是不可逆外发动作,须 --confirm")
-    with _conn() as c:
-        r = c.execute("SELECT * FROM publish_queue WHERE id=?", (args.id,)).fetchone()
-        if not r or r["status"] != "scheduled":
-            sys.exit(f"#{args.id} 非 scheduled 状态")
-        if r["release_expires"] and r["release_expires"] < _today():
-            sys.exit(f"#{args.id} 数据已过期(有效至 {r['release_expires']}),须回 cardgen bump 重发")
-        _publish_row(c, r)
+def publish(args: argparse.Namespace) -> None:  # noqa: ARG001
+    sys.exit(_AUTO_PUBLISH_DISABLED)
 
 
-def publish_due(args: argparse.Namespace) -> None:
-    """扫 due 自动发布(M3 第3步,cron 挂):护栏=单日上限/最小间隔/过期跳过。--dry-run 只出计划。"""
-    import publisher as _pub
-    now = datetime.now().isoformat(timespec="minutes")
-    with _conn() as c:
-        rows = c.execute(
-            "SELECT * FROM publish_queue WHERE status='scheduled' AND scheduled_at<=? "
-            "ORDER BY scheduled_at", (now,)).fetchall()
-        if not rows:
-            print(f"无到点项(as of {now})")
-            return
-        published_today, last_at = _publish_stats(c)
-        todo, skipped = _pub.select_publishable(
-            [dict(r) for r in rows], published_today, last_at,
-            datetime.now().isoformat(timespec="seconds"))
-        for s in skipped:
-            print(f"跳过: {s}")
-        if not todo:
-            return
-        if args.dry_run:
-            for r in todo:
-                print(f"[dry-run] 将发布 #{r['id']} [{r['title'][:36]}]")
-            print(f"共 {len(todo)} 条待发(今日已发 {published_today})")
-            return
-        by_id = {r["id"]: r for r in rows}
-        for r in todo:
-            _publish_row(c, by_id[r["id"]])  # 首条失败即抛出停整轮,留痕人工介入
+def publish_due(args: argparse.Namespace) -> None:  # noqa: ARG001
+    sys.exit(_AUTO_PUBLISH_DISABLED)
 
 
 def list_queue(args: argparse.Namespace) -> None:
@@ -304,7 +322,7 @@ def list_queue(args: argparse.Namespace) -> None:
             print(json.dumps([dict(r) for r in rows], ensure_ascii=False, indent=2))
             return
         for r in rows:
-            print(f"#{r['id']:<3} [{r['status']:<9}] {r['title'][:38]:<40} {r['tags'][:30]} "
+            print(f"#{r['id']:<3} [{r['status']:<9}] {r['title'][:38]:<40} {(r['tags'] or '')[:30]} "
                   f"{r['scheduled_at'] or ''} {('有效至' + r['release_expires']) if r['release_expires'] else ''}")
 
 
@@ -324,8 +342,10 @@ def main() -> None:
     l.set_defaults(func=list_queue)
     d = sub.add_parser("due"); d.set_defaults(func=due)
     sub.add_parser("login").set_defaults(func=cmd_login)
-    p = sub.add_parser("publish"); p.add_argument("id", type=int)
-    p.add_argument("--confirm", action="store_true"); p.set_defaults(func=publish)
+    pr = sub.add_parser("prep"); pr.add_argument("id", type=int, nargs="?", default=None)
+    pr.set_defaults(func=prep)
+    p = sub.add_parser("publish"); p.add_argument("id", type=int, nargs="?", default=None)
+    p.set_defaults(func=publish)
     pd = sub.add_parser("publish-due"); pd.add_argument("--dry-run", action="store_true")
     pd.set_defaults(func=publish_due)
     args = ap.parse_args()

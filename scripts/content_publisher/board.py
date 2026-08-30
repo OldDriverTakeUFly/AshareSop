@@ -74,11 +74,13 @@ def api_queue(status: str | None = None) -> list[dict]:
 
 @app.get("/api/due")
 def api_due() -> list[dict]:
+    """到点待发布(scheduled)+ 已备料待人工发布(prepped)。"""
     now = datetime.now().isoformat(timespec="minutes")
     with _QUEUE._conn() as c:
         rows = c.execute(
-            "SELECT id,title,scheduled_at,release_expires FROM publish_queue "
-            "WHERE status='scheduled' AND scheduled_at<=? ORDER BY scheduled_at", (now,)).fetchall()
+            "SELECT id,title,status,scheduled_at,release_expires FROM publish_queue "
+            "WHERE status IN ('scheduled','prepped') AND scheduled_at<=? "
+            "ORDER BY scheduled_at", (now,)).fetchall()
     today = now[:10]
     return [{**dict(r), "stale": bool(r["release_expires"] and r["release_expires"] < today)}
             for r in rows]
@@ -143,6 +145,36 @@ def api_scan() -> JSONResponse:
     return _cli("scan")
 
 
+@app.post("/api/queue/{qid}/prep")
+def api_prep(qid: int) -> JSONResponse:
+    return _cli("prep", str(qid))
+
+
+@app.post("/api/prep")
+def api_prep_due() -> JSONResponse:
+    return _cli("prep")
+
+
+@app.get("/api/queue/{qid}/material")
+def api_material(qid: int) -> JSONResponse:
+    """备料产物(文案+清单+图片名)——供页面弹窗复制,人拿着手机照 CHECKLIST 发布。"""
+    with _QUEUE._conn() as c:
+        row = c.execute(
+            "SELECT detail FROM publish_log WHERE queue_id=? AND event='prep' "
+            "ORDER BY id DESC LIMIT 1", (qid,)).fetchone()
+    if not row:
+        return JSONResponse({"ok": False, "stderr": "无备料记录,先备料"}, status_code=404)
+    d = Path(row["detail"])
+    if not d.exists():
+        return JSONResponse({"ok": False, "stderr": f"备料目录已不存在: {d}"}, status_code=404)
+    imgs = sorted(p.name for p in d.iterdir()
+                  if p.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"})
+    return {"ok": True, "dir": str(d), "images": imgs,
+            "title": (d / "标题.txt").read_text(encoding="utf-8"),
+            "body": (d / "正文.txt").read_text(encoding="utf-8"),
+            "checklist": (d / "CHECKLIST.md").read_text(encoding="utf-8")}
+
+
 # ── 页面 ──
 _PAGE = """<!DOCTYPE html><html lang="zh-CN"><head><meta charset="UTF-8">
 <title>发稿池管理台</title><style>
@@ -160,25 +192,32 @@ th,td{padding:7px 9px;border-bottom:1px solid #334155;text-align:left;vertical-a
 th{color:#94a3b8;font-weight:600;font-size:12px}
 .chip{padding:1px 8px;border-radius:9px;font-size:11px}
 .s-draft{background:#78350f}.s-reviewed{background:#1d4ed8}.s-scheduled{background:#065f46}
-.s-published{background:#374151}.s-failed{background:#7f1d1d}
+.s-prepped{background:#7c2d12}.s-published{background:#374151}.s-failed{background:#7f1d1d}
 .exp-ok{color:#94a3b8}.exp-warn{color:#fbbf24}.exp-bad{color:#f87171;font-weight:700}
 .due-item{background:#1e293b;border-radius:8px;padding:8px 12px;margin-bottom:8px;font-size:13px}
 h2{font-size:14px;color:#94a3b8;margin:0 0 10px}
 #toast{position:fixed;bottom:18px;right:18px;background:#334155;padding:10px 16px;border-radius:8px;
 font-size:13px;display:none;max-width:480px;white-space:pre-wrap}
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center}
+#modal .box{background:#1e293b;border-radius:10px;padding:18px 20px;max-width:640px;width:92%;max-height:86vh;overflow:auto}
+#modal pre{background:#0f172a;border-radius:6px;padding:10px;font-size:13px;white-space:pre-wrap;word-break:break-all}
+#modal h3{margin:4px 0;font-size:14px;color:#94a3b8}
+.copy{background:#065f46;border-color:#059669;margin-left:8px}
 </style></head><body>
 <header><h1>📕 发稿池管理台</h1>
 <select id="f" onchange="load()"><option value="">全部状态</option>
-<option>draft</option><option>reviewed</option><option>scheduled</option>
+<option>draft</option><option>reviewed</option><option>scheduled</option><option>prepped</option>
 <option>published</option><option>failed</option></select>
 <button onclick="api('/api/scan','POST')">重扫 draft</button>
+<button class="primary" onclick="api('/api/prep','POST')">备料全部到点</button>
 <span id="ts" style="margin-left:auto;font-size:12px;color:#64748b"></span></header>
 <main><div>
 <table><thead><tr><th>#</th><th>标题</th><th>状态</th><th>数据有效期</th><th>排期</th><th>操作</th></tr></thead>
 <tbody id="rows"></tbody></table></div>
-<div><h2>⏰ 到点待发布</h2><div id="due"></div><h2 style="margin-top:18px">🗂 cardgen 工程</h2>
+<div><h2>⏰ 到点/待人工发布</h2><div id="due"></div><h2 style="margin-top:18px">🗂 cardgen 工程</h2>
 <table><thead><tr><th>工程</th><th>状态</th><th>数据截至/过期</th></tr></thead><tbody id="cards"></tbody></table>
 </div></main><div id="toast"></div>
+<div id="modal"><div class="box" id="mbox"></div></div>
 <script>
 const $=id=>document.getElementById(id);
 const chip=s=>`<span class="chip s-${s}">${s}</span>`;
@@ -199,21 +238,36 @@ rs.map(r=>{
 const acts=[];
 if(r.status==='draft')acts.push(`<button class="primary" onclick="api('/api/queue/${r.id}/review','POST')">审核通过</button>`);
 if(r.status==='reviewed')acts.push(`<button class="primary" onclick="sched(${r.id})">排期</button>`);
-if(r.status==='scheduled')acts.push(`<button onclick="api('/api/queue/${r.id}/mark','POST',{status:'published'})">标记已发</button>`,
+if(r.status==='scheduled')acts.push(`<button class="primary" onclick="api('/api/queue/${r.id}/prep','POST')">备料</button>`,
+`<button onclick="api('/api/queue/${r.id}/mark','POST',{status:'failed'})">失败</button>`);
+if(r.status==='prepped')acts.push(`<button class="copy" onclick="mat(${r.id})">📋 文案</button>`,
+`<button class="primary" onclick="api('/api/queue/${r.id}/mark','POST',{status:'published'})">标记已发</button>`,
 `<button class="danger" onclick="api('/api/queue/${r.id}/mark','POST',{status:'failed'})">失败</button>`);
 return`<tr><td>${r.id}</td><td>${esc(r.title)}<div style="color:#64748b;font-size:11px">${esc(r.source||'')}</div></td>
 <td>${chip(r.status)}</td><td class="${expCls(r.release_expires)}">${r.release_expires?('至 '+r.release_expires):'—'}</td>
 <td>${esc(r.scheduled_at||'')}</td><td style="white-space:nowrap">${acts.join(' ')}</td></tr>`}).join('')).join('')
 ||'<tr><td colspan="6" style="color:#64748b">空</td></tr>';
 const due=await(await fetch(withT('/api/due'))).json();
-$('due').innerHTML=due.map(d=>`<div class="due-item">${chip('scheduled')} #${d.id} @ ${esc(d.scheduled_at)} ${esc(d.title)}`
-+(d.stale?'<span class="exp-bad"> ⚠️数据已过期</span>':'')).join('')||'<div class="due-item" style="color:#64748b">无到点项</div>';
+$('due').innerHTML=due.map(d=>`<div class="due-item">${chip(d.status)} #${d.id} @ ${esc(d.scheduled_at)} ${esc(d.title)}`
++(d.stale?'<span class="exp-bad"> ⚠️数据已过期</span>':'')
++(d.status==='prepped'?` <button class="copy" onclick="mat(${d.id})" style="padding:1px 6px">📋</button>`:'')).join('')||'<div class="due-item" style="color:#64748b">无到点项</div>';
 const cards=await(await fetch(withT('/api/cards'))).json();
 $('cards').innerHTML=cards.map(c=>`<tr><td>${esc(c.topic)} v${c.current_version}</td><td>${esc(c.status)}</td>
 <td class="${c.expired?'exp-bad':'exp-ok'}">${esc(c.as_of||'—')} / ${esc(c.expires_at||'—')}${c.expired?' 已过期':''}</td></tr>`).join('')
 ||'<tr><td colspan="3" style="color:#64748b">无工程</td></tr>';
 $('ts').textContent='刷新于 '+new Date().toLocaleTimeString()}
 function sched(id){const at=prompt('排期时间(YYYY-MM-DD HH:MM):');if(!at)return;api(`/api/queue/${id}/schedule`,'POST',{at})}
+async function mat(id){const j=await(await fetch(withT(`/api/queue/${id}/material`))).json();
+if(!j.ok){toast('✗ '+j.stderr);return}
+const cp=(txt,tag)=>`<button class="copy" onclick="navigator.clipboard.writeText(document.getElementById('${tag}').textContent).then(()=>toast('✓ 已复制'))">复制</button>`;
+$('mbox').innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center"><b>#${id} 发布材料</b>
+<button onclick="$('modal').style.display='none'">关闭</button></div>
+<h3>图片(按顺序上传 ${j.images.length} 张)</h3><pre>${esc(j.images.join('\n'))}</pre>
+<h3>标题 ${cp(0,'m-title')}</h3><pre id="m-title">${esc(j.title)}</pre>
+<h3>正文+标签 ${cp(0,'m-body')}</h3><pre id="m-body">${esc(j.body)}</pre>
+<h3>发布清单</h3><pre>${esc(j.checklist)}</pre>
+<div style="color:#64748b;font-size:11px;margin-top:8px">备料目录: ${esc(j.dir)}</div>`;
+$('modal').style.display='flex'}
 load();setInterval(load,30000)
 </script></body></html>"""
 
