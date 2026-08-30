@@ -1,0 +1,17 @@
+{
+  "topic": "富信科技",
+  "version": 1,
+  "as_of": "2026-07-31",
+  "expires_at": "2026-09-12",
+  "group": "个股研报·光通信",
+  "images": [
+    "output/富信科技_01_封面.png",
+    "output/富信科技_02_结论.png"
+  ],
+  "facts_digest": "sha256:13cf5078b0e3b7132a7eea2105adf1c36511857e44706f92322b6db3ec3ce236",
+  "validate": {
+    "passed": true,
+    "failures": 0
+  },
+  "cardgen_version": "0.1"
+}

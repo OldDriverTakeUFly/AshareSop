@@ -1,0 +1,55 @@
+{
+  "group": "产业链调研",
+  "cards": [
+    {
+      "type": "cover",
+      "theme": "purple_dark",
+      "name": "01_封面",
+      "tag_top": "技术前沿 · 2026-08-29",
+      "title": "MicroLED光通信<br>值得关注🤔",
+      "sub": "用微LED替代VCSEL<br>实现超短距光互连",
+      "stats": [
+        {
+          "v": "99.3%",
+          "k": "巨量转移良率(LIFT)"
+        },
+        {
+          "v": "超99.99%",
+          "k": "VCSEL成熟良率"
+        }
+      ],
+      "quote": {
+        "on_dark": true,
+        "html": "\"良率<b>99.3%</b>对<b>超99.99%</b>——差距决定量产时间表\""
+      },
+      "tags": "#MicroLED #光通信 #技术前沿",
+      "foot": "数据来源:microled光通信报告(2026年5月)· 仅供研究参考,不构成投资建议"
+    },
+    {
+      "type": "summary",
+      "theme": "lavender",
+      "name": "02_结论",
+      "tag_top": "收束",
+      "tag_color": "#0f172a",
+      "title": "技术储备期<br>非投资窗口",
+      "rows": [
+        {
+          "desc": "MicroLED替代VCSEL做光互连:<span class='hl'>带宽密度更高+功耗更低</span>"
+        },
+        {
+          "desc": "瓶颈在<span class='hl'>巨量转移良率</span>:LIFT法99.3%对VCSEL超99.99%"
+        }
+      ],
+      "kbox": {
+        "date": "风险",
+        "color": "red",
+        "html": "良率瓶颈·量产时间不确定·VCSEL迭代·A股无纯正参与"
+      },
+      "quote": {
+        "html": "新技术的规律:<b>论文到产品十年,产品到利润又十年</b>——MicroLED光通信在第一段的中间"
+      },
+      "tags": "#MicroLED #光通信",
+      "foot": "数据来源:microled光通信报告(2026年5月)· AI辅助生成,仅供研究参考,不构成投资建议。市场有风险,投资需谨慎。"
+    }
+  ]
+}

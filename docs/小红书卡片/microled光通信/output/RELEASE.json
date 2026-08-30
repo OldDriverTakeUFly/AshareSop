@@ -1,0 +1,17 @@
+{
+  "topic": "microled光通信",
+  "version": 1,
+  "as_of": "2026-05-09",
+  "expires_at": "2026-09-12",
+  "group": "产业链调研",
+  "images": [
+    "output/microled光通信_01_封面.png",
+    "output/microled光通信_02_结论.png"
+  ],
+  "facts_digest": "sha256:00f5affd00d8ae1bc356475915bc14b537a9d1ea788f3a3937de7ac81e40acfd",
+  "validate": {
+    "passed": true,
+    "failures": 0
+  },
+  "cardgen_version": "0.1"
+}

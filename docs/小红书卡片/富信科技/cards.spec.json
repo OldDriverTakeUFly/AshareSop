@@ -1,0 +1,62 @@
+{
+  "group": "个股研报·光通信",
+  "cards": [
+    {
+      "type": "cover",
+      "theme": "purple_dark",
+      "name": "01_封面",
+      "tag_top": "个股速览 · 2026-08-29",
+      "title": "富信科技:Micro TEC<br>最极端估值⚠️",
+      "sub": "碲化铋物理不可替代<br>但PE 544.6x极透支",
+      "stats": [
+        {
+          "v": {
+            "$fact": "pe"
+          },
+          "k": "PE历史分位"
+        },
+        {
+          "v": {
+            "$fact": "rev"
+          },
+          "k": "2025营收(极小)"
+        }
+      ],
+      "quote": {
+        "on_dark": true,
+        "html": "\"<span style='color:#ff6b6b'>PE 544.6x + PB 29x 双99.8%分位</span>——技术突破不等于业绩兑现\""
+      },
+      "tags": "#富信科技 #TEC #光模块",
+      "foot": "数据来源:富信科技深度研报(2026年7月)· 仅供研究参考,不构成投资建议"
+    },
+    {
+      "type": "summary",
+      "theme": "lavender",
+      "name": "02_结论",
+      "tag_top": "收束",
+      "tag_color": "#0f172a",
+      "title": "技术真·兑现远<br>估值已到极限",
+      "rows": [
+        {
+          "desc": "碲化铋TEC在800G/1.6T/3.2T光模块中<span class='hl'>物理层面不可替代</span>"
+        },
+        {
+          "desc": "但<span class='hl'>2025营收仅5.35亿</span>,Micro TEC收入贡献尚未体现"
+        },
+        {
+          "desc": "<span class='hl'>PE 544x(99.8%分位)</span>——估值严重脱离基本面"
+        }
+      ],
+      "kbox": {
+        "date": "风险",
+        "color": "red",
+        "html": "体量极小·放量时点不确定·PE/PB双99.8%分位"
+      },
+      "quote": {
+        "html": "物理不可替代常被当成估值免死金牌——<b>但物理不偿付估值</b>"
+      },
+      "tags": "#富信科技 #TEC #光模块",
+      "foot": "数据来源:富信科技深度研报(2026年7月)· AI辅助生成,仅供研究参考,不构成投资建议。市场有风险,投资需谨慎。"
+    }
+  ]
+}

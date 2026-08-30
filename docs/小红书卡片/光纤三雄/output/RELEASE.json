@@ -1,0 +1,18 @@
+{
+  "topic": "光纤三雄",
+  "version": 1,
+  "as_of": "2026-07-31",
+  "expires_at": "2026-09-12",
+  "group": "个股研报·光通信",
+  "images": [
+    "output/光纤三雄_01_封面.png",
+    "output/光纤三雄_02_三雄对照.png",
+    "output/光纤三雄_03_结论.png"
+  ],
+  "facts_digest": "sha256:d36a38d1265c3379369554874556db5dd2beb3ccdeac82738ad1f35b39e39b6d",
+  "validate": {
+    "passed": true,
+    "failures": 0
+  },
+  "cardgen_version": "0.1"
+}

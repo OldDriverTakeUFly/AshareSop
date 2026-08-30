@@ -1,0 +1,108 @@
+{
+  "facts": [
+    {
+      "id": "coupling_pct",
+      "value": "40",
+      "unit": "%",
+      "display": "约40%",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/光通信生产制造设备产业链全景研报.md",
+        "quote": "耦合 ~40% + 固晶 ~20% + 封装 ~12% + 老化 ~12%"
+      }
+    },
+    {
+      "id": "ficon_si",
+      "value": "55",
+      "unit": "%",
+      "display": "约55%",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/光通信生产制造设备产业链全景研报.md",
+        "quote": "ficonTEC(罗博特科) ~55% 硅光封装"
+      }
+    },
+    {
+      "id": "ficon_800g",
+      "value": "80",
+      "unit": "%",
+      "display": ">80%",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/光通信生产制造设备产业链全景研报.md",
+        "quote": "ficonTEC(罗博特科) >80% 800G全自动"
+      }
+    },
+    {
+      "id": "asmpt_pct",
+      "value": "15",
+      "unit": "%",
+      "display": "约15%",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/光通信生产制造设备产业链全景研报.md",
+        "quote": "ASMPT ~15%(第二梯队)"
+      }
+    },
+    {
+      "id": "g800",
+      "value": "800",
+      "unit": "",
+      "display": "800G",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/光通信生产制造设备产业链全景研报.md",
+        "quote": "800G全自动 >80%"
+      }
+    },
+    {
+      "id": "die_pct",
+      "value": "20",
+      "unit": "%",
+      "display": "约20%",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/光通信生产制造设备产业链全景研报.md",
+        "quote": "固晶 ~20%"
+      }
+    },
+    {
+      "id": "pkg_pct",
+      "value": "12",
+      "unit": "%",
+      "display": "约12%",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/光通信生产制造设备产业链全景研报.md",
+        "quote": "封装 ~12% + 老化 ~12%"
+      }
+    },
+    {
+      "id": "aging_pct",
+      "value": "12",
+      "unit": "%",
+      "display": "约12%",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/光通信生产制造设备产业链全景研报.md",
+        "quote": "封装 ~12% + 老化 ~12%"
+      }
+    }
+  ]
+}

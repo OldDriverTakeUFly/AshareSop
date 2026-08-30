@@ -1,0 +1,134 @@
+{
+  "facts": [
+    {
+      "id": "pe",
+      "value": "544.6",
+      "unit": "x",
+      "display": "544.6x",
+      "as_of": "2026-07-31",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/富信科技深度研报.md",
+        "quote": "PE 544.6x(99.8% 分位)"
+      }
+    },
+    {
+      "id": "rev",
+      "value": "5.35",
+      "unit": "亿",
+      "display": "5.35亿",
+      "as_of": "2026-07-31",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/富信科技深度研报.md",
+        "quote": "2025 营收 5.35 亿"
+      }
+    },
+    {
+      "id": "pe_pct",
+      "value": "99.8",
+      "unit": "%",
+      "display": "99.8%",
+      "as_of": "2026-07-31",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/富信科技深度研报.md",
+        "quote": "PE 544.6x(99.8% 分位)"
+      }
+    },
+    {
+      "id": "pb_pct",
+      "value": "99.9",
+      "unit": "%",
+      "display": "99.9%",
+      "as_of": "2026-07-31",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/富信科技深度研报.md",
+        "quote": "PB 29.06x(99.9% 分位)"
+      }
+    },
+    {
+      "id": "pb_val",
+      "value": "29",
+      "unit": "x",
+      "display": "29x",
+      "as_of": "2026-07-31",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/富信科技深度研报.md",
+        "quote": "PB 29.06x(99.9% 分位)"
+      }
+    },
+    {
+      "id": "both_pct",
+      "value": "99.8",
+      "unit": "%",
+      "display": "99.8%",
+      "as_of": "2026-07-31",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/富信科技深度研报.md",
+        "quote": "PE 544.6x(99.8% 分位)、PB 29.06x(99.9% 分位)"
+      }
+    },
+    {
+      "id": "g800",
+      "value": "800",
+      "unit": "",
+      "display": "800G",
+      "as_of": "2026-07-31",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/富信科技深度研报.md",
+        "quote": "800G/1.6T/3.2T"
+      }
+    },
+    {
+      "id": "s16",
+      "value": "1.6",
+      "unit": "",
+      "display": "1.6T",
+      "as_of": "2026-07-31",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/富信科技深度研报.md",
+        "quote": "800G/1.6T/3.2T"
+      }
+    },
+    {
+      "id": "s32",
+      "value": "3.2",
+      "unit": "",
+      "display": "3.2T",
+      "as_of": "2026-07-31",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/富信科技深度研报.md",
+        "quote": "800G/1.6T/3.2T"
+      }
+    },
+    {
+      "id": "pe544",
+      "value": "544",
+      "unit": "x",
+      "display": "544x",
+      "as_of": "2026-07-31",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/富信科技深度研报.md",
+        "quote": "PE 544.6x"
+      }
+    }
+  ]
+}

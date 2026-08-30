@@ -1,0 +1,17 @@
+{
+  "topic": "仕佳光子",
+  "version": 1,
+  "as_of": "2026-07-31",
+  "expires_at": "2026-09-12",
+  "group": "个股研报·光通信",
+  "images": [
+    "output/仕佳光子_01_封面.png",
+    "output/仕佳光子_02_结论.png"
+  ],
+  "facts_digest": "sha256:7559f758d316fbfbac0e44341c61bcb3ed0c0a5aa35285608276fbbe7ed1f09b",
+  "validate": {
+    "passed": true,
+    "failures": 0
+  },
+  "cardgen_version": "0.1"
+}

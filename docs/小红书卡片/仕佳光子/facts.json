@@ -1,0 +1,69 @@
+{
+  "facts": [
+    {
+      "id": "yield",
+      "value": "95",
+      "unit": "%",
+      "display": "95%",
+      "as_of": "2026-07-31",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/仕佳光子深度研报.md",
+        "quote": "国内唯一 1.6T AWG 量产厂商(良率 95%,Intel 认证)"
+      }
+    },
+    {
+      "id": "pe_pct",
+      "value": "78.3",
+      "unit": "%",
+      "display": "78.3%",
+      "as_of": "2026-07-31",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/仕佳光子深度研报.md",
+        "quote": "PE 208/PB 49.6/PS 38.7 全部 78.3% 分位(极贵)"
+      }
+    },
+    {
+      "id": "switch_16t",
+      "value": "1.6",
+      "unit": "",
+      "display": "1.6T",
+      "as_of": "2026-07-31",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/仕佳光子深度研报.md",
+        "quote": "国内唯一 1.6T AWG 量产厂商"
+      }
+    },
+    {
+      "id": "pe78",
+      "value": "78",
+      "unit": "%",
+      "display": "78%",
+      "as_of": "2026-07-31",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/仕佳光子深度研报.md",
+        "quote": "PE 208/PB 49.6/PS 38.7 全部 78.3% 分位(极贵)"
+      }
+    },
+    {
+      "id": "g200",
+      "value": "200",
+      "unit": "",
+      "display": "200G EML",
+      "as_of": "2026-07-31",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/仕佳光子深度研报.md",
+        "quote": "200G EML(2026Q3 目标量产)"
+      }
+    }
+  ]
+}

@@ -1,0 +1,136 @@
+{
+  "group": "个股研报·光通信",
+  "cards": [
+    {
+      "type": "cover",
+      "theme": "purple_dark",
+      "name": "01_封面",
+      "tag_top": "个股速览 · 2026-08-29",
+      "title": "新易盛:LPO全球龙头<br>PE零分位🔥",
+      "sub": "仅次于旭创的光模块巨头",
+      "stats": [
+        {
+          "v": {
+            "$fact": "share_lpo"
+          },
+          "k": "LPO全球份额"
+        },
+        {
+          "v": {
+            "$fact": "roe"
+          },
+          "k": "2025 ROE(极罕见)"
+        },
+        {
+          "v": {
+            "$fact": "pe_pct"
+          },
+          "k": "PE历史分位"
+        }
+      ],
+      "quote": {
+        "on_dark": true,
+        "html": "\"<span style='color:#ffd400'>composite 71.97 光模块三家最高</span>——但已入减速期,这是从超高速正常化\""
+      },
+      "tags": "#新易盛 #LPO #光模块 #AI算力",
+      "foot": "数据来源:新易盛深度研报(2026年7月)· 仅供研究参考,不构成投资建议"
+    },
+    {
+      "type": "table",
+      "theme": "blue",
+      "name": "02_核心读数",
+      "first_left": true,
+      "tag_top": "核心读数",
+      "tag_color": "#2563eb",
+      "title": "三高一低",
+      "subtitle": "高ROE·高增速·高动量·低分位",
+      "table": {
+        "headers": [
+          "指标",
+          "读数",
+          "信号"
+        ],
+        "rows": [
+          {
+            "cells": [
+              "2025净利",
+              "95.53亿,+236.6%",
+              "超低基数"
+            ],
+            "cls": [
+              "",
+              "up",
+              ""
+            ]
+          },
+          {
+            "cells": [
+              "ROE",
+              "72.62%",
+              "A股极罕见"
+            ],
+            "cls": [
+              "",
+              "up",
+              "up"
+            ]
+          },
+          {
+            "cells": [
+              "PE分位",
+              "0.0%(61x)",
+              "三家最低"
+            ],
+            "cls": [
+              "",
+              "up",
+              ""
+            ]
+          },
+          {
+            "cells": [
+              "增速方向",
+              "-57.97",
+              "减速期"
+            ],
+            "cls": [
+              "",
+              "down",
+              "down"
+            ]
+          }
+        ]
+      },
+      "foot": "数据来源:新易盛深度研报(2026年7月)"
+    },
+    {
+      "type": "summary",
+      "theme": "lavender",
+      "name": "03_结论",
+      "tag_top": "收束",
+      "tag_color": "#0f172a",
+      "title": "定价的是<br>LPO垄断+ROE",
+      "rows": [
+        {
+          "desc": "定价的是<span class='hl'>LPO份额超75%+ROE 72.62%</span>——仅次于旭创的光模块巨头"
+        },
+        {
+          "desc": "代价是<span class='hl'>已入减速期+动量顶部</span>——从超高速正常化,高基数下增速回落"
+        },
+        {
+          "desc": "概率加权<span class='hl'>+37.9%</span>(盈亏比一点二对一,中性偏正)"
+        }
+      ],
+      "kbox": {
+        "date": "风险",
+        "color": "red",
+        "html": "减速·LPO路线被CPO替代·大客户集中·动量顶部区域"
+      },
+      "quote": {
+        "html": "PE零分位不是免费午餐——市场在定价<b>增长拐点</b>"
+      },
+      "tags": "#新易盛 #LPO #光模块",
+      "foot": "数据来源:新易盛深度研报(2026年7月,引擎+LightCounting交叉验证)· AI辅助生成,仅供研究参考,不构成投资建议。市场有风险,投资需谨慎。"
+    }
+  ]
+}

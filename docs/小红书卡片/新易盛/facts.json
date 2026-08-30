@@ -1,0 +1,134 @@
+{
+  "facts": [
+    {
+      "id": "share_lpo",
+      "value": "75",
+      "unit": "%",
+      "display": ">75%",
+      "as_of": "2026-07-31",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/新易盛深度研报.md",
+        "quote": "LPO(线性直驱)光模块全球龙头(份额 >75%)"
+      }
+    },
+    {
+      "id": "roe",
+      "value": "72.62",
+      "unit": "%",
+      "display": "72.62%",
+      "as_of": "2026-07-31",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/新易盛深度研报.md",
+        "quote": "2025 全年 ROE 72.62%——在全部 A 股中属于极其罕见的水平"
+      }
+    },
+    {
+      "id": "pe_pct",
+      "value": "0",
+      "unit": "%",
+      "display": "0.0%",
+      "as_of": "2026-07-31",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/新易盛深度研报.md",
+        "quote": "PE 61 处 0% 分位——三家中绝对值最低(中际旭创 81/天孚 142)"
+      }
+    },
+    {
+      "id": "np25",
+      "value": "95.53",
+      "unit": "亿",
+      "display": "95.53亿",
+      "as_of": "2026-07-31",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/新易盛深度研报.md",
+        "quote": "2025 全年 248.42 95.53 +187.3% +236.6%"
+      }
+    },
+    {
+      "id": "np_g",
+      "value": "236.6",
+      "unit": "%",
+      "display": "+236.6%",
+      "as_of": "2026-07-31",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/新易盛深度研报.md",
+        "quote": "2025 全年 248.42 95.53 +187.3% +236.6%"
+      }
+    },
+    {
+      "id": "dg",
+      "value": "57.97",
+      "unit": "",
+      "display": "-57.97",
+      "as_of": "2026-07-31",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/新易盛深度研报.md",
+        "quote": "ΔG=-57.97,减速"
+      }
+    },
+    {
+      "id": "composite",
+      "value": "71.97",
+      "unit": "",
+      "display": "71.97",
+      "as_of": "2026-07-31",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/新易盛深度研报.md",
+        "quote": "composite=71.97(光模块三家中最高)"
+      }
+    },
+    {
+      "id": "mom",
+      "value": "99.01",
+      "unit": "",
+      "display": "99.01",
+      "as_of": "2026-07-31",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/新易盛深度研报.md",
+        "quote": "动量综合分 99.01(≥95,顶部区域/强主升浪)"
+      }
+    },
+    {
+      "id": "wgt",
+      "value": "37.9",
+      "unit": "%",
+      "display": "+37.9%",
+      "as_of": "2026-07-31",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/新易盛深度研报.md",
+        "quote": "概率加权 +37.9%(盈亏比 1.2:1)"
+      }
+    },
+    {
+      "id": "pe_val",
+      "value": "61",
+      "unit": "x",
+      "display": "61x",
+      "as_of": "2026-07-31",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/新易盛深度研报.md",
+        "quote": "PE 61 处 0% 分位"
+      }
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "topic": "新易盛",
+  "version": 1,
+  "as_of": "2026-07-31",
+  "expires_at": "2026-09-12",
+  "group": "个股研报·光通信",
+  "images": [
+    "output/新易盛_01_封面.png",
+    "output/新易盛_02_核心读数.png",
+    "output/新易盛_03_结论.png"
+  ],
+  "facts_digest": "sha256:ec2f3ae7c1b8000a4289a66af42c84f42ff1bae515845d951d31426e75de27b0",
+  "validate": {
+    "passed": true,
+    "failures": 0
+  },
+  "cardgen_version": "0.1"
+}

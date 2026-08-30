@@ -1,0 +1,212 @@
+{
+  "facts": [
+    {
+      "id": "zt_q1g",
+      "value": "51.8",
+      "unit": "%",
+      "display": "+51.8%",
+      "as_of": "2026-07-31",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/中天科技深度研报.md",
+        "quote": "中天2026Q1 净利 +51.8%"
+      }
+    },
+    {
+      "id": "ht_q1g",
+      "value": "99.4",
+      "unit": "%",
+      "display": "+99.4%",
+      "as_of": "2026-07-31",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/中天科技深度研报.md",
+        "quote": "亨通2026Q1 净利 +99.4%"
+      }
+    },
+    {
+      "id": "cf_q1g",
+      "value": "230.3",
+      "unit": "%",
+      "display": "+230.3%",
+      "as_of": "2026-07-31",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/中天科技深度研报.md",
+        "quote": "长飞2026Q1 净利 +230.3%"
+      }
+    },
+    {
+      "id": "zt_rev",
+      "value": "131.42",
+      "unit": "亿",
+      "display": "131.42亿",
+      "as_of": "2026-07-31",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/中天科技深度研报.md",
+        "quote": "中天2026Q1 131.42 +34.7%"
+      }
+    },
+    {
+      "id": "ht_rev",
+      "value": "177.91",
+      "unit": "亿",
+      "display": "177.91亿",
+      "as_of": "2026-07-31",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/中天科技深度研报.md",
+        "quote": "亨通2026Q1 177.91 +34.1%"
+      }
+    },
+    {
+      "id": "cf_rev",
+      "value": "36.95",
+      "unit": "亿",
+      "display": "36.95亿",
+      "as_of": "2026-07-31",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/中天科技深度研报.md",
+        "quote": "长飞2026Q1 36.95 +27.7%"
+      }
+    },
+    {
+      "id": "zt_pe",
+      "value": "16.1",
+      "unit": "%",
+      "display": "16.1%",
+      "as_of": "2026-07-31",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/中天科技深度研报.md",
+        "quote": "中天PE 45.8 处 16.1% 分位"
+      }
+    },
+    {
+      "id": "ht_pe",
+      "value": "9.7",
+      "unit": "%",
+      "display": "9.7%",
+      "as_of": "2026-07-31",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/中天科技深度研报.md",
+        "quote": "亨通PE 56.1 处 9.7% 分位"
+      }
+    },
+    {
+      "id": "cf_pe",
+      "value": "12.9",
+      "unit": "%",
+      "display": "12.9%",
+      "as_of": "2026-07-31",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/中天科技深度研报.md",
+        "quote": "长飞PE 276 处 12.9% 分位"
+      }
+    },
+    {
+      "id": "zt_rev_g2",
+      "value": "34.7",
+      "unit": "%",
+      "display": "+34.7%",
+      "as_of": "2026-07-31",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/中天科技深度研报.md",
+        "quote": "中天2026Q1 131.42 +34.7%"
+      }
+    },
+    {
+      "id": "ht_rev_g2",
+      "value": "34.1",
+      "unit": "%",
+      "display": "+34.1%",
+      "as_of": "2026-07-31",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/亨通光电深度研报.md",
+        "quote": "亨通2026Q1 177.91 +34.1%"
+      }
+    },
+    {
+      "id": "cf_rev_g2",
+      "value": "27.7",
+      "unit": "%",
+      "display": "+27.7%",
+      "as_of": "2026-07-31",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/长飞光纤深度研报.md",
+        "quote": "长飞2026Q1 36.95 +27.7%"
+      }
+    },
+    {
+      "id": "zt_np",
+      "value": "9.47",
+      "unit": "亿",
+      "display": "9.47亿",
+      "as_of": "2026-07-31",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/中天科技深度研报.md",
+        "quote": "中天2026Q1净利9.47亿"
+      }
+    },
+    {
+      "id": "ht_np",
+      "value": "11.82",
+      "unit": "亿",
+      "display": "11.82亿",
+      "as_of": "2026-07-31",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/亨通光电深度研报.md",
+        "quote": "亨通2026Q1净利11.82亿"
+      }
+    },
+    {
+      "id": "cf_np",
+      "value": "5.85",
+      "unit": "亿",
+      "display": "5.85亿",
+      "as_of": "2026-07-31",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/长飞光纤深度研报.md",
+        "quote": "长飞2026Q1净利5.85亿"
+      }
+    },
+    {
+      "id": "cf_pe_abs",
+      "value": "276",
+      "unit": "x",
+      "display": "276x",
+      "as_of": "2026-07-31",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/长飞光纤深度研报.md",
+        "quote": "PE 276 处 12.9% 分位"
+      }
+    }
+  ]
+}

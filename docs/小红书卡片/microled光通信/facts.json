@@ -1,0 +1,30 @@
+{
+  "facts": [
+    {
+      "id": "yield_lift",
+      "value": "99.3",
+      "unit": "%",
+      "display": "99.3%",
+      "as_of": "2026-05-09",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/microled光通信.md",
+        "quote": "巨量转移 99.3%(LIFT)"
+      }
+    },
+    {
+      "id": "yield_vcsel",
+      "value": "99.99",
+      "unit": "%",
+      "display": "超99.99%",
+      "as_of": "2026-05-09",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/microled光通信.md",
+        "quote": "VCSEL成熟 >99.99%"
+      }
+    }
+  ]
+}

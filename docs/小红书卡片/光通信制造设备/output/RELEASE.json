@@ -1,0 +1,18 @@
+{
+  "topic": "光通信制造设备",
+  "version": 1,
+  "as_of": "2026-06-30",
+  "expires_at": "2026-09-12",
+  "group": "产业链调研",
+  "images": [
+    "output/光通信制造设备_01_封面.png",
+    "output/光通信制造设备_02_价值链.png",
+    "output/光通信制造设备_03_结论.png"
+  ],
+  "facts_digest": "sha256:84bcbaceee4a8c3c636f0164daf4aa1de75303755de6ba58697fe266ead0cfe1",
+  "validate": {
+    "passed": true,
+    "failures": 0
+  },
+  "cardgen_version": "0.1"
+}
