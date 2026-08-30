@@ -72,9 +72,11 @@ def _inject_images(spec: dict, html_path: Path, project_dir: Path) -> None:
         if not src.exists():
             raise SystemExit(f"卡片 {card.get('name', i)} 引用图片不存在: {src}")
         if img.get("mode") == "corner":
+            # top/width 可选覆盖(2026-08-30:封面密集卡需要更小的缩略图和更低起点避让标题)
+            top, width = img.get("top", 44), img.get("width", 270)
             block = (
-                f'<div style="position:absolute;top:44px;right:44px;width:270px;">'
-                f'<img src="file://{src}" style="max-width:270px;max-height:200px;object-fit:contain;'
+                f'<div style="position:absolute;top:{top}px;right:44px;width:{width}px;">'
+                f'<img src="file://{src}" style="max-width:{width}px;max-height:200px;object-fit:contain;'
                 'border-radius:20px;display:block;margin:0 auto;box-shadow:0 8px 32px rgba(0,0,0,.18);"/>'
                 '<div style="font-size:18px;opacity:.55;text-align:center;margin-top:6px;line-height:1.3;">'
                 f'图:{img["credit"]}({img["license"]})</div></div>')
