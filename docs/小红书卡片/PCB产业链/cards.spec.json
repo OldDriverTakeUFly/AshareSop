@@ -237,7 +237,13 @@
           "html": "<b>AI capex 2027指引</b>与竞争格局:产能竞赛下PCB环节的毛利率能否守住"
         }
       ],
-      "foot": "数据来源:三份研报关键日历汇编 · 事件驱动更新"
+      "foot": "数据来源:三份研报关键日历汇编 · 事件驱动更新",
+      "image": {
+        "src": "assets/pcb_macro.jpg",
+        "license": "CC BY-SA(署名-相同方式共享)",
+        "credit": "电路板微距,Ingo Dierking/Wikimedia Commons",
+        "bottom": 240
+      }
     },
     {
       "type": "summary",

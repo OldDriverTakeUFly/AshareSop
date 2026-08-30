@@ -40,6 +40,64 @@ def load_release(project_dir: Path) -> dict:
     return json.loads((project_dir / "output" / "RELEASE.json").read_text(encoding="utf-8"))
 
 
+def _inject_images(spec: dict, html_path: Path, project_dir: Path) -> None:
+    """spec 卡片含 image 字段时,在 card_factory 产出的 HTML 里注入图片块(后处理,不改 card_factory)。
+
+    image 契约:{src: 工程内相对路径, license: 授权说明, credit: 署名}——三者必填(版权溯源同 facts 纪律)。
+    图片块含 flex 顶推(margin-top:auto)自然落位于卡片内容流末尾,credit 作为图注强制显示。
+    """
+    html = html_path.read_text(encoding="utf-8")
+    n = len(spec.get("cards", []))
+    injections = 0
+    for i, card in enumerate(spec.get("cards", [])):
+        img = card.get("image")
+        if not img:
+            continue
+        for key in ("src", "license", "credit"):
+            if not img.get(key):
+                raise SystemExit(f"卡片 {card.get('name', i)} image 字段缺 {key}(版权溯源纪律)")
+        src = (project_dir / img["src"]).resolve()
+        if not src.exists():
+            raise SystemExit(f"卡片 {card.get('name', i)} 引用图片不存在: {src}")
+        block = (
+            f'<div style="position:absolute;left:56px;right:56px;bottom:{img.get("bottom",150)}px;">'
+            f'<img src="file://{src}" style="max-width:60%;max-height:300px;object-fit:contain;'
+            'border-radius:24px;display:block;margin:0 auto;box-shadow:0 8px 32px rgba(0,0,0,.18);"/>'
+            '<div style="font-size:22px;opacity:.55;text-align:center;margin-top:10px;line-height:1.4;">'
+            f'图:{img["credit"]}({img["license"]})</div></div>')
+        # 定位第 i 个卡片 div(按出现顺序),用括号深度找其闭合标签
+        positions: list[int] = []
+        idx = 0
+        while True:
+            p = html.find("class=\"card", idx)
+            if p == -1:
+                break
+            positions.append(p)
+            idx = p + 1
+        if len(positions) < n:
+            raise SystemExit(f"注入失败:HTML 卡片数 {len(positions)} < spec 卡片数 {n}")
+        pos = positions[i]
+        depth, j = 0, pos
+        while True:
+            nxt_open = html.find("<div", j + 1)
+            nxt_close = html.find("</div>", j + 1)
+            if nxt_close == -1:
+                raise SystemExit("注入失败:card div 未闭合")
+            if nxt_open != -1 and nxt_open < nxt_close:
+                depth += 1
+                j = nxt_open
+            else:
+                if depth == 0:
+                    html = html[:nxt_close] + block + html[nxt_close:]
+                    injections += 1
+                    break
+                depth -= 1
+                j = nxt_close
+    if injections:
+        html_path.write_text(html, encoding="utf-8")
+        logger.info(f"图片注入完成: {injections} 张")
+
+
 def render(project_dir: Path, topic: str, conn: sqlite3.Connection,
            bump: bool = False, reason: str = "") -> dict:
     """渲染并发布:validate 闸门 → 变更检测 bump → 物化落盘 → 渲染 → 张数检查 → RELEASE。"""
@@ -86,6 +144,7 @@ def render(project_dir: Path, topic: str, conn: sqlite3.Connection,
     _run([sys.executable,
           str(REPO_ROOT / "scripts" / "card_factory" / "build_cards.py"),
           str(out / "spec.materialized.json"), "--out", str(out)])
+    _inject_images(spec, out / "cards.html", project_dir)
     _run(["node", str(REPO_ROOT / "scripts" / "card_factory" / "snap.cjs"),
           str(out / "cards.html"), "--outdir", str(out), "--prefix", topic])
 
