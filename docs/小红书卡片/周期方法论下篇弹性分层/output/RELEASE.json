@@ -1,0 +1,19 @@
+{
+  "topic": "周期方法论下篇弹性分层",
+  "version": 1,
+  "as_of": "2026-08-29",
+  "expires_at": "2026-09-05",
+  "group": "工具方法",
+  "images": [
+    "output/周期方法论下篇弹性分层_01_封面.png",
+    "output/周期方法论下篇弹性分层_02_三种周期敞口.png",
+    "output/周期方法论下篇弹性分层_03_实证对比.png",
+    "output/周期方法论下篇弹性分层_04_小结.png"
+  ],
+  "facts_digest": "sha256:a5387c630d8b715c7f9e56ebc2278cca98e67a4854adf7fe5d8bc4227bce5f8f",
+  "validate": {
+    "passed": true,
+    "failures": 0
+  },
+  "cardgen_version": "0.1"
+}

@@ -1,0 +1,76 @@
+<!DOCTYPE html><html lang='zh-CN'><head><meta charset='UTF-8'><style>  * { margin:0; padding:0; box-sizing:border-box; font-family:'Noto Sans CJK SC','PingFang SC','Microsoft YaHei',sans-serif; }
+  body { background:#e8e8e8; display:flex; flex-direction:column; align-items:center; gap:40px; padding:40px 0; }
+  .card { width:1080px; height:1440px; border-radius:48px; position:relative; overflow:hidden; padding:48px 56px; display:flex; flex-direction:column; }
+  .card1 { background:linear-gradient(160deg,#1a1440 0%,#3b1d6e 45%,#8a2be2 100%); color:#fff; }
+  .card2 { background:#fdf6ec; color:#3a2e20; }
+  .card3 { background:#eef4ff; color:#1e2a44; }
+  .card4 { background:#fff1f0; color:#4a1f1c; }
+  .card5 { background:#f0fbf2; color:#1d3a24; }
+  .card6 { background:#f7f3ff; color:#2e2440; }
+  .tag-top { display:inline-block; background:#ff2442; color:#fff; font-size:30px; font-weight:900; padding:12px 30px; border-radius:999px; letter-spacing:2px; width:fit-content; }
+  .badge { display:inline-block; font-size:26px; font-weight:800; padding:8px 22px; border-radius:999px; margin-right:12px; }
+  .b-purple{background:rgba(138,43,226,.18);color:#6b21a8;} .b-blue{background:rgba(37,99,235,.14);color:#1d4ed8;}
+  .b-red{background:rgba(220,38,38,.12);color:#b91c1c;} .b-green{background:rgba(22,163,74,.14);color:#15803d;}
+  .b-org{background:rgba(234,88,12,.15);color:#c2410c;} .b-gray{background:rgba(0,0,0,.07);color:#555;}
+  h1 { font-size:96px; font-weight:900; line-height:1.18; margin:28px 0 10px; letter-spacing:1px; }
+  .sub { font-size:42px; font-weight:700; opacity:.92; line-height:1.5; }
+  .hl { background:linear-gradient(transparent 62%, rgba(255,210,0,.85) 62%); padding:0 6px; }
+  .hl-r { background:linear-gradient(transparent 62%, rgba(255,77,109,.55) 62%); padding:0 6px; }
+  .big-num { font-size:150px; font-weight:900; line-height:1; letter-spacing:-2px; }
+  h2.title { font-size:56px; font-weight:900; margin-bottom:8px; line-height:1.25; }
+  .subtitle { font-size:30px; font-weight:600; opacity:.65; margin-bottom:24px; }
+  .row { background:#fff; border-radius:28px; padding:20px 28px; margin-bottom:16px; box-shadow:0 6px 24px rgba(0,0,0,.06); }
+  .row .name { font-size:36px; font-weight:900; margin-bottom:8px; display:flex; align-items:center; gap:14px; flex-wrap:wrap;}
+  .row .desc { font-size:26px; line-height:1.48; }
+  .dot { width:24px; height:24px; border-radius:50%; display:inline-block; }
+  table { width:100%; border-collapse:separate; border-spacing:0; background:#fff; border-radius:26px; overflow:hidden; font-size:26px; box-shadow:0 6px 24px rgba(0,0,0,.06); }
+  th { background:#2a2050; color:#fff; font-weight:800; padding:16px 12px; font-size:25px; }
+  td { padding:14px 12px; text-align:center; border-bottom:1px solid #f0ecf5; line-height:1.35; }
+  td.l { text-align:left; font-weight:800; }
+  tr:last-child td { border-bottom:none; }
+  .up{color:#dc2626;font-weight:800;} .down{color:#16a34a;font-weight:800;} .warn{color:#d97706;font-weight:800;}
+  .kbox { background:#fff; border-radius:26px; padding:20px 28px; margin-bottom:14px; box-shadow:0 6px 24px rgba(0,0,0,.06); display:flex; gap:20px; align-items:flex-start; }
+  .kdate { min-width:165px; background:#16a34a; color:#fff; font-weight:900; font-size:27px; border-radius:16px; text-align:center; padding:12px 0; line-height:1.3;}
+  .kdate.red{background:#dc2626;} .kdate.org{background:#ea580c;} .kdate.pu{background:#7c3aed;}
+  .ktext { font-size:26px; line-height:1.48; padding-top:4px;}
+  .ktext b { font-size:27px; }
+  .quote { background:rgba(255,255,255,.14); border-left:8px solid #ffd400; border-radius:0 22px 22px 0; padding:22px 26px; font-size:30px; line-height:1.55; font-weight:600; }
+  .foot { margin-top:auto; font-size:21px; opacity:.6; line-height:1.45; }
+  .tags { font-size:25px; font-weight:700; opacity:.85; margin-top:20px; }
+  .card5 .ktext { font-size:25px; line-height:1.42; }
+  .card5 .kdate { min-width:150px; font-size:25px; }
+  .card5 .kbox { padding:16px 24px; gap:16px; margin-bottom:12px; }
+  .card5 .ktext b { font-size:26px; }
+  .card2 .row .desc { font-size:25px; line-height:1.45; }
+  .card2 .row .name { font-size:34px; }
+  .num-badge { display:flex; gap:26px; margin:34px 0 8px; }
+  .nb { background:rgba(255,255,255,.12); border-radius:26px; padding:24px 30px; flex:1; }
+  .nb .v { font-size:58px; font-weight:900; color:#ffd400; }
+  .nb .k { font-size:25px; opacity:.85; margin-top:6px; }
+</style></head><body><div class="card card4" id="card1">
+<span class="tag-top" style="background:#ff2442;">周期方法论 · 2026-08-30</span>
+<h1>同一场周期<br>弹性差一个数量级❗</h1>
+<div class="sub" style="margin-top:24px;">周期三连·下篇:弹性分层<br>商业模式决定周期弹性</div>
+<div class="num-badge"><div class="nb"><div class="v">71.66亿</div><div class="k">佰维2026H1(去年亏损)</div></div><div class="nb"><div class="v">19.97亿</div><div class="k">澜起2026H1(平稳)</div></div></div>
+<div style="margin-top:30px;"><div class="quote" style="background:rgba(255,255,255,.14);color:inherit;border-left-color:#ffd400;font-size:30px;">"<span style='color:#ffd400'>周期来临时,你赚多少不取决于判断多准,取决于商业模式站在哪一层</span>——库存重估、定价权、渗透率,是三种完全不同的周期敞口"</div></div>
+<div class="tags">#周期股 #商业模式 #研究方法 #存储芯片 #股票入门</div><div class="foot">数据来源:Tushare 2026中报 + 证券时报存储报道 · 仅供研究参考,不构成投资建议</div></div><div class="card card3" id="card2">
+<span class="tag-top" style="background:#2563eb;">弹性分层</span>
+<h2 class="title" style="margin-top:24px;">一条存储链,三种赚法</h2>
+<div class="subtitle">先问商业模式,再问周期位置</div>
+<table><tr><th style=text-align:left>商业模式</th><th>周期赚法</th><th>弹性</th><th>代价</th></tr><tr><td class="l">模组(江波龙/佰维/德明利)</td><td class="up">低价库存+售价差的库存重估</td><td class="up">最大,非线性</td><td class="down">拐点即顶点,同涨同跌</td></tr><tr><td class="l">利基设计(兆易)</td><td class="">产品定价权回归</td><td class="">居中</td><td class="">跟涨但有产品周期缓冲</td></tr><tr><td class="l">接口(澜起)</td><td class="down">DDR5渗透率的量增</td><td class="down">最小,线性</td><td class="">不依赖涨价,靠服务器出货量</td></tr></table>
+<div style="margin-top:30px;"><div class="kbox"><div class="kdate" style="background:#dc2626;">量级对比</div><div class="ktext">本轮实证:模组三家从<b>亏损/微利</b>到半年<b>百亿量级</b>;接口龙头澜起<b>+72.3%</b>——同一轮周期,弹性差出一个数量级,与公司好坏无关,与商业模式有关</div></div><div class="kbox"><div class="kdate" style="background:#c2410c;">研究姿势</div><div class="ktext">分析周期链公司,第一步不是看财报,是画<b>商业模式地图</b>:谁持有库存?谁有定价权?谁只赚量的钱?——位置决定周期里的命运</div></div></div>
+<div class="foot">数据来源:Tushare 2026中报 + 证券时报存储报道 · 仅供研究参考,不构成投资建议</div></div><div class="card card4" id="card3">
+<span class="tag-top" style="background:#ff2442;">2026H1归母净利</span>
+<h2 class="title" style="margin-top:24px;">弹性分层的数据长相</h2>
+<div class="subtitle">2026H1归母净利润(单位:亿元)</div>
+<div style="display:flex;flex-direction:column;gap:24px;"><div><div style="display:flex;justify-content:space-between;font-size:30px;font-weight:800;margin-bottom:10px;"><span>🔵 江波龙(模组·库存重估)</span><span style="color:#dc2626;">105.77亿</span></div><div style="height:38px;border-radius:19px;background:linear-gradient(90deg,#dc2626 100%,#e9e4f0 100%);"></div></div><div><div style="display:flex;justify-content:space-between;font-size:30px;font-weight:800;margin-bottom:10px;"><span>🟢 佰维存储(模组·库存重估)</span><span style="color:#c2410c;">71.66亿</span></div><div style="height:38px;border-radius:19px;background:linear-gradient(90deg,#c2410c 68%,#e9e4f0 68%);"></div></div><div><div style="display:flex;justify-content:space-between;font-size:30px;font-weight:800;margin-bottom:10px;"><span>🟣 兆易创新(设计·定价权)</span><span style="color:#7c3aed;">68.57亿</span></div><div style="height:38px;border-radius:19px;background:linear-gradient(90deg,#7c3aed 65%,#e9e4f0 65%);"></div></div><div><div style="display:flex;justify-content:space-between;font-size:30px;font-weight:800;margin-bottom:10px;"><span>🟠 德明利(模组·库存重估)</span><span style="color:#dc2626;">60.17亿</span></div><div style="height:38px;border-radius:19px;background:linear-gradient(90deg,#dc2626 57%,#e9e4f0 57%);"></div></div><div><div style="display:flex;justify-content:space-between;font-size:30px;font-weight:800;margin-bottom:10px;"><span>⚪ 澜起科技(接口·渗透率)</span><span style="color:#64748b;">19.97亿</span></div><div style="height:38px;border-radius:19px;background:linear-gradient(90deg,#64748b 19%,#e9e4f0 19%);"></div></div></div>
+<div style="font-size:24px;opacity:.6;text-align:right;margin-top:4px;">前四名(高弹性层)与最后一名(量增层)的差异,就是商业模式写在利润表上的签名</div>
+<div style="margin-top:34px;"><div class="kbox"><div class="kdate" style="background:#dc2626;">读图</div><div class="ktext">模组三家去年同期的归母分别是<b>0.15亿/-2.26亿/-1.18亿</b>——周期底部的亏损与顶部的暴利,是同一种商业模式的正反面</div></div></div>
+<div class="foot">数据来源:Tushare 2026中报 + 证券时报存储报道 · 仅供研究参考,不构成投资建议</div></div><div class="card card6" id="card4">
+<span class="tag-top" style="background:#0f172a;">下篇小结·系列收束</span>
+<h2 class="title" style="margin-top:24px;">周期三问</h2>
+<div class="subtitle">看任何周期链公司前,先问完这三个</div>
+<div class="row"><div class="desc"><b>一问位置</b> → 现在是三幕剧的第几幕?(上篇:利润坐标+供给状态)</div></div><div class="row"><div class="desc"><b>二问信号</b> → 四个拐点信号亮了几个灯?(中篇:现货价/财报环比/资本开支/需求边际)</div></div><div class="row"><div class="desc"><b>三问层级</b> → 这家公司站在弹性的哪一层?(下篇:库存重估/定价权/渗透率)</div></div>
+<div style="margin-top:14px;"><div class="kbox"><div class="kdate" style="background:#dc2626;">风险</div><div class="ktext">方法论不消除风险:信号可能集体失灵(政策突变/技术路线切换)·历史规律不保证未来·周期判断错误时,高弹性层损失同样放大</div></div></div>
+<div style="margin-top:8px;"><div class="quote" style="background:rgba(124,58,237,.10);color:#2e2440;border-left-color:#ffd400;font-size:30px;">周期研究的终点不是预测,是<b>分层定价你的判断</b>——三问都清楚,错也错得明白;三问都不问,对了也是运气</div></div>
+<div class="tags">#周期股 #商业模式 #研究方法 #存储芯片 #股票入门</div><div class="foot">数据来源:Tushare 2026中报(2026年8月公告) + 证券时报存储报道 · AI辅助生成,仅供研究参考,不构成投资建议。市场有风险,投资需谨慎。</div></div></body></html>

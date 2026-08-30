@@ -1,0 +1,148 @@
+{
+  "facts": [
+    {
+      "id": "jbl_np",
+      "value": "105.77",
+      "unit": "亿",
+      "display": "105.77亿",
+      "as_of": "2026-08-29",
+      "source": {
+        "kind": "tushare",
+        "ref": "tushare income ts_code=301308.SZ end_date=20260630 ann_date=20260811",
+        "quote": "n_income_attr_p=105.77亿(2026H1);去年同期仅0.15亿"
+      }
+    },
+    {
+      "id": "jbl_np_prev",
+      "value": "0.15",
+      "unit": "亿",
+      "display": "0.15亿",
+      "as_of": "2026-08-29",
+      "source": {
+        "kind": "tushare",
+        "ref": "tushare income ts_code=301308.SZ end_date=20250630",
+        "quote": "n_income_attr_p=0.15亿(2025H1)"
+      }
+    },
+    {
+      "id": "jbl_rev",
+      "value": "240.9",
+      "unit": "亿",
+      "display": "240.9亿",
+      "as_of": "2026-08-29",
+      "source": {
+        "kind": "tushare",
+        "ref": "tushare income ts_code=301308.SZ end_date=20260630",
+        "quote": "total_revenue=240.88亿(2026H1)"
+      }
+    },
+    {
+      "id": "dml_np",
+      "value": "60.17",
+      "unit": "亿",
+      "display": "60.17亿",
+      "as_of": "2026-08-29",
+      "source": {
+        "kind": "tushare",
+        "ref": "tushare income ts_code=001309.SZ end_date=20260630 ann_date=20260828",
+        "quote": "n_income_attr_p=60.17亿(2026H1);2025H1为-1.18亿(亏损)"
+      }
+    },
+    {
+      "id": "dml_np_prev",
+      "value": "-1.18",
+      "unit": "亿",
+      "display": "-1.18亿",
+      "as_of": "2026-08-29",
+      "source": {
+        "kind": "tushare",
+        "ref": "tushare income ts_code=001309.SZ end_date=20250630",
+        "quote": "n_income_attr_p=-1.18亿(2025H1)"
+      }
+    },
+    {
+      "id": "bw_np",
+      "value": "71.66",
+      "unit": "亿",
+      "display": "71.66亿",
+      "as_of": "2026-08-29",
+      "source": {
+        "kind": "tushare",
+        "ref": "tushare income ts_code=688525.SH end_date=20260630 ann_date=20260825",
+        "quote": "n_income_attr_p=71.66亿(2026H1);2025H1为-2.26亿(亏损)"
+      }
+    },
+    {
+      "id": "bw_np_prev",
+      "value": "-2.26",
+      "unit": "亿",
+      "display": "-2.26亿",
+      "as_of": "2026-08-29",
+      "source": {
+        "kind": "tushare",
+        "ref": "tushare income ts_code=688525.SH end_date=20250630",
+        "quote": "n_income_attr_p=-2.26亿(2025H1)"
+      }
+    },
+    {
+      "id": "lq_np",
+      "value": "19.97",
+      "unit": "亿",
+      "display": "19.97亿",
+      "as_of": "2026-08-29",
+      "source": {
+        "kind": "tushare",
+        "ref": "tushare income ts_code=688008.SH end_date=20260630 ann_date=20260829",
+        "quote": "n_income_attr_p=19.97亿(2026H1)"
+      }
+    },
+    {
+      "id": "lq_np_yoy",
+      "value": "72.3",
+      "unit": "%",
+      "display": "+72.3%",
+      "as_of": "2026-08-29",
+      "source": {
+        "kind": "tushare",
+        "ref": "tushare income ts_code=688008.SH end_date=20250630/20260630 自算同比",
+        "quote": "25H1归母11.59亿→26H1 19.97亿,同比+72.3%"
+      }
+    },
+    {
+      "id": "zy_np",
+      "value": "68.57",
+      "unit": "亿",
+      "display": "68.57亿",
+      "as_of": "2026-08-29",
+      "source": {
+        "kind": "tushare",
+        "ref": "tushare income ts_code=603986.SH end_date=20260630 ann_date=20260819",
+        "quote": "n_income_attr_p=68.57亿(2026H1)"
+      }
+    },
+    {
+      "id": "zy_np_yoy",
+      "value": "1091.5",
+      "unit": "%",
+      "display": "+1091.5%",
+      "as_of": "2026-08-29",
+      "source": {
+        "kind": "tushare",
+        "ref": "tushare income ts_code=603986.SH end_date=20250630/20260630 自算同比",
+        "quote": "25H1归母5.75亿→26H1 68.57亿,同比+1091.5%"
+      }
+    },
+    {
+      "id": "storage_shortage",
+      "value": "15",
+      "unit": "年",
+      "display": "15年之最",
+      "as_of": "2026-08-29",
+      "source": {
+        "kind": "manual",
+        "ref": "证券时报 stcn.com/article/detail/3901821.html (2026-05)",
+        "quote": "全球存储芯片短缺创15年之最,2026年5月DRAM和NAND价格双双创历史新高"
+      }
+    }
+  ]
+}
