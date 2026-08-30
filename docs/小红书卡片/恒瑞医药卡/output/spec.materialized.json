@@ -117,7 +117,13 @@
           "html": "<b>BD流水线兑现</b>:总额约420亿美元(GSK 120亿+BMS 152亿为核心)——行业最强授权机器的持续输出"
         }
       ],
-      "foot": "数据来源:恒瑞医药深度研报事件日历节 · 不构成投资建议"
+      "foot": "数据来源:恒瑞医药深度研报事件日历节 · 不构成投资建议",
+      "image": {
+        "src": "assets/img.jpg",
+        "license": "CC BY-SA(署名-相同方式共享)",
+        "credit": "药品与药板,BuhaM/Wikimedia Commons",
+        "mode": "corner"
+      }
     },
     {
       "type": "summary",

@@ -40,6 +40,18 @@ def load_release(project_dir: Path) -> dict:
     return json.loads((project_dir / "output" / "RELEASE.json").read_text(encoding="utf-8"))
 
 
+def _inject_fill_css(html_path: Path) -> None:
+    """后处理注入纵向均布 CSS:内容不足 1440px 高的卡片自动拉开间距,消除底部大留白。
+
+    space-between 只分配剩余空间,内容已满的卡片零间隙不受影响(2026-08-30 多卡 vision 复检验证)。
+    """
+    html = html_path.read_text(encoding="utf-8")
+    if "cardgen-fill" not in html:
+        html = html.replace("</style>", "</style><style class='cardgen-fill'>"
+                            ".card{justify-content:space-between;}.card>.foot{margin-top:0 !important;}</style>", 1)
+        html_path.write_text(html, encoding="utf-8")
+
+
 def _inject_images(spec: dict, html_path: Path, project_dir: Path) -> None:
     """spec 卡片含 image 字段时,在 card_factory 产出的 HTML 里注入图片块(后处理,不改 card_factory)。
 
@@ -153,6 +165,7 @@ def render(project_dir: Path, topic: str, conn: sqlite3.Connection,
           str(REPO_ROOT / "scripts" / "card_factory" / "build_cards.py"),
           str(out / "spec.materialized.json"), "--out", str(out)])
     _inject_images(spec, out / "cards.html", project_dir)
+    _inject_fill_css(out / "cards.html")
     _run(["node", str(REPO_ROOT / "scripts" / "card_factory" / "snap.cjs"),
           str(out / "cards.html"), "--outdir", str(out), "--prefix", topic])
 

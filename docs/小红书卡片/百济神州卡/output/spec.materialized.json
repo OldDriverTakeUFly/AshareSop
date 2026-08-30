@@ -90,7 +90,13 @@
           "html": "百济验证的商业模式=<b>自主全球商业化</b>(自建海外团队)而非纯授权——这是中国创新药出海的两条路线之一,另一条是百利天恒式的「卖管线给MNC」"
         }
       ],
-      "foot": "数据来源:Tushare income 688235.SH 20260630 · 不构成投资建议"
+      "foot": "数据来源:Tushare income 688235.SH 20260630 · 不构成投资建议",
+      "image": {
+        "src": "assets/img.jpg",
+        "license": "CC BY-SA",
+        "credit": "细胞培养板,Gannu03",
+        "mode": "corner"
+      }
     },
     {
       "type": "summary",
