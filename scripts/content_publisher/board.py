@@ -257,14 +257,20 @@ $('cards').innerHTML=cards.map(c=>`<tr><td>${esc(c.topic)} v${c.current_version}
 ||'<tr><td colspan="3" style="color:#64748b">无工程</td></tr>';
 $('ts').textContent='刷新于 '+new Date().toLocaleTimeString()}
 function sched(id){const at=prompt('排期时间(YYYY-MM-DD HH:MM):');if(!at)return;api(`/api/queue/${id}/schedule`,'POST',{at})}
+function cpFallback(txt,done){const t=document.createElement('textarea');t.value=txt;
+t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.select();
+const ok=document.execCommand('copy');t.remove();toast(ok?'✓ 已复制':'✗ 复制失败,请长按手动复制')}
+function cpTxt(txt){const done=()=>toast('✓ 已复制');
+if(navigator.clipboard&&window.isSecureContext){navigator.clipboard.writeText(txt).then(done).catch(()=>cpFallback(txt,done))}
+else{cpFallback(txt,done)}}
 async function mat(id){const j=await(await fetch(withT(`/api/queue/${id}/material`))).json();
 if(!j.ok){toast('✗ '+j.stderr);return}
-const cp=(txt,tag)=>`<button class="copy" onclick="navigator.clipboard.writeText(document.getElementById('${tag}').textContent).then(()=>toast('✓ 已复制'))">复制</button>`;
+const cp=tag=>`<button class="copy" onclick="cpTxt(document.getElementById('${tag}').textContent)">复制</button>`;
 $('mbox').innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center"><b>#${id} 发布材料</b>
 <button onclick="$('modal').style.display='none'">关闭</button></div>
 <h3>图片(按顺序上传 ${j.images.length} 张)</h3><pre>${esc(j.images.join('\\n'))}</pre>
-<h3>标题 ${cp(0,'m-title')}</h3><pre id="m-title">${esc(j.title)}</pre>
-<h3>正文+标签 ${cp(0,'m-body')}</h3><pre id="m-body">${esc(j.body)}</pre>
+<h3>标题 ${cp('m-title')}</h3><pre id="m-title">${esc(j.title)}</pre>
+<h3>正文+标签 ${cp('m-body')}</h3><pre id="m-body">${esc(j.body)}</pre>
 <h3>发布清单</h3><pre>${esc(j.checklist)}</pre>
 <div style="color:#64748b;font-size:11px;margin-top:8px">备料目录: ${esc(j.dir)}</div>`;
 $('modal').style.display='flex'}
