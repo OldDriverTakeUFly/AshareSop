@@ -1,0 +1,76 @@
+{
+  "facts": [
+    {
+      "id": "gold_peak",
+      "value": "5600",
+      "unit": "",
+      "display": "5600",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/金周期产业链深度研报.md#核心论点",
+        "quote": "2026年1月金价约5600美元/盎司历史高点(GoldRepublic口径约5,600)"
+      }
+    },
+    {
+      "id": "gold_now",
+      "value": "4051",
+      "unit": "",
+      "display": "4051",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/金周期产业链深度研报.md#核心论点",
+        "quote": "2026年8月回落至约4051美元/盎司(COMEX期货约4111)"
+      }
+    },
+    {
+      "id": "cb_4y",
+      "value": "1000",
+      "unit": "吨",
+      "display": "1000吨",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/金周期产业链深度研报.md#核心论点",
+        "quote": "过去四年全球央行年均购金约1000吨,是前十年均值(约500吨)的两倍"
+      }
+    },
+    {
+      "id": "cb_26",
+      "value": "850",
+      "unit": "吨",
+      "display": "850吨",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/金周期产业链深度研报.md#核心论点",
+        "quote": "2026年央行购金预计约850吨"
+      }
+    },
+    {
+      "id": "cb_survey",
+      "value": "89",
+      "unit": "%",
+      "display": "89%",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/金周期产业链深度研报.md#核心论点",
+        "quote": "WGC调查:89%储备经理预期未来12个月央行黄金储备将继续增加(创纪录)"
+      }
+    },
+    {
+      "id": "gold_pb",
+      "value": "81",
+      "unit": "%",
+      "display": "81%",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/金周期产业链深度研报.md#核心论点",
+        "quote": "A股黄金板块PB分位81-91%高位区间(下界)"
+      }
+    }
+  ]
+}

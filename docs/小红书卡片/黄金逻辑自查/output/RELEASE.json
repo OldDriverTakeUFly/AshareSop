@@ -1,0 +1,18 @@
+{
+  "topic": "黄金逻辑自查",
+  "version": 2,
+  "as_of": "2026-08-30",
+  "expires_at": "2026-09-06",
+  "group": "工具方法",
+  "images": [
+    "output/黄金逻辑自查_01_封面.png",
+    "output/黄金逻辑自查_02_假设重检.png",
+    "output/黄金逻辑自查_03_小结.png"
+  ],
+  "facts_digest": "sha256:f5eb421ee955f72d38518acf4747b853c1f2a45b6c2df2d8a1fb3ac4f7e1aaff",
+  "validate": {
+    "passed": true,
+    "failures": 0
+  },
+  "cardgen_version": "0.1"
+}

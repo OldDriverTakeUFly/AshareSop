@@ -1,0 +1,69 @@
+<!DOCTYPE html><html lang='zh-CN'><head><meta charset='UTF-8'><style>  * { margin:0; padding:0; box-sizing:border-box; font-family:'Noto Sans CJK SC','PingFang SC','Microsoft YaHei',sans-serif; }
+  body { background:#e8e8e8; display:flex; flex-direction:column; align-items:center; gap:40px; padding:40px 0; }
+  .card { width:1080px; height:1440px; border-radius:48px; position:relative; overflow:hidden; padding:48px 56px; display:flex; flex-direction:column; }
+  .card1 { background:linear-gradient(160deg,#1a1440 0%,#3b1d6e 45%,#8a2be2 100%); color:#fff; }
+  .card2 { background:#fdf6ec; color:#3a2e20; }
+  .card3 { background:#eef4ff; color:#1e2a44; }
+  .card4 { background:#fff1f0; color:#4a1f1c; }
+  .card5 { background:#f0fbf2; color:#1d3a24; }
+  .card6 { background:#f7f3ff; color:#2e2440; }
+  .tag-top { display:inline-block; background:#ff2442; color:#fff; font-size:30px; font-weight:900; padding:12px 30px; border-radius:999px; letter-spacing:2px; width:fit-content; }
+  .badge { display:inline-block; font-size:26px; font-weight:800; padding:8px 22px; border-radius:999px; margin-right:12px; }
+  .b-purple{background:rgba(138,43,226,.18);color:#6b21a8;} .b-blue{background:rgba(37,99,235,.14);color:#1d4ed8;}
+  .b-red{background:rgba(220,38,38,.12);color:#b91c1c;} .b-green{background:rgba(22,163,74,.14);color:#15803d;}
+  .b-org{background:rgba(234,88,12,.15);color:#c2410c;} .b-gray{background:rgba(0,0,0,.07);color:#555;}
+  h1 { font-size:96px; font-weight:900; line-height:1.18; margin:28px 0 10px; letter-spacing:1px; }
+  .sub { font-size:42px; font-weight:700; opacity:.92; line-height:1.5; }
+  .hl { background:linear-gradient(transparent 62%, rgba(255,210,0,.85) 62%); padding:0 6px; }
+  .hl-r { background:linear-gradient(transparent 62%, rgba(255,77,109,.55) 62%); padding:0 6px; }
+  .big-num { font-size:150px; font-weight:900; line-height:1; letter-spacing:-2px; }
+  h2.title { font-size:56px; font-weight:900; margin-bottom:8px; line-height:1.25; }
+  .subtitle { font-size:30px; font-weight:600; opacity:.65; margin-bottom:24px; }
+  .row { background:#fff; border-radius:28px; padding:20px 28px; margin-bottom:16px; box-shadow:0 6px 24px rgba(0,0,0,.06); }
+  .row .name { font-size:36px; font-weight:900; margin-bottom:8px; display:flex; align-items:center; gap:14px; flex-wrap:wrap;}
+  .row .desc { font-size:26px; line-height:1.48; }
+  .dot { width:24px; height:24px; border-radius:50%; display:inline-block; }
+  table { width:100%; border-collapse:separate; border-spacing:0; background:#fff; border-radius:26px; overflow:hidden; font-size:26px; box-shadow:0 6px 24px rgba(0,0,0,.06); }
+  th { background:#2a2050; color:#fff; font-weight:800; padding:16px 12px; font-size:25px; }
+  td { padding:14px 12px; text-align:center; border-bottom:1px solid #f0ecf5; line-height:1.35; }
+  td.l { text-align:left; font-weight:800; }
+  tr:last-child td { border-bottom:none; }
+  .up{color:#dc2626;font-weight:800;} .down{color:#16a34a;font-weight:800;} .warn{color:#d97706;font-weight:800;}
+  .kbox { background:#fff; border-radius:26px; padding:20px 28px; margin-bottom:14px; box-shadow:0 6px 24px rgba(0,0,0,.06); display:flex; gap:20px; align-items:flex-start; }
+  .kdate { min-width:165px; background:#16a34a; color:#fff; font-weight:900; font-size:27px; border-radius:16px; text-align:center; padding:12px 0; line-height:1.3;}
+  .kdate.red{background:#dc2626;} .kdate.org{background:#ea580c;} .kdate.pu{background:#7c3aed;}
+  .ktext { font-size:26px; line-height:1.48; padding-top:4px;}
+  .ktext b { font-size:27px; }
+  .quote { background:rgba(255,255,255,.14); border-left:8px solid #ffd400; border-radius:0 22px 22px 0; padding:22px 26px; font-size:30px; line-height:1.55; font-weight:600; }
+  .foot { margin-top:auto; font-size:21px; opacity:.6; line-height:1.45; }
+  .tags { font-size:25px; font-weight:700; opacity:.85; margin-top:20px; }
+  .card5 .ktext { font-size:25px; line-height:1.42; }
+  .card5 .kdate { min-width:150px; font-size:25px; }
+  .card5 .kbox { padding:16px 24px; gap:16px; margin-bottom:12px; }
+  .card5 .ktext b { font-size:26px; }
+  .card2 .row .desc { font-size:25px; line-height:1.45; }
+  .card2 .row .name { font-size:34px; }
+  .num-badge { display:flex; gap:26px; margin:34px 0 8px; }
+  .nb { background:rgba(255,255,255,.12); border-radius:26px; padding:24px 30px; flex:1; }
+  .nb .v { font-size:58px; font-weight:900; color:#ffd400; }
+  .nb .k { font-size:25px; opacity:.85; margin-top:6px; }
+</style></head><body><div class="card card5" id="card1">
+<span class="tag-top" style="background:#ff2442;">方法论番外 · 2026-08-30</span>
+<h1>利率也是一种周期🔄</h1>
+<div class="sub" style="margin-top:24px;">周期方法论·番外篇<br>用三幕剧框架读美联储</div>
+<div class="num-badge"><div class="nb"><div class="v">三幕</div><div class="k">利率周期同款框架</div></div><div class="nb"><div class="v">289吨</div><div class="k">央行还在买的证据(吨)</div></div></div>
+<div style="margin-top:30px;"><div class="quote" style="background:rgba(255,255,255,.14);color:inherit;border-left-color:#ffd400;font-size:30px;">"<span style='color:#ffd400'>商品周期有供给,利率周期有人性</span>——把读存储周期的框架拿来读联储,居然严丝合缝"</div></div>
+<div class="tags">#美联储 #周期 #方法论 #宏观 #研究方法</div><div class="foot">数据来源:官方口径+公开资料+自研研报 · 仅供研究参考,不构成投资建议</div></div><div class="card card3" id="card2">
+<span class="tag-top" style="background:#2563eb;">三幕剧复用</span>
+<h2 class="title" style="margin-top:24px;">利率周期的三幕剧</h2>
+<div class="subtitle"></div>
+<table><tr><th style=text-align:left>幕次</th><th>商品周期</th><th>利率周期</th></tr><tr><td class="l">第一幕·短缺</td><td class="up">涨价+利润暴增</td><td class="">通胀高企,紧缩启动(当下?)</td></tr><tr><td class="l">第二幕·扩产</td><td class="">资本开支开建</td><td class="">高利率维持,通胀逐步回落</td></tr><tr><td class="l">第三幕·过剩</td><td class="down">产能落地价格崩</td><td class="">通胀达标,宽松重启</td></tr></table>
+<div style="margin-top:30px;"><div class="kbox"><div class="kdate" style="background:#dc2626;">为什么同构</div><div class="ktext">两者都是<b>「纠偏机制对冲击的过度反应」</b>:利润召唤供给,通胀召唤紧缩——而且都倾向于矫枉过正,这就是周期的形状</div></div><div class="kbox"><div class="kdate" style="background:#c2410c;">拐点信号复用</div><div class="ktext">周期中篇的四信号阶梯直接平移:<b>通胀环比(=现货价)→政策利率(=财报)→点阵图指引(=资本开支)→就业与增长(=需求边际)</b>——先行指标同样是价格类,滞后指标同样是业绩类</div></div></div>
+<div class="foot">数据来源:官方口径+公开资料+自研研报 · 仅供研究参考,不构成投资建议</div></div><div class="card card6" id="card3">
+<span class="tag-top" style="background:#0f172a;">系列收束</span>
+<h2 class="title" style="margin-top:24px;">一个框架</h2>
+<div class="subtitle">读所有周期</div>
+<div class="row"><div class="desc"><b>检验标准</b> → 好的框架应该能跨域复用:存储/利率/猪周期,底层都是「冲击→过度纠偏→反转」</div></div><div class="row"><div class="desc"><b>当下位置</b> → 若加息苗头为真,利率周期可能从第二幕回摆到第一幕中段——用信号阶梯验证,别用情绪</div></div><div class="row"><div class="desc"><b>延伸练习</b> → 用同一框架读一遍猪周期与存储周期——三关都过的框架,才敢叫方法论</div></div>
+<div style="margin-top:14px;"><div class="kbox"><div class="kdate" style="background:#dc2626;">风险</div><div class="ktext">框架同构不等于同步·政治变量(联储人事/财政)无商品对应物·样本内归纳的过拟合风险</div></div></div>
+<div style="margin-top:8px;"><div class="quote" style="background:rgba(124,58,237,.10);color:#2e2440;border-left-color:#ffd400;font-size:30px;">方法论的价值不在预测多准,在<b>换了领域还能用</b>——三幕剧过了利率这一关,才算真的框架而不是巧合</div></div>
+<div class="tags">#周期 #美联储 #方法论 #宏观 #系列</div><div class="foot">数据来源:金/有色周期深度研报(2026年8月)+官方口径 · AI辅助生成,仅供研究参考,不构成投资建议。市场有风险,投资需谨慎。</div></div></body></html>

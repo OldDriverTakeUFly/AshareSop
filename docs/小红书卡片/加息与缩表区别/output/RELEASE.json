@@ -1,0 +1,18 @@
+{
+  "topic": "加息与缩表区别",
+  "version": 1,
+  "as_of": "2026-08-30",
+  "expires_at": "2026-09-06",
+  "group": "工具方法",
+  "images": [
+    "output/加息与缩表区别_01_封面.png",
+    "output/加息与缩表区别_02_对照表.png",
+    "output/加息与缩表区别_03_小结.png"
+  ],
+  "facts_digest": "sha256:76c661197ad47bd76b1db5f85591b223267e4ff569bcd641c1e766e382b73729",
+  "validate": {
+    "passed": true,
+    "failures": 0
+  },
+  "cardgen_version": "0.1"
+}

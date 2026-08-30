@@ -1,0 +1,52 @@
+{
+  "facts": [
+    {
+      "id": "cut_prob",
+      "value": "72",
+      "unit": "%",
+      "display": "72%",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/有色板块大小周期共振深度研报.md#核心论点",
+        "quote": "(前期)9月降息概率72%——本卡讨论该预期动摇后的动能衰减"
+      }
+    },
+    {
+      "id": "cb_q2",
+      "value": "289",
+      "unit": "吨",
+      "display": "289吨",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/有色板块大小周期共振深度研报.md#核心论点",
+        "quote": "2026Q2全球央行购金289吨,同比+74%,创2024Q4以来纪录"
+      }
+    },
+    {
+      "id": "huayou_pb",
+      "value": "27.4",
+      "unit": "%",
+      "display": "27.4%",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/有色板块大小周期共振深度研报.md#README索引",
+        "quote": "华友钴业PB 27.4%全板块唯一低分位"
+      }
+    },
+    {
+      "id": "ge_pb",
+      "value": "85",
+      "unit": "%",
+      "display": "85%",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/有色板块大小周期共振深度研报.md#README索引",
+        "quote": "锗锌钼PB分位85-97%(下界)——小金属管制溢价已过度定价"
+      }
+    }
+  ]
+}

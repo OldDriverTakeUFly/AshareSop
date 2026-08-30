@@ -1,0 +1,16 @@
+{
+  "facts": [
+    {
+      "id": "target",
+      "value": "2",
+      "unit": "%",
+      "display": "2%",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "manual",
+        "ref": "manual:美联储官方目标",
+        "quote": "通胀目标2%"
+      }
+    }
+  ]
+}

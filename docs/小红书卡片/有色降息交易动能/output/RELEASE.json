@@ -1,0 +1,18 @@
+{
+  "topic": "有色降息交易动能",
+  "version": 1,
+  "as_of": "2026-08-30",
+  "expires_at": "2026-09-06",
+  "group": "工具方法",
+  "images": [
+    "output/有色降息交易动能_01_封面.png",
+    "output/有色降息交易动能_02_动能体检.png",
+    "output/有色降息交易动能_03_小结.png"
+  ],
+  "facts_digest": "sha256:0289dea0f8589726942e51e8a7d4ea31f1c4f84d1d77669778e2c476b881c724",
+  "validate": {
+    "passed": true,
+    "failures": 0
+  },
+  "cardgen_version": "0.1"
+}

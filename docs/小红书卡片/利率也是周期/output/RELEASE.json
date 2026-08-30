@@ -1,0 +1,18 @@
+{
+  "topic": "利率也是周期",
+  "version": 2,
+  "as_of": "2026-08-30",
+  "expires_at": "2026-09-06",
+  "group": "工具方法",
+  "images": [
+    "output/利率也是周期_01_封面.png",
+    "output/利率也是周期_02_框架复用.png",
+    "output/利率也是周期_03_小结.png"
+  ],
+  "facts_digest": "sha256:486eae88acf50bd1478be2bcaca7cd8196862f58cb31a9343ba75863f82ffddb",
+  "validate": {
+    "passed": true,
+    "failures": 0
+  },
+  "cardgen_version": "0.1"
+}
