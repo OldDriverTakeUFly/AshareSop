@@ -1,0 +1,20 @@
+{
+  "topic": "源杰科技",
+  "version": 1,
+  "as_of": "2026-06-30",
+  "expires_at": "2026-09-12",
+  "group": "个股研报·光通信",
+  "images": [
+    "output/源杰科技_01_封面.png",
+    "output/源杰科技_02_扭亏质变.png",
+    "output/源杰科技_03_CW卡位.png",
+    "output/源杰科技_04_关键日历.png",
+    "output/源杰科技_05_结论与风险.png"
+  ],
+  "facts_digest": "sha256:ad2c6ba7b9641220666a2ba5bd44aa6f043e8221ffa0ad47321890e1bc679e7e",
+  "validate": {
+    "passed": true,
+    "failures": 0
+  },
+  "cardgen_version": "0.1"
+}

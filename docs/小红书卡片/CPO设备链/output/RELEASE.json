@@ -1,0 +1,20 @@
+{
+  "topic": "CPO设备链",
+  "version": 1,
+  "as_of": "2026-06-30",
+  "expires_at": "2026-09-12",
+  "group": "产业链调研",
+  "images": [
+    "output/CPO设备链_01_封面.png",
+    "output/CPO设备链_02_元年三证.png",
+    "output/CPO设备链_03_五环节增量.png",
+    "output/CPO设备链_04_关键日历.png",
+    "output/CPO设备链_05_结论与风险.png"
+  ],
+  "facts_digest": "sha256:5bc6e2b9a801fe10e818b5ea7f40dbee4b01660d08162201f30a9bfb0834f551",
+  "validate": {
+    "passed": true,
+    "failures": 0
+  },
+  "cardgen_version": "0.1"
+}

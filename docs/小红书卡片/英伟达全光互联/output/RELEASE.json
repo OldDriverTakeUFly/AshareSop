@@ -1,0 +1,20 @@
+{
+  "topic": "英伟达全光互联",
+  "version": 1,
+  "as_of": "2026-06-30",
+  "expires_at": "2026-09-12",
+  "group": "产业链调研",
+  "images": [
+    "output/英伟达全光互联_01_封面.png",
+    "output/英伟达全光互联_02_10倍扩张.png",
+    "output/英伟达全光互联_03_卡脖子清单.png",
+    "output/英伟达全光互联_04_渗透路线.png",
+    "output/英伟达全光互联_05_结论与风险.png"
+  ],
+  "facts_digest": "sha256:dc9031cb9179d1d34cf3e3176a3693886d8b3e7f53f776047fcefd200aeeb39f",
+  "validate": {
+    "passed": true,
+    "failures": 0
+  },
+  "cardgen_version": "0.1"
+}

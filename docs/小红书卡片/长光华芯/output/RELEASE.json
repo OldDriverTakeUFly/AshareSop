@@ -1,0 +1,20 @@
+{
+  "topic": "长光华芯",
+  "version": 1,
+  "as_of": "2026-06-30",
+  "expires_at": "2026-09-12",
+  "group": "个股研报·光通信",
+  "images": [
+    "output/长光华芯_01_封面.png",
+    "output/长光华芯_02_拐点确认.png",
+    "output/长光华芯_03_EML空间.png",
+    "output/长光华芯_04_关键日历.png",
+    "output/长光华芯_05_结论与风险.png"
+  ],
+  "facts_digest": "sha256:9cf49980e634f377c43eff100c1ef04f58c81e68edda7dc77aeb1b0fb2a07595",
+  "validate": {
+    "passed": true,
+    "failures": 0
+  },
+  "cardgen_version": "0.1"
+}

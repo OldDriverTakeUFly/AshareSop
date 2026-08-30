@@ -1,0 +1,81 @@
+<!DOCTYPE html><html lang='zh-CN'><head><meta charset='UTF-8'><style>  * { margin:0; padding:0; box-sizing:border-box; font-family:'Noto Sans CJK SC','PingFang SC','Microsoft YaHei',sans-serif; }
+  body { background:#e8e8e8; display:flex; flex-direction:column; align-items:center; gap:40px; padding:40px 0; }
+  .card { width:1080px; height:1440px; border-radius:48px; position:relative; overflow:hidden; padding:48px 56px; display:flex; flex-direction:column; }
+  .card1 { background:linear-gradient(160deg,#1a1440 0%,#3b1d6e 45%,#8a2be2 100%); color:#fff; }
+  .card2 { background:#fdf6ec; color:#3a2e20; }
+  .card3 { background:#eef4ff; color:#1e2a44; }
+  .card4 { background:#fff1f0; color:#4a1f1c; }
+  .card5 { background:#f0fbf2; color:#1d3a24; }
+  .card6 { background:#f7f3ff; color:#2e2440; }
+  .tag-top { display:inline-block; background:#ff2442; color:#fff; font-size:30px; font-weight:900; padding:12px 30px; border-radius:999px; letter-spacing:2px; width:fit-content; }
+  .badge { display:inline-block; font-size:26px; font-weight:800; padding:8px 22px; border-radius:999px; margin-right:12px; }
+  .b-purple{background:rgba(138,43,226,.18);color:#6b21a8;} .b-blue{background:rgba(37,99,235,.14);color:#1d4ed8;}
+  .b-red{background:rgba(220,38,38,.12);color:#b91c1c;} .b-green{background:rgba(22,163,74,.14);color:#15803d;}
+  .b-org{background:rgba(234,88,12,.15);color:#c2410c;} .b-gray{background:rgba(0,0,0,.07);color:#555;}
+  h1 { font-size:96px; font-weight:900; line-height:1.18; margin:28px 0 10px; letter-spacing:1px; }
+  .sub { font-size:42px; font-weight:700; opacity:.92; line-height:1.5; }
+  .hl { background:linear-gradient(transparent 62%, rgba(255,210,0,.85) 62%); padding:0 6px; }
+  .hl-r { background:linear-gradient(transparent 62%, rgba(255,77,109,.55) 62%); padding:0 6px; }
+  .big-num { font-size:150px; font-weight:900; line-height:1; letter-spacing:-2px; }
+  h2.title { font-size:56px; font-weight:900; margin-bottom:8px; line-height:1.25; }
+  .subtitle { font-size:30px; font-weight:600; opacity:.65; margin-bottom:24px; }
+  .row { background:#fff; border-radius:28px; padding:20px 28px; margin-bottom:16px; box-shadow:0 6px 24px rgba(0,0,0,.06); }
+  .row .name { font-size:36px; font-weight:900; margin-bottom:8px; display:flex; align-items:center; gap:14px; flex-wrap:wrap;}
+  .row .desc { font-size:26px; line-height:1.48; }
+  .dot { width:24px; height:24px; border-radius:50%; display:inline-block; }
+  table { width:100%; border-collapse:separate; border-spacing:0; background:#fff; border-radius:26px; overflow:hidden; font-size:26px; box-shadow:0 6px 24px rgba(0,0,0,.06); }
+  th { background:#2a2050; color:#fff; font-weight:800; padding:16px 12px; font-size:25px; }
+  td { padding:14px 12px; text-align:center; border-bottom:1px solid #f0ecf5; line-height:1.35; }
+  td.l { text-align:left; font-weight:800; }
+  tr:last-child td { border-bottom:none; }
+  .up{color:#dc2626;font-weight:800;} .down{color:#16a34a;font-weight:800;} .warn{color:#d97706;font-weight:800;}
+  .kbox { background:#fff; border-radius:26px; padding:20px 28px; margin-bottom:14px; box-shadow:0 6px 24px rgba(0,0,0,.06); display:flex; gap:20px; align-items:flex-start; }
+  .kdate { min-width:165px; background:#16a34a; color:#fff; font-weight:900; font-size:27px; border-radius:16px; text-align:center; padding:12px 0; line-height:1.3;}
+  .kdate.red{background:#dc2626;} .kdate.org{background:#ea580c;} .kdate.pu{background:#7c3aed;}
+  .ktext { font-size:26px; line-height:1.48; padding-top:4px;}
+  .ktext b { font-size:27px; }
+  .quote { background:rgba(255,255,255,.14); border-left:8px solid #ffd400; border-radius:0 22px 22px 0; padding:22px 26px; font-size:30px; line-height:1.55; font-weight:600; }
+  .foot { margin-top:auto; font-size:21px; opacity:.6; line-height:1.45; }
+  .tags { font-size:25px; font-weight:700; opacity:.85; margin-top:20px; }
+  .card5 .ktext { font-size:25px; line-height:1.42; }
+  .card5 .kdate { min-width:150px; font-size:25px; }
+  .card5 .kbox { padding:16px 24px; gap:16px; margin-bottom:12px; }
+  .card5 .ktext b { font-size:26px; }
+  .card2 .row .desc { font-size:25px; line-height:1.45; }
+  .card2 .row .name { font-size:34px; }
+  .num-badge { display:flex; gap:26px; margin:34px 0 8px; }
+  .nb { background:rgba(255,255,255,.12); border-radius:26px; padding:24px 30px; flex:1; }
+  .nb .v { font-size:58px; font-weight:900; color:#ffd400; }
+  .nb .k { font-size:25px; opacity:.85; margin-top:6px; }
+</style><style class='cardgen-fill'>.card{justify-content:space-between;}.card>.foot{margin-top:0 !important;}</style></head><body><div class="card card1" id="card1">
+<span class="tag-top" style="background:#ff2442;">个股深度 · 2026-08-29</span>
+<h1>光库科技:TFLN<br>中国唯一量产商🔥</h1>
+<div class="sub" style="margin-top:24px;">Q4扣非增速1444.83%<br>估值体系切换在即</div>
+<div class="num-badge"><div class="nb"><div class="v">+163.76%</div><div class="k">2025净利增速</div></div><div class="nb"><div class="v">+1444.83%</div><div class="k">Q4扣非增速</div></div><div class="nb"><div class="v">30%以上</div><div class="k">TFLN放量目标占比</div></div></div>
+<div style="margin-top:30px;"><div class="quote" style="background:rgba(255,255,255,.14);color:inherit;border-left-color:#ffd400;font-size:30px;">"<span style='color:#ffd400'>中国唯一+全球前三</span>——A股市场里这种稀缺度的公司,一只手数得过来"</div></div>
+<div class="tags">#光库科技 #TFLN #薄膜铌酸锂 #光通信 #国产替代</div><div class="foot">数据来源:光库科技深度研报(2026年6月)· 仅供研究参考,不构成投资建议</div></div><div class="card card4" id="card2">
+<span class="tag-top" style="background:#ff2442;">逐季爆发</span>
+<h2 class="title" style="margin-top:24px;">一个季度比一个季度猛❗</h2>
+<div class="subtitle">2025单季营收/净利(亿元)</div>
+<div style="display:flex;flex-direction:column;gap:24px;"><div><div style="display:flex;justify-content:space-between;font-size:30px;font-weight:800;margin-bottom:10px;"><span>Q1 营收</span><span style="color:#0ea5e9;">2.65亿</span></div><div style="height:38px;border-radius:19px;background:linear-gradient(90deg,#0ea5e9 56%,#e9e4f0 56%);"></div></div><div><div style="display:flex;justify-content:space-between;font-size:30px;font-weight:800;margin-bottom:10px;"><span>Q4 营收</span><span style="color:#dc2626;">4.76亿</span></div><div style="height:38px;border-radius:19px;background:linear-gradient(90deg,#dc2626 100%,#e9e4f0 100%);"></div></div><div><div style="display:flex;justify-content:space-between;font-size:30px;font-weight:800;margin-bottom:10px;"><span>Q1 净利</span><span style="color:#64748b;">1084万</span></div><div style="height:38px;border-radius:19px;background:linear-gradient(90deg,#64748b 18%,#e9e4f0 18%);"></div></div><div><div style="display:flex;justify-content:space-between;font-size:30px;font-weight:800;margin-bottom:10px;"><span>Q4 净利</span><span style="color:#c2410c;">6136万</span></div><div style="height:38px;border-radius:19px;background:linear-gradient(90deg,#c2410c 100%,#e9e4f0 100%);"></div></div></div>
+<div style="font-size:24px;opacity:.6;text-align:right;margin-top:4px;">净利从Q1的1084万到Q4的6136万——翻了近6倍;Q4经营现金流占全年72%</div>
+<div style="margin-top:34px;"><div class="kbox"><div class="kdate" style="background:#dc2626;">质变年</div><div class="ktext">2025全年:营收<b>14.74亿(+47.56%)</b>,净利<b>1.77亿(+163.76%)</b>,扣非<b>+190.11%</b>——利润增速远超营收</div></div><div class="kbox"><div class="kdate" style="background:#16a34a;">2026Q1续力</div><div class="ktext">营收<b>4.26亿(+60.80%)</b>,扣非<b>+561.0%</b>——经营杠杆猛烈发力</div></div></div>
+<div class="foot">数据来源:光库科技深度研报(2026年6月)· 不构成投资建议</div></div><div class="card card3" id="card3">
+<span class="tag-top" style="background:#2563eb;">TFLN卡位</span>
+<h2 class="title" style="margin-top:24px;">中国唯一的TFLN量产商</h2>
+<div class="subtitle">三笔精准收购铺路</div>
+<table><tr><th style=text-align:left>动作</th><th>时间/金额</th><th>意义</th></tr><tr><td class="l">收购Lumentum铌酸锂产线</td><td class="">1700万美元(2019)</td><td class="">技术入场券</td></tr><tr><td class="l">收购武汉捷普</td><td class="">1700万美元(2025)</td><td class="">产能并表</td></tr><tr><td class="l">收购苏州安捷讯</td><td class="">16.4亿元(2025)</td><td class="">垂直整合</td></tr></table>
+<div style="margin-top:30px;"><div class="kbox"><div class="kdate" style="background:#c2410c;">毛利路径</div><div class="ktext">Q4单季毛利率<b>39.39%</b>;TFLN占比当前<b>10-14%</b>,若提升到<b>30%以上</b>综合毛利率有望突破<b>40%</b></div></div><div class="kbox"><div class="kdate" style="background:#dc2626;">估值切换</div><div class="ktext">若2027年TFLN收入达<b>8-10亿</b>:从「光器件公司(PE 25-35倍)」切换到「TFLN芯片公司(PE <b>40-60倍</b>)」——估值体系质变</div></div></div>
+<div class="foot">数据来源:光库科技深度研报(2026年6月)</div></div><div class="card card5" id="card4">
+<span class="tag-top" style="background:#16a34a;">关键节点日历</span>
+<h2 class="title" style="margin-top:24px;">光库的四道关📅</h2>
+<div class="subtitle"></div>
+<div class="kbox"><div class="kdate" style="background:#dc2626;">2026</div><div class="ktext"><b>安捷讯并表整合</b>与捷普产能爬坡——16.4亿收购的消化能力</div></div><div class="kbox"><div class="kdate" style="background:#7c3aed;">2026-2027</div><div class="ktext"><b>TFLN在1.6T/3.2T的方案渗透</b>:TFLN三年内从2亿到15亿以上的弹性口径</div></div><div class="kbox"><div class="kdate" style="background:#c2410c;">持续</div><div class="ktext"><b>激光雷达第三引擎</b>的订单兑现;分红率从<b>15%→28%</b>后的股东回报延续</div></div><div class="kbox"><div class="kdate" style="background:#64748b;">估值锚</div><div class="ktext">若TFLN成为主流方案:市值空间<b>200-400亿</b>口径(分析框架,非预测)</div></div>
+<div class="foot">数据来源:光库科技深度研报(2026年6月)</div></div><div class="card card6" id="card5">
+<span class="tag-top" style="background:#0f172a;">一句话收束</span>
+<h2 class="title" style="margin-top:24px;">定价的是<br>稀缺性+弹性</h2>
+<div class="subtitle"></div>
+<div class="row"><div class="desc">定价的是<span class='hl'>中国唯一TFLN量产+三引擎平台+逐季加速</span>——稀缺性溢价有基本面</div></div><div class="row"><div class="desc">期权价值是<span class='hl'>估值体系切换</span>(器件→芯片),代价是TFLN路线本身还有不确定性</div></div><div class="row"><div class="desc">现金流佐证:Q4经营现金流<b>1.66亿</b>占全年<b>72%</b>——年底利润质量高,不是纸面利润</div></div>
+<div style="margin-top:14px;"><div class="kbox"><div class="kdate" style="background:#dc2626;">风险</div><div class="ktext">TFLN路线被替代(硅光集成方案)·并表整合不顺·Q4高基数·激光雷达不及预期·收购商誉·动量94.86高位</div></div></div>
+<div style="margin-top:8px;"><div class="quote" style="background:rgba(124,58,237,.10);color:#2e2440;border-left-color:#ffd400;font-size:30px;">每一笔收购都踩在行业变革节点上——<b>问题是,节点之间的等待期,估值先到</b></div></div>
+<div class="tags">#光库科技 #TFLN #薄膜铌酸锂 #光通信 #国产替代</div><div class="foot">数据来源:光库科技深度研报(2026年6月,公司年报+Omdia等交叉验证)· AI辅助生成,仅供研究参考,不构成投资建议。市场有风险,投资需谨慎。</div></div></body></html>

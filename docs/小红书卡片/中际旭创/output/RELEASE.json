@@ -1,0 +1,20 @@
+{
+  "topic": "中际旭创",
+  "version": 1,
+  "as_of": "2026-06-30",
+  "expires_at": "2026-09-12",
+  "group": "个股研报·光通信",
+  "images": [
+    "output/中际旭创_01_封面.png",
+    "output/中际旭创_02_三年九倍.png",
+    "output/中际旭创_03_1.6T接力.png",
+    "output/中际旭创_04_关键日历.png",
+    "output/中际旭创_05_结论与风险.png"
+  ],
+  "facts_digest": "sha256:3ee396ab46f020874fc47d196e1d027cf797b9e79c09faf07708e9eb2608201f",
+  "validate": {
+    "passed": true,
+    "failures": 0
+  },
+  "cardgen_version": "0.1"
+}

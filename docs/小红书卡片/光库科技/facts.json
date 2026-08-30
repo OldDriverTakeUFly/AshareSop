@@ -1,0 +1,511 @@
+{
+  "facts": [
+    {
+      "id": "np_g",
+      "value": "163.76",
+      "unit": "%",
+      "display": "+163.76%",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/光库科技深度研报.md",
+        "quote": "净利润1.77亿元(+163.76%)"
+      }
+    },
+    {
+      "id": "kf_q4",
+      "value": "1444.83",
+      "unit": "%",
+      "display": "+1444.83%",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/光库科技深度研报.md",
+        "quote": "单季扣非5521万元(+1444.83%)"
+      }
+    },
+    {
+      "id": "tfln30",
+      "value": "30",
+      "unit": "%",
+      "display": "30%以上",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/光库科技深度研报.md",
+        "quote": "如果TFLN收入占比从当前的10-14%提升到30%以上,公司综合毛利率有望突破40%"
+      }
+    },
+    {
+      "id": "q1_rev",
+      "value": "2.65",
+      "unit": "亿",
+      "display": "2.65亿",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/光库科技深度研报.md",
+        "quote": "营收从Q1的2.65亿到Q4的4.76亿"
+      }
+    },
+    {
+      "id": "q4_rev",
+      "value": "4.76",
+      "unit": "亿",
+      "display": "4.76亿",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/光库科技深度研报.md",
+        "quote": "营收从Q1的2.65亿到Q4的4.76亿"
+      }
+    },
+    {
+      "id": "q1_np",
+      "value": "1084",
+      "unit": "万",
+      "display": "1084万",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/光库科技深度研报.md",
+        "quote": "净利润更是从Q1的1084万元到Q4的6136万元"
+      }
+    },
+    {
+      "id": "q4_np",
+      "value": "6136",
+      "unit": "万",
+      "display": "6136万",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/光库科技深度研报.md",
+        "quote": "净利润更是从Q1的1084万元到Q4的6136万元"
+      }
+    },
+    {
+      "id": "rev",
+      "value": "14.74",
+      "unit": "亿",
+      "display": "14.74亿",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/光库科技深度研报.md",
+        "quote": "营收14.74亿元(+47.56%)"
+      }
+    },
+    {
+      "id": "rev_g",
+      "value": "47.56",
+      "unit": "%",
+      "display": "+47.56%",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/光库科技深度研报.md",
+        "quote": "营收14.74亿元(+47.56%)"
+      }
+    },
+    {
+      "id": "np",
+      "value": "1.77",
+      "unit": "亿",
+      "display": "1.77亿",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/光库科技深度研报.md",
+        "quote": "净利润1.77亿元(+163.76%)"
+      }
+    },
+    {
+      "id": "kf_g",
+      "value": "190.11",
+      "unit": "%",
+      "display": "+190.11%",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/光库科技深度研报.md",
+        "quote": "扣非1.40亿元(+190.11%)"
+      }
+    },
+    {
+      "id": "q1_26",
+      "value": "4.26",
+      "unit": "亿",
+      "display": "4.26亿",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/光库科技深度研报.md",
+        "quote": "2026Q1延续了强劲势头。营收4.26亿元(+60.80%)"
+      }
+    },
+    {
+      "id": "q1_26_g",
+      "value": "60.80",
+      "unit": "%",
+      "display": "+60.80%",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/光库科技深度研报.md",
+        "quote": "2026Q1延续了强劲势头。营收4.26亿元(+60.80%)"
+      }
+    },
+    {
+      "id": "q1_26_kf",
+      "value": "561.0",
+      "unit": "%",
+      "display": "+561.0%",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/光库科技深度研报.md",
+        "quote": "扣非3581万元(+561.0%)"
+      }
+    },
+    {
+      "id": "acq1",
+      "value": "1700",
+      "unit": "万",
+      "display": "1700万美元",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/光库科技深度研报.md",
+        "quote": "2019年1700万美元收购Lumentum铌酸锂调制器产线"
+      }
+    },
+    {
+      "id": "acq2",
+      "value": "1700",
+      "unit": "万",
+      "display": "1700万美元",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/光库科技深度研报.md",
+        "quote": "2025年1700万美元收购武汉捷普(Jabil)"
+      }
+    },
+    {
+      "id": "acq3",
+      "value": "16.4",
+      "unit": "亿",
+      "display": "16.4亿元",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/光库科技深度研报.md",
+        "quote": "2025年16.4亿元启动收购苏州安捷讯"
+      }
+    },
+    {
+      "id": "gm_q4",
+      "value": "39.39",
+      "unit": "%",
+      "display": "39.39%",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/光库科技深度研报.md",
+        "quote": "Q4单季毛利率39.39%是一个重要信号"
+      }
+    },
+    {
+      "id": "tfln_lo",
+      "value": "10",
+      "unit": "%",
+      "display": "10-14%",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/光库科技深度研报.md",
+        "quote": "TFLN收入占比从当前的10-14%"
+      }
+    },
+    {
+      "id": "tfln_hi",
+      "value": "14",
+      "unit": "%",
+      "display": "10-14%",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/光库科技深度研报.md",
+        "quote": "TFLN收入占比从当前的10-14%"
+      }
+    },
+    {
+      "id": "gm40",
+      "value": "40",
+      "unit": "%",
+      "display": "40%",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/光库科技深度研报.md",
+        "quote": "公司综合毛利率有望突破40%"
+      }
+    },
+    {
+      "id": "tfln27_lo",
+      "value": "8",
+      "unit": "亿",
+      "display": "8-10亿",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/光库科技深度研报.md",
+        "quote": "如果TFLN收入在2027年达到8-10亿元,光库科技将成为一家以TFLN为核心的光电子公司"
+      }
+    },
+    {
+      "id": "tfln27_hi",
+      "value": "10",
+      "unit": "亿",
+      "display": "8-10亿",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/光库科技深度研报.md",
+        "quote": "如果TFLN收入在2027年达到8-10亿元"
+      }
+    },
+    {
+      "id": "pe_lo",
+      "value": "25",
+      "unit": "倍",
+      "display": "PE 25-35倍",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/光库科技深度研报.md",
+        "quote": "从光器件公司(PE 25-35x)切换到TFLN芯片公司(PE 40-60x)"
+      }
+    },
+    {
+      "id": "pe_hi",
+      "value": "35",
+      "unit": "倍",
+      "display": "PE 25-35倍",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/光库科技深度研报.md",
+        "quote": "从光器件公司(PE 25-35x)切换到TFLN芯片公司(PE 40-60x)"
+      }
+    },
+    {
+      "id": "pe_t_lo",
+      "value": "40",
+      "unit": "倍",
+      "display": "PE 40-60倍",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/光库科技深度研报.md",
+        "quote": "从光器件公司(PE 25-35x)切换到TFLN芯片公司(PE 40-60x)"
+      }
+    },
+    {
+      "id": "pe_t_hi",
+      "value": "60",
+      "unit": "倍",
+      "display": "PE 40-60倍",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/光库科技深度研报.md",
+        "quote": "从光器件公司(PE 25-35x)切换到TFLN芯片公司(PE 40-60x)"
+      }
+    },
+    {
+      "id": "cf_q4",
+      "value": "1.66",
+      "unit": "亿",
+      "display": "1.66亿",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/光库科技深度研报.md",
+        "quote": "Q4经营现金流达到1.66亿元,占全年2.31亿元的72%"
+      }
+    },
+    {
+      "id": "cf_pct",
+      "value": "72",
+      "unit": "%",
+      "display": "72%",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/光库科技深度研报.md",
+        "quote": "Q4经营现金流达到1.66亿元,占全年2.31亿元的72%"
+      }
+    },
+    {
+      "id": "div15",
+      "value": "15",
+      "unit": "%",
+      "display": "15%",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/光库科技深度研报.md",
+        "quote": "分红率从15%提升到28%"
+      }
+    },
+    {
+      "id": "div28",
+      "value": "28",
+      "unit": "%",
+      "display": "28%",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/光库科技深度研报.md",
+        "quote": "分红率从15%提升到28%"
+      }
+    },
+    {
+      "id": "mv_lo",
+      "value": "200",
+      "unit": "亿",
+      "display": "200-400亿",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/光库科技深度研报.md",
+        "quote": "对应的公司市值空间可能在200-400亿元"
+      }
+    },
+    {
+      "id": "mv_hi",
+      "value": "400",
+      "unit": "亿",
+      "display": "200-400亿",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/光库科技深度研报.md",
+        "quote": "对应的公司市值空间可能在200-400亿元"
+      }
+    },
+    {
+      "id": "tfln3_lo",
+      "value": "2",
+      "unit": "亿",
+      "display": "从2亿到15亿",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/光库科技深度研报.md",
+        "quote": "光库的TFLN业务收入有望在3年内从2亿增长到15亿以上"
+      }
+    },
+    {
+      "id": "tfln3_hi",
+      "value": "15",
+      "unit": "亿",
+      "display": "从2亿到15亿",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/光库科技深度研报.md",
+        "quote": "光库的TFLN业务收入有望在3年内从2亿增长到15亿以上"
+      }
+    },
+    {
+      "id": "mult6",
+      "value": "6",
+      "unit": "倍",
+      "display": "6倍",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/光库科技深度研报.md",
+        "quote": "净利润更是从Q1的1084万元到Q4的6136万元,翻了近6倍"
+      }
+    },
+    {
+      "id": "switch_16t",
+      "value": "1.6",
+      "unit": "",
+      "display": "1.6T",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/光库科技深度研报.md",
+        "quote": "如果TFLN成为1.6T/3.2T光模块的主流调制方案"
+      }
+    },
+    {
+      "id": "switch_32t",
+      "value": "3.2",
+      "unit": "",
+      "display": "3.2T",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/光库科技深度研报.md",
+        "quote": "如果TFLN成为1.6T/3.2T光模块的主流调制方案"
+      }
+    },
+    {
+      "id": "mom",
+      "value": "94.86",
+      "unit": "",
+      "display": "94.86",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/光通信/光库科技深度研报.md",
+        "quote": "动量综合分 94.86(80-95,强动量)"
+      }
+    }
+  ]
+}

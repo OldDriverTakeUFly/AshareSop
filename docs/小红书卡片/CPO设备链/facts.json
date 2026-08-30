@@ -1,0 +1,251 @@
+{
+  "facts": [
+    {
+      "id": "t16_low",
+      "value": "2500",
+      "unit": "万",
+      "display": "2500-3500万只",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/CPO量产元年设备链与港股硅光标的全景研报.md",
+        "quote": "1.6T 光模块出货量同比 10 倍"
+      }
+    },
+    {
+      "id": "t16_high",
+      "value": "3500",
+      "unit": "万",
+      "display": "2500-3500万只",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/CPO量产元年设备链与港股硅光标的全景研报.md",
+        "quote": "1.6T 光模块出货量同比 10 倍"
+      }
+    },
+    {
+      "id": "t16x10",
+      "value": "10",
+      "unit": "倍",
+      "display": "10倍",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/CPO量产元年设备链与港股硅光标的全景研报.md",
+        "quote": "1.6T 光模块出货量同比 10 倍"
+      }
+    },
+    {
+      "id": "ship25",
+      "value": "80",
+      "unit": "万",
+      "display": "80万只",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/CPO量产元年设备链与港股硅光标的全景研报.md",
+        "quote": "1.6T光模块2025年出货约80万只"
+      }
+    },
+    {
+      "id": "coupe",
+      "value": "2028",
+      "unit": "年",
+      "display": "2028年",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/CPO量产元年设备链与港股硅光标的全景研报.md",
+        "quote": "台积电 COUPE 硅光平台产能锁定至 2028"
+      }
+    },
+    {
+      "id": "keysight",
+      "value": "30.8",
+      "unit": "%",
+      "display": "30.8%",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/CPO量产元年设备链与港股硅光标的全景研报.md",
+        "quote": "1.6T 测试方案 全球仅 Keysight(30.8%)/Anritsu(22.5%)/联讯(9.9%)三家能做全套"
+      }
+    },
+    {
+      "id": "anritsu",
+      "value": "22.5",
+      "unit": "%",
+      "display": "22.5%",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/CPO量产元年设备链与港股硅光标的全景研报.md",
+        "quote": "1.6T 测试方案 全球仅 Keysight(30.8%)/Anritsu(22.5%)/联讯(9.9%)三家能做全套"
+      }
+    },
+    {
+      "id": "lianxun",
+      "value": "9.9",
+      "unit": "%",
+      "display": "9.9%",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/CPO量产元年设备链与港股硅光标的全景研报.md",
+        "quote": "1.6T 测试方案 全球仅 Keysight(30.8%)/Anritsu(22.5%)/联讯(9.9%)三家能做全套"
+      }
+    },
+    {
+      "id": "onto",
+      "value": "500",
+      "unit": "亿",
+      "display": "约500亿人民币",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/CPO量产元年设备链与港股硅光标的全景研报.md",
+        "quote": "Onto Innovation 晶圆级光测试 ~500 亿人民币 联讯仪器的国际对标"
+      }
+    },
+    {
+      "id": "camtek",
+      "value": "300",
+      "unit": "亿",
+      "display": "约300亿人民币",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/CPO量产元年设备链与港股硅光标的全景研报.md",
+        "quote": "Camtek 晶圆级检测 ~300 亿人民币"
+      }
+    },
+    {
+      "id": "besi",
+      "value": "1000",
+      "unit": "亿",
+      "display": "约1000亿人民币",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/CPO量产元年设备链与港股硅光标的全景研报.md",
+        "quote": "BESI 混合键合设备 ~1000 亿人民币 与 ASMPT 双寡头"
+      }
+    },
+    {
+      "id": "asmpt",
+      "value": "6000",
+      "unit": "亿",
+      "display": "约6000亿港币",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/CPO量产元年设备链与港股硅光标的全景研报.md",
+        "quote": "ASMPT 混合键合(TCB/热压键合)龙头 ~6000 亿港币"
+      }
+    },
+    {
+      "id": "cpo28",
+      "value": "10",
+      "unit": "%",
+      "display": "10%",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/CPO量产元年设备链与港股硅光标的全景研报.md",
+        "quote": "CPO在AI数据中心渗透率 ~0.1% → ~0.5% → ~10% → ~35%"
+      }
+    },
+    {
+      "id": "cpo30",
+      "value": "35",
+      "unit": "%",
+      "display": "35%",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/CPO量产元年设备链与港股硅光标的全景研报.md",
+        "quote": "CPO在AI数据中心渗透率 ~0.1% → ~0.5% → ~10% → ~35%"
+      }
+    },
+    {
+      "id": "switch_16t",
+      "value": "1.6",
+      "unit": "",
+      "display": "1.6T",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/CPO量产元年设备链与港股硅光标的全景研报.md",
+        "quote": "1.6T 光模块出货量同比 10 倍"
+      }
+    },
+    {
+      "id": "hz65",
+      "value": "65",
+      "unit": "",
+      "display": "65GHz",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/CPO量产元年设备链与港股硅光标的全景研报.md",
+        "quote": "65GHz 采样示波器 + 120GBaud CRU"
+      }
+    },
+    {
+      "id": "gbaud120",
+      "value": "120",
+      "unit": "",
+      "display": "120GBaud",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/CPO量产元年设备链与港股硅光标的全景研报.md",
+        "quote": "65GHz 采样示波器 + 120GBaud CRU"
+      }
+    },
+    {
+      "id": "aging100",
+      "value": "100",
+      "unit": "%",
+      "display": "100%",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/CPO量产元年设备链与港股硅光标的全景研报.md",
+        "quote": "100% 老化(CPO 不可现场更换)"
+      }
+    },
+    {
+      "id": "cpo05",
+      "value": "0.5",
+      "unit": "%",
+      "display": "0.5%",
+      "as_of": "2026-06-30",
+      "expires": "2026-09-12",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/CPO量产元年设备链与港股硅光标的全景研报.md",
+        "quote": "CPO在AI数据中心渗透率 ~0.1% → ~0.5% → ~10% → ~35%"
+      }
+    }
+  ]
+}
