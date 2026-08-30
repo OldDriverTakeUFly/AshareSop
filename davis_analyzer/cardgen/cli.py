@@ -124,13 +124,21 @@ def cmd_enqueue(args: argparse.Namespace) -> None:
     # 契约:RELEASE.images 为相对 project_dir 的路径,打印前用 proj/img 拼成绝对路径
     images = ",".join(str(proj / img) if not img.startswith("/") else img
                       for img in release["images"])
+    # 2026-08-30:补 --body(尾卡 foot 兜底)——queue 的 REQUIRED 闸扫 title+body+tags,
+    # 不带 body 则「不构成投资建议」必缺失,review 永远被拒
+    def _strip_html(s: str) -> str:
+        return re.sub(r"<[^>]+>", " ", str(s)).strip()
+    body = next((_strip_html(c.get("foot", "")) for c in reversed(spec["cards"])
+                 if "不构成投资建议" in str(c.get("foot", ""))), "")
+    if not body:
+        body = "内容仅供学习参考,不构成投资建议"
     try:
         source = str(proj.relative_to(REPO_ROOT))
     except ValueError:
         source = str(proj)  # 工程在仓库外(如测试重定向)时退回绝对路径
     print("发稿入池命令(人工/agent 执行):")
     print(f".venv/bin/python scripts/content_publisher/queue.py enqueue "
-          f"--title '{title}' --images {images} --tags '{tags}' "
+          f"--title '{title}' --body '{body}' --images {images} --tags '{tags}' "
           f"--source '{source}'")
     conn = _ledger_conn()
     try:
