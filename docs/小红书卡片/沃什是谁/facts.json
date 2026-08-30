@@ -1,0 +1,16 @@
+{
+  "facts": [
+    {
+      "id": "qe_year",
+      "value": "2008",
+      "unit": "年",
+      "display": "2008年",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "manual",
+        "ref": "manual:公开履历(华尔街见闻等)",
+        "quote": "2008年金融危机QE的著名批评者"
+      }
+    }
+  ]
+}

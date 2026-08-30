@@ -1,0 +1,18 @@
+{
+  "topic": "沃什是谁",
+  "version": 1,
+  "as_of": "2026-08-30",
+  "expires_at": "2026-09-06",
+  "group": "工具方法",
+  "images": [
+    "output/沃什是谁_01_封面.png",
+    "output/沃什是谁_02_履历卡.png",
+    "output/沃什是谁_03_小结.png"
+  ],
+  "facts_digest": "sha256:a29f70a299ec17b509dc18bd14315b7f9ee415fe989ab01e8349b4fe5263e94a",
+  "validate": {
+    "passed": true,
+    "failures": 0
+  },
+  "cardgen_version": "0.1"
+}

@@ -1,0 +1,64 @@
+{
+  "facts": [
+    {
+      "id": "sy_pe",
+      "value": "88.5",
+      "unit": "倍",
+      "display": "88.5倍",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/生益科技深度研报.md#估值分析",
+        "quote": "生益科技PE 88.5x"
+      }
+    },
+    {
+      "id": "sy_pct",
+      "value": "92",
+      "unit": "%",
+      "display": "92%",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/生益科技深度研报.md#估值分析",
+        "quote": "生益估值分位92%(92-96%区间下界)"
+      }
+    },
+    {
+      "id": "dc_pe",
+      "value": "126.7",
+      "unit": "倍",
+      "display": "126.7倍",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/M10级材料四强研报#估值断层",
+        "quote": "东材科技PE 126.7x链内最贵"
+      }
+    },
+    {
+      "id": "sq_pe",
+      "value": "36.8",
+      "unit": "倍",
+      "display": "36.8倍",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/半导体电子/PCB印制电路板/M10级材料四强研报#估值断层",
+        "quote": "圣泉集团PE 36.8x链内最低"
+      }
+    },
+    {
+      "id": "sh_dy",
+      "value": "6.58",
+      "unit": "%",
+      "display": "6.58%",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/煤炭周期产业链深度研报.md",
+        "quote": "神华股息率6.58%(煤炭周期研报口径)"
+      }
+    }
+  ]
+}

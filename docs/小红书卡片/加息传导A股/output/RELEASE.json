@@ -1,0 +1,19 @@
+{
+  "topic": "加息传导A股",
+  "version": 1,
+  "as_of": "2026-08-30",
+  "expires_at": "2026-09-06",
+  "group": "工具方法",
+  "images": [
+    "output/加息传导A股_01_封面.png",
+    "output/加息传导A股_02_四条传导链.png",
+    "output/加息传导A股_03_观察清单.png",
+    "output/加息传导A股_04_小结.png"
+  ],
+  "facts_digest": "sha256:603a1f51955536ff1a768ed208fb5f4e7dffaa763f8c429a2058f6ce768ccd9a",
+  "validate": {
+    "passed": true,
+    "failures": 0
+  },
+  "cardgen_version": "0.1"
+}

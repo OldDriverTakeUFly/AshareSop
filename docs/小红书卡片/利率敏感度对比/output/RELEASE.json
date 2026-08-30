@@ -1,0 +1,19 @@
+{
+  "topic": "利率敏感度对比",
+  "version": 1,
+  "as_of": "2026-08-30",
+  "expires_at": "2026-09-06",
+  "group": "工具方法",
+  "images": [
+    "output/利率敏感度对比_01_封面.png",
+    "output/利率敏感度对比_02_估值切片.png",
+    "output/利率敏感度对比_03_两种暴露.png",
+    "output/利率敏感度对比_04_小结.png"
+  ],
+  "facts_digest": "sha256:a83b99ae368712f079f4f27e7a695e3ff1869343d2d5325fbca2553b7faed519",
+  "validate": {
+    "passed": true,
+    "failures": 0
+  },
+  "cardgen_version": "0.1"
+}

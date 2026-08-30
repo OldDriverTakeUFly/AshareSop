@@ -1,0 +1,74 @@
+<!DOCTYPE html><html lang='zh-CN'><head><meta charset='UTF-8'><style>  * { margin:0; padding:0; box-sizing:border-box; font-family:'Noto Sans CJK SC','PingFang SC','Microsoft YaHei',sans-serif; }
+  body { background:#e8e8e8; display:flex; flex-direction:column; align-items:center; gap:40px; padding:40px 0; }
+  .card { width:1080px; height:1440px; border-radius:48px; position:relative; overflow:hidden; padding:48px 56px; display:flex; flex-direction:column; }
+  .card1 { background:linear-gradient(160deg,#1a1440 0%,#3b1d6e 45%,#8a2be2 100%); color:#fff; }
+  .card2 { background:#fdf6ec; color:#3a2e20; }
+  .card3 { background:#eef4ff; color:#1e2a44; }
+  .card4 { background:#fff1f0; color:#4a1f1c; }
+  .card5 { background:#f0fbf2; color:#1d3a24; }
+  .card6 { background:#f7f3ff; color:#2e2440; }
+  .tag-top { display:inline-block; background:#ff2442; color:#fff; font-size:30px; font-weight:900; padding:12px 30px; border-radius:999px; letter-spacing:2px; width:fit-content; }
+  .badge { display:inline-block; font-size:26px; font-weight:800; padding:8px 22px; border-radius:999px; margin-right:12px; }
+  .b-purple{background:rgba(138,43,226,.18);color:#6b21a8;} .b-blue{background:rgba(37,99,235,.14);color:#1d4ed8;}
+  .b-red{background:rgba(220,38,38,.12);color:#b91c1c;} .b-green{background:rgba(22,163,74,.14);color:#15803d;}
+  .b-org{background:rgba(234,88,12,.15);color:#c2410c;} .b-gray{background:rgba(0,0,0,.07);color:#555;}
+  h1 { font-size:96px; font-weight:900; line-height:1.18; margin:28px 0 10px; letter-spacing:1px; }
+  .sub { font-size:42px; font-weight:700; opacity:.92; line-height:1.5; }
+  .hl { background:linear-gradient(transparent 62%, rgba(255,210,0,.85) 62%); padding:0 6px; }
+  .hl-r { background:linear-gradient(transparent 62%, rgba(255,77,109,.55) 62%); padding:0 6px; }
+  .big-num { font-size:150px; font-weight:900; line-height:1; letter-spacing:-2px; }
+  h2.title { font-size:56px; font-weight:900; margin-bottom:8px; line-height:1.25; }
+  .subtitle { font-size:30px; font-weight:600; opacity:.65; margin-bottom:24px; }
+  .row { background:#fff; border-radius:28px; padding:20px 28px; margin-bottom:16px; box-shadow:0 6px 24px rgba(0,0,0,.06); }
+  .row .name { font-size:36px; font-weight:900; margin-bottom:8px; display:flex; align-items:center; gap:14px; flex-wrap:wrap;}
+  .row .desc { font-size:26px; line-height:1.48; }
+  .dot { width:24px; height:24px; border-radius:50%; display:inline-block; }
+  table { width:100%; border-collapse:separate; border-spacing:0; background:#fff; border-radius:26px; overflow:hidden; font-size:26px; box-shadow:0 6px 24px rgba(0,0,0,.06); }
+  th { background:#2a2050; color:#fff; font-weight:800; padding:16px 12px; font-size:25px; }
+  td { padding:14px 12px; text-align:center; border-bottom:1px solid #f0ecf5; line-height:1.35; }
+  td.l { text-align:left; font-weight:800; }
+  tr:last-child td { border-bottom:none; }
+  .up{color:#dc2626;font-weight:800;} .down{color:#16a34a;font-weight:800;} .warn{color:#d97706;font-weight:800;}
+  .kbox { background:#fff; border-radius:26px; padding:20px 28px; margin-bottom:14px; box-shadow:0 6px 24px rgba(0,0,0,.06); display:flex; gap:20px; align-items:flex-start; }
+  .kdate { min-width:165px; background:#16a34a; color:#fff; font-weight:900; font-size:27px; border-radius:16px; text-align:center; padding:12px 0; line-height:1.3;}
+  .kdate.red{background:#dc2626;} .kdate.org{background:#ea580c;} .kdate.pu{background:#7c3aed;}
+  .ktext { font-size:26px; line-height:1.48; padding-top:4px;}
+  .ktext b { font-size:27px; }
+  .quote { background:rgba(255,255,255,.14); border-left:8px solid #ffd400; border-radius:0 22px 22px 0; padding:22px 26px; font-size:30px; line-height:1.55; font-weight:600; }
+  .foot { margin-top:auto; font-size:21px; opacity:.6; line-height:1.45; }
+  .tags { font-size:25px; font-weight:700; opacity:.85; margin-top:20px; }
+  .card5 .ktext { font-size:25px; line-height:1.42; }
+  .card5 .kdate { min-width:150px; font-size:25px; }
+  .card5 .kbox { padding:16px 24px; gap:16px; margin-bottom:12px; }
+  .card5 .ktext b { font-size:26px; }
+  .card2 .row .desc { font-size:25px; line-height:1.45; }
+  .card2 .row .name { font-size:34px; }
+  .num-badge { display:flex; gap:26px; margin:34px 0 8px; }
+  .nb { background:rgba(255,255,255,.12); border-radius:26px; padding:24px 30px; flex:1; }
+  .nb .v { font-size:58px; font-weight:900; color:#ffd400; }
+  .nb .k { font-size:25px; opacity:.85; margin-top:6px; }
+</style></head><body><div class="card card3" id="card1">
+<span class="tag-top" style="background:#ff2442;">宏观科普 · 2026-08-30</span>
+<h1>美联储若加息<br>A股会怎样🤔</h1>
+<div class="sub" style="margin-top:24px;">宏观科普·传导机制篇<br>四条链一张图讲清</div>
+<div class="num-badge"><div class="nb"><div class="v">2%</div><div class="k">通胀仍明显高于此目标(%)</div></div><div class="nb"><div class="v">前车之鉴</div><div class="k">日元加息传导案例</div></div></div>
+<div style="margin-top:30px;"><div class="quote" style="background:rgba(255,255,255,.14);color:inherit;border-left-color:#ffd400;font-size:30px;">"<span style='color:#ffd400'>太平洋对岸的利率,是全球资产的引力</span>——加息不直接砸A股,它改变的是所有资产的定价地基"</div></div>
+<div class="tags">#美联储 #加息 #宏观 #A股 #股票入门</div><div class="foot">数据来源:官方口径+公开报道+自研传导框架 · 仅供研究参考,不构成投资建议</div></div><div class="card card3" id="card2">
+<span class="tag-top" style="background:#2563eb;">传导机制</span>
+<h2 class="title" style="margin-top:24px;">加息影响A股的四条链</h2>
+<div class="subtitle">按传导速度排序</div>
+<table><tr><th style=text-align:left>链条</th><th>机制</th><th>影响谁</th></tr><tr><td class="l">贴现率</td><td class="down">未来现金流折现更狠</td><td class="">高估值成长股(远期利润占比高)</td></tr><tr><td class="l">资金流向</td><td class="">美元资产更香,新兴市场承压</td><td class="">北向资金与人民币汇率</td></tr><tr><td class="l">大宗商品</td><td class="">美元走强压价</td><td class="down">黄金/有色/原油(计价效应)</td></tr><tr><td class="l">套息交易</td><td class="">借低息货币持有的风险资产头寸平仓</td><td class="down">全球高波动资产(日元加息是先例)</td></tr></table>
+<div style="margin-top:30px;"><div class="kbox"><div class="kdate" style="background:#dc2626;">关键认知</div><div class="ktext">加息影响的是<b>估值的分母</b>,不是盈利的分子——所以同样一次加息,对「利润在十年后」的成长股,和「利润在今天」的红利股,杀伤力完全不同</div></div><div class="kbox"><div class="kdate" style="background:#c2410c;">历史参照</div><div class="ktext">日元加息引发的套息平仓曾让全球股市单日剧烈波动——<b>利率拐点的杀伤力常来自杠杆头寸的被迫调整</b>,而非利率本身</div></div></div>
+<div class="foot">数据来源:官方口径+公开报道+自研传导框架 · 仅供研究参考,不构成投资建议</div></div><div class="card card5" id="card3">
+<span class="tag-top" style="background:#16a34a;">观察清单</span>
+<h2 class="title" style="margin-top:24px;">盯什么,不盯什么🔭</h2>
+<div class="subtitle">普通人可跟踪的先行指标</div>
+<div class="kbox"><div class="kdate" style="background:#2563eb;">盯三个</div><div class="ktext"><b>联邦基金利率期货的隐含概率</b>(市场对加息的真实定价)·<b>核心CPI环比</b>(通胀动能)·<b>缩表节奏</b>(数量型收紧的实弹)</div></div><div class="kbox"><div class="kdate" style="background:#c2410c;">不盯</div><div class="ktext">官员的口头表态(预期管理噪声极大——同一句话鹰鸽两种解读是常态)·单日市场涨跌(把定价当信号,容易两头挨打)</div></div>
+<div class="foot">数据来源:官方口径+公开报道+自研传导框架 · 仅供研究参考,不构成投资建议</div></div><div class="card card6" id="card4">
+<span class="tag-top" style="background:#0f172a;">一句话收束</span>
+<h2 class="title" style="margin-top:24px;">加息是情景</h2>
+<div class="subtitle">不是判决书</div>
+<div class="row"><div class="desc"><b>正确姿势</b> → 把加息当情景做进估值框架(分母敏感性),而不是当指令调整方向</div></div><div class="row"><div class="desc"><b>配对思维</b> → 贴现率上行利空久期资产/相对利好短久期现金流——同一个宏观变量,永远有人受损有人受益</div></div>
+<div style="margin-top:14px;"><div class="kbox"><div class="kdate" style="background:#2563eb;">下一篇</div><div class="ktext">谁对利率最敏感?用真实估值分位数据看「高估值成长 vs 高股息红利」的利率暴露差异——数据验证篇</div></div></div>
+<div style="margin-top:8px;"><div class="quote" style="background:rgba(124,58,237,.10);color:#2e2440;border-left-color:#ffd400;font-size:30px;">宏观研究的产出不是预测,是<b>「如果…那么…」的映射表</b>——情景清楚了,加息加不加都不可怕</div></div>
+<div class="tags">#美联储 #加息 #宏观 #研究方法 #A股</div><div class="foot">数据来源:美联储官方口径+公开报道+自研研报锚点 · AI辅助生成,仅供研究参考,不构成投资建议。市场有风险,投资需谨慎。</div></div></body></html>
