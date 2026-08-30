@@ -1,0 +1,16 @@
+{
+  "facts": [
+    {
+      "id": "method_origin",
+      "value": "1",
+      "unit": "篇",
+      "display": "1篇",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "manual",
+        "ref": "docs/方法论/小红书金融卡片生产方法论_2026-08-29.md",
+        "quote": "方法类卡片内容源自本项目研报生产流程实践"
+      }
+    }
+  ]
+}

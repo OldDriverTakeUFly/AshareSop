@@ -1,0 +1,19 @@
+{
+  "topic": "财报数据哪里查",
+  "version": 1,
+  "as_of": "2026-08-30",
+  "expires_at": "2026-09-06",
+  "group": "工具方法",
+  "images": [
+    "output/财报数据哪里查_01_封面.png",
+    "output/财报数据哪里查_02_渠道对比.png",
+    "output/财报数据哪里查_03_三步上手.png",
+    "output/财报数据哪里查_04_小结.png"
+  ],
+  "facts_digest": "sha256:c3590e7df8740bbeee3ee8af7c06e2ea9f6e760bb957f8251ab18177169d144b",
+  "validate": {
+    "passed": true,
+    "failures": 0
+  },
+  "cardgen_version": "0.1"
+}

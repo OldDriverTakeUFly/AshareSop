@@ -1,0 +1,19 @@
+{
+  "topic": "如何看懂一条产业链",
+  "version": 1,
+  "as_of": "2026-08-30",
+  "expires_at": "2026-09-06",
+  "group": "工具方法",
+  "images": [
+    "output/如何看懂一条产业链_01_封面.png",
+    "output/如何看懂一条产业链_02_四步拆解.png",
+    "output/如何看懂一条产业链_03_实战演示.png",
+    "output/如何看懂一条产业链_04_小结.png"
+  ],
+  "facts_digest": "sha256:c3590e7df8740bbeee3ee8af7c06e2ea9f6e760bb957f8251ab18177169d144b",
+  "validate": {
+    "passed": true,
+    "failures": 0
+  },
+  "cardgen_version": "0.1"
+}
