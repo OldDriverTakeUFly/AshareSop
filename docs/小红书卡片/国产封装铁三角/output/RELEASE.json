@@ -1,0 +1,18 @@
+{
+  "topic": "国产封装铁三角",
+  "version": 1,
+  "as_of": "2026-08-30",
+  "expires_at": "2026-10-14",
+  "group": "个股研报·AI算力国产替代",
+  "images": [
+    "output/国产封装铁三角_01_封面.png",
+    "output/国产封装铁三角_02_铁三角对比.png",
+    "output/国产封装铁三角_03_洞察.png"
+  ],
+  "facts_digest": "sha256:09ec149b734b0c7e9ccade673f96e9980c50bf9c9aee5572a7950c50dad475b4",
+  "validate": {
+    "passed": true,
+    "failures": 0
+  },
+  "cardgen_version": "0.1"
+}

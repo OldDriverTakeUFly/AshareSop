@@ -1,0 +1,18 @@
+{
+  "topic": "国产设备五虎",
+  "version": 1,
+  "as_of": "2026-08-30",
+  "expires_at": "2026-10-14",
+  "group": "个股研报·AI算力国产替代",
+  "images": [
+    "output/国产设备五虎_01_封面.png",
+    "output/国产设备五虎_02_五虎对比.png",
+    "output/国产设备五虎_03_洞察.png"
+  ],
+  "facts_digest": "sha256:f672a301411596f613692ecb4a566c41668d6b67c5b76b0548727da8d55ae24b",
+  "validate": {
+    "passed": true,
+    "failures": 0
+  },
+  "cardgen_version": "0.1"
+}

@@ -1,0 +1,18 @@
+{
+  "topic": "EDA国产双雄",
+  "version": 1,
+  "as_of": "2026-08-30",
+  "expires_at": "2026-10-14",
+  "group": "个股研报·AI算力国产替代",
+  "images": [
+    "output/EDA国产双雄_01_封面.png",
+    "output/EDA国产双雄_02_双雄对比.png",
+    "output/EDA国产双雄_03_结论.png"
+  ],
+  "facts_digest": "sha256:7694db0bbf4182320b2d801ff205f8b3454683fbd56964c02708294aa21a46c8",
+  "validate": {
+    "passed": true,
+    "failures": 0
+  },
+  "cardgen_version": "0.1"
+}

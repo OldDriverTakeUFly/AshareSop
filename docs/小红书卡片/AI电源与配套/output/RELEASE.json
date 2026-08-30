@@ -1,0 +1,18 @@
+{
+  "topic": "AI电源与配套",
+  "version": 1,
+  "as_of": "2026-08-30",
+  "expires_at": "2026-10-14",
+  "group": "个股研报·AI算力国产替代",
+  "images": [
+    "output/AI电源与配套_01_封面.png",
+    "output/AI电源与配套_02_双雄对比.png",
+    "output/AI电源与配套_03_利润洼地警示.png"
+  ],
+  "facts_digest": "sha256:2981ac61d151408adcd9b7588188dd4d9c7f5f9fa0d58066fb404d6a5f65a789",
+  "validate": {
+    "passed": true,
+    "failures": 0
+  },
+  "cardgen_version": "0.1"
+}

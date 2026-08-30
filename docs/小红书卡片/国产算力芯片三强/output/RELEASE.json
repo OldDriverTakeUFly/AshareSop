@@ -1,0 +1,18 @@
+{
+  "topic": "国产算力芯片三强",
+  "version": 1,
+  "as_of": "2026-08-30",
+  "expires_at": "2026-10-14",
+  "group": "个股研报·AI算力国产替代",
+  "images": [
+    "output/国产算力芯片三强_01_封面.png",
+    "output/国产算力芯片三强_02_三强对比.png",
+    "output/国产算力芯片三强_03_洞察.png"
+  ],
+  "facts_digest": "sha256:61e84c28584708b8d50bc015c4f0fcf28e54ee82ba6e39a6d9a5f958476353d8",
+  "validate": {
+    "passed": true,
+    "failures": 0
+  },
+  "cardgen_version": "0.1"
+}

@@ -1,0 +1,69 @@
+<!DOCTYPE html><html lang='zh-CN'><head><meta charset='UTF-8'><style>  * { margin:0; padding:0; box-sizing:border-box; font-family:'Noto Sans CJK SC','PingFang SC','Microsoft YaHei',sans-serif; }
+  body { background:#e8e8e8; display:flex; flex-direction:column; align-items:center; gap:40px; padding:40px 0; }
+  .card { width:1080px; height:1440px; border-radius:48px; position:relative; overflow:hidden; padding:48px 56px; display:flex; flex-direction:column; }
+  .card1 { background:linear-gradient(160deg,#1a1440 0%,#3b1d6e 45%,#8a2be2 100%); color:#fff; }
+  .card2 { background:#fdf6ec; color:#3a2e20; }
+  .card3 { background:#eef4ff; color:#1e2a44; }
+  .card4 { background:#fff1f0; color:#4a1f1c; }
+  .card5 { background:#f0fbf2; color:#1d3a24; }
+  .card6 { background:#f7f3ff; color:#2e2440; }
+  .tag-top { display:inline-block; background:#ff2442; color:#fff; font-size:30px; font-weight:900; padding:12px 30px; border-radius:999px; letter-spacing:2px; width:fit-content; }
+  .badge { display:inline-block; font-size:26px; font-weight:800; padding:8px 22px; border-radius:999px; margin-right:12px; }
+  .b-purple{background:rgba(138,43,226,.18);color:#6b21a8;} .b-blue{background:rgba(37,99,235,.14);color:#1d4ed8;}
+  .b-red{background:rgba(220,38,38,.12);color:#b91c1c;} .b-green{background:rgba(22,163,74,.14);color:#15803d;}
+  .b-org{background:rgba(234,88,12,.15);color:#c2410c;} .b-gray{background:rgba(0,0,0,.07);color:#555;}
+  h1 { font-size:96px; font-weight:900; line-height:1.18; margin:28px 0 10px; letter-spacing:1px; }
+  .sub { font-size:42px; font-weight:700; opacity:.92; line-height:1.5; }
+  .hl { background:linear-gradient(transparent 62%, rgba(255,210,0,.85) 62%); padding:0 6px; }
+  .hl-r { background:linear-gradient(transparent 62%, rgba(255,77,109,.55) 62%); padding:0 6px; }
+  .big-num { font-size:150px; font-weight:900; line-height:1; letter-spacing:-2px; }
+  h2.title { font-size:56px; font-weight:900; margin-bottom:8px; line-height:1.25; }
+  .subtitle { font-size:30px; font-weight:600; opacity:.65; margin-bottom:24px; }
+  .row { background:#fff; border-radius:28px; padding:20px 28px; margin-bottom:16px; box-shadow:0 6px 24px rgba(0,0,0,.06); }
+  .row .name { font-size:36px; font-weight:900; margin-bottom:8px; display:flex; align-items:center; gap:14px; flex-wrap:wrap;}
+  .row .desc { font-size:26px; line-height:1.48; }
+  .dot { width:24px; height:24px; border-radius:50%; display:inline-block; }
+  table { width:100%; border-collapse:separate; border-spacing:0; background:#fff; border-radius:26px; overflow:hidden; font-size:26px; box-shadow:0 6px 24px rgba(0,0,0,.06); }
+  th { background:#2a2050; color:#fff; font-weight:800; padding:16px 12px; font-size:25px; }
+  td { padding:14px 12px; text-align:center; border-bottom:1px solid #f0ecf5; line-height:1.35; }
+  td.l { text-align:left; font-weight:800; }
+  tr:last-child td { border-bottom:none; }
+  .up{color:#dc2626;font-weight:800;} .down{color:#16a34a;font-weight:800;} .warn{color:#d97706;font-weight:800;}
+  .kbox { background:#fff; border-radius:26px; padding:20px 28px; margin-bottom:14px; box-shadow:0 6px 24px rgba(0,0,0,.06); display:flex; gap:20px; align-items:flex-start; }
+  .kdate { min-width:165px; background:#16a34a; color:#fff; font-weight:900; font-size:27px; border-radius:16px; text-align:center; padding:12px 0; line-height:1.3;}
+  .kdate.red{background:#dc2626;} .kdate.org{background:#ea580c;} .kdate.pu{background:#7c3aed;}
+  .ktext { font-size:26px; line-height:1.48; padding-top:4px;}
+  .ktext b { font-size:27px; }
+  .quote { background:rgba(255,255,255,.14); border-left:8px solid #ffd400; border-radius:0 22px 22px 0; padding:22px 26px; font-size:30px; line-height:1.55; font-weight:600; }
+  .foot { margin-top:auto; font-size:21px; opacity:.6; line-height:1.45; }
+  .tags { font-size:25px; font-weight:700; opacity:.85; margin-top:20px; }
+  .card5 .ktext { font-size:25px; line-height:1.42; }
+  .card5 .kdate { min-width:150px; font-size:25px; }
+  .card5 .kbox { padding:16px 24px; gap:16px; margin-bottom:12px; }
+  .card5 .ktext b { font-size:26px; }
+  .card2 .row .desc { font-size:25px; line-height:1.45; }
+  .card2 .row .name { font-size:34px; }
+  .num-badge { display:flex; gap:26px; margin:34px 0 8px; }
+  .nb { background:rgba(255,255,255,.12); border-radius:26px; padding:24px 30px; flex:1; }
+  .nb .v { font-size:58px; font-weight:900; color:#ffd400; }
+  .nb .k { font-size:25px; opacity:.85; margin-top:6px; }
+</style><style class='cardgen-fill'>.card{justify-content:space-between;}.card>.foot{margin-top:0 !important;}</style></head><body><div class="card card1" id="card1">
+<span class="tag-top" style="background:#ff2442;">国产替代 · 半导体设备五虎</span>
+<h1>涨幅榜,就是国产化率<br>倒序榜🔥</h1>
+<div class="sub" style="margin-top:24px;">长川+173.5% · 芯源微+147.6% · 中科飞测+137.0%<br>涨得最猛的,恰是国产化率最低的环节</div>
+<div class="num-badge"><div class="nb"><div class="v">+173.5%</div><div class="k">长川科技YTD</div></div><div class="nb"><div class="v">+147.6%</div><div class="k">芯源微YTD</div></div><div class="nb"><div class="v">+137.0%</div><div class="k">中科飞测YTD</div></div></div>
+<div style="margin-top:30px;"><div class="quote" style="background:rgba(255,255,255,.14);color:inherit;border-left-color:#ffd400;font-size:30px;">"涂胶显影约6% · 量检测~10% · 测试20-25%——<span style='color:#ffd400'>国产化率越低的环节,2026年涨得越凶</span>,市场定价的是替代空间"</div></div>
+<div class="tags">#半导体设备 #国产替代 #长川科技 #拓荆科技 #华海清科</div><div class="foot">数据来源:五篇半导体设备个股深度研报(2026-08-30)·仅供研究参考,不构成投资建议</div></div><div class="card card3" id="card2">
+<span class="tag-top" style="background:#2563eb;">五虎对比</span>
+<h2 class="title" style="margin-top:24px;">环节越难,涨得越狠</h2>
+<div class="subtitle">国产化率 × 2026H1营收增速 × 订单信号</div>
+<table><tr><th style=text-align:left>公司·环节</th><th>国产化率</th><th>H1营收增速</th><th>订单信号</th></tr><tr><td class="l">长川科技·测试机</td><td class="">20-25%</td><td class="up">+59.7%</td><td class="">存货47.85亿</td></tr><tr><td class="l">拓荆科技·薄膜沉积</td><td class="">~27%</td><td class="up">+49.06%</td><td class="up">在手订单约110亿</td></tr><tr><td class="l">华海清科·CMP</td><td class="">~39%</td><td class="up">+35.58%</td><td class="up">合同负债20.62亿新高</td></tr><tr><td class="l">中科飞测·量检测</td><td class="">~10%</td><td class="up">+34.01%</td><td class="">全年交付量预计+150%</td></tr><tr><td class="l">芯源微·涂胶显影</td><td class="">约6%</td><td class="">+26.47%</td><td class="up">合同负债6.78亿</td></tr></table>
+<div style="margin-top:30px;"><div class="kbox"><div class="kdate" style="background:#16a34a;">行业背景</div><div class="ktext">长存三期国产设备占比首破<b>50%</b>——晶圆厂招标倾斜,是五虎齐涨的共同贝塔</div></div><div class="kbox"><div class="kdate" style="background:#c2410c;">读表提醒</div><div class="ktext">涨幅与国产化率负相关是<b>叙事溢价</b>,不是业绩兑现——订单与扣非才是验证锚</div></div></div>
+<div class="foot">数据来源:五篇半导体设备个股深度研报(2026-08-30)·不构成投资建议</div></div><div class="card card6" id="card3">
+<span class="tag-top" style="background:#0f172a;">一句话收束</span>
+<h2 class="title" style="margin-top:24px;">利润暴增,<br>先看成色</h2>
+<div class="subtitle"></div>
+<div class="row"><div class="desc">拓荆:2026H1归母<b>13.43亿(+1324%)</b>,其中公允价值变动贡献<b>+9.60亿</b>、扣非仅<b>3.67亿</b>——表观利润近七成是投资收益水分</div></div><div class="row"><div class="desc">长川:PB处三年<b>93.2%</b>分位,矩阵结论是<span class='hl'>"基本面强势/交易面过热——好公司、贵股票、差买点"</span></div></div><div class="row"><div class="desc">拓荆PS处三年<b>94.8%</b>分位——稀缺性与景气为真,估值对兑现节奏几乎零容错</div></div>
+<div style="margin-top:14px;"><div class="kbox"><div class="kdate" style="background:#dc2626;">风险</div><div class="ktext">估值历史分位极高·股东户数高位分散·存货与验收节奏·AI资本开支周期回落·海外巨头降价反制</div></div></div>
+<div style="margin-top:8px;"><div class="quote" style="background:rgba(124,58,237,.10);color:#2e2440;border-left-color:#ffd400;font-size:30px;">"主业增长真实但不温不火,表观利润严重失真"——把净利暴增当景气信号之前,先看扣非与公允价值拆分</div></div>
+<div class="tags">#半导体设备 #国产替代 #拓荆科技 #长川科技 #中科飞测</div><div class="foot">数据来源:拓荆科技/长川科技深度研报(2026-08-30)·AI辅助生成,仅供研究参考,不构成投资建议。市场有风险,投资需谨慎。</div></div></body></html>
