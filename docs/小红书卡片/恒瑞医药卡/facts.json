@@ -1,0 +1,232 @@
+{
+  "facts": [
+    {
+      "id": "hr_rev",
+      "value": "154.56",
+      "unit": "亿",
+      "display": "154.56亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "tushare",
+        "ref": "tushare income 600276.SH 20260630 ann20260820",
+        "quote": "恒瑞26H1营收154.56亿,同比-1.9%"
+      }
+    },
+    {
+      "id": "hr_np",
+      "value": "44.65",
+      "unit": "亿",
+      "display": "44.65亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "tushare",
+        "ref": "tushare income 600276.SH 20260630",
+        "quote": "恒瑞26H1归母44.65亿,同比+0.3%"
+      }
+    },
+    {
+      "id": "cx_rev",
+      "value": "88.09",
+      "unit": "亿",
+      "display": "88.09亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/恒瑞医药深度研报.md#收入结构",
+        "quote": "创新药收入+16.4%至88.09亿,占药品销售收入63%(首破六成)"
+      }
+    },
+    {
+      "id": "cx_share",
+      "value": "63",
+      "unit": "%",
+      "display": "63%",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/恒瑞医药深度研报.md#收入结构",
+        "quote": "创新药占比63%"
+      }
+    },
+    {
+      "id": "gsk_deal",
+      "value": "120",
+      "unit": "亿",
+      "display": "120亿美元",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/恒瑞医药深度研报.md#BD",
+        "quote": "GSK组合授权:首付5亿美元/总额120亿美元(2025-07)"
+      }
+    },
+    {
+      "id": "bms_deal",
+      "value": "152",
+      "unit": "亿",
+      "display": "152亿美元",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/恒瑞医药深度研报.md#BD",
+        "quote": "BMS单笔152亿美元(2026-05,史上最大单),首付6亿美元H2待确认"
+      }
+    },
+    {
+      "id": "bd_pipe",
+      "value": "420",
+      "unit": "亿",
+      "display": "420亿美元",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/恒瑞医药深度研报.md#BD",
+        "quote": "BD流水线总额约420亿美元"
+      }
+    },
+    {
+      "id": "pb_pct",
+      "value": "0.2",
+      "unit": "%",
+      "display": "0.2%",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/恒瑞医药深度研报.md#估值",
+        "quote": "PB 0.2%分位,三年最低"
+      }
+    },
+    {
+      "id": "fair_val",
+      "value": "3240",
+      "unit": "亿",
+      "display": "3240亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/恒瑞医药深度研报.md#估值",
+        "quote": "概率加权中枢约3,240亿 vs 现市值3,169亿(底部已到右侧未启)"
+      }
+    },
+    {
+      "id": "q2_yoy",
+      "value": "-14.5",
+      "unit": "%",
+      "display": "-14.5%",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/恒瑞医药深度研报.md#核心逻辑",
+        "quote": "Q2单季-14.5%(野村口径)换挡阵痛"
+      }
+    },
+    {
+      "id": "kf_yoy",
+      "value": "-12.7",
+      "unit": "%",
+      "display": "-12.7%",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/恒瑞医药深度研报.md#核心洞察",
+        "quote": "扣非-12.7%"
+      }
+    },
+    {
+      "id": "prod_yoy",
+      "value": "1.87",
+      "unit": "%",
+      "display": "+1.87%",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/恒瑞医药深度研报.md#核心逻辑",
+        "quote": "产品销售收入本身+1.87%"
+      }
+    },
+    {
+      "id": "cx_g",
+      "value": "16.4",
+      "unit": "%",
+      "display": "+16.4%",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/恒瑞医药深度研报.md#核心逻辑",
+        "quote": "创新药收入+16.4%至88.09亿(占63%)"
+      }
+    },
+    {
+      "id": "fp_yoy",
+      "value": "-16.1",
+      "unit": "%",
+      "display": "-16.1%",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/恒瑞医药深度研报.md#核心逻辑",
+        "quote": "仿制药-16.1%(集采+主动收缩)"
+      }
+    },
+    {
+      "id": "lic_yoy",
+      "value": "-54",
+      "unit": "%",
+      "display": "-54%",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/恒瑞医药深度研报.md#核心逻辑",
+        "quote": "授权收入-54%(默沙东/IDEAYA首付高基数)"
+      }
+    },
+    {
+      "id": "bms_upfront",
+      "value": "6",
+      "unit": "亿",
+      "display": "6亿美元",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/恒瑞医药深度研报.md#核心逻辑",
+        "quote": "BMS首付款6亿美元,H2待确认"
+      }
+    },
+    {
+      "id": "glp1_w",
+      "value": "19.2",
+      "unit": "%",
+      "display": "19.2%",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/恒瑞医药深度研报.md#核心逻辑",
+        "quote": "瑞普泊肽48周减重19.2%,NDA已受理"
+      }
+    },
+    {
+      "id": "mkt_val",
+      "value": "3169",
+      "unit": "亿",
+      "display": "3169亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/恒瑞医药深度研报.md#核心逻辑",
+        "quote": "现市值约3,169亿"
+      }
+    },
+    {
+      "id": "hr_rev_yoy",
+      "value": "-1.9",
+      "unit": "%",
+      "display": "-1.9%",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "tushare",
+        "ref": "tushare income 600276.SH 20250630/20260630 自算同比",
+        "quote": "恒瑞营收同比-1.9%"
+      }
+    }
+  ]
+}

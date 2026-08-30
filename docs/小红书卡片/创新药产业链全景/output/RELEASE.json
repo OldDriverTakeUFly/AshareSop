@@ -1,0 +1,20 @@
+{
+  "topic": "创新药产业链全景",
+  "version": 2,
+  "as_of": "2026-08-30",
+  "expires_at": "2026-09-06",
+  "group": "产业链调研",
+  "images": [
+    "output/创新药产业链全景_01_封面.png",
+    "output/创新药产业链全景_02_七强档案.png",
+    "output/创新药产业链全景_03_四层地图.png",
+    "output/创新药产业链全景_04_中报分化.png",
+    "output/创新药产业链全景_05_结论与风险.png"
+  ],
+  "facts_digest": "sha256:0c79dcb1bb43935f80726a09f4feb740aea414d4a640a6cdcd90c57307448d79",
+  "validate": {
+    "passed": true,
+    "failures": 0
+  },
+  "cardgen_version": "0.1"
+}

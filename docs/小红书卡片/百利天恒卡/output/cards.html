@@ -1,0 +1,69 @@
+<!DOCTYPE html><html lang='zh-CN'><head><meta charset='UTF-8'><style>  * { margin:0; padding:0; box-sizing:border-box; font-family:'Noto Sans CJK SC','PingFang SC','Microsoft YaHei',sans-serif; }
+  body { background:#e8e8e8; display:flex; flex-direction:column; align-items:center; gap:40px; padding:40px 0; }
+  .card { width:1080px; height:1440px; border-radius:48px; position:relative; overflow:hidden; padding:48px 56px; display:flex; flex-direction:column; }
+  .card1 { background:linear-gradient(160deg,#1a1440 0%,#3b1d6e 45%,#8a2be2 100%); color:#fff; }
+  .card2 { background:#fdf6ec; color:#3a2e20; }
+  .card3 { background:#eef4ff; color:#1e2a44; }
+  .card4 { background:#fff1f0; color:#4a1f1c; }
+  .card5 { background:#f0fbf2; color:#1d3a24; }
+  .card6 { background:#f7f3ff; color:#2e2440; }
+  .tag-top { display:inline-block; background:#ff2442; color:#fff; font-size:30px; font-weight:900; padding:12px 30px; border-radius:999px; letter-spacing:2px; width:fit-content; }
+  .badge { display:inline-block; font-size:26px; font-weight:800; padding:8px 22px; border-radius:999px; margin-right:12px; }
+  .b-purple{background:rgba(138,43,226,.18);color:#6b21a8;} .b-blue{background:rgba(37,99,235,.14);color:#1d4ed8;}
+  .b-red{background:rgba(220,38,38,.12);color:#b91c1c;} .b-green{background:rgba(22,163,74,.14);color:#15803d;}
+  .b-org{background:rgba(234,88,12,.15);color:#c2410c;} .b-gray{background:rgba(0,0,0,.07);color:#555;}
+  h1 { font-size:96px; font-weight:900; line-height:1.18; margin:28px 0 10px; letter-spacing:1px; }
+  .sub { font-size:42px; font-weight:700; opacity:.92; line-height:1.5; }
+  .hl { background:linear-gradient(transparent 62%, rgba(255,210,0,.85) 62%); padding:0 6px; }
+  .hl-r { background:linear-gradient(transparent 62%, rgba(255,77,109,.55) 62%); padding:0 6px; }
+  .big-num { font-size:150px; font-weight:900; line-height:1; letter-spacing:-2px; }
+  h2.title { font-size:56px; font-weight:900; margin-bottom:8px; line-height:1.25; }
+  .subtitle { font-size:30px; font-weight:600; opacity:.65; margin-bottom:24px; }
+  .row { background:#fff; border-radius:28px; padding:20px 28px; margin-bottom:16px; box-shadow:0 6px 24px rgba(0,0,0,.06); }
+  .row .name { font-size:36px; font-weight:900; margin-bottom:8px; display:flex; align-items:center; gap:14px; flex-wrap:wrap;}
+  .row .desc { font-size:26px; line-height:1.48; }
+  .dot { width:24px; height:24px; border-radius:50%; display:inline-block; }
+  table { width:100%; border-collapse:separate; border-spacing:0; background:#fff; border-radius:26px; overflow:hidden; font-size:26px; box-shadow:0 6px 24px rgba(0,0,0,.06); }
+  th { background:#2a2050; color:#fff; font-weight:800; padding:16px 12px; font-size:25px; }
+  td { padding:14px 12px; text-align:center; border-bottom:1px solid #f0ecf5; line-height:1.35; }
+  td.l { text-align:left; font-weight:800; }
+  tr:last-child td { border-bottom:none; }
+  .up{color:#dc2626;font-weight:800;} .down{color:#16a34a;font-weight:800;} .warn{color:#d97706;font-weight:800;}
+  .kbox { background:#fff; border-radius:26px; padding:20px 28px; margin-bottom:14px; box-shadow:0 6px 24px rgba(0,0,0,.06); display:flex; gap:20px; align-items:flex-start; }
+  .kdate { min-width:165px; background:#16a34a; color:#fff; font-weight:900; font-size:27px; border-radius:16px; text-align:center; padding:12px 0; line-height:1.3;}
+  .kdate.red{background:#dc2626;} .kdate.org{background:#ea580c;} .kdate.pu{background:#7c3aed;}
+  .ktext { font-size:26px; line-height:1.48; padding-top:4px;}
+  .ktext b { font-size:27px; }
+  .quote { background:rgba(255,255,255,.14); border-left:8px solid #ffd400; border-radius:0 22px 22px 0; padding:22px 26px; font-size:30px; line-height:1.55; font-weight:600; }
+  .foot { margin-top:auto; font-size:21px; opacity:.6; line-height:1.45; }
+  .tags { font-size:25px; font-weight:700; opacity:.85; margin-top:20px; }
+  .card5 .ktext { font-size:25px; line-height:1.42; }
+  .card5 .kdate { min-width:150px; font-size:25px; }
+  .card5 .kbox { padding:16px 24px; gap:16px; margin-bottom:12px; }
+  .card5 .ktext b { font-size:26px; }
+  .card2 .row .desc { font-size:25px; line-height:1.45; }
+  .card2 .row .name { font-size:34px; }
+  .num-badge { display:flex; gap:26px; margin:34px 0 8px; }
+  .nb { background:rgba(255,255,255,.12); border-radius:26px; padding:24px 30px; flex:1; }
+  .nb .v { font-size:58px; font-weight:900; color:#ffd400; }
+  .nb .k { font-size:25px; opacity:.85; margin-top:6px; }
+</style></head><body><div class="card card4" id="card1">
+<span class="tag-top" style="background:#ff2442;">个股拆解 · 2026-08-30</span>
+<h1>百利天恒<br>管线与缺钱的赛跑⚡</h1>
+<div class="sub" style="margin-top:24px;">全球首个双抗ADC上市<br>84亿美元合约 vs 48.19亿资金缺口</div>
+<div class="num-badge"><div class="nb"><div class="v">84亿美元</div><div class="k">BMS合约总额</div></div><div class="nb"><div class="v">10.5亿</div><div class="k">BMS累计已收(美元)</div></div><div class="nb"><div class="v">48.19亿</div><div class="k">三年资金缺口</div></div></div>
+<div style="margin-top:30px;"><div class="quote" style="background:rgba(255,255,255,.14);color:inherit;border-left-color:#ffd400;font-size:30px;">"<span style='color:#ffd400'>利润表是BMS合约的影子</span>——2024年首付37.08亿净利,2025年基数消失即转亏,2026年中报亏损扩至16.37亿"</div></div>
+<div class="tags">#百利天恒 #ADC #创新药 #双抗 #BD出海</div><div class="foot">数据来源:Tushare 2026中报+百利天恒深度研报 · 仅供研究参考,不构成投资建议</div></div><div class="card card3" id="card2">
+<span class="tag-top" style="background:#2563eb;">商业模式</span>
+<h2 class="title" style="margin-top:24px;">里程碑现金流×研发军备竞赛</h2>
+<div class="subtitle">极端样本:收入几乎等于BD合约节奏</div>
+<table><tr><th style=text-align:left>年份</th><th>利润表</th><th>背后</th></tr><tr><td class="l">2024</td><td class="">净利37.08亿</td><td class="">BMS首付款一次性确认</td></tr><tr><td class="l">2025</td><td class="">转亏-10.54亿</td><td class="">基数消失,研发25.14亿(+74%)</td></tr><tr><td class="l">2026年中报</td><td class="">亏损16.37亿</td><td class="">iza-bren全球III期高峰投入</td></tr></table>
+<div style="margin-top:30px;"><div class="kbox"><div class="kdate" style="background:#dc2626;">管线兑现</div><div class="ktext">iza-bren(EGFR×HER3)2026年双获批(鼻咽癌+食管鳞癌)、NSCLC III期PFS达主要终点(全球首个)——竞品HER3-DXd已撤市,<b>海外卡位真空</b></div></div><div class="kbox"><div class="kdate" style="background:#c2410c;">资金暗面</div><div class="ktext">三年资金缺口<b>48.19亿</b>自披露、H股四度递表——<b>里程碑到账节奏与研发烧钱速度的赛跑</b>是这家公司的真实主线</div></div></div>
+<div class="foot">数据来源:百利天恒深度研报(2026-08-22)+Tushare中报 · 不构成投资建议</div></div><div class="card card6" id="card3">
+<span class="tag-top" style="background:#0f172a;">一句话收束</span>
+<h2 class="title" style="margin-top:24px;">高弹性与高风险</h2>
+<div class="subtitle">管线期公司的估值是期权组合</div>
+<div class="row"><div class="desc"><b>定价方式</b> → 亏损期不用PE:峰值销售折现三情景(深度研报口径:概率加权中枢1290亿 vs 现市值1167亿)</div></div><div class="row"><div class="desc"><b>研究抓手</b> → 跟里程碑事件而非季报:III期数据读出/获批/H股发行/BMS款项到账</div></div>
+<div style="margin-top:14px;"><div class="kbox"><div class="kdate" style="background:#dc2626;">风险</div><div class="ktext">资金缺口48.19亿·H股发行不确定·FDA中国数据立法提案·III期数据二元风险·单管线依赖</div></div></div>
+<div style="margin-top:8px;"><div class="quote" style="background:rgba(124,58,237,.10);color:#2e2440;border-left-color:#ffd400;font-size:30px;">管线期公司的报表要<b>倒着读</b>:亏损是投入的影子,合约与里程碑才是价值的刻度</div></div>
+<div class="tags">#百利天恒 #ADC #创新药 #医药 #管线</div><div class="foot">数据来源:百利天恒深度研报(2026-08-22,AI辅助)+Tushare中报 · 仅供研究参考,不构成投资建议。市场有风险,投资需谨慎。</div></div></body></html>

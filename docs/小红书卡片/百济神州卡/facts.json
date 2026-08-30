@@ -1,0 +1,52 @@
+{
+  "facts": [
+    {
+      "id": "bj_np",
+      "value": "32.71",
+      "unit": "亿",
+      "display": "32.71亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "tushare",
+        "ref": "tushare income 688235.SH 20260630 ann20260827",
+        "quote": "百济神州26H1归母32.71亿"
+      }
+    },
+    {
+      "id": "bj_prev",
+      "value": "4.50",
+      "unit": "亿",
+      "display": "4.50亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "tushare",
+        "ref": "tushare income 688235.SH 20250630",
+        "quote": "百济神州25H1归母4.50亿"
+      }
+    },
+    {
+      "id": "bj_rev",
+      "value": "222.2",
+      "unit": "亿",
+      "display": "222.2亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "tushare",
+        "ref": "tushare income 688235.SH 20260630",
+        "quote": "百济神州26H1营收222.2亿"
+      }
+    },
+    {
+      "id": "bj_yoy",
+      "value": "627.1",
+      "unit": "%",
+      "display": "+627.1%",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "tushare",
+        "ref": "tushare income 688235.SH 20250630/20260630 自算同比",
+        "quote": "归母同比+627.1%(低基数效应,已标注)"
+      }
+    }
+  ]
+}

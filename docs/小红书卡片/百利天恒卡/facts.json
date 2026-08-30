@@ -1,0 +1,136 @@
+{
+  "facts": [
+    {
+      "id": "bly_np",
+      "value": "-16.37",
+      "unit": "亿",
+      "display": "-16.37亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "tushare",
+        "ref": "tushare income 688506.SH 20260630 ann20260827",
+        "quote": "百利天恒26H1归母-16.37亿(25H1为-11.18亿,投入期)"
+      }
+    },
+    {
+      "id": "bly_prev",
+      "value": "-11.18",
+      "unit": "亿",
+      "display": "-11.18亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "tushare",
+        "ref": "tushare income 688506.SH 20250630",
+        "quote": "百利天恒25H1归母-11.18亿"
+      }
+    },
+    {
+      "id": "bms_total",
+      "value": "84",
+      "unit": "亿",
+      "display": "84亿美元",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/百利天恒深度研报.md#定位",
+        "quote": "BMS授权合约总额84亿美元,累计已收款10.5亿美元"
+      }
+    },
+    {
+      "id": "bms_recv",
+      "value": "10.5",
+      "unit": "亿",
+      "display": "10.5亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/百利天恒深度研报.md#定位",
+        "quote": "BMS合约累计已收款10.5亿美元"
+      }
+    },
+    {
+      "id": "gap",
+      "value": "48.19",
+      "unit": "亿",
+      "display": "48.19亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/百利天恒深度研报.md#核心逻辑",
+        "quote": "公司自披露未来三年资金缺口48.19亿元"
+      }
+    },
+    {
+      "id": "rd_25",
+      "value": "25.14",
+      "unit": "亿",
+      "display": "25.14亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/百利天恒深度研报.md#核心逻辑",
+        "quote": "2025年研发费用25.14亿(+74%)"
+      }
+    },
+    {
+      "id": "np_24",
+      "value": "37.08",
+      "unit": "亿",
+      "display": "37.08亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/百利天恒深度研报.md#核心逻辑",
+        "quote": "2024年BMS首付款带来37.08亿净利(2025年基数消失即转亏-10.54亿)"
+      }
+    },
+    {
+      "id": "np_25",
+      "value": "-10.54",
+      "unit": "亿",
+      "display": "-10.54亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/百利天恒深度研报.md#核心逻辑",
+        "quote": "2025年转亏-10.54亿"
+      }
+    },
+    {
+      "id": "rd_g",
+      "value": "74",
+      "unit": "%",
+      "display": "+74%",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/百利天恒深度研报.md#核心逻辑",
+        "quote": "2025年研发费用25.14亿(+74%)"
+      }
+    },
+    {
+      "id": "bl_fair",
+      "value": "1290",
+      "unit": "亿",
+      "display": "1290亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/百利天恒深度研报.md#核心逻辑",
+        "quote": "峰值销售折现三情景概率加权中枢约1,290亿"
+      }
+    },
+    {
+      "id": "bl_mkt",
+      "value": "1167",
+      "unit": "亿",
+      "display": "1167亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/百利天恒深度研报.md#估值快照",
+        "quote": "现市值1,167.2亿(2026-08-21)"
+      }
+    }
+  ]
+}

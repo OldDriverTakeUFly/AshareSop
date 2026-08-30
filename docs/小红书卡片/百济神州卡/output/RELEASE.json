@@ -1,0 +1,18 @@
+{
+  "topic": "百济神州卡",
+  "version": 1,
+  "as_of": "2026-08-30",
+  "expires_at": "2026-09-06",
+  "group": "个股研报·创新药",
+  "images": [
+    "output/百济神州卡_01_封面.png",
+    "output/百济神州卡_02_量级意义.png",
+    "output/百济神州卡_03_结论与风险.png"
+  ],
+  "facts_digest": "sha256:5e6927d084b85817c7136ab922fa1901dd71521a7f4f36cdac637797dcb77b1f",
+  "validate": {
+    "passed": true,
+    "failures": 0
+  },
+  "cardgen_version": "0.1"
+}

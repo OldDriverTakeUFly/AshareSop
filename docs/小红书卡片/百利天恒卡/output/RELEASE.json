@@ -1,0 +1,18 @@
+{
+  "topic": "百利天恒卡",
+  "version": 2,
+  "as_of": "2026-08-30",
+  "expires_at": "2026-09-06",
+  "group": "个股研报·创新药",
+  "images": [
+    "output/百利天恒卡_01_封面.png",
+    "output/百利天恒卡_02_一体两面.png",
+    "output/百利天恒卡_03_结论与风险.png"
+  ],
+  "facts_digest": "sha256:35175183dd8f32b541e9e3379e1fbeb836d6df0c4ee1f8d6d3abc3d0d11765d5",
+  "validate": {
+    "passed": true,
+    "failures": 0
+  },
+  "cardgen_version": "0.1"
+}

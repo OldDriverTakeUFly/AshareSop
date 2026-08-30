@@ -1,0 +1,19 @@
+{
+  "topic": "恒瑞医药卡",
+  "version": 1,
+  "as_of": "2026-08-30",
+  "expires_at": "2026-09-06",
+  "group": "个股研报·创新药",
+  "images": [
+    "output/恒瑞医药卡_01_封面.png",
+    "output/恒瑞医药卡_02_报表解剖.png",
+    "output/恒瑞医药卡_03_三重点火器.png",
+    "output/恒瑞医药卡_04_结论与风险.png"
+  ],
+  "facts_digest": "sha256:179e567fab3511339b3c69a0946285d48e1ec0bead6059e319c13dfd57d1cc0c",
+  "validate": {
+    "passed": true,
+    "failures": 0
+  },
+  "cardgen_version": "0.1"
+}
