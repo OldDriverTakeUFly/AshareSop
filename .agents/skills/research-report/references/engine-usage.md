@@ -334,6 +334,8 @@ pq = analyze_profitability_quality(fin_list)        # ProfitabilityQuality (纯�
 
 **写报告前先跑这个校验**，对每个标的查三项新鲜度。实例脚本：`davis_analyzer/studies/wf6_freshness_check.py`。
 
+> **运行方式坑（2026-08-30 踩坑）**：studies/ 下脚本直跑会报 `ModuleNotFoundError: No module named 'stockhot'`——`python script.py` 只把脚本所在目录加入 sys.path，不含父仓库根。正确运行方式：`cd /home/leo/Projects/CodeAgentDashboard && PYTHONPATH=/home/leo/Projects/CodeAgentDashboard .venv/bin/python davis_analyzer/studies/xxx.py`。
+
 ```python
 import os
 from dotenv import load_dotenv
