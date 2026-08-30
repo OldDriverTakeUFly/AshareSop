@@ -1,0 +1,148 @@
+{
+  "facts": [
+    {
+      "id": "mkt",
+      "value": "340.7",
+      "unit": "亿",
+      "display": "340.7亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/泽璟制药深度研报.md#估值快照",
+        "quote": "总市值340.7亿(2026-08-21)"
+      }
+    },
+    {
+      "id": "np_h1",
+      "value": "6.40",
+      "unit": "亿",
+      "display": "6.40亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/泽璟制药深度研报.md#核心逻辑",
+        "quote": "2026年中报归母6.40亿(首度半年盈利)"
+      }
+    },
+    {
+      "id": "upfront",
+      "value": "6.62",
+      "unit": "亿",
+      "display": "6.62亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/泽璟制药深度研报.md#核心逻辑",
+        "quote": "其中艾伯维ZG006首付确认6.62亿(占营收54.9%)"
+      }
+    },
+    {
+      "id": "real_rev",
+      "value": "5.43",
+      "unit": "亿",
+      "display": "5.43亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/泽璟制药深度研报.md#核心逻辑",
+        "quote": "产品销售真实口径5.43亿(+44.3%)"
+      }
+    },
+    {
+      "id": "rev_h1",
+      "value": "12.05",
+      "unit": "亿",
+      "display": "12.05亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/泽璟制药深度研报.md#财务快照",
+        "quote": "2026年中报营收12.05亿(+220.9%)"
+      }
+    },
+    {
+      "id": "fair",
+      "value": "300",
+      "unit": "亿",
+      "display": "约300亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/泽璟制药深度研报.md#核心逻辑",
+        "quote": "概率加权中枢约300亿 vs 现市值341亿(-12%,六标的唯一为负)"
+      }
+    },
+    {
+      "id": "orr",
+      "value": "60",
+      "unit": "%",
+      "display": "60-63%",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/泽璟制药深度研报.md#核心逻辑",
+        "quote": "ZG006三线SCLC ORR 60-63%(ESMO Asia 2025-12)"
+      }
+    },
+    {
+      "id": "debt",
+      "value": "61",
+      "unit": "%",
+      "display": "61%",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/泽璟制药深度研报.md#核心逻辑",
+        "quote": "负债率61%以上"
+      }
+    },
+    {
+      "id": "sell_ratio",
+      "value": "57",
+      "unit": "%",
+      "display": "57%",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/泽璟制药深度研报.md#核心逻辑",
+        "quote": "销售费用率57%(2025销售费用4.65亿已超研发)"
+      }
+    },
+    {
+      "id": "real_g",
+      "value": "44.3",
+      "unit": "%",
+      "display": "+44.3%",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/泽璟制药深度研报.md",
+        "quote": "产品真实口径+44.3%"
+      }
+    },
+    {
+      "id": "up_share",
+      "value": "54.9",
+      "unit": "%",
+      "display": "54.9%",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/泽璟制药深度研报.md",
+        "quote": "首付占营收54.9%"
+      }
+    },
+    {
+      "id": "gap",
+      "value": "-12",
+      "unit": "%",
+      "display": "-12%",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/泽璟制药深度研报.md",
+        "quote": "概率加权300亿 vs 现市值340.7亿(-12%,六标的唯一为负)"
+      }
+    }
+  ]
+}

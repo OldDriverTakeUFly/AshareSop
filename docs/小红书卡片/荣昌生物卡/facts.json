@@ -1,0 +1,184 @@
+{
+  "facts": [
+    {
+      "id": "mkt",
+      "value": "708.4",
+      "unit": "亿",
+      "display": "708.4亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/荣昌生物深度研报.md#估值快照",
+        "quote": "A股总市值708.4亿(2026-08-21)"
+      }
+    },
+    {
+      "id": "np_h1",
+      "value": "47",
+      "unit": "亿",
+      "display": "约47亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/荣昌生物深度研报.md#核心逻辑",
+        "quote": "2026年中报预告归母约47亿"
+      }
+    },
+    {
+      "id": "upfront",
+      "value": "44.3",
+      "unit": "亿",
+      "display": "44.3亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/荣昌生物深度研报.md#核心逻辑",
+        "quote": "其中艾伯维RC148首付款44.3亿(6.5亿美元,2026-04到账)"
+      }
+    },
+    {
+      "id": "real_rev",
+      "value": "14",
+      "unit": "亿",
+      "display": "约14亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/荣昌生物深度研报.md#核心逻辑",
+        "quote": "产品真实收入约14亿(推算,+30%~40%)"
+      }
+    },
+    {
+      "id": "bd1",
+      "value": "26",
+      "unit": "亿",
+      "display": "26亿美元",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/荣昌生物深度研报.md#核心逻辑",
+        "quote": "Seagen 26亿美元(维迪西妥,2021)"
+      }
+    },
+    {
+      "id": "bd2",
+      "value": "42.3",
+      "unit": "亿",
+      "display": "42.3亿美元",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/荣昌生物深度研报.md#核心逻辑",
+        "quote": "Vor Bio 42.3亿美元(2025)"
+      }
+    },
+    {
+      "id": "bd3",
+      "value": "56",
+      "unit": "亿",
+      "display": "56亿美元",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/荣昌生物深度研报.md#核心逻辑",
+        "quote": "艾伯维56亿美元(2026)"
+      }
+    },
+    {
+      "id": "prod_21",
+      "value": "1.31",
+      "unit": "亿",
+      "display": "1.31亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/荣昌生物深度研报.md#核心逻辑",
+        "quote": "产品收入2021年1.31亿"
+      }
+    },
+    {
+      "id": "prod_25",
+      "value": "22.71",
+      "unit": "亿",
+      "display": "22.71亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/荣昌生物深度研报.md#核心逻辑",
+        "quote": "产品收入2025年22.71亿(荣昌官网)"
+      }
+    },
+    {
+      "id": "pe_pct",
+      "value": "19.1",
+      "unit": "%",
+      "display": "19.1%",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/荣昌生物深度研报.md#估值快照",
+        "quote": "PE三年19.1%分位"
+      }
+    },
+    {
+      "id": "sunk",
+      "value": "5",
+      "unit": "亿",
+      "display": "约5亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/荣昌生物深度研报.md",
+        "quote": "管线终止RC88/RC108沉没约5亿"
+      }
+    },
+    {
+      "id": "wr_down",
+      "value": "2",
+      "unit": "亿美元",
+      "display": "2亿美元",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/荣昌生物深度研报.md",
+        "quote": "辉瑞对RC48减值2亿美元"
+      }
+    },
+    {
+      "id": "pf",
+      "value": "700",
+      "unit": "亿",
+      "display": "700-800亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/荣昌生物深度研报.md",
+        "quote": "概率加权估值中枢约700-800亿"
+      }
+    },
+    {
+      "id": "wr_dn",
+      "value": "2",
+      "unit": "亿",
+      "display": "2亿美元",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/荣昌生物深度研报.md",
+        "quote": "辉瑞对RC48减值2亿美元"
+      }
+    },
+    {
+      "id": "mkt_rc",
+      "value": "708",
+      "unit": "亿",
+      "display": "708亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/荣昌生物深度研报.md",
+        "quote": "A股总市值708.4亿"
+      }
+    }
+  ]
+}

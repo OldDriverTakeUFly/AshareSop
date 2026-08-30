@@ -1,0 +1,18 @@
+{
+  "topic": "迪哲医药卡",
+  "version": 2,
+  "as_of": "2026-08-30",
+  "expires_at": "2026-09-06",
+  "group": "个股研报·创新药",
+  "images": [
+    "output/迪哲医药卡_01_封面.png",
+    "output/迪哲医药卡_02_事件链.png",
+    "output/迪哲医药卡_03_结论与风险.png"
+  ],
+  "facts_digest": "sha256:a4d93c0c56edd1ad96db2cbd33b3abccced972917ec4d2b8c7fc4a8e989720e3",
+  "validate": {
+    "passed": true,
+    "failures": 0
+  },
+  "cardgen_version": "0.1"
+}

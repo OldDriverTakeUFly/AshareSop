@@ -1,0 +1,18 @@
+{
+  "topic": "艾力斯卡",
+  "version": 1,
+  "as_of": "2026-08-30",
+  "expires_at": "2026-09-06",
+  "group": "个股研报·创新药",
+  "images": [
+    "output/艾力斯卡_01_封面.png",
+    "output/艾力斯卡_02_单品爬坡.png",
+    "output/艾力斯卡_03_结论与风险.png"
+  ],
+  "facts_digest": "sha256:c1ee3d7827666ae26ea1fd4b47d5b66bd86eeac807bf0d30f09c9367e67cbd85",
+  "validate": {
+    "passed": true,
+    "failures": 0
+  },
+  "cardgen_version": "0.1"
+}

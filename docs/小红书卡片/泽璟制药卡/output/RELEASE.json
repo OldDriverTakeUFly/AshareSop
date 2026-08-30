@@ -1,0 +1,18 @@
+{
+  "topic": "泽璟制药卡",
+  "version": 1,
+  "as_of": "2026-08-30",
+  "expires_at": "2026-09-06",
+  "group": "个股研报·创新药",
+  "images": [
+    "output/泽璟制药卡_01_封面.png",
+    "output/泽璟制药卡_02_成色拆解.png",
+    "output/泽璟制药卡_03_结论与风险.png"
+  ],
+  "facts_digest": "sha256:a65a94751dd6aec3b3aaea9db3e5a287e41dff5255bde2fa552bea505174ec17",
+  "validate": {
+    "passed": true,
+    "failures": 0
+  },
+  "cardgen_version": "0.1"
+}

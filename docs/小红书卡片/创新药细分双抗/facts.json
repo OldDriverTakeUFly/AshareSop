@@ -1,0 +1,40 @@
+{
+  "facts": [
+    {
+      "id": "pipe_pct",
+      "value": "50",
+      "unit": "%",
+      "display": "50%",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/中国创新药行业全景研报.md#方向2",
+        "quote": "全球在研双抗管线约一半在中国"
+      }
+    },
+    {
+      "id": "deal",
+      "value": "60.5",
+      "unit": "亿",
+      "display": "60.5亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/中国创新药行业全景研报.md#方向2",
+        "quote": "三生制药-辉瑞60.5亿美元(PD-1/VEGF双抗)"
+      }
+    },
+    {
+      "id": "mkt",
+      "value": "80",
+      "unit": "亿",
+      "display": "80亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/中国创新药行业全景研报.md#方向2",
+        "quote": "双抗市场规模约80亿美元以上"
+      }
+    }
+  ]
+}

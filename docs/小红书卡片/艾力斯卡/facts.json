@@ -1,0 +1,172 @@
+{
+  "facts": [
+    {
+      "id": "mkt",
+      "value": "524.2",
+      "unit": "亿",
+      "display": "524.2亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/艾力斯深度研报.md#估值快照",
+        "quote": "总市值524.2亿(2026-08-21)"
+      }
+    },
+    {
+      "id": "pe_pct",
+      "value": "10.8",
+      "unit": "%",
+      "display": "10.8%",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/艾力斯深度研报.md#估值快照",
+        "quote": "PE三年10.8%分位"
+      }
+    },
+    {
+      "id": "sale21",
+      "value": "2.36",
+      "unit": "亿",
+      "display": "2.36亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/艾力斯深度研报.md#核心逻辑",
+        "quote": "伏美替尼2021年销售2.36亿"
+      }
+    },
+    {
+      "id": "sale23",
+      "value": "19.78",
+      "unit": "亿",
+      "display": "19.78亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/艾力斯深度研报.md#核心逻辑",
+        "quote": "伏美替尼2023年销售19.78亿"
+      }
+    },
+    {
+      "id": "sale25",
+      "value": "51.20",
+      "unit": "亿",
+      "display": "51.20亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/艾力斯深度研报.md#核心逻辑",
+        "quote": "伏美替尼2025年销售51.20亿"
+      }
+    },
+    {
+      "id": "np_h1",
+      "value": "15.41",
+      "unit": "亿",
+      "display": "15.41亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/艾力斯深度研报.md#核心逻辑",
+        "quote": "2026年中报归母15.41亿(+46.6%)"
+      }
+    },
+    {
+      "id": "gm",
+      "value": "94.85",
+      "unit": "%",
+      "display": "94.85%",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/艾力斯深度研报.md#核心逻辑",
+        "quote": "毛利率94.85%"
+      }
+    },
+    {
+      "id": "share",
+      "value": "94.5",
+      "unit": "%",
+      "display": "94.5%",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/艾力斯深度研报.md#核心逻辑",
+        "quote": "伏美替尼占收入94.5%(单品依赖)"
+      }
+    },
+    {
+      "id": "fair",
+      "value": "715",
+      "unit": "亿",
+      "display": "约715亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/艾力斯深度研报.md#核心逻辑",
+        "quote": "概率加权中枢约715亿 vs 现市值524亿"
+      }
+    },
+    {
+      "id": "cagr",
+      "value": "117",
+      "unit": "%",
+      "display": "117%",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/艾力斯深度研报.md",
+        "quote": "伏美替尼2021-2025销售CAGR 117%"
+      }
+    },
+    {
+      "id": "g23",
+      "value": "150",
+      "unit": "%",
+      "display": "+150%",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/艾力斯深度研报.md",
+        "quote": "2023年增速+150%"
+      }
+    },
+    {
+      "id": "g25",
+      "value": "46",
+      "unit": "%",
+      "display": "+46%",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/艾力斯深度研报.md",
+        "quote": "2025年增速+46%"
+      }
+    },
+    {
+      "id": "gh",
+      "value": "40",
+      "unit": "%",
+      "display": "+40%",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/艾力斯深度研报.md",
+        "quote": "2026年中报增速+40%"
+      }
+    },
+    {
+      "id": "mkt2",
+      "value": "524",
+      "unit": "亿",
+      "display": "524亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/艾力斯深度研报.md",
+        "quote": "现市值524亿"
+      }
+    }
+  ]
+}

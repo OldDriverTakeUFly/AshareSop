@@ -1,0 +1,40 @@
+{
+  "facts": [
+    {
+      "id": "bl_mkt",
+      "value": "1167",
+      "unit": "亿",
+      "display": "1167亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/百利天恒深度研报.md#估值快照",
+        "quote": "百利天恒市值参照(亏损期PS 46.3/45.1%分位)"
+      }
+    },
+    {
+      "id": "dz_ps",
+      "value": "8.4",
+      "unit": "%",
+      "display": "8.4%",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/迪哲医药深度研报.md#估值快照",
+        "quote": "迪哲PS 8.4%分位(亏损期)"
+      }
+    },
+    {
+      "id": "bl_gap",
+      "value": "48",
+      "unit": "亿",
+      "display": "48亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/百利天恒深度研报.md",
+        "quote": "未来三年资金缺口48.19亿"
+      }
+    }
+  ]
+}

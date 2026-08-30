@@ -1,0 +1,136 @@
+{
+  "facts": [
+    {
+      "id": "mkt",
+      "value": "274.4",
+      "unit": "亿",
+      "display": "274.4亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/迪哲医药深度研报.md#估值快照",
+        "quote": "总市值274.4亿(2026-08-21)"
+      }
+    },
+    {
+      "id": "upfront",
+      "value": "6",
+      "unit": "亿",
+      "display": "6亿美元",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/迪哲医药深度研报.md#核心逻辑",
+        "quote": "AZ舒沃替尼全球权益首付6亿美元(约43亿,国产小分子出海首付纪录)"
+      }
+    },
+    {
+      "id": "upfront_rmb",
+      "value": "43",
+      "unit": "亿",
+      "display": "约43亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/迪哲医药深度研报.md#核心逻辑",
+        "quote": "首付折合约43亿元"
+      }
+    },
+    {
+      "id": "total_deal",
+      "value": "15",
+      "unit": "亿",
+      "display": "约15亿美元",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/迪哲医药深度研报.md#核心逻辑",
+        "quote": "首付6亿+里程碑9亿,潜在总额约15亿美元"
+      }
+    },
+    {
+      "id": "rev_h1",
+      "value": "5.23",
+      "unit": "亿",
+      "display": "5.23亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/迪哲医药深度研报.md#财务快照",
+        "quote": "2026年中报营收5.23亿(+47.2%)"
+      }
+    },
+    {
+      "id": "loss",
+      "value": "-2.13",
+      "unit": "亿",
+      "display": "-2.13亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/迪哲医药深度研报.md#财务快照",
+        "quote": "归母亏损-2.13亿(减亏44.4%)"
+      }
+    },
+    {
+      "id": "ps_pct",
+      "value": "8.4",
+      "unit": "%",
+      "display": "8.4%",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/迪哲医药深度研报.md#估值快照",
+        "quote": "PS三年8.4%分位(收入爆发压出的低分位)"
+      }
+    },
+    {
+      "id": "ps_fwd",
+      "value": "5",
+      "unit": "倍",
+      "display": "约5倍",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/迪哲医药深度研报.md#核心逻辑",
+        "quote": "2026E收入约54亿对应前瞻PS约5x"
+      }
+    },
+    {
+      "id": "az_stake",
+      "value": "23.42",
+      "unit": "%",
+      "display": "23.42%",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/迪哲医药深度研报.md#核心逻辑",
+        "quote": "AZ持股23.42%兼交易对手(关联交易,需股东会+境外反垄断)"
+      }
+    },
+    {
+      "id": "rev26e",
+      "value": "54",
+      "unit": "亿",
+      "display": "约54亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/迪哲医药深度研报.md",
+        "quote": "2026E收入约54亿(产品11亿+首付43亿)"
+      }
+    },
+    {
+      "id": "milestone",
+      "value": "9",
+      "unit": "亿美元",
+      "display": "9亿美元",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/迪哲医药深度研报.md",
+        "quote": "临床里程碑4亿+销售里程碑5亿=9亿美元"
+      }
+    }
+  ]
+}
