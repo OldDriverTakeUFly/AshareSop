@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 from davis_analyzer.cardgen.compliance import iter_content_strings, load_waivers, scan_compliance
@@ -62,6 +63,16 @@ def run_validation(project_dir: Path, topic: str = "") -> ValidateReport:
         if cards[-1].get("type") != "summary":
             report.failures.append(Failure("completeness", "", f"cards[{len(cards) - 1}]",
                                            "尾卡须为结论(summary)"))
+
+    # ── 闸4c:生成日期禁令(2026-08-30 用户决策:卡片不带生成日期,发布前免微调)──
+    _GEN_DATE = re.compile(r"20\d{2}-\d{2}-\d{2}")
+    for idx, card in enumerate(cards):
+        name = str(card.get("name", f"cards[{idx}]"))
+        for text, path in iter_content_strings(card, f"cards[{idx}]"):
+            if path.endswith("tag_top") and _GEN_DATE.search(text):
+                report.failures.append(Failure(
+                    "completeness", name, path,
+                    f"tag_top 禁止带生成日期: '{text}'(发布前须删日期免微调)"))
 
     report.passed = not report.failures
     return report
