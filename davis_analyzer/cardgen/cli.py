@@ -169,15 +169,18 @@ def main(argv: list[str] | None = None) -> None:
     v.add_argument("--topic", required=True)
     v.add_argument("--voice", default="zh-CN-XiaoxiaoNeural")
     v.add_argument("--no-tts", action="store_true", help="无声版(小红书站内配乐)")
-    v.add_argument("--style", choices=["static", "motion"], default="static",
-                   help="static=v1 Ken Burns 静卡轮播; motion=动效解说(数字滚动/条形生长)")
+    v.add_argument("--style", choices=["static", "motion", "pro"], default="pro",
+                   help="pro=方案A(原生竖屏+截图终态+xfade,推荐); static=v1 Ken Burns; motion=v2实时录屏(已弃用)")
     v.set_defaults(func=cmd_video)
     args = ap.parse_args(argv)
     args.func(args)
 
 
 def cmd_video(args: argparse.Namespace) -> None:
-    if args.style == "motion":
+    if args.style == "pro":
+        from davis_analyzer.cardgen.video3 import gen_pro_video
+        final = gen_pro_video(_project(args.topic), args.topic, voice=args.voice)
+    elif args.style == "motion":
         from davis_analyzer.cardgen.video2 import gen_motion_video
         final = gen_motion_video(_project(args.topic), args.topic, voice=args.voice)
     else:
