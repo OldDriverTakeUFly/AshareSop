@@ -1,0 +1,18 @@
+{
+  "topic": "创新药细分CXO",
+  "version": 2,
+  "as_of": "2026-08-30",
+  "expires_at": "2026-09-06",
+  "group": "产业链调研",
+  "images": [
+    "output/创新药细分CXO_01_封面.png",
+    "output/创新药细分CXO_02_三层结构.png",
+    "output/创新药细分CXO_03_结论与风险.png"
+  ],
+  "facts_digest": "sha256:49ba3e712536935f95b81689e37911903c2eb6dfe4b2424a6cf2ffe10bded5c0",
+  "validate": {
+    "passed": true,
+    "failures": 0
+  },
+  "cardgen_version": "0.1"
+}

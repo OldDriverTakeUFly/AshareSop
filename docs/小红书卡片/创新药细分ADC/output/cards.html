@@ -1,0 +1,76 @@
+<!DOCTYPE html><html lang='zh-CN'><head><meta charset='UTF-8'><style>  * { margin:0; padding:0; box-sizing:border-box; font-family:'Noto Sans CJK SC','PingFang SC','Microsoft YaHei',sans-serif; }
+  body { background:#e8e8e8; display:flex; flex-direction:column; align-items:center; gap:40px; padding:40px 0; }
+  .card { width:1080px; height:1440px; border-radius:48px; position:relative; overflow:hidden; padding:48px 56px; display:flex; flex-direction:column; }
+  .card1 { background:linear-gradient(160deg,#1a1440 0%,#3b1d6e 45%,#8a2be2 100%); color:#fff; }
+  .card2 { background:#fdf6ec; color:#3a2e20; }
+  .card3 { background:#eef4ff; color:#1e2a44; }
+  .card4 { background:#fff1f0; color:#4a1f1c; }
+  .card5 { background:#f0fbf2; color:#1d3a24; }
+  .card6 { background:#f7f3ff; color:#2e2440; }
+  .tag-top { display:inline-block; background:#ff2442; color:#fff; font-size:30px; font-weight:900; padding:12px 30px; border-radius:999px; letter-spacing:2px; width:fit-content; }
+  .badge { display:inline-block; font-size:26px; font-weight:800; padding:8px 22px; border-radius:999px; margin-right:12px; }
+  .b-purple{background:rgba(138,43,226,.18);color:#6b21a8;} .b-blue{background:rgba(37,99,235,.14);color:#1d4ed8;}
+  .b-red{background:rgba(220,38,38,.12);color:#b91c1c;} .b-green{background:rgba(22,163,74,.14);color:#15803d;}
+  .b-org{background:rgba(234,88,12,.15);color:#c2410c;} .b-gray{background:rgba(0,0,0,.07);color:#555;}
+  h1 { font-size:96px; font-weight:900; line-height:1.18; margin:28px 0 10px; letter-spacing:1px; }
+  .sub { font-size:42px; font-weight:700; opacity:.92; line-height:1.5; }
+  .hl { background:linear-gradient(transparent 62%, rgba(255,210,0,.85) 62%); padding:0 6px; }
+  .hl-r { background:linear-gradient(transparent 62%, rgba(255,77,109,.55) 62%); padding:0 6px; }
+  .big-num { font-size:150px; font-weight:900; line-height:1; letter-spacing:-2px; }
+  h2.title { font-size:56px; font-weight:900; margin-bottom:8px; line-height:1.25; }
+  .subtitle { font-size:30px; font-weight:600; opacity:.65; margin-bottom:24px; }
+  .row { background:#fff; border-radius:28px; padding:20px 28px; margin-bottom:16px; box-shadow:0 6px 24px rgba(0,0,0,.06); }
+  .row .name { font-size:36px; font-weight:900; margin-bottom:8px; display:flex; align-items:center; gap:14px; flex-wrap:wrap;}
+  .row .desc { font-size:26px; line-height:1.48; }
+  .dot { width:24px; height:24px; border-radius:50%; display:inline-block; }
+  table { width:100%; border-collapse:separate; border-spacing:0; background:#fff; border-radius:26px; overflow:hidden; font-size:26px; box-shadow:0 6px 24px rgba(0,0,0,.06); }
+  th { background:#2a2050; color:#fff; font-weight:800; padding:16px 12px; font-size:25px; }
+  td { padding:14px 12px; text-align:center; border-bottom:1px solid #f0ecf5; line-height:1.35; }
+  td.l { text-align:left; font-weight:800; }
+  tr:last-child td { border-bottom:none; }
+  .up{color:#dc2626;font-weight:800;} .down{color:#16a34a;font-weight:800;} .warn{color:#d97706;font-weight:800;}
+  .kbox { background:#fff; border-radius:26px; padding:20px 28px; margin-bottom:14px; box-shadow:0 6px 24px rgba(0,0,0,.06); display:flex; gap:20px; align-items:flex-start; }
+  .kdate { min-width:165px; background:#16a34a; color:#fff; font-weight:900; font-size:27px; border-radius:16px; text-align:center; padding:12px 0; line-height:1.3;}
+  .kdate.red{background:#dc2626;} .kdate.org{background:#ea580c;} .kdate.pu{background:#7c3aed;}
+  .ktext { font-size:26px; line-height:1.48; padding-top:4px;}
+  .ktext b { font-size:27px; }
+  .quote { background:rgba(255,255,255,.14); border-left:8px solid #ffd400; border-radius:0 22px 22px 0; padding:22px 26px; font-size:30px; line-height:1.55; font-weight:600; }
+  .foot { margin-top:auto; font-size:21px; opacity:.6; line-height:1.45; }
+  .tags { font-size:25px; font-weight:700; opacity:.85; margin-top:20px; }
+  .card5 .ktext { font-size:25px; line-height:1.42; }
+  .card5 .kdate { min-width:150px; font-size:25px; }
+  .card5 .kbox { padding:16px 24px; gap:16px; margin-bottom:12px; }
+  .card5 .ktext b { font-size:26px; }
+  .card2 .row .desc { font-size:25px; line-height:1.45; }
+  .card2 .row .name { font-size:34px; }
+  .num-badge { display:flex; gap:26px; margin:34px 0 8px; }
+  .nb { background:rgba(255,255,255,.12); border-radius:26px; padding:24px 30px; flex:1; }
+  .nb .v { font-size:58px; font-weight:900; color:#ffd400; }
+  .nb .k { font-size:25px; opacity:.85; margin-top:6px; }
+</style></head><body><div class="card card4" id="card1">
+<span class="tag-top" style="background:#ff2442;">创新药细分 · 2026-08-30</span>
+<h1>ADC生物导弹<br>中国管线的王牌🎯</h1>
+<div class="sub" style="margin-top:24px;">创新药细分系列·第三弹<br>占全球在研管线半壁江山</div>
+<div class="num-badge"><div class="nb"><div class="v">50%</div><div class="k">中国管线全球占比</div></div><div class="nb"><div class="v">16.3亿</div><div class="k">2025出海首付(美元)</div></div><div class="nb"><div class="v">62.2亿</div><div class="k">国内市场(2025,人民币)</div></div></div>
+<div style="margin-top:30px;"><div class="quote" style="background:rgba(255,255,255,.14);color:inherit;border-left-color:#ffd400;font-size:30px;">"<span style='color:#ffd400'>抗体是导航,毒素是弹头,连接子是引信</span>——三个元件的技术选择,决定了ADC是不是真的生物导弹"</div></div>
+<div class="tags">#ADC #创新药 #医药 #百利天恒 #双抗</div><div class="foot">数据来源:深度研报+Tushare 2026中报 · 仅供研究参考,不构成投资建议</div></div><div class="card card3" id="card2">
+<span class="tag-top" style="background:#2563eb;">技术拆解</span>
+<h2 class="title" style="margin-top:24px;">生物导弹的三元件</h2>
+<div class="subtitle">每个元件都是一个技术赛道</div>
+<table><tr><th style=text-align:left>元件</th><th>作用</th><th>技术壁垒</th></tr><tr><td class="l">抗体</td><td class="">精准识别癌细胞</td><td class="">靶点选择+人源化</td></tr><tr><td class="l">连接子</td><td class="up">到达才释放毒素(引信)</td><td class="up">稳定性与释放时机的平衡——最难点</td></tr><tr><td class="l">毒素</td><td class="">强力杀伤(弹头)</td><td class="">毒性窗口与耐药性</td></tr></table>
+<div style="margin-top:30px;"><div class="kbox"><div class="kdate" style="background:#dc2626;">中国为何第一</div><div class="ktext">工程师红利+临床资源+跟随速度的复利:中国在研ADC管线占全球约<b>50%</b>,双抗ADC(如百利天恒iza-bren)已做到<b>全球首个上市</b></div></div><div class="kbox"><div class="kdate" style="background:#c2410c;">市场量级</div><div class="ktext">全球ADC市场2025年约<b>386亿美元</b>;国内市场四年从<b>6.1亿</b>到<b>62.2亿</b>——量级跃升的渗透早期</div></div></div>
+<div class="foot">数据来源:深度研报+Tushare 2026中报 · 仅供研究参考,不构成投资建议</div></div><div class="card card4" id="card3">
+<span class="tag-top" style="background:#ff2442;">2025年ADC出海</span>
+<h2 class="title" style="margin-top:24px;">首付一年暴增<br>近七倍❗</h2>
+<div class="subtitle">ADC出海量级(单位:亿美元)</div>
+<div style="display:flex;flex-direction:column;gap:24px;"><div><div style="display:flex;justify-content:space-between;font-size:30px;font-weight:800;margin-bottom:10px;"><span>🔵 2025出海总金额(+391%)</span><span style="color:#2563eb;">211亿</span></div><div style="height:38px;border-radius:19px;background:linear-gradient(90deg,#2563eb 55%,#e9e4f0 55%);"></div></div><div><div style="display:flex;justify-content:space-between;font-size:30px;font-weight:800;margin-bottom:10px;"><span>🟠 全球市场规模(2025)</span><span style="color:#c2410c;">386亿</span></div><div style="height:38px;border-radius:19px;background:linear-gradient(90deg,#c2410c 100%,#e9e4f0 100%);"></div></div><div><div style="display:flex;justify-content:space-between;font-size:30px;font-weight:800;margin-bottom:10px;"><span>🟢 2025首付款(+676%)</span><span style="color:#16a34a;">16.3亿</span></div><div style="height:38px;border-radius:19px;background:linear-gradient(90deg,#16a34a 4%,#e9e4f0 4%);"></div></div></div>
+<div style="font-size:24px;opacity:.6;text-align:right;margin-top:4px;">首付款同比+676%——ADC是中国BD出海最大的弹药库;总金额+391%同样爆发</div>
+<div style="margin-top:34px;"><div class="kbox"><div class="kdate" style="background:#dc2626;">读数</div><div class="ktext">MNC用真金白银投票:ADC是中国创新药里<b>全球议价能力最强</b>的品类——这也是百利天恒们敢于高研发投入的底气</div></div></div>
+<div class="foot">数据来源:深度研报+Tushare 2026中报 · 仅供研究参考,不构成投资建议</div></div><div class="card card6" id="card4">
+<span class="tag-top" style="background:#0f172a;">一句话收束</span>
+<h2 class="title" style="margin-top:24px;">最强品类</h2>
+<div class="subtitle">但也最拥挤</div>
+<div class="row"><div class="desc"><b>优势</b> → 全球议价能力+技术代际领先(双抗ADC全球首个上市在中国)</div></div><div class="row"><div class="desc"><b>隐忧</b> → 管线同质化:同一个热门靶点几十家在研,差异化窗口在收窄</div></div>
+<div style="margin-top:14px;"><div class="kbox"><div class="kdate" style="background:#dc2626;">风险</div><div class="ktext">靶点内卷·临床失败·连接子技术路线迭代·海外竞品反超·定价压力</div></div></div>
+<div style="margin-top:8px;"><div class="quote" style="background:rgba(124,58,237,.10);color:#2e2440;border-left-color:#ffd400;font-size:30px;">ADC的研究抓手:<b>盯连接子技术与靶点差异化</b>——弹头人人有,引信定胜负</div></div>
+<div class="tags">#ADC #创新药 #双抗 #医药 #产业链</div><div class="foot">数据来源:ADC/CXO/GLP-1产业链深度研报(2026年7月)+Tushare中报 · AI辅助生成,仅供研究参考,不构成投资建议。市场有风险,投资需谨慎。</div></div></body></html>

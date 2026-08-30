@@ -1,0 +1,88 @@
+{
+  "facts": [
+    {
+      "id": "mkt_global",
+      "value": "1000",
+      "unit": "亿",
+      "display": "1000亿美元",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/CXO产业链深度研报.md#核心论点",
+        "quote": "2026年全球CXO市场接近1000亿美元"
+      }
+    },
+    {
+      "id": "mkt_cn",
+      "value": "2100",
+      "unit": "亿",
+      "display": "2100亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/CXO产业链深度研报.md#核心论点",
+        "quote": "中国CXO市场2024年2100亿元"
+      }
+    },
+    {
+      "id": "ym_np",
+      "value": "110.80",
+      "unit": "亿",
+      "display": "110.80亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "tushare",
+        "ref": "tushare income 603259.SH 20260630",
+        "quote": "药明康德2026年中报归母110.80亿(+29.4%)"
+      }
+    },
+    {
+      "id": "ym_yoy",
+      "value": "29.4",
+      "unit": "%",
+      "display": "+29.4%",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "tushare",
+        "ref": "tushare income 603259.SH 20250630/20260630",
+        "quote": "药明康德同比+29.4%"
+      }
+    },
+    {
+      "id": "kl_yoy",
+      "value": "-15.7",
+      "unit": "%",
+      "display": "-15.7%",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "tushare",
+        "ref": "tushare income 002821.SZ 20250630/20260630",
+        "quote": "凯莱英同比-15.7%"
+      }
+    },
+    {
+      "id": "tg_np",
+      "value": "-4.13",
+      "unit": "亿",
+      "display": "-4.13亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "tushare",
+        "ref": "tushare income 300347.SZ 20260630",
+        "quote": "泰格医药2026年中报归母-4.13亿转亏"
+      }
+    },
+    {
+      "id": "ys_yoy",
+      "value": "37.2",
+      "unit": "%",
+      "display": "+37.2%",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "tushare",
+        "ref": "tushare income 300725.SZ 20250630/20260630 自算同比",
+        "quote": "药石科技归母同比+37.2%"
+      }
+    }
+  ]
+}

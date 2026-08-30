@@ -1,0 +1,112 @@
+{
+  "facts": [
+    {
+      "id": "bd_26h1",
+      "value": "997",
+      "unit": "亿",
+      "display": "997亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "manual",
+        "ref": "manual:医药魔方(经信委转引2026-07-13)",
+        "quote": "2026H1中国创新药BD出海交易金额997亿美元,约为2025全年的73%"
+      }
+    },
+    {
+      "id": "bd_25",
+      "value": "1356.55",
+      "unit": "亿",
+      "display": "1356.55亿美元",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/中国创新药行业全景研报.md",
+        "quote": "2025年全年License-out 1356.55亿美元(157笔)"
+      }
+    },
+    {
+      "id": "bd_upfront",
+      "value": "50",
+      "unit": "亿",
+      "display": "50亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "manual",
+        "ref": "manual:医药魔方(同上)",
+        "quote": "2026H1首付款总额约50亿美元"
+      }
+    },
+    {
+      "id": "bms_deal",
+      "value": "152",
+      "unit": "亿",
+      "display": "152亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/恒瑞医药深度研报.md#BD",
+        "quote": "BMS 152亿美元(史上最大单,首付6亿美元H2待确认)"
+      }
+    },
+    {
+      "id": "gsk_deal",
+      "value": "120",
+      "unit": "亿",
+      "display": "120亿美元",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/恒瑞医药深度研报.md#BD",
+        "quote": "GSK 120亿美元组合授权(2025-07)"
+      }
+    },
+    {
+      "id": "bd_pipe",
+      "value": "420",
+      "unit": "亿",
+      "display": "420亿美元",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/恒瑞医药深度研报.md#BD",
+        "quote": "恒瑞BD流水线总额约420亿美元"
+      }
+    },
+    {
+      "id": "np_24",
+      "value": "37.08",
+      "unit": "亿",
+      "display": "37.08亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/百利天恒深度研报.md#核心逻辑",
+        "quote": "2024年BMS首付款带来37.08亿净利"
+      }
+    },
+    {
+      "id": "deals_157",
+      "value": "157",
+      "unit": "笔",
+      "display": "157笔",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/中国创新药行业全景研报.md",
+        "quote": "2025年157笔License-out"
+      }
+    },
+    {
+      "id": "pct73",
+      "value": "73",
+      "unit": "%",
+      "display": "73%",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "manual",
+        "ref": "医药魔方(同997亿口径)",
+        "quote": "2026H1出海额约为2025全年的73%"
+      }
+    }
+  ]
+}

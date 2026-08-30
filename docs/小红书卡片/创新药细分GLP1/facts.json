@@ -1,0 +1,64 @@
+{
+  "facts": [
+    {
+      "id": "glp1_mkt",
+      "value": "500",
+      "unit": "亿",
+      "display": "500亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/GLP-1减重药产业链深度研报.md#核心论点",
+        "quote": "2025年全球GLP-1减重药市场突破500亿美元"
+      }
+    },
+    {
+      "id": "glp1_2030",
+      "value": "1000",
+      "unit": "亿",
+      "display": "1000-1500亿美元",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/GLP-1减重药产业链深度研报.md#核心论点",
+        "quote": "预计2030年达1000-1500亿美元"
+      }
+    },
+    {
+      "id": "glp1_cn",
+      "value": "50",
+      "unit": "",
+      "display": "50余家",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/GLP-1减重药产业链深度研报.md#核心论点",
+        "quote": "中国50余家企业竞速GLP-1"
+      }
+    },
+    {
+      "id": "ms_price",
+      "value": "1260",
+      "unit": "元",
+      "display": "1260元",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/恒瑞医药深度研报.md#核心逻辑",
+        "quote": "玛仕度肽月费约1260元,上市即价格战"
+      }
+    },
+    {
+      "id": "hr_glp1",
+      "value": "19.2",
+      "unit": "%",
+      "display": "19.2%",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/个股研报/医药医疗/恒瑞医药深度研报.md#核心逻辑",
+        "quote": "恒瑞瑞普泊肽48周减重19.2%,NDA已受理最快2026Q4获批"
+      }
+    }
+  ]
+}

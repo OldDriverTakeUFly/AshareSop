@@ -1,0 +1,18 @@
+{
+  "topic": "创新药细分GLP1",
+  "version": 2,
+  "as_of": "2026-08-30",
+  "expires_at": "2026-09-06",
+  "group": "产业链调研",
+  "images": [
+    "output/创新药细分GLP1_01_封面.png",
+    "output/创新药细分GLP1_02_三线并进.png",
+    "output/创新药细分GLP1_03_结论与风险.png"
+  ],
+  "facts_digest": "sha256:31653736c98487c6199c879f17709e86cb9758eacefbc8108dd45c41c7570657",
+  "validate": {
+    "passed": true,
+    "failures": 0
+  },
+  "cardgen_version": "0.1"
+}

@@ -1,0 +1,19 @@
+{
+  "topic": "创新药细分BD出海",
+  "version": 3,
+  "as_of": "2026-08-30",
+  "expires_at": "2026-09-06",
+  "group": "产业链调研",
+  "images": [
+    "output/创新药细分BD出海_01_封面.png",
+    "output/创新药细分BD出海_02_合约解剖.png",
+    "output/创新药细分BD出海_03_行业三级跳.png",
+    "output/创新药细分BD出海_04_结论与风险.png"
+  ],
+  "facts_digest": "sha256:4326fe227df548e3f4f7d280098f2c9cabc74e222fec821085de70836f578783",
+  "validate": {
+    "passed": true,
+    "failures": 0
+  },
+  "cardgen_version": "0.1"
+}

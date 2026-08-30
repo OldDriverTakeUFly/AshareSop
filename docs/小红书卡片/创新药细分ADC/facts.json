@@ -1,0 +1,100 @@
+{
+  "facts": [
+    {
+      "id": "pipeline_pct",
+      "value": "50",
+      "unit": "%",
+      "display": "50%",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/ADC产业链深度研报.md#核心论点",
+        "quote": "中国ADC在研管线占全球约50%"
+      }
+    },
+    {
+      "id": "adc_upfront",
+      "value": "16.3",
+      "unit": "亿",
+      "display": "16.3亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/ADC产业链深度研报.md#核心论点",
+        "quote": "2025年ADC BD出海首付款16.3亿美元(+676%)"
+      }
+    },
+    {
+      "id": "adc_upfront_g",
+      "value": "676",
+      "unit": "%",
+      "display": "+676%",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/ADC产业链深度研报.md#核心论点",
+        "quote": "ADC首付款同比+676%"
+      }
+    },
+    {
+      "id": "adc_total",
+      "value": "211",
+      "unit": "亿",
+      "display": "211亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/ADC产业链深度研报.md#核心论点",
+        "quote": "2025年ADC出海总金额211亿美元(+391%)"
+      }
+    },
+    {
+      "id": "adc_cn",
+      "value": "62.2",
+      "unit": "亿",
+      "display": "62.2亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/ADC产业链深度研报.md#核心论点",
+        "quote": "国内ADC市场4年增长10倍(6.1亿→62.2亿元)"
+      }
+    },
+    {
+      "id": "adc_cn0",
+      "value": "6.1",
+      "unit": "亿",
+      "display": "6.1亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/ADC产业链深度研报.md#核心论点",
+        "quote": "国内ADC市场4年前6.1亿元"
+      }
+    },
+    {
+      "id": "adc_global",
+      "value": "386",
+      "unit": "亿",
+      "display": "386亿",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/ADC产业链深度研报.md#核心论点",
+        "quote": "全球ADC市场2025年约386亿美元"
+      }
+    },
+    {
+      "id": "adc_total_g",
+      "value": "391",
+      "unit": "%",
+      "display": "+391%",
+      "as_of": "2026-08-30",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/ADC产业链深度研报.md",
+        "quote": "2025年ADC出海总金额211亿美元(+391%)"
+      }
+    }
+  ]
+}

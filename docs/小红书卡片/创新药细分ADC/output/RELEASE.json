@@ -1,0 +1,19 @@
+{
+  "topic": "创新药细分ADC",
+  "version": 2,
+  "as_of": "2026-08-30",
+  "expires_at": "2026-09-06",
+  "group": "产业链调研",
+  "images": [
+    "output/创新药细分ADC_01_封面.png",
+    "output/创新药细分ADC_02_三元件.png",
+    "output/创新药细分ADC_03_出海爆发.png",
+    "output/创新药细分ADC_04_结论与风险.png"
+  ],
+  "facts_digest": "sha256:3945e927ca7d287865f6d4b06c43ed4ea23600699f1b855eb085fa6d813a77c4",
+  "validate": {
+    "passed": true,
+    "failures": 0
+  },
+  "cardgen_version": "0.1"
+}
