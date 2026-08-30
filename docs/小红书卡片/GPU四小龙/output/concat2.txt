@@ -1,0 +1,6 @@
+file '/tmp/vid2_axnab2bx/c00.mp4'
+file '/tmp/vid2_axnab2bx/c01.mp4'
+file '/tmp/vid2_axnab2bx/c02.mp4'
+file '/tmp/vid2_axnab2bx/c03.mp4'
+file '/tmp/vid2_axnab2bx/c04.mp4'
+file '/tmp/vid2_axnab2bx/c05.mp4'

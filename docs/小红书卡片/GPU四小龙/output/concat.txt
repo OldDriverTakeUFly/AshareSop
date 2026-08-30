@@ -1,0 +1,6 @@
+file '/tmp/cardvid_xgunanb0/clip_00.mp4'
+file '/tmp/cardvid_xgunanb0/clip_01.mp4'
+file '/tmp/cardvid_xgunanb0/clip_02.mp4'
+file '/tmp/cardvid_xgunanb0/clip_03.mp4'
+file '/tmp/cardvid_xgunanb0/clip_04.mp4'
+file '/tmp/cardvid_xgunanb0/clip_05.mp4'

@@ -237,7 +237,13 @@
           "html": "<b>HVLP5(<0.5μm)日系垄断</b>能否突破 · 复合铜箔从零到一的产业化 · 加工费周期见顶信号"
         }
       ],
-      "foot": "数据来源:m9电子布报告与m10材料链深度研报 · 判断演进如实呈现"
+      "foot": "数据来源:m9电子布报告与m10材料链深度研报 · 判断演进如实呈现",
+      "image": {
+        "src": "assets/img.jpg",
+        "license": "CC BY-SA(署名-相同方式共享)",
+        "credit": "铜箔,Lloyd Davis/Wikimedia Commons",
+        "mode": "corner"
+      }
     },
     {
       "type": "summary",
@@ -245,20 +251,20 @@
       "name": "06_结论与风险",
       "tag_top": "一句话收束",
       "tag_color": "#0f172a",
-      "title": "买的是跨代际<br>通用确定性",
-      "subtitle": "每个标的买的是什么,说清楚",
+      "title": "赚的是跨代际<br>通用确定性",
+      "subtitle": "每家公司赚的什么钱,说清楚",
       "rows": [
         {
-          "desc": "<b>德福</b> → 买<span class='hl'>HVLP4量产+载体铜箔首家</span>,叠加困境反转的业绩弹性"
+          "desc": "<b>德福</b> → 赚的是<span class='hl'>HVLP4量产+载体铜箔首家</span>,叠加困境反转的业绩弹性"
         },
         {
-          "desc": "<b>铜冠</b> → 买<span class='hl'>全谱系+RTF规模第一</span>,代价是一年七倍后的估值对赌"
+          "desc": "<b>铜冠</b> → 赚的是<span class='hl'>全谱系+RTF规模第一</span>,代价是一年七倍后的高预期"
         },
         {
           "desc": "<b>嘉元</b> → 目前是<span class='hl'>总量搭车者</span>,HVLP验证通过才算拿到代际门票"
         },
         {
-          "desc": "<b>链条</b> → 买<span class='hl'>「不管哪条路线都要用」的通用性</span>,这是对冲M10不确定性的唯一免费午餐"
+          "desc": "<b>链条</b> → 赚的是<span class='hl'>「不管哪条路线都要用」的通用性</span>,这是对冲M10不确定性的唯一免费午餐"
         }
       ],
       "kbox": {

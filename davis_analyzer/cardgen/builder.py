@@ -59,12 +59,20 @@ def _inject_images(spec: dict, html_path: Path, project_dir: Path) -> None:
         src = (project_dir / img["src"]).resolve()
         if not src.exists():
             raise SystemExit(f"卡片 {card.get('name', i)} 引用图片不存在: {src}")
-        block = (
-            f'<div style="position:absolute;left:56px;right:56px;bottom:{img.get("bottom",150)}px;">'
-            f'<img src="file://{src}" style="max-width:60%;max-height:300px;object-fit:contain;'
-            'border-radius:24px;display:block;margin:0 auto;box-shadow:0 8px 32px rgba(0,0,0,.18);"/>'
-            '<div style="font-size:22px;opacity:.55;text-align:center;margin-top:10px;line-height:1.4;">'
-            f'图:{img["credit"]}({img["license"]})</div></div>')
+        if img.get("mode") == "corner":
+            block = (
+                f'<div style="position:absolute;top:44px;right:44px;width:270px;">'
+                f'<img src="file://{src}" style="max-width:270px;max-height:200px;object-fit:contain;'
+                'border-radius:20px;display:block;margin:0 auto;box-shadow:0 8px 32px rgba(0,0,0,.18);"/>'
+                '<div style="font-size:18px;opacity:.55;text-align:center;margin-top:6px;line-height:1.3;">'
+                f'图:{img["credit"]}({img["license"]})</div></div>')
+        else:
+            block = (
+                f'<div style="position:absolute;left:56px;right:56px;bottom:{img.get("bottom",150)}px;">'
+                f'<img src="file://{src}" style="max-width:60%;max-height:300px;object-fit:contain;'
+                'border-radius:24px;display:block;margin:0 auto;box-shadow:0 8px 32px rgba(0,0,0,.18);"/>'
+                '<div style="font-size:22px;opacity:.55;text-align:center;margin-top:10px;line-height:1.4;">'
+                f'图:{img["credit"]}({img["license"]})</div></div>')
         # 定位第 i 个卡片 div(按出现顺序),用括号深度找其闭合标签
         positions: list[int] = []
         idx = 0

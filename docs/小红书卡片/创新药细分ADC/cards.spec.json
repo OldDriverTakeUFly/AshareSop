@@ -171,7 +171,13 @@
         "html": "ADC的研究抓手:<b>盯连接子技术与靶点差异化</b>——弹头人人有,引信定胜负"
       },
       "tags": "#ADC #创新药 #双抗 #医药 #产业链",
-      "foot": "数据来源:ADC/CXO/GLP-1产业链深度研报(2026年7月)+Tushare中报 · AI辅助生成,仅供研究参考,不构成投资建议。市场有风险,投资需谨慎。"
+      "foot": "数据来源:ADC/CXO/GLP-1产业链深度研报(2026年7月)+Tushare中报 · AI辅助生成,仅供研究参考,不构成投资建议。市场有风险,投资需谨慎。",
+      "image": {
+        "src": "assets/img.png",
+        "license": "CC BY-SA(署名-相同方式共享)",
+        "credit": "IgG抗体结构,Tokenzero/Wikimedia Commons",
+        "bottom": 150
+      }
     }
   ]
 }

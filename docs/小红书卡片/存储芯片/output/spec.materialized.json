@@ -269,7 +269,13 @@
           "html": "<b>HBM订单与服务器出货</b>:AI是本轮需求的边际扰动源,HBM挤占常规产能的强度决定非AI存储的短缺持续性"
         }
       ],
-      "foot": "数据来源:存储周期框架(公开研报口径) · 事件驱动更新"
+      "foot": "数据来源:存储周期框架(公开研报口径) · 事件驱动更新",
+      "image": {
+        "src": "assets/img.jpg",
+        "license": "CC BY-SA(署名-相同方式共享)",
+        "credit": "DRAM内存芯片,ArnoldReinhold/Wikimedia Commons",
+        "bottom": 240
+      }
     },
     {
       "type": "summary",
