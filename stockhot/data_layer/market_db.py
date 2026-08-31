@@ -22,6 +22,7 @@
 
 from __future__ import annotations
 
+import os
 import sqlite3
 import threading
 from pathlib import Path
@@ -31,6 +32,10 @@ from stockhot.core.config import STORAGE_DIR
 # ── 路径 ──────────────────────────────────────────────────────────────
 
 MARKET_DB_PATH: Path = STORAGE_DIR / "database" / "market_data.db"
+
+# 退市股研究库（实验0010 幸存者剪枝修复, 2026-08-31）：独立于生产库，
+# 仅在 MARKET_DB_ATTACH_DELISTED=1 的研究进程中通过 TEMP VIEW 混入。
+DELISTED_DB_PATH: Path = STORAGE_DIR / "database" / "market_data_delisted.db"
 
 # 连接锁。SQLite 的 connection 对象默认禁止跨线程复用，这里每次新建连接，
 # 但用一个全局锁串行化 schema 初始化等写操作，避免并发 DDL 冲突。
@@ -465,6 +470,34 @@ def _apply_column_migrations(conn: sqlite3.Connection) -> None:
             conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {col_type}")
 
 
+def _attach_delisted_research_view(conn: sqlite3.Connection) -> None:
+    """研究上下文专用：附加退市研究库并以 TEMP VIEW 遮蔽 daily_price（UNION ALL）.
+
+    TEMP 对象位于 temp schema, 在名称解析中优先于 main 库同名表——所有
+    ``FROM daily_price`` 查询自动看到 生产行 ∪ 退市行, 连接关闭即蒸发。
+    生产/实盘进程不设 MARKET_DB_ATTACH_DELISTED, 物理上不可见退市数据。
+    通过视图的写入会报错（视图不可写）, 天然防止误写。
+    """
+    if not DELISTED_DB_PATH.exists():
+        raise FileNotFoundError(
+            f"MARKET_DB_ATTACH_DELISTED=1 但研究库不存在: {DELISTED_DB_PATH} — "
+            "先运行 scripts/backfill/backfill_delisted_research.py"
+        )
+    conn.execute(f"ATTACH DATABASE '{DELISTED_DB_PATH}' AS delisted_db")
+    conn.execute(
+        """
+        CREATE TEMP VIEW IF NOT EXISTS daily_price AS
+        SELECT ts_code, trade_date, open, high, low, close, pre_close,
+               pct_chg, vol, amount, adj_factor, fetched_at
+        FROM main.daily_price
+        UNION ALL
+        SELECT ts_code, trade_date, open, high, low, close, pre_close,
+               pct_chg, vol, amount, adj_factor, fetched_at
+        FROM delisted_db.daily_price_delisted
+        """
+    )
+
+
 def get_connection(db_path: Path | None = None) -> sqlite3.Connection:
     """获取一个 market_data.db 的连接（每次新建，WAL 模式）.
 
@@ -481,6 +514,8 @@ def get_connection(db_path: Path | None = None) -> sqlite3.Connection:
 
     conn = sqlite3.connect(str(path))
     conn.execute("PRAGMA journal_mode=WAL")
+    if db_path is None and os.environ.get("MARKET_DB_ATTACH_DELISTED") == "1":
+        _attach_delisted_research_view(conn)
     return conn
 
 

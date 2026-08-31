@@ -2980,6 +2980,67 @@ def _compute_factor_scores_at_sequential(client, as_of, universe):
     return scores
 
 
+def _force_exit_terminated_holdings(account: "PaperAccount", trade_date: str) -> int:
+    """退市强平: 已确认退市(list_status='D')且当日无行情的持仓, 按最后收盘价出清.
+
+    实验0010 幸存者剪枝修复配套: _get_close_prices 仅回看 10 自然日, 退市股
+    行情终止后持仓将无法估值(NAV 冻结在末价上失真)。仅 stock_basic 确认 D
+    状态的代码触发——长期停牌(L 状态)的价格缺口维持原有回看行为。
+    生产库对退市股行情覆盖不完整(剪枝), 查不到末价时仅告警不强平, 生产进程
+    行为不变; 完整退市行情仅在研究上下文(MARKET_DB_ATTACH_DELISTED=1)可见.
+    """
+    positions = account.get_positions()
+    if not positions:
+        return 0
+    exits = 0
+    try:
+        with get_market_conn() as conn:
+            candidates = []
+            for p in positions:
+                status = conn.execute(
+                    "SELECT list_status FROM stock_basic WHERE ts_code=?",
+                    (p.ts_code,),
+                ).fetchone()
+                if not status or status[0] != "D":
+                    continue
+                has_today = conn.execute(
+                    "SELECT 1 FROM daily_price WHERE ts_code=? AND trade_date=?",
+                    (p.ts_code, trade_date),
+                ).fetchone()
+                if has_today:
+                    continue  # 仍有行情(如退市整理期), 交由正常流程处理
+                last = conn.execute(
+                    "SELECT trade_date, close FROM daily_price WHERE ts_code=? "
+                    "AND trade_date<? AND close>0 ORDER BY trade_date DESC LIMIT 1",
+                    (p.ts_code, trade_date),
+                ).fetchone()
+                if last:
+                    candidates.append((p, float(last[1]), last[0]))
+                else:
+                    logger.warning(
+                        f"[{account.name}] {trade_date}: {p.ts_code} 已退市但无最后价"
+                        "(生产库剪枝?), 跳过强平"
+                    )
+        for p, last_close, last_date in candidates:
+            trade = account.sell(
+                ts_code=p.ts_code,
+                name=p.name,
+                shares=p.shares,
+                price=last_close,
+                trade_date=trade_date,
+                signal_reason=f"退市强平(末交易日{last_date})",
+            )
+            if trade:
+                exits += 1
+                logger.info(
+                    f"[{account.name}] {trade_date}: 退市强平 {p.ts_code} "
+                    f"@{last_close} (末交易日 {last_date})"
+                )
+    except Exception:
+        logger.exception(f"[{account.name}] 退市强平检查失败 @{trade_date}")
+    return exits
+
+
 def run_backfill_auto(
     account: PaperAccount,
     strategy: Strategy,
@@ -3084,6 +3145,7 @@ def run_backfill_auto(
                 "_davis_scores": cached_davis,
                 "_factor_scores": cached_factors,
             }
+            _force_exit_terminated_holdings(account, day)
             result = executor.run_day(day, factor_scores=scores)
             results.append(result)
 
