@@ -214,3 +214,34 @@ def test_non_trading_day_graceful(monkeypatch):
     assert result["date"] == "2026-05-10"
     assert result["status"] == "no_data"
     assert result["data"] == {}
+
+
+# Tushare top_inst 缺 exile/net 列的现实形态(2026-09-01 实测缺失)
+_INST_DF_TS_SPARSE = pd.DataFrame(
+    {
+        "ts_code": ["000560.SZ", "002084.SZ"],
+        "buy": [30000000.0, 12000000.0],
+        "sell": [40000000.0, 5000000.0],
+    }
+)
+
+
+def test_fetch_institutional_fills_missing_name_and_net(monkeypatch):
+    """缺 exile/net 列时:inst_name 兜底『机构专用』,net=buy-sell。"""
+    seen = {}
+
+    class FakeGateway:
+        def call(self, api, **kw):
+            seen["api"] = api
+            return _INST_DF_TS_SPARSE.copy()
+
+    # fetch_institutional_trading 内部是 `from stockhot.data_layer import get_gateway`
+    # 的函数级局部导入——patch 模块属性即可在调用时生效
+    import stockhot.data_layer
+    monkeypatch.setattr(stockhot.data_layer, "get_gateway", lambda: FakeGateway())
+
+    rows = dt.fetch_institutional_trading("2026-09-01", "2026-09-01")
+    assert seen["api"] == "top_inst"
+    assert rows and rows[0]["inst_name"] == "机构专用"
+    assert rows[0]["net_amount"] == -10000000.0
+    assert rows[1]["net_amount"] == 7000000.0

@@ -47,10 +47,10 @@ _INST_FIELDS = {
 # Tushare top_inst 字段映射（机构席位交易）
 _INST_FIELDS_TUSHARE = {
     "ts_code": "inst_code",
-    "exile": "inst_name",  # top_inst 中 exile 为机构名称
+    "exalter": "inst_name",  # top_inst 中 exalter 为机构/席位名称(2026-09-02 实测,旧映射 exile 未命中)
     "buy": "buy_amount",
     "sell": "sell_amount",
-    "net": "net_amount",
+    "net_buy": "net_amount",
 }
 
 _BROKER_FIELDS = {
@@ -157,6 +157,18 @@ def fetch_institutional_trading(start_date: str, end_date: str) -> list[dict]:
         if df_ts is not None and not df_ts.empty:
             all_rows.extend(_extract_rows(df_ts, _INST_FIELDS_TUSHARE))
         cur += timedelta(days=1)
+    # 现实兜底(2026-09-01 实测):top_inst 部分数据档位缺机构名称/净额列——
+    # 机构名称一律『机构专用』(该接口本就是机构席位聚合口径),净额=买卖差;
+    # buy/sell 的 NaN(单向席位另一侧为空)归一为 0.0,避免 NaN 漏进 JSON 与净额统计
+    for row in all_rows:
+        if not row.get("inst_name"):
+            row["inst_name"] = "机构专用"
+        for _amt_key in ("buy_amount", "sell_amount"):
+            _amt = row.get(_amt_key)
+            if _amt is None or _amt != _amt:
+                row[_amt_key] = 0.0
+        if row.get("net_amount") is None or row["net_amount"] != row["net_amount"]:
+            row["net_amount"] = row["buy_amount"] - row["sell_amount"]
     if all_rows:
         logger.info(f"fetch_institutional_trading (Tushare): {len(all_rows)} rows")
         return all_rows
