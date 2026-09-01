@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
 from datetime import datetime
 from pathlib import Path
@@ -15,7 +16,8 @@ STATUSES = ("drafting", "validated", "rendered", "queued")
 
 
 def connect(db: Path | None = None) -> sqlite3.Connection:
-    path = db or DB_PATH
+    env = os.environ.get("CARDGEN_LEDGER_DB")  # 测试重定向,避免污染真实 content_cards.db
+    path = db or (Path(env) if env else DB_PATH)
     path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(path)
     conn.row_factory = sqlite3.Row

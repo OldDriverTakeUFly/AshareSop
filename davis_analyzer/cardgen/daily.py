@@ -443,6 +443,12 @@ def write_project(projects_root: Path, topic: str, facts: list[Fact], spec: dict
     return proj
 
 
+def _ledger_db(ledger_db: Path | None) -> Path | None:
+    """台账库路径;测试经 CARDGEN_LEDGER_DB 重定向,避免污染真实 content_cards.db。"""
+    env = os.environ.get("CARDGEN_LEDGER_DB")
+    return Path(env) if env else ledger_db
+
+
 def generate(kind: str, day: str, projects_root: Path, ledger_db: Path | None,
              stockhot_db: Path | None = None) -> tuple[Path, str, ValidateReport]:
     """kind ∈ {'ladder','lhb'};完整性自检→build→write→register→validate→log+set_status。
@@ -461,7 +467,7 @@ def generate(kind: str, day: str, projects_root: Path, ledger_db: Path | None,
     else:
         raise ValueError(f"kind 须 ladder/lhb: {kind}")
     # 同日重跑保护:rendered/queued 的工程禁止静默覆写(须 --bump 或先删工程);drafting/validated 照常
-    guard_conn = ledger.connect(ledger_db)
+    guard_conn = ledger.connect(_ledger_db(ledger_db))
     try:
         existing = ledger.get_card(guard_conn, topic)
         if existing and existing["status"] in ("rendered", "queued"):
@@ -470,7 +476,7 @@ def generate(kind: str, day: str, projects_root: Path, ledger_db: Path | None,
     finally:
         guard_conn.close()
     proj = write_project(projects_root, topic, facts, spec)
-    conn = ledger.connect(ledger_db)
+    conn = ledger.connect(_ledger_db(ledger_db))
     try:
         ledger.register_card(conn, topic, str(proj / "cards.spec.json"))
         report = run_validation(proj, topic=topic)
