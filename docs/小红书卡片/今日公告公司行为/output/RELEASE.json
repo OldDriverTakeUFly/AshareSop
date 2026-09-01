@@ -1,0 +1,20 @@
+{
+  "topic": "今日公告公司行为",
+  "version": 1,
+  "as_of": "2026-09-01",
+  "expires_at": "2026-09-08",
+  "group": "公告盘点",
+  "images": [
+    "output/今日公告公司行为_01_封面.png",
+    "output/今日公告公司行为_02_回购.png",
+    "output/今日公告公司行为_03_定增.png",
+    "output/今日公告公司行为_04_收购.png",
+    "output/今日公告公司行为_05_小结.png"
+  ],
+  "facts_digest": "sha256:1ae4bf058dca61afc0ea27df96f3dc8372a79a4949cff65877d066a122d389c8",
+  "validate": {
+    "passed": true,
+    "failures": 0
+  },
+  "cardgen_version": "0.1"
+}
