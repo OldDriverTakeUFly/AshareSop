@@ -46,7 +46,8 @@ def _published_topics(db: Path = PUBLISHER_DB) -> set[str]:
             # 剥掉归档层级(兼容 source 记录了 已发布/<topic> 的情况)
             tail = tuple(p for p in tail if p not in (PENDING_DIR, PUBLISHED_DIR))
             if tail:
-                topics.add(tail[0])
+                # 2026-09-01 嵌套 topic:品类/日期 取全路径,防整品类误判已发布
+                topics.add("/".join(tail))
     return topics
 
 
@@ -82,35 +83,54 @@ def sync(projects_root: Path, db: Path = PUBLISHER_DB,
         for d in (PENDING_DIR, PUBLISHED_DIR):
             (projects_root / d).mkdir(parents=True, exist_ok=True)
 
-    def _move(proj: Path, dest_dir: str, label: str) -> None:
-        dst = projects_root / dest_dir / proj.name
+    def _iter_projects(base: Path):
+        """两级发现:含 cards.spec.json 的目录=工程;否则=品类容器,其下含 spec 的子目录=日期工程。
+
+        兼容:目录无 spec 且其下也无 spec 子目录时,视为存量平铺工程(旧布局不落 spec 也归位)。
+        """
+        for p in sorted(x for x in base.iterdir() if x.is_dir()):
+            if p.name in (PENDING_DIR, PUBLISHED_DIR):
+                continue
+            if (p / "cards.spec.json").exists():
+                yield p.name, p
+                continue
+            subs = [sub for sub in p.iterdir()
+                    if sub.is_dir() and (sub / "cards.spec.json").exists()]
+            if subs:
+                for sub in sorted(subs):
+                    yield f"{p.name}/{sub.name}", sub
+            else:
+                yield p.name, p
+
+    def _move(topic: str, proj: Path, dest_dir: str, label: str) -> None:
+        dst = projects_root / dest_dir / topic
         entry = (f"{label}→{dest_dir}", str(dst))
         actions.append(entry)
         if not dry_run:
             if _safe_move(proj, dst):
-                _update_ledger_spec_path(projects_root, proj.name, dst / "cards.spec.json")
+                _update_ledger_spec_path(projects_root, topic, dst / "cards.spec.json")
 
     # 根目录与 未发布/ 下的工程:已发布→已发布/,其余(仅根目录存量)→未发布/
     for base, strict in ((projects_root, False), (projects_root / PENDING_DIR, True)):
         if not base.exists():
             continue
-        for proj in sorted(p for p in base.iterdir() if p.is_dir()):
-            if proj.name in (PENDING_DIR, PUBLISHED_DIR):
-                continue
-            if proj.name in published:
-                _move(proj, PUBLISHED_DIR, "已发布")
+        for topic, proj in _iter_projects(base):
+            if topic in published:
+                _move(topic, proj, PUBLISHED_DIR, "已发布")
             elif not strict:
-                _move(proj, PENDING_DIR, "归位")  # 存量根目录工程归位到未发布/
+                _move(topic, proj, PENDING_DIR, "归位")
     return actions
 
 
 def demote_to_pending(projects_root: Path, proj: Path) -> Path | None:
     """build --bump 产生新版本时,把已发布工程挪回未发布;返回新路径(无需挪则 None)。"""
-    if proj.parent.name != PUBLISHED_DIR:
+    pub_root = projects_root / PUBLISHED_DIR
+    if proj == pub_root or not proj.is_relative_to(pub_root):
         return None
-    dst = projects_root / PENDING_DIR / proj.name
+    topic = str(proj.relative_to(pub_root))
+    dst = projects_root / PENDING_DIR / topic
     if _safe_move(proj, dst):
-        _update_ledger_spec_path(projects_root, proj.name, dst / "cards.spec.json")
+        _update_ledger_spec_path(projects_root, topic, dst / "cards.spec.json")
         return dst
     return proj if proj.exists() else None
 

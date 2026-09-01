@@ -19,6 +19,11 @@ from davis_analyzer.cardgen.validator import run_validation
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 CARDGEN_VERSION = "0.1"
+
+
+def _png_prefix(topic: str) -> str:
+    """嵌套 topic(连板天梯/2026-09-01)作文件名前缀时压平斜杠。"""
+    return topic.replace("/", "_")
 SUBPROCESS_TIMEOUT_S = 120
 
 
@@ -168,8 +173,9 @@ def render(project_dir: Path, topic: str, conn: sqlite3.Connection,
           str(out / "spec.materialized.json"), "--out", str(out)])
     _inject_images(spec, out / "cards.html", project_dir)
     _inject_fill_css(out / "cards.html")
+    prefix = _png_prefix(topic)
     _run(["node", str(REPO_ROOT / "scripts" / "card_factory" / "snap.cjs"),
-          str(out / "cards.html"), "--outdir", str(out), "--prefix", topic])
+          str(out / "cards.html"), "--outdir", str(out), "--prefix", prefix])
 
     # ── 张数检查 + RELEASE ──
     manifest = json.loads((out / "manifest.json").read_text(encoding="utf-8"))
@@ -179,7 +185,7 @@ def render(project_dir: Path, topic: str, conn: sqlite3.Connection,
 
     release = {"topic": topic, "version": int(version), "as_of": report.as_of,
                "expires_at": report.expires_at, "group": spec.get("group", ""),
-               "images": [str(p.relative_to(project_dir)) for p in sorted(out.glob(f"{topic}_*.png"))],
+               "images": [str(p.relative_to(project_dir)) for p in sorted(out.glob(f"{prefix}_*.png"))],
                "facts_digest": fd,
                "validate": {"passed": True, "failures": 0},
                "cardgen_version": CARDGEN_VERSION}
