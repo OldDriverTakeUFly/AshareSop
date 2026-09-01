@@ -1,0 +1,19 @@
+{
+  "topic": "国际复材公告解读",
+  "version": 2,
+  "as_of": "2026-09-01",
+  "expires_at": "2026-09-08",
+  "group": "产业链调研",
+  "images": [
+    "output/国际复材公告解读_01_封面.png",
+    "output/国际复材公告解读_02_变更对照.png",
+    "output/国际复材公告解读_03_三层解读.png",
+    "output/国际复材公告解读_04_结论与风险.png"
+  ],
+  "facts_digest": "sha256:7cb31033ebc21c60e115b103a354c3c1fd5fd8e0b3ef6e8fd830b83e6fcd00bb",
+  "validate": {
+    "passed": true,
+    "failures": 0
+  },
+  "cardgen_version": "0.1"
+}

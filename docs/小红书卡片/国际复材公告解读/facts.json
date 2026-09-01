@@ -1,0 +1,88 @@
+{
+  "facts": [
+    {
+      "id": "cap_old",
+      "value": "3600",
+      "unit": "万",
+      "display": "3600万米",
+      "as_of": "2026-09-01",
+      "source": {
+        "kind": "manual",
+        "ref": "http://static.cninfo.com.cn/finalpage/2026-09-01/1225537050.PDF",
+        "quote": "原项目:年产3600万米高频高速电子纤维布(2025-12-29立项)"
+      }
+    },
+    {
+      "id": "cap_new",
+      "value": "2513",
+      "unit": "万",
+      "display": "2513万",
+      "as_of": "2026-09-01",
+      "source": {
+        "kind": "manual",
+        "ref": "http://static.cninfo.com.cn/finalpage/2026-09-01/1225537050.PDF",
+        "quote": "变更后:LDK一代及二代产能2,513万米/年"
+      }
+    },
+    {
+      "id": "inv",
+      "value": "30.21",
+      "unit": "亿",
+      "display": "30.21亿",
+      "as_of": "2026-09-01",
+      "source": {
+        "kind": "manual",
+        "ref": "http://static.cninfo.com.cn/finalpage/2026-09-01/1225537050.PDF",
+        "quote": "变更后项目总投资估算302,050.57万元,增加投资132,779.17万元"
+      }
+    },
+    {
+      "id": "inv_add",
+      "value": "13.28",
+      "unit": "亿",
+      "display": "13.28亿",
+      "as_of": "2026-09-01",
+      "source": {
+        "kind": "manual",
+        "ref": "http://static.cninfo.com.cn/finalpage/2026-09-01/1225537050.PDF",
+        "quote": "增加投资13.28亿"
+      }
+    },
+    {
+      "id": "raise",
+      "value": "50",
+      "unit": "亿",
+      "display": "50亿",
+      "as_of": "2026-09-01",
+      "source": {
+        "kind": "manual",
+        "ref": "http://static.cninfo.com.cn/finalpage/2026-09-01/1225537039.PDF",
+        "quote": "向特定对象发行股票募集资金总额不超过500,000.00万元"
+      }
+    },
+    {
+      "id": "cap_gap",
+      "value": "1087",
+      "unit": "万",
+      "display": "1087万米",
+      "as_of": "2026-09-01",
+      "source": {
+        "kind": "manual",
+        "ref": "http://static.cninfo.com.cn/finalpage/2026-09-01/1225537050.PDF 自算",
+        "quote": "3600-2513=1087万米,产能口径缩减约三成"
+      }
+    },
+    {
+      "id": "inv_old",
+      "value": "17",
+      "unit": "亿",
+      "display": "约17亿",
+      "as_of": "2026-09-01",
+      "source": {
+        "kind": "manual",
+        "ref": "http://static.cninfo.com.cn/finalpage/2026-09-01/1225537050.PDF 自算",
+        "quote": "30.21亿-13.28亿=16.93亿≈17亿(原方案投资推算)"
+      }
+    }
+  ]
+}

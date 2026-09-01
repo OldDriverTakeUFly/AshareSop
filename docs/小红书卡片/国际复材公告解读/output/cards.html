@@ -1,0 +1,74 @@
+<!DOCTYPE html><html lang='zh-CN'><head><meta charset='UTF-8'><style>  * { margin:0; padding:0; box-sizing:border-box; font-family:'Noto Sans CJK SC','PingFang SC','Microsoft YaHei',sans-serif; }
+  body { background:#e8e8e8; display:flex; flex-direction:column; align-items:center; gap:40px; padding:40px 0; }
+  .card { width:1080px; height:1440px; border-radius:48px; position:relative; overflow:hidden; padding:48px 56px; display:flex; flex-direction:column; }
+  .card1 { background:linear-gradient(160deg,#1a1440 0%,#3b1d6e 45%,#8a2be2 100%); color:#fff; }
+  .card2 { background:#fdf6ec; color:#3a2e20; }
+  .card3 { background:#eef4ff; color:#1e2a44; }
+  .card4 { background:#fff1f0; color:#4a1f1c; }
+  .card5 { background:#f0fbf2; color:#1d3a24; }
+  .card6 { background:#f7f3ff; color:#2e2440; }
+  .tag-top { display:inline-block; background:#ff2442; color:#fff; font-size:30px; font-weight:900; padding:12px 30px; border-radius:999px; letter-spacing:2px; width:fit-content; }
+  .badge { display:inline-block; font-size:26px; font-weight:800; padding:8px 22px; border-radius:999px; margin-right:12px; }
+  .b-purple{background:rgba(138,43,226,.18);color:#6b21a8;} .b-blue{background:rgba(37,99,235,.14);color:#1d4ed8;}
+  .b-red{background:rgba(220,38,38,.12);color:#b91c1c;} .b-green{background:rgba(22,163,74,.14);color:#15803d;}
+  .b-org{background:rgba(234,88,12,.15);color:#c2410c;} .b-gray{background:rgba(0,0,0,.07);color:#555;}
+  h1 { font-size:96px; font-weight:900; line-height:1.18; margin:28px 0 10px; letter-spacing:1px; }
+  .sub { font-size:42px; font-weight:700; opacity:.92; line-height:1.5; }
+  .hl { background:linear-gradient(transparent 62%, rgba(255,210,0,.85) 62%); padding:0 6px; }
+  .hl-r { background:linear-gradient(transparent 62%, rgba(255,77,109,.55) 62%); padding:0 6px; }
+  .big-num { font-size:150px; font-weight:900; line-height:1; letter-spacing:-2px; }
+  h2.title { font-size:56px; font-weight:900; margin-bottom:8px; line-height:1.25; }
+  .subtitle { font-size:30px; font-weight:600; opacity:.65; margin-bottom:24px; }
+  .row { background:#fff; border-radius:28px; padding:20px 28px; margin-bottom:16px; box-shadow:0 6px 24px rgba(0,0,0,.06); }
+  .row .name { font-size:36px; font-weight:900; margin-bottom:8px; display:flex; align-items:center; gap:14px; flex-wrap:wrap;}
+  .row .desc { font-size:26px; line-height:1.48; }
+  .dot { width:24px; height:24px; border-radius:50%; display:inline-block; }
+  table { width:100%; border-collapse:separate; border-spacing:0; background:#fff; border-radius:26px; overflow:hidden; font-size:26px; box-shadow:0 6px 24px rgba(0,0,0,.06); }
+  th { background:#2a2050; color:#fff; font-weight:800; padding:16px 12px; font-size:25px; }
+  td { padding:14px 12px; text-align:center; border-bottom:1px solid #f0ecf5; line-height:1.35; }
+  td.l { text-align:left; font-weight:800; }
+  tr:last-child td { border-bottom:none; }
+  .up{color:#dc2626;font-weight:800;} .down{color:#16a34a;font-weight:800;} .warn{color:#d97706;font-weight:800;}
+  .kbox { background:#fff; border-radius:26px; padding:20px 28px; margin-bottom:14px; box-shadow:0 6px 24px rgba(0,0,0,.06); display:flex; gap:20px; align-items:flex-start; }
+  .kdate { min-width:165px; background:#16a34a; color:#fff; font-weight:900; font-size:27px; border-radius:16px; text-align:center; padding:12px 0; line-height:1.3;}
+  .kdate.red{background:#dc2626;} .kdate.org{background:#ea580c;} .kdate.pu{background:#7c3aed;}
+  .ktext { font-size:26px; line-height:1.48; padding-top:4px;}
+  .ktext b { font-size:27px; }
+  .quote { background:rgba(255,255,255,.14); border-left:8px solid #ffd400; border-radius:0 22px 22px 0; padding:22px 26px; font-size:30px; line-height:1.55; font-weight:600; }
+  .foot { margin-top:auto; font-size:21px; opacity:.6; line-height:1.45; }
+  .tags { font-size:25px; font-weight:700; opacity:.85; margin-top:20px; }
+  .card5 .ktext { font-size:25px; line-height:1.42; }
+  .card5 .kdate { min-width:150px; font-size:25px; }
+  .card5 .kbox { padding:16px 24px; gap:16px; margin-bottom:12px; }
+  .card5 .ktext b { font-size:26px; }
+  .card2 .row .desc { font-size:25px; line-height:1.45; }
+  .card2 .row .name { font-size:34px; }
+  .num-badge { display:flex; gap:26px; margin:34px 0 8px; }
+  .nb { background:rgba(255,255,255,.12); border-radius:26px; padding:24px 30px; flex:1; }
+  .nb .v { font-size:58px; font-weight:900; color:#ffd400; }
+  .nb .k { font-size:25px; opacity:.85; margin-top:6px; }
+</style><style class='cardgen-fill'>.card{justify-content:space-between;}.card>.foot{margin-top:0 !important;}</style></head><body><div class="card card1" id="card1">
+<span class="tag-top" style="background:#ff2442;">公告解读 · 电子布专题</span>
+<h1>50亿定增<br>却把产能砍了三成🤔</h1>
+<div class="sub" style="margin-top:24px;">国际复材电子布项目变更<br>这份公告值得逐字读</div>
+<div class="num-badge"><div class="nb"><div class="v">50亿</div><div class="k">拟定增募资上限</div></div><div class="nb"><div class="v">30.21亿</div><div class="k">项目总投资</div></div><div class="nb"><div class="v">2513万</div><div class="k">变更后年产能(米/年)</div></div></div>
+<div style="margin-top:30px;"><div class="quote" style="background:rgba(255,255,255,.14);color:inherit;border-left-color:#ffd400;font-size:30px;">"<span style='color:#ffd400'>募更多的钱,建更少的产能</span>——这看似矛盾的组合,藏着产业资本对技术路线的真实判断"</div></div>
+<div class="tags">#电子布 #国际复材 #公告解读 #AI算力 #PCB</div><div class="foot">数据来源:巨潮资讯公司公告(2026-09-01披露) · 仅供研究参考,不构成投资建议</div></div><div class="card card3" id="card2">
+<span class="tag-top" style="background:#2563eb;">公告解剖</span>
+<h2 class="title" style="margin-top:24px;">项目变更前后对照</h2>
+<div class="subtitle">三个数字的变化各说一件事</div>
+<table><tr><th style=text-align:left>维度</th><th>原方案(2025年末)</th><th>变更后(2026/8/31)</th><th>解读</th></tr><tr><td class="l">产品</td><td class="">高频高速电子纤维布</td><td class="">LDK一代及二代</td><td class="">从笼统到明确路线</td></tr><tr><td class="l">产能</td><td class="down">3600万米/年</td><td class="">2513万米/年</td><td class="">缩减约三成,更克制</td></tr><tr><td class="l">投资</td><td class="up">约17亿</td><td class="up">30.21亿(+13.28亿)</td><td class="">单米投资强度大增</td></tr></table>
+<div style="margin-top:30px;"><div class="kbox"><div class="kdate" style="background:#dc2626;">数字一</div><div class="ktext">产能从<b>3600万米</b>缩到<b>2513万米</b>(-1087万米)——但总投资从约<b>17亿</b>加码到<b>30.21亿</b>:同样的钱建更少但更高级的产能,<b>单米投资强度近乎增加一倍</b></div></div><div class="kbox"><div class="kdate" style="background:#c2410c;">数字二</div><div class="ktext">同步抛出<b>50亿</b>定增——加杠杆投入上游电子纱+布一体化,公告原文:建设电子纤维纱厂房并改造织布厂房</div></div></div>
+<div class="foot">数据来源:巨潮资讯公司公告(2026-09-01披露) · 仅供研究参考,不构成投资建议</div></div><div class="card card5" id="card3">
+<span class="tag-top" style="background:#16a34a;">超越公告本身</span>
+<h2 class="title" style="margin-top:24px;">这份公告在说什么📊</h2>
+<div class="subtitle">三层含义,一层比一层深</div>
+<div class="kbox"><div class="kdate" style="background:#dc2626;">第一层·周期</div><div class="ktext"><b>三幕剧进入第二幕</b>:电子布环节出现30.21亿级资本开支=超额利润开始召唤供给(周期方法论:第一幕短缺涨价,第二幕扩产,第三幕过剩)</div></div><div class="kbox"><div class="kdate" style="background:#c2410c;">路线</div><div class="ktext"><b>产业资本在对冲路线风险</b>:公司选择LDK一代+二代而非重仓最高代际——「不管哪条技术路线都要用」的通吃层,与M10路线之争的不确定性判断互相印证</div></div><div class="kbox"><div class="kdate" style="background:#7c3aed;">格局</div><div class="ktext"><b>一体化玩家入场</b>:纱+布一体化扩产,单米成本优势放大——专业电子布厂与一体化新进入者的竞争格局,2027年后见分晓</div></div>
+<div class="foot">数据来源:巨潮资讯公司公告(2026-09-01披露) · 仅供研究参考,不构成投资建议</div></div><div class="card card6" id="card4">
+<span class="tag-top" style="background:#0f172a;">一句话收束</span>
+<h2 class="title" style="margin-top:24px;">公告是果</h2>
+<div class="subtitle">产业判断是因</div>
+<div class="row"><div class="desc"><b>读公告的正确姿势</b> → 数字变化(产能-三成/投资+近八成)比结论段落更诚实——公司用真金白银投的票,比调研纪要里的表态可信</div></div><div class="row"><div class="desc"><b>跟踪清单</b> → 定增审批进度/同类扩产公告频率(第二幕信号)/电子布现货价格(第三幕预警)</div></div>
+<div style="margin-top:14px;"><div class="kbox"><div class="kdate" style="background:#dc2626;">风险</div><div class="ktext">定增审批不确定·扩产落地后供给过剩·技术路线切换(最高代际替代LDK)·项目建设周期风险</div></div></div>
+<div style="margin-top:8px;"><div class="quote" style="background:rgba(124,58,237,.10);color:#2e2440;border-left-color:#ffd400;font-size:30px;">每一份扩产公告都是<b>周期位置的坐标</b>——第一幕没人扩产,第二幕排队扩产,第三幕扩产落地。你现在看到的是哪一幕,数字自己会说</div></div>
+<div class="tags">#电子布 #公告解读 #周期 #AI算力 #研究方法</div><div class="foot">数据来源:巨潮资讯公司公告(2026-09-01披露,AI辅助解读) · 仅供研究参考,不构成投资建议。市场有风险,投资需谨慎。</div></div></body></html>
