@@ -3,7 +3,7 @@
   "cards": [
     {
       "type": "cover",
-      "theme": "purple",
+      "theme": "purple_dark",
       "name": "01_封面",
       "tag_top": "龙虎榜 · 每日数据复盘",
       "title": "今天的龙虎榜<br>资金动向一览",
@@ -345,7 +345,7 @@
     },
     {
       "type": "table",
-      "theme": "orange",
+      "theme": "cream",
       "name": "04_活跃营业部",
       "first_left": true,
       "tag_top": "活跃营业部",
@@ -424,7 +424,7 @@
     },
     {
       "type": "table",
-      "theme": "purple",
+      "theme": "blue",
       "name": "05_机构席位",
       "first_left": true,
       "tag_top": "机构席位",

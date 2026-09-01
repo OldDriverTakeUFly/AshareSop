@@ -33,7 +33,7 @@
     },
     {
       "type": "table",
-      "theme": "orange",
+      "theme": "cream",
       "name": "02_梯队",
       "first_left": true,
       "tag_top": "连板梯队",
@@ -216,16 +216,14 @@
           },
           {
             "cells": [
-              "较昨日高度",
+              "较昨日高度 · 晋级",
               {
                 "$fact": "board_delta"
-              },
-              "晋级"
+              }
             ],
             "cls": [
               "",
-              "up",
-              ""
+              "up"
             ]
           }
         ]
@@ -292,7 +290,7 @@
           },
           {
             "cells": [
-              "农产品加",
+              "农产品加工",
               {
                 "$fact": "sector_4_count"
               },

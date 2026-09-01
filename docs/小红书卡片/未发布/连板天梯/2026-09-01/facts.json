@@ -260,7 +260,7 @@
       "as_of": "2026-09-01",
       "source": {
         "kind": "stockhot",
-        "ref": "stockhot.db:daily_data:limit_up_pool@2026-09-01:sector=农产品加:len"
+        "ref": "stockhot.db:daily_data:limit_up_pool@2026-09-01:sector=农产品加工:len"
       },
       "expires": "2026-09-01"
     }

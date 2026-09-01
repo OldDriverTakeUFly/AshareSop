@@ -110,7 +110,15 @@ def _hhmm(hhmmss: str) -> str:
 def _digit_safe(name: str) -> str | None:
     """板块名去阿拉伯数字:3D打印→三维打印;仍含数字则弃用(None)。"""
     out = name.replace("3D", "三维").replace("4D", "四维")
+    out = _SECTOR_ALIASES.get(out, out)  # Tushare industry 字段源端截断补全
     return None if re.search(r"\d", out) else out
+
+
+# Tushare stock_basic.industry 字段按宽度截断的常见板块名 → 全称
+_SECTOR_ALIASES = {
+    "农产品加": "农产品加工",
+    "互联网电": "互联网电商",
+}
 
 
 # ── 连板天梯 5 页卡 ───────────────────────────────────────────────────────
@@ -159,9 +167,9 @@ def build_ladder(day: str, bundle: dict) -> tuple[list[Fact], dict]:
         if delta != 0:
             facts.append(_fact("board_delta", abs(delta), "", f"{delta:+d}", day,
                                f"stockhot.db:analysis_results:limit_up_analysis@{day}:vs_prev"))
-            word = "晋级" if delta > 0 else "回落"
-            compare_rows = [{"cells": ["较昨日高度", {"$fact": "board_delta"}, word],
-                             "cls": ["", "up" if delta > 0 else "", ""]}]
+            # 渲染器按表头列数渲染,多余 cell 会溢出表格——晋级/回落并入标签列
+            compare_rows = [{"cells": [f"较昨日高度 · {'晋级' if delta > 0 else '回落'}", {"$fact": "board_delta"}],
+                             "cls": ["", "up" if delta > 0 else ""]}]
         else:
             compare_rows = [{"cells": ["较昨日高度", "持平"], "cls": ["", ""]}]
     sub_word = ("较昨日晋级" if (prev_max or 0) < board_max
@@ -195,7 +203,7 @@ def build_ladder(day: str, bundle: dict) -> tuple[list[Fact], dict]:
                  {"v": {"$fact": "broken_count"}, "k": "炸板(家)"}],
              "tags": "#连板天梯 #每日复盘 #涨停数据 #市场结构",
              "foot": FOOT},
-            {"type": "table", "theme": "orange", "name": "02_梯队", "first_left": True,
+            {"type": "table", "theme": "cream", "name": "02_梯队", "first_left": True,
              "tag_top": "连板梯队", "tag_color": "#ea580c",
              "title": f"最高 {board_max} 连板 · 梯队全景",
              "subtitle": "按连板高度分层,个股按梯队归属",
@@ -335,14 +343,14 @@ def build_lhb(day: str, bundle: dict) -> tuple[list[Fact], dict]:
                            "cls": ["", "up", ""]})
 
     inst_page = (
-        {"type": "table", "theme": "purple", "name": "05_机构席位", "first_left": True,
+        {"type": "table", "theme": "blue", "name": "05_机构席位", "first_left": True,
          "tag_top": "机构席位", "tag_color": "#7c3aed",
          "title": "机构席位净额居前个股",
          "subtitle": "机构专用席位合并口径",
          "table": {"headers": ["个股", "机构净额"], "rows": inst_rows},
          "foot": FOOT}
         if inst_rows else
-        {"type": "table", "theme": "purple", "name": "05_机构席位", "first_left": True,
+        {"type": "table", "theme": "blue", "name": "05_机构席位", "first_left": True,
          "tag_top": "机构席位", "tag_color": "#7c3aed",
          "title": "机构席位动向",
          "subtitle": "数据以交易所披露为准",
@@ -352,7 +360,7 @@ def build_lhb(day: str, bundle: dict) -> tuple[list[Fact], dict]:
     spec = {
         "group": "每日复盘",
         "cards": [
-            {"type": "cover", "theme": "purple", "name": "01_封面",
+            {"type": "cover", "theme": "purple_dark", "name": "01_封面",
              "tag_top": "龙虎榜 · 每日数据复盘",
              "title": "今天的龙虎榜<br>资金动向一览",
              "sub": f"个股净额 · 营业部 · 机构席位<br>{day} 交易数据整理",
@@ -374,7 +382,7 @@ def build_lhb(day: str, bundle: dict) -> tuple[list[Fact], dict]:
              "subtitle": "资金流出侧观察",
              "table": {"headers": ["个股", "涨跌幅", "净卖额", "上榜标签"], "rows": sell_rows},
              "foot": FOOT},
-            {"type": "table", "theme": "orange", "name": "04_活跃营业部", "first_left": True,
+            {"type": "table", "theme": "cream", "name": "04_活跃营业部", "first_left": True,
              "tag_top": "活跃营业部", "tag_color": "#ea580c",
              "title": "净额居前营业部",
              "subtitle": "沪深交易所披露口径,全名截断显示",
