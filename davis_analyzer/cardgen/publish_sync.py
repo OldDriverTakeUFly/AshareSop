@@ -8,6 +8,8 @@
     ``publish_queue`` 表:同一 source 出现过 status='published' 即视为已发布。
   - sync 时把已发布工程挪入 ``已发布/``,其余挪入 ``未发布/``;幂等,可重复执行。
   - build --bump 产生新版本时,已发布工程会被挪回 ``未发布/``(待重新发布)。
+  - ``废稿/``(2026-09-02):过期未发工程的终态归档,手工挪入;sync 与归位逻辑跳过,
+    工程留在台账里仅作历史记录(resolve 不再解析,如需复活手工挪回 未发布/)。
 
 不修改 scripts/content_publisher(AGENTS.md 只读纪律);本模块只消费其 DB。
 """
@@ -23,6 +25,7 @@ PUBLISHER_DB = Path(os.environ.get(
     "PUBLISHER_DB", REPO_ROOT / "storage" / "database" / "content_publisher.db"))
 PENDING_DIR = "未发布"
 PUBLISHED_DIR = "已发布"
+RECYCLED_DIR = "废稿"  # 过期未发工程的终态归档,手工挪入;sync 不触碰
 _MARKER = "小红书卡片"  # publish_queue.source 形如 docs/小红书卡片/<topic>
 
 
@@ -89,7 +92,7 @@ def sync(projects_root: Path, db: Path = PUBLISHER_DB,
         兼容:目录无 spec 且其下也无 spec 子目录时,视为存量平铺工程(旧布局不落 spec 也归位)。
         """
         for p in sorted(x for x in base.iterdir() if x.is_dir()):
-            if p.name in (PENDING_DIR, PUBLISHED_DIR):
+            if p.name in (PENDING_DIR, PUBLISHED_DIR, RECYCLED_DIR):
                 continue
             if (p / "cards.spec.json").exists():
                 yield p.name, p
