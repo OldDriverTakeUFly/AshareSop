@@ -12,7 +12,7 @@ from pathlib import Path
 from davis_analyzer.cardgen.types import Fact
 
 DEFAULT_TTL_DAYS = 7
-SOURCE_KINDS = ("report", "tushare", "manual")
+SOURCE_KINDS = ("report", "tushare", "manual", "stockhot")
 
 
 def load_facts(path: Path) -> list[Fact]:
@@ -51,7 +51,7 @@ def check_facts(facts: list[Fact]) -> list[str]:
             errors.append(f"fact id 重复: {f.id}")
         seen.add(f.id)
         if f.source_kind not in SOURCE_KINDS:
-            errors.append(f"fact {f.id}: source_kind 非法 {f.source_kind}(须 report/tushare/manual)")
+            errors.append(f"fact {f.id}: source_kind 非法 {f.source_kind}(须 report/tushare/manual/stockhot)")
         if not f.source_ref.strip():
             errors.append(f"fact {f.id}: source.ref 必填")
         if f.expires:

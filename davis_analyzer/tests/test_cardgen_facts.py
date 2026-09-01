@@ -106,6 +106,26 @@ class TestCheckFacts:
         assert any("display" in e for e in errors)
 
 
+def test_source_kind_stockhot_accepted():
+    from decimal import Decimal
+    from davis_analyzer.cardgen.facts import check_facts
+    from davis_analyzer.cardgen.types import Fact
+    f = Fact(id="zt_count", value=Decimal("83"), unit="只", display="83只",
+             as_of="2026-09-01", source_kind="stockhot",
+             source_ref="stockhot.db:daily_data:limit_up_pool@2026-09-01:len")
+    assert check_facts([f]) == []
+
+
+def test_source_kind_unknown_still_rejected():
+    from decimal import Decimal
+    from davis_analyzer.cardgen.facts import check_facts
+    from davis_analyzer.cardgen.types import Fact
+    f = Fact(id="x", value=Decimal("1"), unit="", display="1",
+             as_of="2026-09-01", source_kind="eastmoney", source_ref="r")
+    errs = check_facts([f])
+    assert any("source_kind 非法" in e for e in errs)
+
+
 class TestRoundtripJson:
     def test_save_load(self, tmp_path: Path):
         p = tmp_path / "facts.json"
