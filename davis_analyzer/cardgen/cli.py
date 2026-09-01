@@ -1,5 +1,5 @@
 # davis_analyzer/cardgen/cli.py
-"""cardgen CLI: init / ingest / validate / build / status / enqueue。"""
+"""cardgen CLI: init / ingest / validate / build / status / enqueue / sync。"""
 from __future__ import annotations
 
 import argparse
@@ -11,7 +11,7 @@ import sys
 from datetime import date
 from pathlib import Path
 
-from davis_analyzer.cardgen import ledger
+from davis_analyzer.cardgen import ledger, publish_sync
 from davis_analyzer.cardgen.builder import load_release, render
 from davis_analyzer.cardgen.facts import load_facts, save_facts
 from davis_analyzer.cardgen.ingest import fetch_daily_basic
@@ -26,7 +26,8 @@ def _projects_root() -> Path:
 
 
 def _project(topic: str) -> Path:
-    return _projects_root() / topic
+    # 2026-09-01 双文件夹约定:未发布/ → 根目录(存量) → 已发布/(待 bump 重发)
+    return publish_sync.resolve_project(_projects_root(), topic)
 
 
 def _ledger_conn() -> sqlite3.Connection:
@@ -37,7 +38,7 @@ def _ledger_conn() -> sqlite3.Connection:
 
 # ── init:建工程骨架并登记台账 ──
 def cmd_init(args: argparse.Namespace) -> None:
-    d = _project(args.topic)
+    d = _project(args.topic)  # resolve_project 对新工程返回 未发布/<topic>
     d.mkdir(parents=True, exist_ok=True)
     for name, template in (("facts.json", {"facts": []}),
                            ("cards.spec.json", {"cards": []})):
@@ -89,8 +90,12 @@ def cmd_validate(args: argparse.Namespace) -> None:
 def cmd_build(args: argparse.Namespace) -> None:
     conn = _ledger_conn()
     try:
-        release = render(_project(args.topic), args.topic, conn,
-                         bump=args.bump, reason=args.reason)
+        proj = _project(args.topic)
+        release = render(proj, args.topic, conn, bump=args.bump, reason=args.reason)
+        if args.bump and proj.parent.name == publish_sync.PUBLISHED_DIR:
+            new = publish_sync.demote_to_pending(_projects_root(), proj)
+            if new and new != proj:
+                print(f"版本升版:工程挪回未发布/{args.topic}(待重新走 enqueue→发布)")
         print(f"渲染完成 v{release['version']}: {len(release['images'])} 张 PNG | "
               f"过期日 {release['expires_at']} | RELEASE.json 已生成")
     finally:
@@ -147,6 +152,17 @@ def cmd_enqueue(args: argparse.Namespace) -> None:
         conn.close()
 
 
+# ── sync:按发布台账归档到 未发布/ 已发布/ 双文件夹 ──
+def cmd_sync(args: argparse.Namespace) -> None:
+    actions = publish_sync.sync(_projects_root(), dry_run=args.dry_run)
+    if not actions:
+        print("无需归档:未发布/已发布 与发布台账一致")
+        return
+    for label, path in actions:
+        print(f"{'[dry-run] ' if args.dry_run else ''}{label}: {path}")
+    print(f"共 {len(actions)} 项{'(未执行)' if args.dry_run else ''}")
+
+
 def main(argv: list[str] | None = None) -> None:
     ap = argparse.ArgumentParser(prog="cardgen", description="小红书金融卡片内容生成")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -173,6 +189,9 @@ def main(argv: list[str] | None = None) -> None:
     e = sub.add_parser("enqueue", help="打印发稿入池命令并置 queued")
     e.add_argument("--topic", required=True)
     e.set_defaults(func=cmd_enqueue)
+    y = sub.add_parser("sync", help="按发布台账把工程归档到 未发布/已发布 双文件夹")
+    y.add_argument("--dry-run", action="store_true", help="只打印拟挪动清单")
+    y.set_defaults(func=cmd_sync)
     v = sub.add_parser("video", help="卡片→竖屏视频(Ken Burns 或 动效解说风)")
     v.add_argument("--topic", required=True)
     v.add_argument("--voice", default="zh-CN-XiaoxiaoNeural")

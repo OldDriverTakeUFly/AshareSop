@@ -145,6 +145,30 @@
       }
     },
     {
+      "id": "ny_h1_np",
+      "value": "4.61",
+      "unit": "亿",
+      "display": "4.61亿",
+      "as_of": "2026-09-01",
+      "source": {
+        "kind": "tushare",
+        "ref": "tushare income 688519.SH period=20260630(ann_date=20260829 正式半年报)",
+        "quote": "n_income_attr_p=461065617.47"
+      }
+    },
+    {
+      "id": "ny_h1_yoy",
+      "value": "428.80",
+      "unit": "%",
+      "display": "+428.80%",
+      "as_of": "2026-09-01",
+      "source": {
+        "kind": "tushare",
+        "ref": "tushare fina_indicator 688519.SH period=20260630(ann_date=20260829 正式半年报)",
+        "quote": "netprofit_yoy=428.8047"
+      }
+    },
+    {
       "id": "ny_pct",
       "value": "95",
       "unit": "%",

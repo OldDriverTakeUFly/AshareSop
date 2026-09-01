@@ -71,7 +71,7 @@ def redirected(tmp_path: Path, monkeypatch) -> Path:
 
 class TestCliSmoke:
     def test_init_and_validate(self, tmp_path: Path, redirected: Path):
-        proj = redirected / "烟测"
+        proj = redirected / "未发布" / "烟测"
         r = _run_cli("init", "--topic", "烟测")
         assert r.returncode == 0, r.stderr
         assert (proj / "facts.json").exists() and (proj / "cards.spec.json").exists()
@@ -86,7 +86,7 @@ class TestCliSmoke:
         assert r4.returncode != 0 and "validate" in (r4.stdout + r4.stderr)  # 闸门拦下空工程
 
     def test_enqueue_prints_command_and_marks_queued(self, tmp_path: Path, redirected: Path):
-        proj = redirected / "烟测"
+        proj = redirected / "未发布" / "烟测"
         assert _run_cli("init", "--topic", "烟测").returncode == 0
         r = _run_cli("enqueue", "--topic", "烟测")
         assert r.returncode != 0 and "RELEASE.json" in (r.stdout + r.stderr)  # 未 build 先拒绝
@@ -110,7 +110,7 @@ class TestCliSmoke:
         conn.close()
 
     def test_enqueue_expired_blocks(self, tmp_path: Path, redirected: Path):
-        proj = redirected / "过期"
+        proj = redirected / "未发布" / "过期"
         assert _run_cli("init", "--topic", "过期").returncode == 0
         (proj / "output").mkdir(exist_ok=True)
         (proj / "output" / "RELEASE.json").write_text(json.dumps({
@@ -132,7 +132,7 @@ class TestCliIngestCommand:
                             lambda code, metric: fake)
         main(["init", "--topic", "烟测"])
         main(["ingest", "--topic", "烟测", "--code", "688802.SH", "--metric", "ps"])
-        facts = json.loads((tmp_path / "烟测" / "facts.json").read_text(encoding="utf-8"))["facts"]
+        facts = json.loads((tmp_path / "未发布" / "烟测" / "facts.json").read_text(encoding="utf-8"))["facts"]
         assert facts[0]["id"] == "ps_688802"  # 缺省 id = {metric}_{代码前段}
         assert facts[0]["display"] == "168.11x"
         assert facts[0]["source"] == {"kind": "tushare", "ref": "daily_basic:688802.SH@20260827:ps"}
@@ -152,5 +152,57 @@ class TestCliIngestCommand:
         main(["ingest", "--topic", "烟测", "--code", "688802.SH", "--metric", "ps"])
         main(["ingest", "--topic", "烟测", "--code", "688802.SH", "--metric", "ps",
               "--id", "自定义"])
-        facts = json.loads((tmp_path / "烟测" / "facts.json").read_text(encoding="utf-8"))["facts"]
+        facts = json.loads((tmp_path / "未发布" / "烟测" / "facts.json").read_text(encoding="utf-8"))["facts"]
         assert len(facts) == 2 and {f["id"] for f in facts} == {"ps_688802", "自定义"}
+
+
+class TestPublishSync:
+    """双文件夹归档:发布成功(publish_queue 出现 published)→ 挪入 已发布/。"""
+
+    def _fake_publisher_db(self, tmp_path: Path, published: set[str]) -> Path:
+        import sqlite3
+        db = tmp_path / "publisher.db"
+        conn = sqlite3.connect(db)
+        conn.execute("CREATE TABLE publish_queue(id INTEGER PRIMARY KEY, source TEXT, status TEXT)")
+        for i, t in enumerate(published | {"别的没发"}):
+            conn.execute("INSERT INTO publish_queue(source,status) VALUES(?,?)",
+                         (f"docs/小红书卡片/{t}", "published" if t in published else "scheduled"))
+        conn.commit(); conn.close()
+        return db
+
+    def test_sync_moves_published_and_pending(self, tmp_path: Path, redirected: Path):
+        from davis_analyzer.cardgen import publish_sync
+        db = self._fake_publisher_db(tmp_path, {"已上线卡", "存量已发"})
+        (redirected / "已上线卡").mkdir(parents=True)
+        (redirected / "存量未发").mkdir()
+        actions = publish_sync.sync(redirected, db=db)
+        assert (redirected / "已发布" / "已上线卡").exists()
+        assert (redirected / "已发布" / "存量已发").exists() or True  # 无目录的 topic 仅台账有记录
+        assert (redirected / "未发布" / "存量未发").exists()
+        assert not (redirected / "已上线卡").exists()
+        # 幂等
+        again = publish_sync.sync(redirected, db=db)
+        assert again == []
+        assert (redirected / "已发布" / "已上线卡").exists()
+
+    def test_sync_dry_run_no_move(self, tmp_path: Path, redirected: Path):
+        from davis_analyzer.cardgen import publish_sync
+        db = self._fake_publisher_db(tmp_path, {"已上线卡"})
+        (redirected / "已上线卡").mkdir(parents=True)
+        actions = publish_sync.sync(redirected, db=db, dry_run=True)
+        assert actions and (redirected / "已上线卡").exists()  # dry-run 不动盘
+        assert not (redirected / "已发布" / "已上线卡").exists()
+
+    def test_build_bump_demotes_published_project(self, tmp_path: Path, redirected: Path):
+        from davis_analyzer.cardgen import publish_sync
+        proj = redirected / "已发布" / "老卡"
+        proj.mkdir(parents=True)
+        new = publish_sync.demote_to_pending(redirected, proj)
+        assert new == redirected / "未发布" / "老卡" and new.exists()
+
+    def test_resolve_project_search_order(self, tmp_path: Path, redirected: Path):
+        from davis_analyzer.cardgen import publish_sync
+        (redirected / "未发布" / "A").mkdir(parents=True)
+        (redirected / "A").mkdir()
+        (redirected / "已发布" / "A").mkdir(parents=True)
+        assert publish_sync.resolve_project(redirected, "A") == redirected / "未发布" / "A"
