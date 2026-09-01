@@ -219,7 +219,8 @@ def build_ladder(day: str, bundle: dict) -> tuple[list[Fact], dict]:
                  {"cells": ["封单金额", {"$fact": "top_seal_yi"}], "cls": ["", ""]},
                  {"cells": ["换手率", {"$fact": "top_turnover_pct"}], "cls": ["", ""]},
                  {"cells": ["首次封板时间", _hhmm(top_stock.get("first_seal_time", ""))], "cls": ["", ""]},
-                 {"cells": ["所属板块", str(top_stock.get("sector") or "-")], "cls": ["", ""]},
+                 {"cells": ["所属板块", _digit_safe(str(top_stock.get("sector") or "")) or "-"],
+                  "cls": ["", ""]},
                  compare_rows[0],
              ]},
              "foot": FOOT},
@@ -267,8 +268,30 @@ def _truncate(name: str, n: int = 18) -> str:
     return name if len(name) <= n else name[: n - 1] + "…"
 
 
+def _aggregate_by_code(detail: list[dict]) -> list[dict]:
+    """dragon_tiger_detail 一股可多行(不同上榜原因)——按 code 去重聚合。
+
+    同 code 行 net_buy_amount/buy_amount/sell_amount 求和;reason/change_pct/close_price 取首条。
+    排名与封面统计均须基于聚合后的个股列表,否则同一股会在 Top 表重复出现、计数虚高。"""
+    agg: dict[str, dict] = {}
+    for r in detail:
+        code = str(r.get("code") or "")
+        if not code:
+            continue
+        if code in agg:
+            a = agg[code]
+            for k in ("net_buy_amount", "buy_amount", "sell_amount"):
+                a[k] = float(a.get(k) or 0) + float(r.get(k) or 0)
+        else:
+            row = dict(r)
+            for k in ("net_buy_amount", "buy_amount", "sell_amount"):
+                row[k] = float(row.get(k) or 0)
+            agg[code] = row
+    return list(agg.values())
+
+
 def build_lhb(day: str, bundle: dict) -> tuple[list[Fact], dict]:
-    detail = bundle["lhb_detail"]
+    detail = _aggregate_by_code(bundle["lhb_detail"])
     if not detail:
         raise DailyDataMissing(f"{day} 缺 dragon_tiger_detail(龙虎榜数据未落库?)")
     brokers = bundle["brokers"]
@@ -280,7 +303,8 @@ def build_lhb(day: str, bundle: dict) -> tuple[list[Fact], dict]:
 
     net_total = sum(float(r.get("net_buy_amount") or 0) for r in detail)
     nt_v, nt_d = _yi_signed(net_total)
-    facts.append(_fact("lhb_count", len(detail), "家", f"{len(detail)}家", day, ref_detail + ":len"))
+    facts.append(_fact("lhb_count", len(detail), "家", f"{len(detail)}家", day,
+                       ref_detail + ":dedup(code):len"))
     facts.append(_fact("lhb_net_total_yi", nt_v, "亿", nt_d, day, ref_detail + ":sum(net_buy_amount)"))
 
     ladder_codes = {s["code"] for t in bundle["boards"] for s in t["stocks"]}
@@ -436,6 +460,15 @@ def generate(kind: str, day: str, projects_root: Path, ledger_db: Path | None,
         topic = f"龙虎榜/{day}"
     else:
         raise ValueError(f"kind 须 ladder/lhb: {kind}")
+    # 同日重跑保护:rendered/queued 的工程禁止静默覆写(须 --bump 或先删工程);drafting/validated 照常
+    guard_conn = ledger.connect(ledger_db)
+    try:
+        existing = ledger.get_card(guard_conn, topic)
+        if existing and existing["status"] in ("rendered", "queued"):
+            raise RuntimeError(
+                f"topic {topic} 已是 {existing['status']} 状态,拒绝覆写——请用 --bump 或先删除工程")
+    finally:
+        guard_conn.close()
     proj = write_project(projects_root, topic, facts, spec)
     conn = ledger.connect(ledger_db)
     try:

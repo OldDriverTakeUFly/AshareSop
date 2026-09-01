@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from davis_analyzer.cardgen import daily
+from davis_analyzer.cardgen import daily, ledger
 
 DAY = "2026-09-01"
 PREV = "2026-08-31"
@@ -181,6 +181,44 @@ class TestLhb:
         texts = json.dumps(spec, ensure_ascii=False)
         assert "换手达标" in texts and "三日涨幅偏离" in texts
         assert "20%" not in texts  # 原因文本里的数字必须被映射掉
+
+    def test_dedup_aggregates_by_code(self, tmp_path):
+        # Important-1:同一 code 多行(不同上榜原因)须聚合成一行——净额求和、计数去重
+        db = _mk_db(tmp_path)
+        con = sqlite3.connect(db)
+        row = con.execute(
+            "SELECT data_json FROM daily_data WHERE data_type='dragon_tiger_detail'").fetchone()
+        detail = json.loads(row[0])
+        detail.append({"code": "000892.SZ", "name": "欢瑞世纪",
+                       "reason": "日振幅达到15%的前5只证券", "close_price": 4.73,
+                       "change_pct": 10.0, "net_buy_amount": 10000000.0,
+                       "buy_amount": 20000000.0, "sell_amount": 10000000.0,
+                       "list_date": "20260901"})
+        con.execute("UPDATE daily_data SET data_json=? WHERE data_type='dragon_tiger_detail'",
+                    (json.dumps(detail, ensure_ascii=False),))
+        con.commit(); con.close()
+        facts, spec = daily.build_lhb(DAY, daily.fetch_day_bundle(db, DAY))
+        facts_by_id = {f.id: f for f in facts}
+        # lhb_count 为去重后 code 数(3 股,非 4 行)
+        assert facts_by_id["lhb_count"].value == 3
+        # 净买 Top1 = 欢瑞世纪两行净额之和 37288799.9 + 10000000 = 0.47 亿
+        assert facts_by_id["nb1_yi"].display == "+0.47亿"
+        buy_card = next(c for c in spec["cards"] if c["name"] == "02_净买额居前")
+        names = [r["cells"][0] for r in buy_card["table"]["rows"]]
+        assert names.count("欢瑞世纪") == 1  # Top 表不重复
+        assert len(names) == len(set(names))
+
+    def test_rerun_rendered_topic_rejected(self, env):
+        # Important-2:同日重跑时 topic 已 rendered/queued → 拒绝覆写;drafting/validated 可重跑
+        root, db = env
+        daily.generate("lhb", DAY, root, None, db)
+        conn = ledger.connect(None)  # CARDGEN_LEDGER_DB 由 env fixture 注入
+        try:
+            ledger.set_status(conn, f"龙虎榜/{DAY}", "rendered")
+        finally:
+            conn.close()
+        with pytest.raises(RuntimeError, match="拒绝覆写"):
+            daily.generate("lhb", DAY, root, None, db)
 
     def test_institutional_filters_non_pure_rows(self, tmp_path):
         # Task 3 交接:只统计 inst_name='机构专用',沪股通/营业部不计入
