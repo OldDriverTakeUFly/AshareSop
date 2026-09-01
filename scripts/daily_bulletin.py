@@ -3,7 +3,7 @@
 2026-09-01 晚新增:全市场大事件雷达模式(默认开启)——同 API 按 seDate 拉全市场当日公告,
 品类过滤 + (公司×品类)去重 + 标题信号打分,输出 Top N。定位:研报层扩品选题入口,不做卡。
 
-用法: .venv/bin/python scripts/daily_bulletin.py [--date 20260901] [--out docs/小红书卡片/公告日报]
+用法: .venv/bin/python scripts/daily_bulletin.py [--date 20260901] [--out docs/小红书卡片/未发布/公告日报]
                 [--no-radar] [--radar-top 15]
 品类边界(合规闸裁定):回购/定增/收购=可做卡;增持/减持类=敏感词命中,只列清单不做卡。
 watchlist 可维护:重点池 + 已覆盖标的(研报/卡片工程)。
@@ -195,7 +195,7 @@ def radar_section(items: list[dict], top_n: int, fails: int) -> tuple[list[str],
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--date", default=datetime.now().strftime("%Y%m%d"))
-    ap.add_argument("--out", default=str(REPO / "docs/小红书卡片/公告日报"))
+    ap.add_argument("--out", default=str(REPO / "docs/小红书卡片/未发布/公告日报"))
     ap.add_argument("--no-radar", action="store_true", help="只跑 watchlist,不跑全市场雷达")
     ap.add_argument("--radar-top", type=int, default=15, help="雷达 Top N,默认 15")
     args = ap.parse_args()
