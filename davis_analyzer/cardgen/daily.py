@@ -89,10 +89,12 @@ def _fact(fid: str, value, unit: str, display: str, day: str, ref: str) -> Fact:
 
 
 def _yi_signed(amount: float) -> tuple[str, str]:
-    """元→亿,带符号 display + 无符号数值字符串。0 亦带 +。"""
-    v = round(abs(amount) / 1e8, 2)
+    """元→亿,带符号 display + 无符号数值字符串。0 亦带 +。
+
+    去尾零(0.30→0.3):facts 序列化会把 value 归一成无尾零形态,display 须与之逐字匹配。"""
+    v = f"{abs(amount) / 1e8:.2f}".rstrip("0").rstrip(".") or "0"
     sign = "-" if amount < 0 else "+"
-    return f"{v:.2f}", f"{sign}{v:.2f}亿"
+    return v, f"{sign}{v}亿"
 
 
 def _pct_signed(pct: float) -> tuple[str, str]:
@@ -238,9 +240,164 @@ def build_ladder(day: str, bundle: dict) -> tuple[list[Fact], dict]:
 
 # ── 龙虎榜卡(Task 5 实现) ────────────────────────────────────────────────
 
+def _reason_label(reason: str) -> str:
+    """交易所上榜原因 → 无数字短标签(原文含 20%/前5 只等数字,直接进卡会撞数字闸)。"""
+    if "连续三个交易日" in reason or "三日" in reason:
+        return "三日涨幅偏离" if "涨幅" in reason else "三日跌幅偏离"
+    if "换手率" in reason:
+        return "换手达标"
+    if "振幅" in reason:
+        return "振幅达标"
+    if "跌幅" in reason:
+        return "日内跌幅偏离"
+    if "涨幅" in reason:
+        return "日内涨幅偏离"
+    return "异动"
+
+
+def _truncate(name: str, n: int = 18) -> str:
+    return name if len(name) <= n else name[: n - 1] + "…"
+
+
 def build_lhb(day: str, bundle: dict) -> tuple[list[Fact], dict]:
-    """龙虎榜卡生成(Task 5 实现)。"""
-    raise NotImplementedError("build_lhb 由 Task 5 实现")
+    detail = bundle["lhb_detail"]
+    if not detail:
+        raise DailyDataMissing(f"{day} 缺 dragon_tiger_detail(龙虎榜数据未落库?)")
+    brokers = bundle["brokers"]
+    # Task 3 交接:机构席位行带真实席位名,只取「机构专用」纯机构口径(沪股通/营业部不计入)
+    inst = [r for r in bundle["institutional"] if r.get("inst_name") == "机构专用"]
+    ref_detail = f"stockhot.db:daily_data:dragon_tiger_detail@{day}"
+    ref_ana = f"stockhot.db:analysis_results:dragon_tiger@{day}"
+    facts: list[Fact] = []
+
+    net_total = sum(float(r.get("net_buy_amount") or 0) for r in detail)
+    nt_v, nt_d = _yi_signed(net_total)
+    facts.append(_fact("lhb_count", len(detail), "家", f"{len(detail)}家", day, ref_detail + ":len"))
+    facts.append(_fact("lhb_net_total_yi", nt_v, "亿", nt_d, day, ref_detail + ":sum(net_buy_amount)"))
+
+    ladder_codes = {s["code"] for t in bundle["boards"] for s in t["stocks"]}
+    cross = [r for r in detail if r.get("code") in ladder_codes]
+    facts.append(_fact("cross_count", len(cross), "只", f"{len(cross)}只", day,
+                       ref_detail + ":∩limit_up_analysis.consecutive_boards"))
+
+    # 个股净买 Top10 / 净卖 Top5
+    ranked = sorted(detail, key=lambda r: -(float(r.get("net_buy_amount") or 0)))
+    buy_rows, sell_rows = [], []
+    for i, r in enumerate(ranked[:10], 1):
+        v, d = _yi_signed(float(r.get("net_buy_amount") or 0))
+        p_v, p_d = _pct_signed(float(r.get("change_pct") or 0))
+        facts += [_fact(f"nb{i}_yi", v, "亿", d, day, f"{ref_detail}:{r['code']}.net_buy_amount"),
+                  _fact(f"nb{i}_pct", p_v, "%", p_d, day, f"{ref_detail}:{r['code']}.change_pct")]
+        buy_rows.append({"cells": [r["name"], {"$fact": f"nb{i}_pct"}, {"$fact": f"nb{i}_yi"},
+                                   _reason_label(str(r.get("reason") or ""))],
+                         "cls": ["", "up" if float(r.get("change_pct") or 0) > 0 else "", "up", ""]})
+    for i, r in enumerate(sorted(detail, key=lambda r: float(r.get("net_buy_amount") or 0))[:5], 1):
+        v, d = _yi_signed(float(r.get("net_buy_amount") or 0))
+        p_v, p_d = _pct_signed(float(r.get("change_pct") or 0))
+        facts += [_fact(f"ns{i}_yi", v, "亿", d, day, f"{ref_detail}:{r['code']}.net_buy_amount"),
+                  _fact(f"ns{i}_pct", p_v, "%", p_d, day, f"{ref_detail}:{r['code']}.change_pct")]
+        sell_rows.append({"cells": [r["name"], {"$fact": f"ns{i}_pct"}, {"$fact": f"ns{i}_yi"},
+                                    _reason_label(str(r.get("reason") or ""))],
+                          "cls": ["", "", "", ""]})
+
+    # 营业部 Top5(只呈现净额,禁 买入额/卖出额 措辞)
+    broker_rows = []
+    for i, b in enumerate(sorted(brokers, key=lambda x: -float(x.get("net_amount") or 0))[:5], 1):
+        v, d = _yi_signed(float(b.get("net_amount") or 0))
+        facts.append(_fact(f"bk{i}_yi", v, "亿", d, day, f"{ref_ana}:brokers.net_amount"))
+        broker_rows.append({"cells": [_truncate(str(b.get("broker_name") or "")), {"$fact": f"bk{i}_yi"}],
+                            "cls": ["", "up" if float(b.get("net_amount") or 0) > 0 else ""]})
+
+    # 机构席位:纯机构口径按个股聚合净额 Top5(行=个股口径,机构专用);空则降级占位
+    inst_agg: dict[str, float] = {}
+    for r in inst:
+        code = str(r.get("inst_code") or "")
+        inst_agg[code] = inst_agg.get(code, 0.0) + float(r.get("net_amount") or 0)
+    name_by_code = {r.get("code"): r.get("name") for r in detail}
+    inst_rows = []
+    top_inst = sorted(inst_agg.items(), key=lambda kv: -kv[1])[:5]
+    for i, (code, amt) in enumerate(top_inst, 1):
+        v, d = _yi_signed(amt)
+        facts.append(_fact(f"ist{i}_yi", v, "亿", d, day, f"{ref_ana}:institutional.sum(net_amount)"))
+        inst_rows.append({"cells": [name_by_code.get(code, code), {"$fact": f"ist{i}_yi"}],
+                          "cls": ["", "up" if amt > 0 else ""]})
+
+    # 交叉视角
+    cross_rows = []
+    for i, r in enumerate(cross[:5], 1):
+        board = next((int(t["board_count"]) for t in bundle["boards"]
+                      if any(s["code"] == r["code"] for s in t["stocks"])), 0)
+        v, d = _yi_signed(float(r.get("net_buy_amount") or 0))
+        facts += [_fact(f"cr{i}_board", board, "", f"{board}板", day,
+                        f"stockhot.db:analysis_results:limit_up_analysis@{day}:consecutive_boards"),
+                  _fact(f"cr{i}_yi", v, "亿", d, day, f"{ref_detail}:{r['code']}.net_buy_amount")]
+        cross_rows.append({"cells": [r["name"], {"$fact": f"cr{i}_board"}, {"$fact": f"cr{i}_yi"}],
+                           "cls": ["", "up", ""]})
+
+    inst_page = (
+        {"type": "table", "theme": "purple", "name": "05_机构席位", "first_left": True,
+         "tag_top": "机构席位", "tag_color": "#7c3aed",
+         "title": "机构席位净额居前个股",
+         "subtitle": "机构专用席位合并口径",
+         "table": {"headers": ["个股", "机构净额"], "rows": inst_rows},
+         "foot": FOOT}
+        if inst_rows else
+        {"type": "table", "theme": "purple", "name": "05_机构席位", "first_left": True,
+         "tag_top": "机构席位", "tag_color": "#7c3aed",
+         "title": "机构席位动向",
+         "subtitle": "数据以交易所披露为准",
+         "table": {"headers": ["说明"], "rows": [{"cells": ["今日无机构席位数据"], "cls": [""]}]},
+         "foot": FOOT})
+
+    spec = {
+        "group": "每日复盘",
+        "cards": [
+            {"type": "cover", "theme": "purple", "name": "01_封面",
+             "tag_top": "龙虎榜 · 每日数据复盘",
+             "title": "今天的龙虎榜<br>资金动向一览",
+             "sub": f"个股净额 · 营业部 · 机构席位<br>{day} 交易数据整理",
+             "stats": [
+                 {"v": {"$fact": "lhb_count"}, "k": "上榜(家)"},
+                 {"v": {"$fact": "lhb_net_total_yi"}, "k": "整体净买额(亿)"},
+                 {"v": {"$fact": "cross_count"}, "k": "上榜且连板(只)"}],
+             "tags": "#龙虎榜 #每日复盘 #资金数据 #市场结构",
+             "foot": FOOT},
+            {"type": "table", "theme": "blue", "name": "02_净买额居前", "first_left": True,
+             "tag_top": "个股净买额", "tag_color": "#2563eb",
+             "title": "净买额居前个股",
+             "subtitle": "口径:龙虎榜净买额(买额-卖额)",
+             "table": {"headers": ["个股", "涨跌幅", "净买额", "上榜标签"], "rows": buy_rows},
+             "foot": FOOT},
+            {"type": "table", "theme": "green", "name": "03_净卖额居前", "first_left": True,
+             "tag_top": "个股净卖额", "tag_color": "#16a34a",
+             "title": "净卖额居前个股",
+             "subtitle": "资金流出侧观察",
+             "table": {"headers": ["个股", "涨跌幅", "净卖额", "上榜标签"], "rows": sell_rows},
+             "foot": FOOT},
+            {"type": "table", "theme": "orange", "name": "04_活跃营业部", "first_left": True,
+             "tag_top": "活跃营业部", "tag_color": "#ea580c",
+             "title": "净额居前营业部",
+             "subtitle": "沪深交易所披露口径,全名截断显示",
+             "table": {"headers": ["营业部", "净额"], "rows": broker_rows},
+             "foot": FOOT},
+            inst_page,
+            {"type": "summary", "theme": "lavender", "name": "06_收束",
+             "tag_top": "交叉视角", "tag_color": "#0f172a",
+             "title": "龙虎榜 × 连板梯队",
+             "subtitle": "两份公开数据的交集",
+             "rows": (cross_rows and [
+                 {"desc": "<b>上榜连板股</b> → 见下表(连板高度 × 龙虎榜净额)"}]
+                 or [{"desc": "<b>今日交集为空</b> → 龙虎榜与连板梯队无重叠个股"}]),
+             "kbox": {"date": "栏目定位", "color": "blue",
+                      "html": "本栏目每日盘后整理交易所龙虎榜披露——搬运数据,不输出操作指令"},
+             "tags": "#龙虎榜 #每日复盘 #资金数据 #市场结构",
+             "foot": FOOT_LAST},
+        ],
+    }
+    if cross_rows:
+        # summary 卡不排表格——交叉明细作为第 6 页内 table 与 rows 共存(spec 支持,参照公告日报 rows+kbox)
+        spec["cards"][-1]["table"] = {"headers": ["个股", "连板", "净额"], "rows": cross_rows}
+    return facts, spec
 
 
 # ── 工程落盘与编排 ───────────────────────────────────────────────────────

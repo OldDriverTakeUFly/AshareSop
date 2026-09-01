@@ -147,3 +147,54 @@ class TestLadder:
         con.commit(); con.close()
         with pytest.raises(daily.DailyDataMissing):
             daily.fetch_day_bundle(db, DAY)
+
+
+class TestLhb:
+    def test_generated_project_passes_all_gates(self, env):
+        root, db = env
+        proj, topic, report = daily.generate("lhb", DAY, root, None, db)
+        assert topic == f"龙虎榜/{DAY}"
+        assert report.passed, [f"{f.gate}:{f.detail}" for f in report.failures]
+        texts = json.dumps(json.loads((proj / "cards.spec.json").read_text(encoding="utf-8")),
+                           ensure_ascii=False)
+        assert "买入额" not in texts and "卖出额" not in texts   # 金额口径红线
+
+    def test_missing_dragon_tiger_raises(self, tmp_path):
+        db = _mk_db(tmp_path, with_lhb=False)
+        root = tmp_path / "卡片"; root.mkdir()
+        bundle = daily.fetch_day_bundle(db, DAY)  # fetch 不拦 lhb 维度(天梯数据齐即可)
+        assert bundle["lhb_detail"] == []
+        with pytest.raises(daily.DailyDataMissing):
+            daily.generate("lhb", DAY, root, None, db)  # generate('lhb') 在 detail 为空时拒绝
+
+    def test_empty_institutional_degrades(self, tmp_path, monkeypatch):
+        root = tmp_path / "卡片"; root.mkdir()
+        monkeypatch.setenv("CARDGEN_PROJECT_ROOT", str(root))
+        monkeypatch.setenv("CARDGEN_LEDGER_DB", str(tmp_path / "cards.db"))
+        db = _mk_db(tmp_path, with_inst=False)
+        _, _, report = daily.generate("lhb", DAY, root, None, db)
+        assert report.passed
+
+    def test_reason_labelled_digit_free(self, env):
+        _, db = env
+        facts, spec = daily.build_lhb(DAY, daily.fetch_day_bundle(db, DAY))
+        texts = json.dumps(spec, ensure_ascii=False)
+        assert "换手达标" in texts and "三日涨幅偏离" in texts
+        assert "20%" not in texts  # 原因文本里的数字必须被映射掉
+
+    def test_institutional_filters_non_pure_rows(self, tmp_path):
+        # Task 3 交接:只统计 inst_name='机构专用',沪股通/营业部不计入
+        db = _mk_db(tmp_path)
+        con = sqlite3.connect(db)
+        row = con.execute("SELECT result_json FROM analysis_results WHERE analysis_type='dragon_tiger'").fetchone()
+        dt = json.loads(row[0])
+        dt["institutional"] = [
+            {"inst_code": "000892.SZ", "inst_name": "机构专用", "net_amount": 30000000.0},
+            {"inst_code": "600519.SH", "inst_name": "沪股通专用", "net_amount": -90000000.0},
+        ]
+        con.execute("UPDATE analysis_results SET result_json=? WHERE analysis_type='dragon_tiger'",
+                    (json.dumps(dt, ensure_ascii=False),))
+        con.commit(); con.close()
+        facts, spec = daily.build_lhb(DAY, daily.fetch_day_bundle(db, DAY))
+        facts_by_id = {f.id: f for f in facts}
+        assert facts_by_id["ist1_yi"].display == "+0.3亿"  # 只含机构专用净额(0.30 亿,去尾零)
