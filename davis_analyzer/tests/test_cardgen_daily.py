@@ -267,3 +267,19 @@ class TestRealdataEdgecases:
         texts = json.dumps(spec, ensure_ascii=False)
         assert "震裕转" not in texts  # 转债剔除后名字数字不进卡
         assert "57.3%" not in texts or "震裕" not in texts
+
+    def test_publish_copy_compliance_clean(self):
+        """发稿文案:敏感词全表+诱导句式零命中,含免责,正文无阿拉伯数字(数字留给卡片)。"""
+        import re as _re
+        from davis_analyzer.cardgen.compliance import INDUCEMENT_PATTERNS, load_words
+        words = load_words()
+        for kind in ("ladder", "lhb"):
+            c = daily.publish_copy(kind, DAY)
+            blob = c["title"] + c["body"] + c["tags"]
+            hit = [w for w in words if w in blob]
+            assert not hit, f"{kind} 发稿文案命中敏感词: {hit}"
+            for pat, _desc in INDUCEMENT_PATTERNS:
+                assert not pat.search(blob), f"{kind} 发稿文案命中诱导句式"
+            assert "不构成投资建议" in c["body"]
+            assert not _re.search(r"\d", c["body"]), "正文不得含数字(发稿层不走数字闸)"
+            assert c["title"].startswith(DAY[5:])  # 09-02 日期前缀
