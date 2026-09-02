@@ -236,3 +236,34 @@ class TestLhb:
         facts, spec = daily.build_lhb(DAY, daily.fetch_day_bundle(db, DAY))
         facts_by_id = {f.id: f for f in facts}
         assert facts_by_id["ist1_yi"].display == "+0.3亿"  # 只含机构专用净额(0.30 亿,去尾零)
+
+
+class TestRealdataEdgecases:
+    """2026-09-02 真实首跑暴露的边缘:转债混榜与 pct 尾零。"""
+
+    def test_pct_trailing_zero_consistent(self):
+        from decimal import Decimal
+        v, disp = daily._pct_signed(57.30)
+        assert v == "57.3" and disp == "+57.3%"
+        # display 必须以数字边界包含 facts 序列化后的 value 形态(57.3,而非 57.30)
+        from davis_analyzer.cardgen.facts import check_facts
+        f = daily._fact("p", v, "%", disp, DAY, "r")
+        assert check_facts([f]) == []
+        v2, disp2 = daily._pct_signed(-2.5)
+        assert (v2, disp2) == ("2.5", "-2.5%")
+
+    def test_bond_rows_excluded(self, tmp_path):
+        db = _mk_db(tmp_path)
+        con = sqlite3.connect(db)
+        row = con.execute("SELECT data_json FROM daily_data WHERE data_type='dragon_tiger_detail'").fetchone()
+        detail = json.loads(row[0])
+        detail.append({"code": "113XXX.SH", "name": "震裕转02", "reason": "日换手率达到20%",
+                       "change_pct": 57.3, "net_buy_amount": 500000000.0,
+                       "buy_amount": 6e8, "sell_amount": 1e8, "list_date": DAY.replace("-", "")})
+        con.execute("UPDATE daily_data SET data_json=? WHERE data_type='dragon_tiger_detail'",
+                    (json.dumps(detail, ensure_ascii=False),))
+        con.commit(); con.close()
+        facts, spec = daily.build_lhb(DAY, daily.fetch_day_bundle(db, DAY))
+        texts = json.dumps(spec, ensure_ascii=False)
+        assert "震裕转" not in texts  # 转债剔除后名字数字不进卡
+        assert "57.3%" not in texts or "震裕" not in texts

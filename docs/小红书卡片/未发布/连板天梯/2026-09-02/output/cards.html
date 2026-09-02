@@ -1,0 +1,81 @@
+<!DOCTYPE html><html lang='zh-CN'><head><meta charset='UTF-8'><style>  * { margin:0; padding:0; box-sizing:border-box; font-family:'Noto Sans CJK SC','PingFang SC','Microsoft YaHei',sans-serif; }
+  body { background:#e8e8e8; display:flex; flex-direction:column; align-items:center; gap:40px; padding:40px 0; }
+  .card { width:1080px; height:1440px; border-radius:48px; position:relative; overflow:hidden; padding:48px 56px; display:flex; flex-direction:column; }
+  .card1 { background:linear-gradient(160deg,#1a1440 0%,#3b1d6e 45%,#8a2be2 100%); color:#fff; }
+  .card2 { background:#fdf6ec; color:#3a2e20; }
+  .card3 { background:#eef4ff; color:#1e2a44; }
+  .card4 { background:#fff1f0; color:#4a1f1c; }
+  .card5 { background:#f0fbf2; color:#1d3a24; }
+  .card6 { background:#f7f3ff; color:#2e2440; }
+  .tag-top { display:inline-block; background:#ff2442; color:#fff; font-size:30px; font-weight:900; padding:12px 30px; border-radius:999px; letter-spacing:2px; width:fit-content; }
+  .badge { display:inline-block; font-size:26px; font-weight:800; padding:8px 22px; border-radius:999px; margin-right:12px; }
+  .b-purple{background:rgba(138,43,226,.18);color:#6b21a8;} .b-blue{background:rgba(37,99,235,.14);color:#1d4ed8;}
+  .b-red{background:rgba(220,38,38,.12);color:#b91c1c;} .b-green{background:rgba(22,163,74,.14);color:#15803d;}
+  .b-org{background:rgba(234,88,12,.15);color:#c2410c;} .b-gray{background:rgba(0,0,0,.07);color:#555;}
+  h1 { font-size:96px; font-weight:900; line-height:1.18; margin:28px 0 10px; letter-spacing:1px; }
+  .sub { font-size:42px; font-weight:700; opacity:.92; line-height:1.5; }
+  .hl { background:linear-gradient(transparent 62%, rgba(255,210,0,.85) 62%); padding:0 6px; }
+  .hl-r { background:linear-gradient(transparent 62%, rgba(255,77,109,.55) 62%); padding:0 6px; }
+  .big-num { font-size:150px; font-weight:900; line-height:1; letter-spacing:-2px; }
+  h2.title { font-size:56px; font-weight:900; margin-bottom:8px; line-height:1.25; }
+  .subtitle { font-size:30px; font-weight:600; opacity:.65; margin-bottom:24px; }
+  .row { background:#fff; border-radius:28px; padding:20px 28px; margin-bottom:16px; box-shadow:0 6px 24px rgba(0,0,0,.06); }
+  .row .name { font-size:36px; font-weight:900; margin-bottom:8px; display:flex; align-items:center; gap:14px; flex-wrap:wrap;}
+  .row .desc { font-size:26px; line-height:1.48; }
+  .dot { width:24px; height:24px; border-radius:50%; display:inline-block; }
+  table { width:100%; border-collapse:separate; border-spacing:0; background:#fff; border-radius:26px; overflow:hidden; font-size:26px; box-shadow:0 6px 24px rgba(0,0,0,.06); }
+  th { background:#2a2050; color:#fff; font-weight:800; padding:16px 12px; font-size:25px; }
+  td { padding:14px 12px; text-align:center; border-bottom:1px solid #f0ecf5; line-height:1.35; }
+  td.l { text-align:left; font-weight:800; }
+  tr:last-child td { border-bottom:none; }
+  .up{color:#dc2626;font-weight:800;} .down{color:#16a34a;font-weight:800;} .warn{color:#d97706;font-weight:800;}
+  .kbox { background:#fff; border-radius:26px; padding:20px 28px; margin-bottom:14px; box-shadow:0 6px 24px rgba(0,0,0,.06); display:flex; gap:20px; align-items:flex-start; }
+  .kdate { min-width:165px; background:#16a34a; color:#fff; font-weight:900; font-size:27px; border-radius:16px; text-align:center; padding:12px 0; line-height:1.3;}
+  .kdate.red{background:#dc2626;} .kdate.org{background:#ea580c;} .kdate.pu{background:#7c3aed;}
+  .ktext { font-size:26px; line-height:1.48; padding-top:4px;}
+  .ktext b { font-size:27px; }
+  .quote { background:rgba(255,255,255,.14); border-left:8px solid #ffd400; border-radius:0 22px 22px 0; padding:22px 26px; font-size:30px; line-height:1.55; font-weight:600; }
+  .foot { margin-top:auto; font-size:21px; opacity:.6; line-height:1.45; }
+  .tags { font-size:25px; font-weight:700; opacity:.85; margin-top:20px; }
+  .card5 .ktext { font-size:25px; line-height:1.42; }
+  .card5 .kdate { min-width:150px; font-size:25px; }
+  .card5 .kbox { padding:16px 24px; gap:16px; margin-bottom:12px; }
+  .card5 .ktext b { font-size:26px; }
+  .card2 .row .desc { font-size:25px; line-height:1.45; }
+  .card2 .row .name { font-size:34px; }
+  .num-badge { display:flex; gap:26px; margin:34px 0 8px; }
+  .nb { background:rgba(255,255,255,.12); border-radius:26px; padding:24px 30px; flex:1; }
+  .nb .v { font-size:58px; font-weight:900; color:#ffd400; }
+  .nb .k { font-size:25px; opacity:.85; margin-top:6px; }
+</style><style class='cardgen-fill'>.card{justify-content:space-between;}.card>.foot{margin-top:0 !important;}</style></head><body><div class="card card4" id="card1">
+<span class="tag-top" style="background:#ff2442;">连板天梯 · 每日数据复盘</span>
+<h1>今天的连板天梯<br>梯队与高度一览</h1>
+<div class="sub" style="margin-top:24px;">封板结构 · 较昨日回落 · 板块联动<br>2026-09-02 交易数据整理</div>
+<div class="num-badge"><div class="nb"><div class="v">4板</div><div class="k">最高连板(板)</div></div><div class="nb"><div class="v">52只</div><div class="k">涨停(家)</div></div><div class="nb"><div class="v">15只</div><div class="k">炸板(家)</div></div></div>
+<div style="margin-top:30px;"></div>
+<div class="tags">#连板天梯 #每日复盘 #涨停数据 #市场结构</div><div class="foot">数据来源:沪深交易所/东方财富(经 stockhot 采集) · 仅供研究参考,不构成投资建议</div></div><div class="card card2" id="card2">
+<span class="tag-top" style="background:#ea580c;">连板梯队</span>
+<h2 class="title" style="margin-top:24px;">最高 4 连板 · 梯队全景</h2>
+<div class="subtitle">按连板高度分层,个股按梯队归属</div>
+<table><tr><th style=text-align:left>板数</th><th>家数</th><th>个股</th></tr><tr><td class="l">4板</td><td class="">2只</td><td class="">竞业达、国芳集团</td></tr><tr><td class="l">3板</td><td class="">4只</td><td class="">欢瑞世纪、集泰股份、大晟文化、龙版传媒</td></tr><tr><td class="l">2板</td><td class="">7只</td><td class="">英 力 特、恒宝股份、茂业商业、香溢融通、内蒙一机、九牧王、小方制药</td></tr></table>
+<div style="margin-top:30px;"></div>
+<div class="foot">数据来源:沪深交易所/东方财富(经 stockhot 采集) · 仅供研究参考,不构成投资建议</div></div><div class="card card3" id="card3">
+<span class="tag-top" style="background:#2563eb;">空间高度</span>
+<h2 class="title" style="margin-top:24px;">竞业达 · 今日最高板</h2>
+<div class="subtitle">较昨日回落</div>
+<table><tr><th style=text-align:left>要点</th><th>读数</th></tr><tr><td class="l">今日连板高度</td><td class="up">4板</td></tr><tr><td class="l">当日涨跌幅</td><td class="">+10.01%</td></tr><tr><td class="l">封单金额</td><td class="">+1.81亿</td></tr><tr><td class="l">换手率</td><td class="">+3.27%</td></tr><tr><td class="l">首次封板时间</td><td class="">09:25</td></tr><tr><td class="l">所属板块</td><td class="">IT服务Ⅱ</td></tr><tr><td class="l">较昨日高度 · 回落</td><td class="">-3</td></tr></table>
+<div style="margin-top:30px;"></div>
+<div class="foot">数据来源:沪深交易所/东方财富(经 stockhot 采集) · 仅供研究参考,不构成投资建议</div></div><div class="card card5" id="card4">
+<span class="tag-top" style="background:#16a34a;">板块联动</span>
+<h2 class="title" style="margin-top:24px;">涨停家数居前板块</h2>
+<div class="subtitle">代表股取该板块最早封板个股</div>
+<table><tr><th style=text-align:left>板块</th><th>涨停家数</th><th>代表股</th></tr><tr><td class="l">汽车零部件</td><td class="">5只</td><td class="">光洋股份</td></tr><tr><td class="l">电网设备</td><td class="">4只</td><td class="">神马电力</td></tr><tr><td class="l">服装家纺</td><td class="">3只</td><td class="">康隆达</td></tr><tr><td class="l">化学原料</td><td class="">2只</td><td class="">英 力 特</td></tr></table>
+<div style="margin-top:30px;"></div>
+<div class="foot">数据来源:沪深交易所/东方财富(经 stockhot 采集) · 仅供研究参考,不构成投资建议</div></div><div class="card card6" id="card5">
+<span class="tag-top" style="background:#0f172a;">数据说明</span>
+<h2 class="title" style="margin-top:24px;">天梯是结构数据</h2>
+<div class="subtitle">不是操作清单</div>
+<div class="row"><div class="desc"><b>今日高度</b> → 见封面与高度明细页</div></div><div class="row"><div class="desc"><b>梯队结构</b> → 高度分层与家数分布,反映当日封板结构</div></div><div class="row"><div class="desc"><b>联动主线</b> → 涨停家数居前板块,反映题材聚集度</div></div>
+<div style="margin-top:14px;"><div class="kbox"><div class="kdate" style="background:#2563eb;">栏目定位</div><div class="ktext">本栏目每日盘后从交易所公开数据整理连板梯队——搬运数据,不输出操作指令</div></div></div>
+<div style="margin-top:8px;"></div>
+<div class="tags">#连板天梯 #每日复盘 #涨停数据 #市场结构</div><div class="foot">数据来源:沪深交易所/东方财富(经 stockhot 采集) · 仅供研究参考,不构成投资建议。市场有风险,投资需谨慎。</div></div></body></html>

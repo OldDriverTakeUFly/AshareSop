@@ -98,8 +98,19 @@ def _yi_signed(amount: float) -> tuple[str, str]:
 
 
 def _pct_signed(pct: float) -> tuple[str, str]:
-    v = round(abs(pct), 2)
-    return f"{v:.2f}", f"{'-' if pct < 0 else '+'}{v:.2f}%"
+    """涨跌幅 display + 数值字符串。去尾零(57.30→57.3)与 _yi_signed 同因:
+    facts 序列化把 value 归一成无尾零形态,display 须与之逐字匹配。"""
+    v = f"{abs(pct):.2f}".rstrip("0").rstrip(".") or "0"
+    return v, f"{'-' if pct < 0 else '+'}{v}%"
+
+
+_BOND_NAME_RE = re.compile(r"转\d|转债")
+
+
+def _is_bond(row: dict) -> bool:
+    """龙虎榜混排的可转债(名字如「震裕转02」/代码 11x/12x 段)——个股榜剔除,防名字数字撞数字闸。"""
+    code = str(row.get("code") or "").split(".")[0]
+    return bool(_BOND_NAME_RE.search(str(row.get("name") or ""))) or code[:2] in ("11", "12")
 
 
 def _hhmm(hhmmss: str) -> str:
@@ -291,7 +302,7 @@ def _aggregate_by_code(detail: list[dict]) -> list[dict]:
 
 
 def build_lhb(day: str, bundle: dict) -> tuple[list[Fact], dict]:
-    detail = _aggregate_by_code(bundle["lhb_detail"])
+    detail = _aggregate_by_code([r for r in bundle["lhb_detail"] if not _is_bond(r)])
     if not detail:
         raise DailyDataMissing(f"{day} 缺 dragon_tiger_detail(龙虎榜数据未落库?)")
     brokers = bundle["brokers"]
