@@ -1,0 +1,81 @@
+<!DOCTYPE html><html lang='zh-CN'><head><meta charset='UTF-8'><style>  * { margin:0; padding:0; box-sizing:border-box; font-family:'Noto Sans CJK SC','PingFang SC','Microsoft YaHei',sans-serif; }
+  body { background:#e8e8e8; display:flex; flex-direction:column; align-items:center; gap:40px; padding:40px 0; }
+  .card { width:1080px; height:1440px; border-radius:48px; position:relative; overflow:hidden; padding:48px 56px; display:flex; flex-direction:column; }
+  .card1 { background:linear-gradient(160deg,#1a1440 0%,#3b1d6e 45%,#8a2be2 100%); color:#fff; }
+  .card2 { background:#fdf6ec; color:#3a2e20; }
+  .card3 { background:#eef4ff; color:#1e2a44; }
+  .card4 { background:#fff1f0; color:#4a1f1c; }
+  .card5 { background:#f0fbf2; color:#1d3a24; }
+  .card6 { background:#f7f3ff; color:#2e2440; }
+  .tag-top { display:inline-block; background:#ff2442; color:#fff; font-size:30px; font-weight:900; padding:12px 30px; border-radius:999px; letter-spacing:2px; width:fit-content; }
+  .badge { display:inline-block; font-size:26px; font-weight:800; padding:8px 22px; border-radius:999px; margin-right:12px; }
+  .b-purple{background:rgba(138,43,226,.18);color:#6b21a8;} .b-blue{background:rgba(37,99,235,.14);color:#1d4ed8;}
+  .b-red{background:rgba(220,38,38,.12);color:#b91c1c;} .b-green{background:rgba(22,163,74,.14);color:#15803d;}
+  .b-org{background:rgba(234,88,12,.15);color:#c2410c;} .b-gray{background:rgba(0,0,0,.07);color:#555;}
+  h1 { font-size:96px; font-weight:900; line-height:1.18; margin:28px 0 10px; letter-spacing:1px; }
+  .sub { font-size:42px; font-weight:700; opacity:.92; line-height:1.5; }
+  .hl { background:linear-gradient(transparent 62%, rgba(255,210,0,.85) 62%); padding:0 6px; }
+  .hl-r { background:linear-gradient(transparent 62%, rgba(255,77,109,.55) 62%); padding:0 6px; }
+  .big-num { font-size:150px; font-weight:900; line-height:1; letter-spacing:-2px; }
+  h2.title { font-size:56px; font-weight:900; margin-bottom:8px; line-height:1.25; }
+  .subtitle { font-size:30px; font-weight:600; opacity:.65; margin-bottom:24px; }
+  .row { background:#fff; border-radius:28px; padding:20px 28px; margin-bottom:16px; box-shadow:0 6px 24px rgba(0,0,0,.06); }
+  .row .name { font-size:36px; font-weight:900; margin-bottom:8px; display:flex; align-items:center; gap:14px; flex-wrap:wrap;}
+  .row .desc { font-size:26px; line-height:1.48; }
+  .dot { width:24px; height:24px; border-radius:50%; display:inline-block; }
+  table { width:100%; border-collapse:separate; border-spacing:0; background:#fff; border-radius:26px; overflow:hidden; font-size:26px; box-shadow:0 6px 24px rgba(0,0,0,.06); }
+  th { background:#2a2050; color:#fff; font-weight:800; padding:16px 12px; font-size:25px; }
+  td { padding:14px 12px; text-align:center; border-bottom:1px solid #f0ecf5; line-height:1.35; }
+  td.l { text-align:left; font-weight:800; }
+  tr:last-child td { border-bottom:none; }
+  .up{color:#dc2626;font-weight:800;} .down{color:#16a34a;font-weight:800;} .warn{color:#d97706;font-weight:800;}
+  .kbox { background:#fff; border-radius:26px; padding:20px 28px; margin-bottom:14px; box-shadow:0 6px 24px rgba(0,0,0,.06); display:flex; gap:20px; align-items:flex-start; }
+  .kdate { min-width:165px; background:#16a34a; color:#fff; font-weight:900; font-size:27px; border-radius:16px; text-align:center; padding:12px 0; line-height:1.3;}
+  .kdate.red{background:#dc2626;} .kdate.org{background:#ea580c;} .kdate.pu{background:#7c3aed;}
+  .ktext { font-size:26px; line-height:1.48; padding-top:4px;}
+  .ktext b { font-size:27px; }
+  .quote { background:rgba(255,255,255,.14); border-left:8px solid #ffd400; border-radius:0 22px 22px 0; padding:22px 26px; font-size:30px; line-height:1.55; font-weight:600; }
+  .foot { margin-top:auto; font-size:21px; opacity:.6; line-height:1.45; }
+  .tags { font-size:25px; font-weight:700; opacity:.85; margin-top:20px; }
+  .card5 .ktext { font-size:25px; line-height:1.42; }
+  .card5 .kdate { min-width:150px; font-size:25px; }
+  .card5 .kbox { padding:16px 24px; gap:16px; margin-bottom:12px; }
+  .card5 .ktext b { font-size:26px; }
+  .card2 .row .desc { font-size:25px; line-height:1.45; }
+  .card2 .row .name { font-size:34px; }
+  .num-badge { display:flex; gap:26px; margin:34px 0 8px; }
+  .nb { background:rgba(255,255,255,.12); border-radius:26px; padding:24px 30px; flex:1; }
+  .nb .v { font-size:58px; font-weight:900; color:#ffd400; }
+  .nb .k { font-size:25px; opacity:.85; margin-top:6px; }
+</style><style class='cardgen-fill'>.card{justify-content:space-between;}.card>.foot{margin-top:0 !important;}</style></head><body><div class="card card3" id="card1">
+<span class="tag-top" style="background:#ff2442;">公告日报 · 公司行为篇</span>
+<h1>今日公告速览<br>回购是关键词🗳</h1>
+<div class="sub" style="margin-top:24px;">回购·定增·收购<br>动作比表态诚实</div>
+<div class="num-badge"><div class="nb"><div class="v">1260条</div><div class="k">今日全市场公告</div></div><div class="nb"><div class="v">254家</div><div class="k">回购公告组数</div></div><div class="nb"><div class="v">17家</div><div class="k">定增募资组数</div></div></div>
+<div style="margin-top:30px;"><div class="quote" style="background:rgba(255,255,255,.14);color:inherit;border-left-color:#ffd400;font-size:30px;">"<span style='color:#ffd400'>公告日报的正确打开方式</span>——不看公司说了什么,看公司拿真金白银做了什么"</div></div>
+<div class="tags">#公告解读 #回购 #定增 #收购 #研究方法</div><div class="foot">数据来源:巨潮资讯当日公告(2026-09-02披露,PDF核实) · 仅供研究参考,不构成投资建议</div></div><div class="card card5" id="card2">
+<span class="tag-top" style="background:#16a34a;">公司回购</span>
+<h2 class="title" style="margin-top:24px;">回购之夜:燕麦首次动手</h2>
+<div class="subtitle">晶华稳步推进,满坤备好弹药</div>
+<table><tr><th style=text-align:left>公司</th><th>动作与读数</th></tr><tr><td class="l">燕麦科技</td><td class="up">首次回购落地:199.93538万元(4.3656万股),方案总额1000万元~2000万元,用于股权激励</td></tr><tr><td class="l">晶华新材</td><td class="">累计回购2999.719万元(194.56万股,占总股本0.67%),方案5000万元~10000万元;8月未新增,择机推进</td></tr><tr><td class="l">满坤科技</td><td class="">取得招行深圳分行贷款承诺函:不超过9000万元专项用于回购;回购方案5000万元~10000万元</td></tr></table>
+<div style="margin-top:30px;"><div class="kbox"><div class="kdate" style="background:#dc2626;">怎么读回购</div><div class="ktext">回购的三档信号:<b>已成交</b>(最强)>持续进展公告>仅预案;另有<b>回购专项贷款</b>加持,等于资金先备好,推进确定性更高</div></div></div>
+<div class="foot">数据来源:巨潮资讯当日公告(2026-09-02披露,PDF核实) · 仅供研究参考,不构成投资建议</div></div><div class="card card3" id="card3">
+<span class="tag-top" style="background:#2563eb;">大额定增</span>
+<h2 class="title" style="margin-top:24px;">盛科通信:定增加码交换芯片</h2>
+<div class="subtitle">科创板芯片设计公司的研发补给</div>
+<table><tr><th style=text-align:left>要点</th><th>读数</th></tr><tr><td class="l">募资上限</td><td class="">48.05亿元(向特定对象发行,竞价定价)</td></tr><tr><td class="l">发行规模</td><td class="">不超过4100万股,且不超发行前总股本的10%</td></tr><tr><td class="l">投向</td><td class="up">下一代交换芯片研发产业化+互联软硬件与协议研究+补充流动资金</td></tr><tr><td class="l">同日进展</td><td class="">天顺风能、裕太微定增文件同日更新(修订稿/注册稿阶段)</td></tr></table>
+<div style="margin-top:30px;"><div class="kbox"><div class="kdate" style="background:#c2410c;">怎么读定增</div><div class="ktext">定增的关键不是金额而是<b>投向与时机</b>——预案只是起点,公司选择加码的方向,比数字本身更有信息量</div></div></div>
+<div class="foot">数据来源:巨潮资讯当日公告(2026-09-02披露,PDF核实) · 仅供研究参考,不构成投资建议</div></div><div class="card card4" id="card4">
+<span class="tag-top" style="background:#dc2626;">资产收购</span>
+<h2 class="title" style="margin-top:24px;">收购:大千生态新主落定</h2>
+<div class="subtitle">认购定增触线,获准免于要约</div>
+<table><tr><th style=text-align:left>公司</th><th>读法</th></tr><tr><td class="l">大千生态</td><td class="">收购报告书披露:苏州第四纪投资认购定增,权益合计超过30%,承诺三年不转让</td></tr><tr><td class="l">免于要约</td><td class="">股东会批准+三年锁定,符合收购管理办法免于发出要约的情形</td></tr><tr><td class="l">*ST帅电</td><td class="">重大资产重组问询函延期回复——节奏放缓,复牌后看答复质量</td></tr></table>
+<div style="margin-top:30px;"><div class="kbox"><div class="kdate" style="background:#dc2626;">怎么读收购</div><div class="ktext">收购落地的三问:<b>新主是谁/持股多少/锁多久</b>——大千生态这一单,三个答案今天都齐了</div></div></div>
+<div class="foot">数据来源:巨潮资讯当日公告(2026-09-02披露,PDF核实) · 仅供研究参考,不构成投资建议</div></div><div class="card card6" id="card5">
+<span class="tag-top" style="background:#0f172a;">一句话收束</span>
+<h2 class="title" style="margin-top:24px;">三类公告</h2>
+<div class="subtitle">三种公司行为语言</div>
+<div class="row"><div class="desc"><b>回购</b> → 公司用自有资金表达信心(燕麦首次落地,晶华持续推进,满坤备好专项贷款)</div></div><div class="row"><div class="desc"><b>定增</b> → 管理层对投向的产业判断,读投向比读金额重要(盛科加码交换芯片)</div></div><div class="row"><div class="desc"><b>收购</b> → 外延扩张的野心与风险同在,作价与锁定安排是灵魂(大千生态新主落定)</div></div><div class="row"><div class="desc"><b>今日密度</b> → 全市场公告1260条:回购254家/定增募资17家/收购重组8家——动作密度本身就是情绪温度计</div></div>
+<div style="margin-top:14px;"><div class="kbox"><div class="kdate" style="background:#2563eb;">定位</div><div class="ktext">本栏目每天从公告里挑信号最强的公司行为——搬运给人信息,我们给人判断框架</div></div></div>
+<div style="margin-top:8px;"><div class="quote" style="background:rgba(124,58,237,.10);color:#2e2440;border-left-color:#ffd400;font-size:30px;">公告日报的价值不在「今天发生了什么」,在<b>「哪个动作的信号强度最高」</b>——排序就是观点</div></div>
+<div class="tags">#公告日报 #回购 #定增 #收购 #研究方法</div><div class="foot">数据来源:巨潮资讯当日公告(2026-09-02披露,PDF核实) · 仅供研究参考,不构成投资建议。市场有风险,投资需谨慎。</div></div></body></html>
