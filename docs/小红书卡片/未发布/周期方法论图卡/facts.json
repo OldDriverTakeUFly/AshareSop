@@ -1,0 +1,524 @@
+{
+  "facts": [
+    {
+      "id": "pb_mu",
+      "value": "7.8",
+      "unit": "%",
+      "display": "7.8%",
+      "as_of": "2026-09-02",
+      "expires": "2026-12-01",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/猪周期产业链与周期投资方法论深度研报.md#五.5.1",
+        "quote": "PB 7.8%(牧原)"
+      }
+    },
+    {
+      "id": "pb_tong",
+      "value": "94.1",
+      "unit": "%",
+      "display": "94.1%",
+      "as_of": "2026-09-02",
+      "expires": "2026-12-01",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/猪周期产业链与周期投资方法论深度研报.md#五.5.1",
+        "quote": "94.1%(铜陵)"
+      }
+    },
+    {
+      "id": "pb_jinmu",
+      "value": "95.2",
+      "unit": "%",
+      "display": "95.2%",
+      "as_of": "2026-09-02",
+      "expires": "2026-12-01",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/猪周期产业链与周期投资方法论深度研报.md#五.5.1",
+        "quote": "95.2%(金钼)"
+      }
+    },
+    {
+      "id": "pb_juhua",
+      "value": "94.2",
+      "unit": "%",
+      "display": "94.2%",
+      "as_of": "2026-09-02",
+      "expires": "2026-12-01",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/猪周期产业链与周期投资方法论深度研报.md#五.5.1",
+        "quote": "94.2%(巨化)"
+      }
+    },
+    {
+      "id": "pb_wens",
+      "value": "5.9",
+      "unit": "%",
+      "display": "5.9%",
+      "as_of": "2026-09-02",
+      "expires": "2026-12-01",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/猪周期产业链与周期投资方法论深度研报.md#五.5.2",
+        "quote": "温氏 5.9% = 猪周期左侧买点"
+      }
+    },
+    {
+      "id": "pe_lo",
+      "value": "5",
+      "unit": "x",
+      "display": "5x",
+      "as_of": "2026-09-02",
+      "expires": "2026-12-01",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/猪周期产业链与周期投资方法论深度研报.md#五.5.2",
+        "quote": "PE 看起来很低(如 5-8 倍)"
+      }
+    },
+    {
+      "id": "pe_hi",
+      "value": "8",
+      "unit": "x",
+      "display": "8x",
+      "as_of": "2026-09-02",
+      "expires": "2026-12-01",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/猪周期产业链与周期投资方法论深度研报.md#五.5.2",
+        "quote": "PE 看起来很低(如 5-8 倍)"
+      }
+    },
+    {
+      "id": "score",
+      "value": "8.5",
+      "unit": "",
+      "display": "8.5",
+      "as_of": "2026-09-02",
+      "expires": "2026-12-01",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/猪周期产业链与周期投资方法论深度研报.md#五.5.3",
+        "quote": "九信号综合 8.5/9,反转蓄力强"
+      }
+    },
+    {
+      "id": "score_full",
+      "value": "9",
+      "unit": "",
+      "display": "9",
+      "as_of": "2026-09-02",
+      "expires": "2026-12-01",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/猪周期产业链与周期投资方法论深度研报.md#五.5.3",
+        "quote": "九信号综合 8.5/9"
+      }
+    },
+    {
+      "id": "qh_lo",
+      "value": "15",
+      "unit": "%",
+      "display": "15%",
+      "as_of": "2026-09-02",
+      "expires": "2026-12-01",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/猪周期产业链与周期投资方法论深度研报.md#五.5.3",
+        "quote": "去化幅度接近 15-20% 反转阈值"
+      }
+    },
+    {
+      "id": "qh_hi",
+      "value": "20",
+      "unit": "%",
+      "display": "20%",
+      "as_of": "2026-09-02",
+      "expires": "2026-12-01",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/猪周期产业链与周期投资方法论深度研报.md#五.5.3",
+        "quote": "去化幅度接近 15-20% 反转阈值"
+      }
+    },
+    {
+      "id": "qh_natl",
+      "value": "6.5",
+      "unit": "%",
+      "display": "-6.5%",
+      "as_of": "2026-09-02",
+      "expires": "2026-12-01",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/猪周期产业链与周期投资方法论深度研报.md#五.5.3",
+        "quote": "全国 -6.5%(接近但未达 15%)"
+      }
+    },
+    {
+      "id": "qh_muyuan",
+      "value": "13.6",
+      "unit": "%",
+      "display": "-13.6%",
+      "as_of": "2026-09-02",
+      "expires": "2026-12-01",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/猪周期产业链与周期投资方法论深度研报.md#五.5.3",
+        "quote": "牧原能繁母猪 -13.6%,主动去化"
+      }
+    },
+    {
+      "id": "q2_drop",
+      "value": "3.2",
+      "unit": "%",
+      "display": "-3.2%",
+      "as_of": "2026-09-02",
+      "expires": "2026-12-01",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/猪周期产业链与周期投资方法论深度研报.md#五.5.3",
+        "quote": "2026Q2 环比 -3.2%"
+      }
+    },
+    {
+      "id": "pr_pes",
+      "value": "20",
+      "unit": "%",
+      "display": "20%",
+      "as_of": "2026-09-02",
+      "expires": "2026-12-01",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/猪周期产业链与周期投资方法论深度研报.md#五.5.4",
+        "quote": "悲观…概率 20%"
+      }
+    },
+    {
+      "id": "pr_neu",
+      "value": "50",
+      "unit": "%",
+      "display": "50%",
+      "as_of": "2026-09-02",
+      "expires": "2026-12-01",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/猪周期产业链与周期投资方法论深度研报.md#五.5.4",
+        "quote": "中性…概率 50%"
+      }
+    },
+    {
+      "id": "pr_opt",
+      "value": "30",
+      "unit": "%",
+      "display": "30%",
+      "as_of": "2026-09-02",
+      "expires": "2026-12-01",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/猪周期产业链与周期投资方法论深度研报.md#五.5.4",
+        "quote": "乐观…概率 30%"
+      }
+    },
+    {
+      "id": "mv_pes",
+      "value": "1729",
+      "unit": "亿",
+      "display": "1729亿",
+      "as_of": "2026-09-02",
+      "expires": "2026-12-01",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/猪周期产业链与周期投资方法论深度研报.md#五.5.4",
+        "quote": "悲观…牧原 ~1729 亿"
+      }
+    },
+    {
+      "id": "mv_neu",
+      "value": "2550",
+      "unit": "亿",
+      "display": "2550亿",
+      "as_of": "2026-09-02",
+      "expires": "2026-12-01",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/猪周期产业链与周期投资方法论深度研报.md#五.5.4",
+        "quote": "中性…牧原 ~2550 亿"
+      }
+    },
+    {
+      "id": "mv_opt",
+      "value": "5025",
+      "unit": "亿",
+      "display": "5025亿",
+      "as_of": "2026-09-02",
+      "expires": "2026-12-01",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/猪周期产业链与周期投资方法论深度研报.md#五.5.4",
+        "quote": "乐观…牧原 ~5025 亿"
+      }
+    },
+    {
+      "id": "mv_now",
+      "value": "2317.9",
+      "unit": "亿",
+      "display": "2317.9亿",
+      "as_of": "2026-09-02",
+      "expires": "2026-12-01",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/猪周期产业链与周期投资方法论深度研报.md#五.5.4",
+        "quote": "vs 当前市值 2317.9 亿"
+      }
+    },
+    {
+      "id": "wt_up",
+      "value": "34.9",
+      "unit": "%",
+      "display": "+34.9%",
+      "as_of": "2026-09-02",
+      "expires": "2026-12-01",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/猪周期产业链与周期投资方法论深度研报.md#五.5.4",
+        "quote": "加权涨幅 = 3128 / 2317.9 - 1 = +34.9%"
+      }
+    },
+    {
+      "id": "neu_up",
+      "value": "9.9",
+      "unit": "%",
+      "display": "+9.9%",
+      "as_of": "2026-09-02",
+      "expires": "2026-12-01",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/猪周期产业链与周期投资方法论深度研报.md#五.5.4",
+        "quote": "中性 2550 亿 +9.9%"
+      }
+    },
+    {
+      "id": "opt_up",
+      "value": "116.8",
+      "unit": "%",
+      "display": "+116.8%",
+      "as_of": "2026-09-02",
+      "expires": "2026-12-01",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/猪周期产业链与周期投资方法论深度研报.md#五.5.4",
+        "quote": "乐观 5025 亿 +116.8%"
+      }
+    },
+    {
+      "id": "pes_dn",
+      "value": "25.4",
+      "unit": "%",
+      "display": "-25.4%",
+      "as_of": "2026-09-02",
+      "expires": "2026-12-01",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/猪周期产业链与周期投资方法论深度研报.md#五.5.4",
+        "quote": "悲观 1729 亿 -25.4%"
+      }
+    },
+    {
+      "id": "li_lo",
+      "value": "150",
+      "unit": "亿",
+      "display": "150亿",
+      "as_of": "2026-09-02",
+      "expires": "2026-12-01",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/猪周期产业链与周期投资方法论深度研报.md#五.5.4",
+        "quote": "2027 净利预期 150-274 亿"
+      }
+    },
+    {
+      "id": "li_hi",
+      "value": "274",
+      "unit": "亿",
+      "display": "274亿",
+      "as_of": "2026-09-02",
+      "expires": "2026-12-01",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/猪周期产业链与周期投资方法论深度研报.md#五.5.4",
+        "quote": "2027 净利预期 150-274 亿"
+      }
+    },
+    {
+      "id": "pig_lo",
+      "value": "9",
+      "unit": "元",
+      "display": "9元",
+      "as_of": "2026-09-02",
+      "expires": "2026-12-01",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/猪周期产业链与周期投资方法论深度研报.md#五.5.3",
+        "quote": "猪价 9-11 元/kg"
+      }
+    },
+    {
+      "id": "pig_hi",
+      "value": "11",
+      "unit": "元",
+      "display": "11元",
+      "as_of": "2026-09-02",
+      "expires": "2026-12-01",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/猪周期产业链与周期投资方法论深度研报.md#五.5.3",
+        "quote": "猪价 9-11 元/kg"
+      }
+    },
+    {
+      "id": "pig_cost",
+      "value": "12",
+      "unit": "元",
+      "display": "12元",
+      "as_of": "2026-09-02",
+      "expires": "2026-12-01",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/猪周期产业链与周期投资方法论深度研报.md#五.5.3",
+        "quote": "猪价 9-11 元/kg < 12 元/kg 成本线"
+      }
+    },
+    {
+      "id": "dur_m",
+      "value": "8",
+      "unit": "个",
+      "display": "8个月",
+      "as_of": "2026-09-02",
+      "expires": "2026-12-01",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/猪周期产业链与周期投资方法论深度研报.md#五.5.3",
+        "quote": "2026 年 1-8 月已持续 ~8 个月"
+      }
+    },
+    {
+      "id": "chulan",
+      "value": "7",
+      "unit": "亿",
+      "display": "7亿头",
+      "as_of": "2026-09-02",
+      "expires": "2026-12-01",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/猪周期产业链与周期投资方法论深度研报.md#五.5.3",
+        "quote": "出栏 7 亿头 vs 需求 ~6.5 亿头"
+      }
+    },
+    {
+      "id": "xuqiu",
+      "value": "6.5",
+      "unit": "亿",
+      "display": "6.5亿头",
+      "as_of": "2026-09-02",
+      "expires": "2026-12-01",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/猪周期产业链与周期投资方法论深度研报.md#五.5.3",
+        "quote": "出栏 7 亿头 vs 需求 ~6.5 亿头"
+      }
+    },
+    {
+      "id": "zl_up",
+      "value": "400",
+      "unit": "%",
+      "display": "400%",
+      "as_of": "2026-09-02",
+      "expires": "2026-12-01",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/猪周期产业链与周期投资方法论深度研报.md#五.5.1",
+        "quote": "配额制供给刚性,价格三年涨 400%"
+      }
+    },
+    {
+      "id": "pe_fw_tong",
+      "value": "81.4",
+      "unit": "%",
+      "display": "81.4%",
+      "as_of": "2026-09-02",
+      "expires": "2026-12-01",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/猪周期产业链与周期投资方法论深度研报.md#五.5.5",
+        "quote": "铜陵有色 PE 分位 81.4%"
+      }
+    },
+    {
+      "id": "pe_fw_juhua",
+      "value": "31.2",
+      "unit": "%",
+      "display": "31.2%",
+      "as_of": "2026-09-02",
+      "expires": "2026-12-01",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/猪周期产业链与周期投资方法论深度研报.md#五.5.5",
+        "quote": "巨化股份 PE 分位 31.2%"
+      }
+    },
+    {
+      "id": "pe_fw_jinmu",
+      "value": "50",
+      "unit": "%",
+      "display": "约50%",
+      "as_of": "2026-09-02",
+      "expires": "2026-12-01",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/猪周期产业链与周期投资方法论深度研报.md#五.5.5",
+        "quote": "金钼股份 ~50%"
+      }
+    },
+    {
+      "id": "coal_pe",
+      "value": "5",
+      "unit": "x",
+      "display": "5x",
+      "as_of": "2026-09-02",
+      "expires": "2026-12-01",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/猪周期产业链与周期投资方法论深度研报.md#五.5.2",
+        "quote": "煤炭 2022(PE 5x 但 PB 90%+ 分位,随后下跌)"
+      }
+    },
+    {
+      "id": "coal_pb",
+      "value": "90",
+      "unit": "%",
+      "display": "90%+",
+      "as_of": "2026-09-02",
+      "expires": "2026-12-01",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/猪周期产业链与周期投资方法论深度研报.md#五.5.2",
+        "quote": "煤炭 2022(PE 5x 但 PB 90%+ 分位)"
+      }
+    },
+    {
+      "id": "gd_add",
+      "value": "11.6",
+      "unit": "%",
+      "display": "+11.6%",
+      "as_of": "2026-09-02",
+      "expires": "2026-12-01",
+      "source": {
+        "kind": "report",
+        "ref": "docs/产业链研报/猪周期产业链与周期投资方法论深度研报.md#五.5.3",
+        "quote": "牧原十大流通股东 2026Q1 +11.6%"
+      }
+    }
+  ]
+}

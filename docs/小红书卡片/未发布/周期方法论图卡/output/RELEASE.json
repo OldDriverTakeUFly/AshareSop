@@ -1,0 +1,26 @@
+{
+  "topic": "周期方法论图卡",
+  "version": 4,
+  "as_of": "2026-09-02",
+  "expires_at": "2026-12-01",
+  "group": "周期方法论",
+  "images": [
+    "output/周期方法论图卡_01_封面.png",
+    "output/周期方法论图卡_02_四阶段.png",
+    "output/周期方法论图卡_03_周期地图.png",
+    "output/周期方法论图卡_04_估值陷阱.png",
+    "output/周期方法论图卡_05_PB锚.png",
+    "output/周期方法论图卡_06_否决信号.png",
+    "output/周期方法论图卡_07_九信号上.png",
+    "output/周期方法论图卡_07b_九信号下.png",
+    "output/周期方法论图卡_08_三情景.png",
+    "output/周期方法论图卡_09_跨周期验证.png",
+    "output/周期方法论图卡_10_收束.png"
+  ],
+  "facts_digest": "sha256:462ce1a4dedc81bfb99ea3b11c193e12ad3ea7f6504f64d5cd0233abdb1de882",
+  "validate": {
+    "passed": true,
+    "failures": 0
+  },
+  "cardgen_version": "0.1"
+}
