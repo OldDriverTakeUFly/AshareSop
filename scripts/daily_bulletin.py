@@ -2,9 +2,12 @@
 """公告日报管线(2026-09-01):巨潮当日公告 → 分类清单 markdown,供「公告+解读」卡片选题。
 2026-09-01 晚新增:全市场大事件雷达模式(默认开启)——同 API 按 seDate 拉全市场当日公告,
 品类过滤 + (公司×品类)去重 + 标题信号打分,输出 Top N。定位:研报层扩品选题入口,不做卡。
+2026-09-03 新增:--feishu 自动推送——生成后把 watchlist+雷达节推到飞书群(复用
+stockhot/notification/feishu_bot;幂等锁 logs/.radar_feishu_push/{date}.ok;零公告日静默跳过)。
+systemd user timer radar-feishu.timer 每日 21:35 触发(与盘后 18:30 飞书推送平行)。
 
 用法: .venv/bin/python scripts/daily_bulletin.py [--date 20260901] [--out docs/小红书卡片/未发布/公告日报]
-                [--no-radar] [--radar-top 15]
+                [--no-radar] [--radar-top 15] [--feishu [--force] | --dry]
 品类边界(合规闸裁定):回购/定增/收购=可做卡;增持/减持类=敏感词命中,只列清单不做卡。
 watchlist 可维护:重点池 + 已覆盖标的(研报/卡片工程)。
 雷达已知边界:巨潮该接口不含北交所公告;金额多数不在标题里,打分以事件类型信号为主。
@@ -12,6 +15,7 @@ watchlist 可维护:重点池 + 已覆盖标的(研报/卡片工程)。
 from __future__ import annotations
 
 import argparse
+import asyncio
 import json
 import re
 import time
@@ -192,12 +196,68 @@ def radar_section(items: list[dict], top_n: int, fails: int) -> tuple[list[str],
     return lines, stats
 
 
+# ── 飞书自动推送(2026-09-03):复用 stockhot 通道,幂等锁与 push_eod_feishu 同款 ──
+_PUSH_LOCK_DIR = REPO / "logs" / ".radar_feishu_push"
+
+
+def _pushed(day: str) -> bool:
+    return (_PUSH_LOCK_DIR / f"{day}.ok").exists()
+
+
+def _mark_pushed(day: str) -> None:
+    _PUSH_LOCK_DIR.mkdir(parents=True, exist_ok=True)
+    (_PUSH_LOCK_DIR / f"{day}.ok").write_text(
+        f"pushed at {datetime.now().isoformat()}\n", encoding="utf-8")
+
+
+def build_feishu_text(day: str, lines: list[str], n_do: int, n_skip: int) -> str:
+    """md 行 → 飞书纯文本:去 # 标题/> 引语/合计/选题规则行,保留条目与 PDF 链接。"""
+    keep = [ln for ln in lines[2:]
+            if ln.strip() and not ln.startswith("> ")
+            and not ln.startswith(("合计", "选题规则"))]
+    wd = "一二三四五六日"[datetime.strptime(day, "%Y%m%d").weekday()]
+    head = [f"📡 全市场公告雷达 {day[:4]}-{day[4:6]}-{day[6:]} 周{wd}",
+            f"watchlist 可做卡 {n_do} / 敏感 {n_skip};雷达 Top 与原文链接 ↓"]
+    return "\n".join(head + keep + ["", "🤖 每日 21:35 自动推送 · 公告雷达=研报选题入口,不做卡"])
+
+
+def push_radar_feishu(day: str, lines: list[str], n_do: int, n_skip: int, *, force: bool) -> int:
+    """推送日报摘要到飞书群。已推过/未配置返回 0,发送失败返回 1(md 已落盘不受影响)。"""
+    if not force and _pushed(day):
+        print(f"{day} 已推送过,跳过(--force 可重推)")
+        return 0
+    import sys as _sys
+    if str(REPO) not in _sys.path:
+        _sys.path.insert(0, str(REPO))  # scripts/ 直跑时让 stockhot 包可导入
+    try:
+        from stockhot.core.logging import logger  # noqa: F401  文件 sink,让飞书日志可追溯
+    except Exception:
+        pass
+    from stockhot.notification.feishu_bot import get_feishu_notifier
+    notifier = get_feishu_notifier()
+    if notifier is None:
+        print("飞书未配置(FEISHU_* 缺失),跳过推送")
+        return 0
+    text = build_feishu_text(day, lines, n_do, n_skip)
+    try:
+        asyncio.run(notifier.send_text(text))
+    except Exception as e:  # noqa: BLE001
+        print(f"[WARN] 飞书推送失败: {type(e).__name__}: {e}")
+        return 1
+    _mark_pushed(day)
+    print(f"{day} ✓ 已推送飞书({len(text)} 字符)")
+    return 0
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--date", default=datetime.now().strftime("%Y%m%d"))
     ap.add_argument("--out", default=str(REPO / "docs/小红书卡片/未发布/公告日报"))
     ap.add_argument("--no-radar", action="store_true", help="只跑 watchlist,不跑全市场雷达")
     ap.add_argument("--radar-top", type=int, default=15, help="雷达 Top N,默认 15")
+    ap.add_argument("--feishu", action="store_true", help="生成后推送飞书群(stockhot 通道,按日幂等)")
+    ap.add_argument("--force", action="store_true", help="忽略当日推送锁,强制重推")
+    ap.add_argument("--dry", action="store_true", help="只打印推送文本不发送(联调用)")
     args = ap.parse_args()
     day = args.date
     out = Path(args.out) / f"{day[:4]}-{day[4:6]}-{day[6:]}.md"
@@ -227,13 +287,24 @@ def main() -> None:
               "选题规则:优先「金额大+动作落地+与已覆盖产业链相关」;增减持类已由合规闸否决为卡片品类。"]
 
     summary = f"{out} | 可做卡 {n_do} / 敏感 {n_skip}"
+    radar_stats: dict = {}
     if not args.no_radar:
         items, fails = fetch_market_day(day)
-        r_lines, _ = radar_section(items, args.radar_top, fails)
+        r_lines, radar_stats = radar_section(items, args.radar_top, fails)
         lines += [""] + r_lines
         summary += f" | 雷达Top{args.radar_top}"
     out.write_text("\n".join(lines), encoding="utf-8")
     print(summary)
+
+    if args.dry or args.feishu:
+        if radar_stats.get("total", 0) == 0 and n_do == 0:
+            print(f"{day} 全市场零公告(休市?),跳过飞书推送")
+            return
+        if args.dry:
+            print("---- feishu dry run ----")
+            print(build_feishu_text(day, lines, n_do, n_skip))
+            return
+        raise SystemExit(push_radar_feishu(day, lines, n_do, n_skip, force=args.force))
 
 
 if __name__ == "__main__":
