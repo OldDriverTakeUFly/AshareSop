@@ -1,0 +1,81 @@
+<!DOCTYPE html><html lang='zh-CN'><head><meta charset='UTF-8'><style>  * { margin:0; padding:0; box-sizing:border-box; font-family:'Noto Sans CJK SC','PingFang SC','Microsoft YaHei',sans-serif; }
+  body { background:#e8e8e8; display:flex; flex-direction:column; align-items:center; gap:40px; padding:40px 0; }
+  .card { width:1080px; height:1440px; border-radius:48px; position:relative; overflow:hidden; padding:48px 56px; display:flex; flex-direction:column; }
+  .card1 { background:linear-gradient(160deg,#1a1440 0%,#3b1d6e 45%,#8a2be2 100%); color:#fff; }
+  .card2 { background:#fdf6ec; color:#3a2e20; }
+  .card3 { background:#eef4ff; color:#1e2a44; }
+  .card4 { background:#fff1f0; color:#4a1f1c; }
+  .card5 { background:#f0fbf2; color:#1d3a24; }
+  .card6 { background:#f7f3ff; color:#2e2440; }
+  .tag-top { display:inline-block; background:#ff2442; color:#fff; font-size:30px; font-weight:900; padding:12px 30px; border-radius:999px; letter-spacing:2px; width:fit-content; }
+  .badge { display:inline-block; font-size:26px; font-weight:800; padding:8px 22px; border-radius:999px; margin-right:12px; }
+  .b-purple{background:rgba(138,43,226,.18);color:#6b21a8;} .b-blue{background:rgba(37,99,235,.14);color:#1d4ed8;}
+  .b-red{background:rgba(220,38,38,.12);color:#b91c1c;} .b-green{background:rgba(22,163,74,.14);color:#15803d;}
+  .b-org{background:rgba(234,88,12,.15);color:#c2410c;} .b-gray{background:rgba(0,0,0,.07);color:#555;}
+  h1 { font-size:96px; font-weight:900; line-height:1.18; margin:28px 0 10px; letter-spacing:1px; }
+  .sub { font-size:42px; font-weight:700; opacity:.92; line-height:1.5; }
+  .hl { background:linear-gradient(transparent 62%, rgba(255,210,0,.85) 62%); padding:0 6px; }
+  .hl-r { background:linear-gradient(transparent 62%, rgba(255,77,109,.55) 62%); padding:0 6px; }
+  .big-num { font-size:150px; font-weight:900; line-height:1; letter-spacing:-2px; }
+  h2.title { font-size:56px; font-weight:900; margin-bottom:8px; line-height:1.25; }
+  .subtitle { font-size:30px; font-weight:600; opacity:.65; margin-bottom:24px; }
+  .row { background:#fff; border-radius:28px; padding:20px 28px; margin-bottom:16px; box-shadow:0 6px 24px rgba(0,0,0,.06); }
+  .row .name { font-size:36px; font-weight:900; margin-bottom:8px; display:flex; align-items:center; gap:14px; flex-wrap:wrap;}
+  .row .desc { font-size:26px; line-height:1.48; }
+  .dot { width:24px; height:24px; border-radius:50%; display:inline-block; }
+  table { width:100%; border-collapse:separate; border-spacing:0; background:#fff; border-radius:26px; overflow:hidden; font-size:26px; box-shadow:0 6px 24px rgba(0,0,0,.06); }
+  th { background:#2a2050; color:#fff; font-weight:800; padding:16px 12px; font-size:25px; }
+  td { padding:14px 12px; text-align:center; border-bottom:1px solid #f0ecf5; line-height:1.35; }
+  td.l { text-align:left; font-weight:800; }
+  tr:last-child td { border-bottom:none; }
+  .up{color:#dc2626;font-weight:800;} .down{color:#16a34a;font-weight:800;} .warn{color:#d97706;font-weight:800;}
+  .kbox { background:#fff; border-radius:26px; padding:20px 28px; margin-bottom:14px; box-shadow:0 6px 24px rgba(0,0,0,.06); display:flex; gap:20px; align-items:flex-start; }
+  .kdate { min-width:165px; background:#16a34a; color:#fff; font-weight:900; font-size:27px; border-radius:16px; text-align:center; padding:12px 0; line-height:1.3;}
+  .kdate.red{background:#dc2626;} .kdate.org{background:#ea580c;} .kdate.pu{background:#7c3aed;}
+  .ktext { font-size:26px; line-height:1.48; padding-top:4px;}
+  .ktext b { font-size:27px; }
+  .quote { background:rgba(255,255,255,.14); border-left:8px solid #ffd400; border-radius:0 22px 22px 0; padding:22px 26px; font-size:30px; line-height:1.55; font-weight:600; }
+  .foot { margin-top:auto; font-size:21px; opacity:.6; line-height:1.45; }
+  .tags { font-size:25px; font-weight:700; opacity:.85; margin-top:20px; }
+  .card5 .ktext { font-size:25px; line-height:1.42; }
+  .card5 .kdate { min-width:150px; font-size:25px; }
+  .card5 .kbox { padding:16px 24px; gap:16px; margin-bottom:12px; }
+  .card5 .ktext b { font-size:26px; }
+  .card2 .row .desc { font-size:25px; line-height:1.45; }
+  .card2 .row .name { font-size:34px; }
+  .num-badge { display:flex; gap:26px; margin:34px 0 8px; }
+  .nb { background:rgba(255,255,255,.12); border-radius:26px; padding:24px 30px; flex:1; }
+  .nb .v { font-size:58px; font-weight:900; color:#ffd400; }
+  .nb .k { font-size:25px; opacity:.85; margin-top:6px; }
+</style><style class='cardgen-fill'>.card{justify-content:space-between;}.card>.foot{margin-top:0 !important;}</style></head><body><div class="card card3" id="card1">
+<span class="tag-top" style="background:#ff2442;">公告日报 · 公司行为篇</span>
+<h1>今日公告速览<br>注销式回购登场🗳</h1>
+<div class="sub" style="margin-top:24px;">回购·定增·收购<br>动作比表态诚实</div>
+<div class="num-badge"><div class="nb"><div class="v">1200条</div><div class="k">今日全市场公告</div></div><div class="nb"><div class="v">103家</div><div class="k">回购公告组数</div></div><div class="nb"><div class="v">15家</div><div class="k">收购重组组数</div></div></div>
+<div style="margin-top:30px;"><div class="quote" style="background:rgba(255,255,255,.14);color:inherit;border-left-color:#ffd400;font-size:30px;">"<span style='color:#ffd400'>公告日报的正确打开方式</span>——不看公司说了什么,看公司拿真金白银做了什么"</div></div>
+<div class="tags">#公告解读 #回购 #定增 #收购 #研究方法</div><div class="foot">数据来源:巨潮资讯当日公告(2026-09-03披露,PDF核实) · 仅供研究参考,不构成投资建议</div></div><div class="card card5" id="card2">
+<span class="tag-top" style="background:#16a34a;">公司回购</span>
+<h2 class="title" style="margin-top:24px;">回购:佰维注销式开场</h2>
+<div class="subtitle">渤海租赁落地,恒瑞备弹未发</div>
+<table><tr><th style=text-align:left>公司</th><th>动作与读数</th></tr><tr><td class="l">佰维存储</td><td class="up">注销式回购报告书:2亿元~2.5亿元,价格上限468.24元/股;工行专项贷款承诺最高2.25亿元</td></tr><tr><td class="l">渤海租赁</td><td class="">首次回购落地:987.7236万元(224.42万股,占总股本0.04%),方案总额2亿元</td></tr><tr><td class="l">恒瑞医药</td><td class="">方案10亿元~20亿元(上限81.78元/股,用于员工持股);截至8月末尚未开始回购</td></tr></table>
+<div style="margin-top:30px;"><div class="kbox"><div class="kdate" style="background:#dc2626;">怎么读回购</div><div class="ktext">方案金额≠已回购金额——恒瑞方案在手、累计为零;渤海租赁的<b>已成交金额</b>才是真金白银。用途里「减少注册资本」(注销)含金量最高</div></div></div>
+<div class="foot">数据来源:巨潮资讯当日公告(2026-09-03披露,PDF核实) · 仅供研究参考,不构成投资建议</div></div><div class="card card3" id="card3">
+<span class="tag-top" style="background:#2563eb;">定增落地</span>
+<h2 class="title" style="margin-top:24px;">安路科技:定增发行完成</h2>
+<div class="subtitle">国产FPGA厂商募资到账</div>
+<table><tr><th style=text-align:left>要点</th><th>读数</th></tr><tr><td class="l">募资总额</td><td class="">12.62亿元(询价发行,发行价25.49元/股,底价24.14元/股)</td></tr><tr><td class="l">发行看点</td><td class="up">发行价高于底价成交,基金/险资/产业资本竞价获配,限售六个月</td></tr><tr><td class="l">同日推进</td><td class="">飞鹿股份定增预案披露;每日互动、探路者、征和工业注册稿更新</td></tr></table>
+<div style="margin-top:30px;"><div class="kbox"><div class="kdate" style="background:#c2410c;">怎么读定增</div><div class="ktext">定增越靠后确定性越高:预案→注册稿→发行完成——<b>发行完成=募资落袋</b>;发行价与底价的差距,是市场热情的温度计</div></div></div>
+<div class="foot">数据来源:巨潮资讯当日公告(2026-09-03披露,PDF核实) · 仅供研究参考,不构成投资建议</div></div><div class="card card4" id="card4">
+<span class="tag-top" style="background:#dc2626;">资产收购</span>
+<h2 class="title" style="margin-top:24px;">收购:望变电气新主进场</h2>
+<div class="subtitle">定增认购落地,免于发出要约</div>
+<table><tr><th style=text-align:left>公司</th><th>读法</th></tr><tr><td class="l">望变电气</td><td class="">定增上市公告书与收购报告书同日披露:募资2.28亿元(发行价11.71元/股),认购方锁定三年</td></tr><tr><td class="l">华峰化学</td><td class="">重大资产重组中介核查意见披露——重组推进中的关键节点文件</td></tr><tr><td class="l">甘肃能化</td><td class="">重组合规说明同日披露——两单重组的程序性文件一起走</td></tr></table>
+<div style="margin-top:30px;"><div class="kbox"><div class="kdate" style="background:#dc2626;">怎么读收购</div><div class="ktext">定增认购式收购是A股常见的「和平交接」:认购方<b>锁定三年</b>、触发线内获准免于要约——先看新主是谁,再看拿了多少</div></div></div>
+<div class="foot">数据来源:巨潮资讯当日公告(2026-09-03披露,PDF核实) · 仅供研究参考,不构成投资建议</div></div><div class="card card6" id="card5">
+<span class="tag-top" style="background:#0f172a;">一句话收束</span>
+<h2 class="title" style="margin-top:24px;">三类公告</h2>
+<div class="subtitle">三种公司行为语言</div>
+<div class="row"><div class="desc"><b>回购</b> → 注销式含金量最高(佰维);已成交才算数(渤海租赁),方案只是承诺(恒瑞)</div></div><div class="row"><div class="desc"><b>定增</b> → 发行完成=募资落袋(安路科技);读发行价与底价的差距,读市场热情</div></div><div class="row"><div class="desc"><b>收购</b> → 定增认购式收购看锁定与免于要约安排(望变电气),程序文件密集=推进中</div></div><div class="row"><div class="desc"><b>今日密度</b> → 全市场公告1200条:回购103家/定增募资24家/收购重组15家——动作密度本身就是情绪温度计</div></div>
+<div style="margin-top:14px;"><div class="kbox"><div class="kdate" style="background:#2563eb;">定位</div><div class="ktext">本栏目每天从公告里挑信号最强的公司行为——搬运给人信息,我们给人判断框架</div></div></div>
+<div style="margin-top:8px;"><div class="quote" style="background:rgba(124,58,237,.10);color:#2e2440;border-left-color:#ffd400;font-size:30px;">公告日报的价值不在「今天发生了什么」,在<b>「哪个动作的信号强度最高」</b>——排序就是观点</div></div>
+<div class="tags">#公告日报 #回购 #定增 #收购 #研究方法</div><div class="foot">数据来源:巨潮资讯当日公告(2026-09-03披露,PDF核实) · 仅供研究参考,不构成投资建议。市场有风险,投资需谨慎。</div></div></body></html>

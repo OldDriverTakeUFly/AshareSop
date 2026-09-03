@@ -1,0 +1,20 @@
+{
+  "topic": "公告日报20260903",
+  "version": 1,
+  "as_of": "2026-09-03",
+  "expires_at": "2026-09-04",
+  "group": "公告盘点",
+  "images": [
+    "output/公告日报20260903_01_封面.png",
+    "output/公告日报20260903_02_回购.png",
+    "output/公告日报20260903_03_定增.png",
+    "output/公告日报20260903_04_收购.png",
+    "output/公告日报20260903_05_小结.png"
+  ],
+  "facts_digest": "sha256:3f85332f7548724e3328b8fb2f8a156bcf6317832b1117216e47a51b3b108966",
+  "validate": {
+    "passed": true,
+    "failures": 0
+  },
+  "cardgen_version": "0.1"
+}
