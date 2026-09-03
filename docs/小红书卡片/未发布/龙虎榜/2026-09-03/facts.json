@@ -14,9 +14,9 @@
     },
     {
       "id": "lhb_net_total_yi",
-      "value": "19.28",
+      "value": "16.87",
       "unit": "亿",
-      "display": "+19.28亿",
+      "display": "+16.87亿",
       "as_of": "2026-09-03",
       "source": {
         "kind": "stockhot",
@@ -26,9 +26,9 @@
     },
     {
       "id": "cross_count",
-      "value": "0",
+      "value": "8",
       "unit": "只",
-      "display": "0只",
+      "display": "8只",
       "as_of": "2026-09-03",
       "source": {
         "kind": "stockhot",
@@ -44,7 +44,7 @@
       "as_of": "2026-09-03",
       "source": {
         "kind": "stockhot",
-        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:002708.net_buy_amount"
+        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:002708.SZ.net_buy_amount"
       },
       "expires": "2026-09-03"
     },
@@ -56,19 +56,19 @@
       "as_of": "2026-09-03",
       "source": {
         "kind": "stockhot",
-        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:002708.change_pct"
+        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:002708.SZ.change_pct"
       },
       "expires": "2026-09-03"
     },
     {
       "id": "nb2_yi",
-      "value": "4.22",
+      "value": "2.98",
       "unit": "亿",
-      "display": "+4.22亿",
+      "display": "+2.98亿",
       "as_of": "2026-09-03",
       "source": {
         "kind": "stockhot",
-        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:002297.net_buy_amount"
+        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:002297.SZ.net_buy_amount"
       },
       "expires": "2026-09-03"
     },
@@ -80,7 +80,7 @@
       "as_of": "2026-09-03",
       "source": {
         "kind": "stockhot",
-        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:002297.change_pct"
+        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:002297.SZ.change_pct"
       },
       "expires": "2026-09-03"
     },
@@ -92,7 +92,7 @@
       "as_of": "2026-09-03",
       "source": {
         "kind": "stockhot",
-        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:600172.net_buy_amount"
+        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:600172.SH.net_buy_amount"
       },
       "expires": "2026-09-03"
     },
@@ -104,7 +104,7 @@
       "as_of": "2026-09-03",
       "source": {
         "kind": "stockhot",
-        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:600172.change_pct"
+        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:600172.SH.change_pct"
       },
       "expires": "2026-09-03"
     },
@@ -116,7 +116,7 @@
       "as_of": "2026-09-03",
       "source": {
         "kind": "stockhot",
-        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:601212.net_buy_amount"
+        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:601212.SH.net_buy_amount"
       },
       "expires": "2026-09-03"
     },
@@ -128,7 +128,7 @@
       "as_of": "2026-09-03",
       "source": {
         "kind": "stockhot",
-        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:601212.change_pct"
+        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:601212.SH.change_pct"
       },
       "expires": "2026-09-03"
     },
@@ -140,7 +140,7 @@
       "as_of": "2026-09-03",
       "source": {
         "kind": "stockhot",
-        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:002536.net_buy_amount"
+        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:002536.SZ.net_buy_amount"
       },
       "expires": "2026-09-03"
     },
@@ -152,7 +152,7 @@
       "as_of": "2026-09-03",
       "source": {
         "kind": "stockhot",
-        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:002536.change_pct"
+        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:002536.SZ.change_pct"
       },
       "expires": "2026-09-03"
     },
@@ -164,7 +164,7 @@
       "as_of": "2026-09-03",
       "source": {
         "kind": "stockhot",
-        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:301489.net_buy_amount"
+        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:301489.SZ.net_buy_amount"
       },
       "expires": "2026-09-03"
     },
@@ -176,7 +176,7 @@
       "as_of": "2026-09-03",
       "source": {
         "kind": "stockhot",
-        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:301489.change_pct"
+        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:301489.SZ.change_pct"
       },
       "expires": "2026-09-03"
     },
@@ -188,7 +188,7 @@
       "as_of": "2026-09-03",
       "source": {
         "kind": "stockhot",
-        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:003018.net_buy_amount"
+        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:003018.SZ.net_buy_amount"
       },
       "expires": "2026-09-03"
     },
@@ -200,79 +200,79 @@
       "as_of": "2026-09-03",
       "source": {
         "kind": "stockhot",
-        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:003018.change_pct"
+        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:003018.SZ.change_pct"
       },
       "expires": "2026-09-03"
     },
     {
       "id": "nb8_yi",
-      "value": "1.55",
-      "unit": "亿",
-      "display": "+1.55亿",
-      "as_of": "2026-09-03",
-      "source": {
-        "kind": "stockhot",
-        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:600657.net_buy_amount"
-      },
-      "expires": "2026-09-03"
-    },
-    {
-      "id": "nb8_pct",
-      "value": "10.16",
-      "unit": "%",
-      "display": "+10.16%",
-      "as_of": "2026-09-03",
-      "source": {
-        "kind": "stockhot",
-        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:600657.change_pct"
-      },
-      "expires": "2026-09-03"
-    },
-    {
-      "id": "nb9_yi",
-      "value": "1.53",
-      "unit": "亿",
-      "display": "+1.53亿",
-      "as_of": "2026-09-03",
-      "source": {
-        "kind": "stockhot",
-        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:600479.net_buy_amount"
-      },
-      "expires": "2026-09-03"
-    },
-    {
-      "id": "nb9_pct",
-      "value": "10.03",
-      "unit": "%",
-      "display": "+10.03%",
-      "as_of": "2026-09-03",
-      "source": {
-        "kind": "stockhot",
-        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:600479.change_pct"
-      },
-      "expires": "2026-09-03"
-    },
-    {
-      "id": "nb10_yi",
       "value": "1.51",
       "unit": "亿",
       "display": "+1.51亿",
       "as_of": "2026-09-03",
       "source": {
         "kind": "stockhot",
-        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:600611.net_buy_amount"
+        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:600611.SH.net_buy_amount"
       },
       "expires": "2026-09-03"
     },
     {
-      "id": "nb10_pct",
+      "id": "nb8_pct",
       "value": "10.04",
       "unit": "%",
       "display": "+10.04%",
       "as_of": "2026-09-03",
       "source": {
         "kind": "stockhot",
-        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:600611.change_pct"
+        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:600611.SH.change_pct"
+      },
+      "expires": "2026-09-03"
+    },
+    {
+      "id": "nb9_yi",
+      "value": "1.41",
+      "unit": "亿",
+      "display": "+1.41亿",
+      "as_of": "2026-09-03",
+      "source": {
+        "kind": "stockhot",
+        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:002980.SZ.net_buy_amount"
+      },
+      "expires": "2026-09-03"
+    },
+    {
+      "id": "nb9_pct",
+      "value": "10",
+      "unit": "%",
+      "display": "+10%",
+      "as_of": "2026-09-03",
+      "source": {
+        "kind": "stockhot",
+        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:002980.SZ.change_pct"
+      },
+      "expires": "2026-09-03"
+    },
+    {
+      "id": "nb10_yi",
+      "value": "1.28",
+      "unit": "亿",
+      "display": "+1.28亿",
+      "as_of": "2026-09-03",
+      "source": {
+        "kind": "stockhot",
+        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:300830.SZ.net_buy_amount"
+      },
+      "expires": "2026-09-03"
+    },
+    {
+      "id": "nb10_pct",
+      "value": "19.98",
+      "unit": "%",
+      "display": "+19.98%",
+      "as_of": "2026-09-03",
+      "source": {
+        "kind": "stockhot",
+        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:300830.SZ.change_pct"
       },
       "expires": "2026-09-03"
     },
@@ -284,7 +284,7 @@
       "as_of": "2026-09-03",
       "source": {
         "kind": "stockhot",
-        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:002886.net_buy_amount"
+        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:002886.SZ.net_buy_amount"
       },
       "expires": "2026-09-03"
     },
@@ -296,7 +296,7 @@
       "as_of": "2026-09-03",
       "source": {
         "kind": "stockhot",
-        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:002886.change_pct"
+        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:002886.SZ.change_pct"
       },
       "expires": "2026-09-03"
     },
@@ -308,7 +308,7 @@
       "as_of": "2026-09-03",
       "source": {
         "kind": "stockhot",
-        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:600721.net_buy_amount"
+        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:600721.SH.net_buy_amount"
       },
       "expires": "2026-09-03"
     },
@@ -320,7 +320,7 @@
       "as_of": "2026-09-03",
       "source": {
         "kind": "stockhot",
-        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:600721.change_pct"
+        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:600721.SH.change_pct"
       },
       "expires": "2026-09-03"
     },
@@ -332,7 +332,7 @@
       "as_of": "2026-09-03",
       "source": {
         "kind": "stockhot",
-        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:600722.net_buy_amount"
+        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:600722.SH.net_buy_amount"
       },
       "expires": "2026-09-03"
     },
@@ -344,7 +344,7 @@
       "as_of": "2026-09-03",
       "source": {
         "kind": "stockhot",
-        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:600722.change_pct"
+        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:600722.SH.change_pct"
       },
       "expires": "2026-09-03"
     },
@@ -356,7 +356,7 @@
       "as_of": "2026-09-03",
       "source": {
         "kind": "stockhot",
-        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:600127.net_buy_amount"
+        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:600127.SH.net_buy_amount"
       },
       "expires": "2026-09-03"
     },
@@ -368,7 +368,7 @@
       "as_of": "2026-09-03",
       "source": {
         "kind": "stockhot",
-        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:600127.change_pct"
+        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:600127.SH.change_pct"
       },
       "expires": "2026-09-03"
     },
@@ -380,7 +380,7 @@
       "as_of": "2026-09-03",
       "source": {
         "kind": "stockhot",
-        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:300189.net_buy_amount"
+        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:300189.SZ.net_buy_amount"
       },
       "expires": "2026-09-03"
     },
@@ -392,7 +392,7 @@
       "as_of": "2026-09-03",
       "source": {
         "kind": "stockhot",
-        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:300189.change_pct"
+        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:300189.SZ.change_pct"
       },
       "expires": "2026-09-03"
     },
@@ -453,6 +453,186 @@
       "source": {
         "kind": "stockhot",
         "ref": "stockhot.db:analysis_results:dragon_tiger@2026-09-03:brokers.net_amount"
+      },
+      "expires": "2026-09-03"
+    },
+    {
+      "id": "ist1_yi",
+      "value": "1.4",
+      "unit": "亿",
+      "display": "+1.4亿",
+      "as_of": "2026-09-03",
+      "source": {
+        "kind": "stockhot",
+        "ref": "stockhot.db:analysis_results:dragon_tiger@2026-09-03:institutional.sum(net_amount)"
+      },
+      "expires": "2026-09-03"
+    },
+    {
+      "id": "ist2_yi",
+      "value": "1.07",
+      "unit": "亿",
+      "display": "+1.07亿",
+      "as_of": "2026-09-03",
+      "source": {
+        "kind": "stockhot",
+        "ref": "stockhot.db:analysis_results:dragon_tiger@2026-09-03:institutional.sum(net_amount)"
+      },
+      "expires": "2026-09-03"
+    },
+    {
+      "id": "ist3_yi",
+      "value": "0.65",
+      "unit": "亿",
+      "display": "+0.65亿",
+      "as_of": "2026-09-03",
+      "source": {
+        "kind": "stockhot",
+        "ref": "stockhot.db:analysis_results:dragon_tiger@2026-09-03:institutional.sum(net_amount)"
+      },
+      "expires": "2026-09-03"
+    },
+    {
+      "id": "ist4_yi",
+      "value": "0.34",
+      "unit": "亿",
+      "display": "+0.34亿",
+      "as_of": "2026-09-03",
+      "source": {
+        "kind": "stockhot",
+        "ref": "stockhot.db:analysis_results:dragon_tiger@2026-09-03:institutional.sum(net_amount)"
+      },
+      "expires": "2026-09-03"
+    },
+    {
+      "id": "ist5_yi",
+      "value": "0.29",
+      "unit": "亿",
+      "display": "+0.29亿",
+      "as_of": "2026-09-03",
+      "source": {
+        "kind": "stockhot",
+        "ref": "stockhot.db:analysis_results:dragon_tiger@2026-09-03:institutional.sum(net_amount)"
+      },
+      "expires": "2026-09-03"
+    },
+    {
+      "id": "cr1_board",
+      "value": "2",
+      "unit": "",
+      "display": "2板",
+      "as_of": "2026-09-03",
+      "source": {
+        "kind": "stockhot",
+        "ref": "stockhot.db:analysis_results:limit_up_analysis@2026-09-03:consecutive_boards"
+      },
+      "expires": "2026-09-03"
+    },
+    {
+      "id": "cr1_yi",
+      "value": "0.63",
+      "unit": "亿",
+      "display": "+0.63亿",
+      "as_of": "2026-09-03",
+      "source": {
+        "kind": "stockhot",
+        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:002059.SZ.net_buy_amount"
+      },
+      "expires": "2026-09-03"
+    },
+    {
+      "id": "cr2_board",
+      "value": "2",
+      "unit": "",
+      "display": "2板",
+      "as_of": "2026-09-03",
+      "source": {
+        "kind": "stockhot",
+        "ref": "stockhot.db:analysis_results:limit_up_analysis@2026-09-03:consecutive_boards"
+      },
+      "expires": "2026-09-03"
+    },
+    {
+      "id": "cr2_yi",
+      "value": "2.98",
+      "unit": "亿",
+      "display": "+2.98亿",
+      "as_of": "2026-09-03",
+      "source": {
+        "kind": "stockhot",
+        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:002297.SZ.net_buy_amount"
+      },
+      "expires": "2026-09-03"
+    },
+    {
+      "id": "cr3_board",
+      "value": "2",
+      "unit": "",
+      "display": "2板",
+      "as_of": "2026-09-03",
+      "source": {
+        "kind": "stockhot",
+        "ref": "stockhot.db:analysis_results:limit_up_analysis@2026-09-03:consecutive_boards"
+      },
+      "expires": "2026-09-03"
+    },
+    {
+      "id": "cr3_yi",
+      "value": "0.72",
+      "unit": "亿",
+      "display": "+0.72亿",
+      "as_of": "2026-09-03",
+      "source": {
+        "kind": "stockhot",
+        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:002300.SZ.net_buy_amount"
+      },
+      "expires": "2026-09-03"
+    },
+    {
+      "id": "cr4_board",
+      "value": "2",
+      "unit": "",
+      "display": "2板",
+      "as_of": "2026-09-03",
+      "source": {
+        "kind": "stockhot",
+        "ref": "stockhot.db:analysis_results:limit_up_analysis@2026-09-03:consecutive_boards"
+      },
+      "expires": "2026-09-03"
+    },
+    {
+      "id": "cr4_yi",
+      "value": "4.55",
+      "unit": "亿",
+      "display": "+4.55亿",
+      "as_of": "2026-09-03",
+      "source": {
+        "kind": "stockhot",
+        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:002708.SZ.net_buy_amount"
+      },
+      "expires": "2026-09-03"
+    },
+    {
+      "id": "cr5_board",
+      "value": "4",
+      "unit": "",
+      "display": "4板",
+      "as_of": "2026-09-03",
+      "source": {
+        "kind": "stockhot",
+        "ref": "stockhot.db:analysis_results:limit_up_analysis@2026-09-03:consecutive_boards"
+      },
+      "expires": "2026-09-03"
+    },
+    {
+      "id": "cr5_yi",
+      "value": "0.87",
+      "unit": "亿",
+      "display": "+0.87亿",
+      "as_of": "2026-09-03",
+      "source": {
+        "kind": "stockhot",
+        "ref": "stockhot.db:daily_data:dragon_tiger_detail@2026-09-03:002909.SZ.net_buy_amount"
       },
       "expires": "2026-09-03"
     }

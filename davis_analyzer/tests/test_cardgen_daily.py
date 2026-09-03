@@ -283,3 +283,60 @@ class TestRealdataEdgecases:
             assert "不构成投资建议" in c["body"]
             assert not _re.search(r"\d", c["body"]), "正文不得含数字(发稿层不走数字闸)"
             assert c["title"].startswith(DAY[5:])  # 09-02 日期前缀
+
+    def test_insight_library_compliance_clean(self):
+        """洞察库全量:零数字、敏感词全表与诱导句式零命中(入库预审由测试强制)。"""
+        import re as _re
+        from davis_analyzer.cardgen.compliance import INDUCEMENT_PATTERNS, load_words
+        words = load_words()
+        lib = [daily._LADDER_DEFAULT_INSIGHT, daily._LHB_DEFAULT_INSIGHT]
+        # 连同选择器产出的全部可能句子:构造各形态 bundle 抽取
+        bundles = [
+            {"pool": [{}]*10, "broken": [{}]*5, "prev_boards_max": 6,
+             "boards": [{"board_count": 4, "stocks": []}], "lhb_detail": [], "institutional": []},
+            {"pool": [{}]*10, "broken": [{}]*1, "prev_boards_max": 3,
+             "boards": [{"board_count": 6, "stocks": []}], "lhb_detail": [], "institutional": []},
+            {"pool": [{}]*10, "broken": [], "prev_boards_max": None,
+             "boards": [{"board_count": 3, "stocks": []}], "lhb_detail": [], "institutional": []},
+        ]
+        for b in bundles:
+            lib += daily.ladder_insights(b)
+            lib += daily.lhb_insights(b)
+        lhb_b = dict(bundles[0])
+        lhb_b["lhb_detail"] = [{"code": f"{i:06d}.SZ", "net_buy_amount": v} for i, v in enumerate([1e8]*5)]
+        lhb_b["boards"] = [{"board_count": 3, "stocks": [{"code": f"{i:06d}.SZ", "name": "X"} for i in range(5)]}]
+        lhb_b["institutional"] = [{"inst_name": "机构专用", "net_amount": 1e8}]
+        lib += daily.lhb_insights(lhb_b)
+        for text in lib:
+            assert not _re.search(r"\d", text), f"见解句含数字: {text}"
+            hit = [w for w in words if w in text]
+            assert not hit, f"见解句命中敏感词{hit}: {text}"
+            for pat, _d in INDUCEMENT_PATTERNS:
+                assert not pat.search(text), f"见解句命中诱导句式: {text}"
+
+    def test_ladder_insight_selection_by_pattern(self):
+        b = {"pool": [{}]*40, "broken": [{}]*12, "prev_boards_max": 7,
+             "boards": [{"board_count": 5, "stocks": []}], "lhb_detail": [], "institutional": []}
+        picks = daily.ladder_insights(b)
+        assert any("抗跌" in p for p in picks)          # 高度回落
+        assert any("封板质量" in p for p in picks)       # 炸板率 12/40>=30%
+        b2 = {"pool": [{}]*40, "broken": [{}]*2, "prev_boards_max": 3,
+              "boards": [{"board_count": 6, "stocks": []}], "lhb_detail": [], "institutional": []}
+        assert any("晋级" in p for p in daily.ladder_insights(b2))
+
+    def test_lhb_insight_selection_by_pattern(self):
+        b = {"pool": [], "broken": [], "boards": [],
+             "lhb_detail": [{"code": "000001.SZ", "net_buy_amount": -1e8}],
+             "institutional": [{"inst_name": "机构专用", "net_amount": 2e8}]}
+        picks = daily.lhb_insights(b)
+        assert any("机构口径" in p for p in picks)       # 机构净流入优先
+        b2 = dict(b, institutional=[])
+        picks2 = daily.lhb_insights(b2)
+        assert any("净流出" in p for p in picks2)        # 榜单净流出
+
+    def test_publish_copy_with_bundle_appends_insight(self):
+        b = {"pool": [{}]*40, "broken": [{}]*12, "prev_boards_max": 7,
+             "boards": [{"board_count": 5, "stocks": []}], "lhb_detail": [], "institutional": []}
+        c = daily.publish_copy("ladder", DAY, b)
+        assert "盘后观察" in c["body"] and "抗跌" in c["body"]
+        assert "不构成投资建议" in c["body"]

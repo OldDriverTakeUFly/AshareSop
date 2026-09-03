@@ -25,8 +25,8 @@ PENDING_DIR = "未发布"
 FOOT = "数据来源:沪深交易所/东方财富(经 stockhot 采集) · 仅供研究参考,不构成投资建议"
 FOOT_LAST = FOOT + "。市场有风险,投资需谨慎。"
 
-# 发稿文案(2026-09-02 用户需求:入发布规划+配文字解释)——零观点纯数据口吻,
-# 无任何数字(发稿层不走 facts 数字闸,数字一律留给卡片本身),敏感词/诱导句式由测试锁定
+# 发稿文案(2026-09-02 入发布规划;2026-09-03 增盘后观察)——无数字口吻,
+# 数字一律留给卡片本身;敏感词/诱导句式由测试锁定;见解句按当日形态从洞察库机械选用
 _PUBLISH_COPY: dict[str, dict[str, str]] = {
     "ladder": {
         "title": "连板天梯 | 每日数据复盘",
@@ -36,7 +36,7 @@ _PUBLISH_COPY: dict[str, dict[str, str]] = {
             "①最高连板与梯队全景——高度代表空间,家数代表广度;\n"
             "②空间高度明细——封单、换手、首次封板时间,以及较昨日晋级/持平/回落;\n"
             "③板块联动——涨停家数居前的方向,看资金聚集度。\n\n"
-            "数据来自沪深交易所/东方财富公开披露,零观点纯数据,只做复盘记录,不构成投资建议。"
+            "数据来自沪深交易所/东方财富公开披露;盘后观察为方法论视角解读,不构成投资建议。"
         ),
     },
     "lhb": {
@@ -49,19 +49,91 @@ _PUBLISH_COPY: dict[str, dict[str, str]] = {
             "③机构专用席位净额——按个股合并的机构口径;\n"
             "④龙虎榜×连板梯队交集——情绪与资金的重叠区。\n\n"
             "口径说明:龙虎榜为交易所披露的席位当日合计数据,反映的是榜单事实而非后续走势。"
-            "数据来自沪深交易所/东方财富,零观点纯数据,不构成投资建议。"
+            "数据来自沪深交易所/东方财富,盘后观察为方法论视角解读,不构成投资建议。"
         ),
     },
 }
 
 
-def publish_copy(kind: str, day: str) -> dict[str, str]:
-    """发稿层文案(title/body/tags);title 冠 mm-dd 日期,正文无数字。"""
+def publish_copy(kind: str, day: str, bundle: dict | None = None) -> dict[str, str]:
+    """发稿层文案(title/body/tags);title 冠 mm-dd 日期,正文无数字。
+
+    bundle 提供时追加当日「盘后观察」(洞察库按数据形态机械选用,见 *_insights)。"""
     c = _PUBLISH_COPY[kind]
-    return {"title": f"{day[5:]} {c['title']}", "body": c["body"], "tags": c["tags"]}
+    body = c["body"]
+    if bundle is not None:
+        picks = ladder_insights(bundle) if kind == "ladder" else lhb_insights(bundle)
+        if picks:
+            body += "\n\n盘后观察:\n" + "\n".join(f"· {p}" for p in picks)
+    return {"title": f"{day[5:]} {c['title']}", "body": body, "tags": c["tags"]}
+
+
+# ── 盘后观察洞察库(2026-09-03 用户需求:文字带见解/方法论实践点) ──────────
+# 纪律:见解句全部预审入库——零阿拉伯数字、敏感词全表与诱导句式零命中(测试锁定),
+# 脚本按当日数据形态机械选用,运行时不自造观点。锚点:
+#   高度/广度/封板质量框架 ← 方法论§8.8 与周期三部曲(空间/广度/结构);
+#   机构专用与营业部分层口径 ← stockhot/dragon_tiger 采集口径(席位类型语义);
+#   「单日净额非趋势结论」 ← 交易所龙虎榜披露规则口径。
+_LADDER_DEFAULT_INSIGHT = ("天梯三列的完整读法:高度看空间,家数看广度,封板质量看成色——"
+                           "合起来读,比单看最高板完整得多")
+_LHB_DEFAULT_INSIGHT = ("龙虎榜的三层读法:个股净额看方向,营业部看热度,机构席位看中期态度——"
+                        "三层互相印证,比任何单层数据都可靠")
+
+
+def ladder_insights(bundle: dict) -> list[str]:
+    """按梯队形态选至多两条盘后观察(有序匹配,先结构后质量)。"""
+    zt, broken = len(bundle["pool"]), len(bundle["broken"])
+    board_max = int(bundle["boards"][0]["board_count"]) if bundle["boards"] else 0
+    prev = bundle.get("prev_boards_max")
+    picks: list[str] = []
+    if prev is not None and board_max < prev:
+        picks.append("高度回落期,天梯的正确读法是看谁还在晋级——抗跌的高度比高度本身"
+                     "更有信息量,梯队缩圈阶段尤其如此")
+    if zt and broken / max(zt, 1) >= 0.3:
+        picks.append("炸板家数明显偏多时,封板质量的权重应高于封板数量——首封时间早、"
+                     "炸板次数少的涨停含金量更高,高度明细页正是按这个口径选股")
+    if prev is not None and board_max > prev and not picks:
+        picks.append("高度晋级叠加板块联动,是梯队相对健康的形态——空间与广度同步扩张时,"
+                     "梯队数据的参考价值最高")
+    if not picks:
+        picks.append(_LADDER_DEFAULT_INSIGHT)
+    return picks[:2]
+
+
+def lhb_insights(bundle: dict) -> list[str]:
+    """按资金形态选至多两条盘后观察(机构口径优先,其次榜单整体/交叉)。"""
+    detail = [r for r in bundle["lhb_detail"] if not _is_bond(r)]
+    picks: list[str] = []
+    if detail:
+        net_total = sum(float(r.get("net_buy_amount") or 0) for r in detail)
+        inst_net = sum(float(r.get("net_amount") or 0) for r in bundle["institutional"]
+                       if r.get("inst_name") == "机构专用")
+        ladder_codes = {s["code"] for t in bundle["boards"] for s in t["stocks"]}
+        cross = len({r.get("code") for r in detail} & ladder_codes)
+        if inst_net > 0:
+            picks.append("机构专用席位净流入的日子,建议把机构口径与营业部分开读——"
+                         "两类席位的持有周期通常不同,合并看会互相稀释信号")
+        if cross >= 4:
+            picks.append("上榜与连板重叠较多时,情绪与资金在共振——交叉页是两份公开数据"
+                         "拼出来的第三张地图")
+        if not picks and net_total < 0:
+            picks.append("榜单整体净流出时,先看流出是集中还是分散——龙虎榜是当日榜单事实,"
+                         "单日净额不构成趋势结论")
+        if not picks and net_total > 0:
+            picks.append("整体净流入时,主攻方向比流入总量更有信息量——净买榜前列的板块归属,"
+                         "值得与天梯的联动页对照着看")
+    if not picks:
+        picks.append(_LHB_DEFAULT_INSIGHT)
+    return picks[:2]
+
 
 
 DEFAULT_STOCKHOT_DB = REPO_ROOT / "storage" / "database" / "stockhot.db"
+
+
+def stockhot_db_path() -> Path:
+    """stockhot.db 解析(env 重定向优先,与 generate 同口径)。"""
+    return Path(os.environ.get("CARDGEN_STOCKHOT_DB", DEFAULT_STOCKHOT_DB))
 
 
 class DailyDataMissing(RuntimeError):
@@ -285,8 +357,10 @@ def build_ladder(day: str, bundle: dict) -> tuple[list[Fact], dict]:
                  {"desc": "<b>今日高度</b> → 见封面与高度明细页"},
                  {"desc": "<b>梯队结构</b> → 高度分层与家数分布,反映当日封板结构"},
                  {"desc": "<b>联动主线</b> → 涨停家数居前板块,反映题材聚集度"}],
-             "kbox": {"date": "栏目定位", "color": "blue",
-                      "html": "本栏目每日盘后从交易所公开数据整理连板梯队——搬运数据,不输出操作指令"},
+             "kbox": {"date": "盘后观察", "color": "blue",
+                      "html": "<br>".join(ladder_insights({"pool": pool, "broken": bundle["broken"],
+                                                           "boards": boards,
+                                                           "prev_boards_max": bundle.get("prev_boards_max")}))},
              "tags": "#连板天梯 #每日复盘 #涨停数据 #市场结构",
              "foot": FOOT_LAST},
         ],
@@ -467,8 +541,8 @@ def build_lhb(day: str, bundle: dict) -> tuple[list[Fact], dict]:
              "rows": (cross_rows and [
                  {"desc": "<b>上榜连板股</b> → 见下表(连板高度 × 龙虎榜净额)"}]
                  or [{"desc": "<b>今日交集为空</b> → 龙虎榜与连板梯队无重叠个股"}]),
-             "kbox": {"date": "栏目定位", "color": "blue",
-                      "html": "本栏目每日盘后整理交易所龙虎榜披露——搬运数据,不输出操作指令"},
+             "kbox": {"date": "盘后观察", "color": "blue",
+                      "html": "<br>".join(lhb_insights(bundle))},
              "tags": "#龙虎榜 #每日复盘 #资金数据 #市场结构",
              "foot": FOOT_LAST},
         ],

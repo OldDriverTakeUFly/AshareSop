@@ -30,8 +30,13 @@ def _ledger_db() -> Path | None:
 
 
 def enqueue_one(kind: str, day: str, proj: Path, topic: str, release: dict) -> bool:
-    """渲染完成后入发稿池(daily.publish_copy 固定文案);发布留人工。"""
-    copy = daily.publish_copy(kind, day)
+    """渲染完成后入发稿池(daily.publish_copy 文案+当日盘后观察);发布留人工。"""
+    try:
+        bundle = daily.fetch_day_bundle(daily.stockhot_db_path(), day)
+        copy = daily.publish_copy(kind, day, bundle)
+    except Exception as e:  # noqa: BLE001 —— 洞察附加失败不阻塞入池,回退静态文案
+        print(f"! {topic} 盘后观察附加失败({e!r}),回退静态文案")
+        copy = daily.publish_copy(kind, day)
     images = ",".join(str(proj / img) if not img.startswith("/") else img
                       for img in release["images"])
     cmd = [sys.executable, str(REPO_ROOT / "scripts" / "content_publisher" / "queue.py"),

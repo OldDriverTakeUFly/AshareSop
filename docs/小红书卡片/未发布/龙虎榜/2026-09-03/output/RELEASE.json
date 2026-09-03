@@ -1,6 +1,6 @@
 {
   "topic": "龙虎榜/2026-09-03",
-  "version": 1,
+  "version": 3,
   "as_of": "2026-09-03",
   "expires_at": "2026-09-03",
   "group": "每日复盘",
@@ -12,7 +12,7 @@
     "output/龙虎榜_2026-09-03_05_机构席位.png",
     "output/龙虎榜_2026-09-03_06_收束.png"
   ],
-  "facts_digest": "sha256:b4f89dd8bf6771ac8e21d2ed18aaea6a73744441001de714478f7e372953a1e7",
+  "facts_digest": "sha256:130a1d82a3b29aca4841bed03542ea8fea9af8add8f0670efaec093961c5ff87",
   "validate": {
     "passed": true,
     "failures": 0
