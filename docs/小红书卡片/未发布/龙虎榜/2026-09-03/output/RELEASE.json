@@ -1,0 +1,21 @@
+{
+  "topic": "龙虎榜/2026-09-03",
+  "version": 1,
+  "as_of": "2026-09-03",
+  "expires_at": "2026-09-03",
+  "group": "每日复盘",
+  "images": [
+    "output/龙虎榜_2026-09-03_01_封面.png",
+    "output/龙虎榜_2026-09-03_02_净买额居前.png",
+    "output/龙虎榜_2026-09-03_03_净卖额居前.png",
+    "output/龙虎榜_2026-09-03_04_活跃营业部.png",
+    "output/龙虎榜_2026-09-03_05_机构席位.png",
+    "output/龙虎榜_2026-09-03_06_收束.png"
+  ],
+  "facts_digest": "sha256:b4f89dd8bf6771ac8e21d2ed18aaea6a73744441001de714478f7e372953a1e7",
+  "validate": {
+    "passed": true,
+    "failures": 0
+  },
+  "cardgen_version": "0.1"
+}
