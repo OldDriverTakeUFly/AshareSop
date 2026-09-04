@@ -54,6 +54,10 @@ PREP_DIR = ROOT.parent.parent / "storage" / "publish_prep"
 # M5(2026-09-04,用户授权「放弃按钮」):人工废稿归档库——同构于活库,行+publish_log 迁入后活池删除
 ARCHIVE_DB = Path(os.environ.get("PUBLISHER_ARCHIVE_DB",
                                  DB.parent / "content_publisher_archive.db"))
+# 归档里「abandon 合成审计行」的保留 id 段下限。保留行按活库原 id 回插,合成行若走自增
+# 会落进活库 id 段,与后续归档的保留行撞主键(实证 2026-09-04:#69 合成行占 id 363,#70 的
+# 日志行同为 363,UNIQUE 冲突)。活库 id 到不了 9 亿,合成行固定取本段即两不相交。
+ABANDON_LOG_ID_BASE = 900_000_000
 
 
 def _conn() -> sqlite3.Connection:
@@ -269,8 +273,11 @@ def abandon(args: argparse.Namespace) -> None:
             arc.execute(f"INSERT INTO publish_log({','.join(f'\"{x}\"' for x in lcols)}) "
                         f"VALUES({','.join('?' for _ in lcols)})",
                         tuple(lg[x] for x in lcols))
-        arc.execute("INSERT INTO publish_log(queue_id, ts, event, detail) VALUES(?,?,?,?)",
-                    (args.id, datetime.now().isoformat(timespec="seconds"), "abandon",
+        # 合成行显式取保留段 id,不用自增(自增会占用活库 id 段,见 ABANDON_LOG_ID_BASE 注释)
+        synth_max = arc.execute("SELECT MAX(id) FROM publish_log").fetchone()[0] or 0
+        synth_id = max(int(synth_max), ABANDON_LOG_ID_BASE - 1) + 1
+        arc.execute("INSERT INTO publish_log(id, queue_id, ts, event, detail) VALUES(?,?,?,?,?)",
+                    (synth_id, args.id, datetime.now().isoformat(timespec="seconds"), "abandon",
                      f"人工放弃(原状态 {r['status']})归档"))
         arc.commit()
     finally:
