@@ -104,3 +104,20 @@ from davis_analyzer.trend import batch_trend
 - **>25% 数据缺失时停止**——报告数据缺口，不粉饰为完整
 - **不复制旧报告表格**——重新取数，数据时效性是研报的生命线
 - **优先一级证据**——政策原文 > 行业协会 > 媒体报道 > 市场信号
+
+## 5. 美国宏观数据取数路径（2026-09-04 实战沉淀）
+
+**场景**：写美国非农/CPI 传导研报需要 BLS 官方序列。**踩坑链**：WebSearch/webReader 共享配额（-429 周月限额）；`bls.gov` 与 `api.bls.gov` 对数据中心 IP 返回 403/Akamai 拒绝；`fred.stlouisfed.org`（fredgraph.csv 公共端点）连接层直接不可达。
+
+**可行 fallback：东方财富数据中心宏观 API**（转引 BLS，无需鉴权，HTTP 可达）：
+
+```
+https://datacenter-web.eastmoney.com/api/data/v1/get?reportName=RPT_ECONOMICVALUE_USANEW
+  &columns=ALL&filter=(INDICATOR_ID="EMG...")&sortColumns=REPORT_DATE&sortTypes=-1
+  &pageSize=40&source=WEB&client=WEB        # 需 UA + Referer: https://data.eastmoney.com/cjsj/
+```
+
+- 美国(还有日/欧/英等，rnames 映射在 `data.eastmoney.com/newstatic/js/cjsj/foreign.js`)常用 INDICATOR_ID：非农新增 `EMG00152118`(单位千人,页面 zoom -1 显示为万)/失业率 `EMG00001039`/CPI同比 `EMG00000733`/核心CPI同比 `EMG00000746`/联邦基金利率上限 `EMG00342250`；全表见 `data.eastmoney.com/cjsj/foreign_0_X.html` 左栏(X=指标序号,页面源码 `pagedata` JSON 含每个指标的 EMG id)。
+- 字段：`VALUE`(本期值) `PRE_VALUE`(前值) `REPORT_DATE`(报告期) `PUBLISH_DATE`(发布日——可反推发布日历与延迟发布，如2025秋停摆期9-10月非农合并12-16发布)。**VALUE 是修正后终值**，与初值(媒体当日快讯)可能差数万——写修正机制案例时初值要另找当日记录锚点。
+- 引用格式：`(3.4%, eastmoney:RPT_ECONOMICVALUE_USANEW:EMG00000733@2026-07)`，并在研报数据来源块声明"东财宏观序列(转引BLS)+查询指纹"。
+- **局限**：二手转载有时差；历史仅数百期(够用)；无预期值(市场预期需另行溯源)。
