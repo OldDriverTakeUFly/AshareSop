@@ -17,6 +17,7 @@
 #   .venv/bin/python scripts/content_publisher/queue.py schedule <id> --at "2026-08-30 20:00"
 #   .venv/bin/python scripts/content_publisher/queue.py due           # 已到点待发布清单
 #   .venv/bin/python scripts/content_publisher/queue.py prep [id]     # 备料(无 id=全部到点项)→ 人工发布 → mark <id> published
+#   .venv/bin/python scripts/content_publisher/queue.py abandon <id>  # 放弃(人工废稿):归档进 content_publisher_archive.db 后活池删除
 from __future__ import annotations
 
 import argparse
@@ -50,6 +51,9 @@ _AUTO_PUBLISH_DISABLED = (
     "自动发帖已停用(2026-08-30 小红书判定账号使用自动化浏览/发布,继续自动化会加重处罚)。\n"
     "改用: queue.py prep [id] 备料 → 人工在官方 App 发布 → queue.py mark <id> published")
 PREP_DIR = ROOT.parent.parent / "storage" / "publish_prep"
+# M5(2026-09-04,用户授权「放弃按钮」):人工废稿归档库——同构于活库,行+publish_log 迁入后活池删除
+ARCHIVE_DB = Path(os.environ.get("PUBLISHER_ARCHIVE_DB",
+                                 DB.parent / "content_publisher_archive.db"))
 
 
 def _conn() -> sqlite3.Connection:
@@ -234,6 +238,51 @@ def mark(args: argparse.Namespace) -> None:
         print(f"#{args.id} → {args.status}")
 
 
+def abandon(args: argparse.Namespace) -> None:
+    """放弃(人工废稿,M5 2026-09-04 用户授权):行连同 publish_log 归档进同构废稿库后活池删除。
+
+    状态机为闭合集不新增状态;published 不可放弃(发布史保留);备料目录一并清理。"""
+    with _conn() as c:
+        r = c.execute("SELECT * FROM publish_queue WHERE id=?", (args.id,)).fetchone()
+        if not r:
+            sys.exit(f"#{args.id} 不存在")
+        if r["status"] == "published":
+            sys.exit(f"#{args.id} 已发布,不可放弃(发布记录保留)")
+        schema = c.execute("SELECT name, sql FROM sqlite_master "
+                           "WHERE name IN ('publish_queue','publish_log')").fetchall()
+        logs = c.execute("SELECT * FROM publish_log WHERE queue_id=?", (args.id,)).fetchall()
+    # 先归档后删活库(幂等):中途崩溃时行仍在活池,重跑 abandon 即可,不丢数据
+    arc = sqlite3.connect(ARCHIVE_DB)
+    try:
+        have = {n for (n,) in arc.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        for name, sql in schema:
+            if name not in have:
+                arc.execute(sql)  # 建表 SQL 原样来自活库(group 为保留字,列名自带双引号)
+        cols = list(r.keys())
+        qcols = ",".join(f'"{x}"' for x in cols)
+        arc.execute(f"DELETE FROM publish_queue WHERE id=?", (args.id,))
+        arc.execute(f"INSERT INTO publish_queue({qcols}) VALUES({','.join('?' for _ in cols)})",
+                    tuple(r[x] for x in cols))
+        arc.execute("DELETE FROM publish_log WHERE queue_id=?", (args.id,))
+        for lg in logs:
+            lcols = list(lg.keys())
+            arc.execute(f"INSERT INTO publish_log({','.join(f'\"{x}\"' for x in lcols)}) "
+                        f"VALUES({','.join('?' for _ in lcols)})",
+                        tuple(lg[x] for x in lcols))
+        arc.execute("INSERT INTO publish_log(queue_id, ts, event, detail) VALUES(?,?,?,?)",
+                    (args.id, datetime.now().isoformat(timespec="seconds"), "abandon",
+                     f"人工放弃(原状态 {r['status']})归档"))
+        arc.commit()
+    finally:
+        arc.close()
+    with _conn() as c:
+        c.execute("DELETE FROM publish_queue WHERE id=?", (args.id,))
+        c.execute("DELETE FROM publish_log WHERE queue_id=?", (args.id,))
+    for d in PREP_DIR.glob(f"*_{args.id}_*"):
+        shutil.rmtree(d, ignore_errors=True)
+    print(f"#{args.id} 已放弃并归档 → {ARCHIVE_DB}(备料目录已清理)")
+
+
 # ── M4 备料(机器备料、人工发布;2026-08-30 平台判定后 M3 自动发稿停用)──
 def _today() -> str:
     return datetime.now().strftime("%Y-%m-%d")
@@ -338,6 +387,7 @@ def main() -> None:
     s = sub.add_parser("schedule"); s.add_argument("id", type=int); s.add_argument("--at", required=True)
     s.set_defaults(func=schedule)
     m = sub.add_parser("mark"); m.add_argument("id", type=int); m.add_argument("status"); m.set_defaults(func=mark)
+    ab = sub.add_parser("abandon"); ab.add_argument("id", type=int); ab.set_defaults(func=abandon)
     l = sub.add_parser("list"); l.add_argument("--status"); l.add_argument("--json", action="store_true")
     l.set_defaults(func=list_queue)
     d = sub.add_parser("due"); d.set_defaults(func=due)

@@ -140,6 +140,12 @@ def api_mark(qid: int, body: MarkBody) -> JSONResponse:
     return _cli("mark", str(qid), body.status)
 
 
+@app.post("/api/queue/{qid}/abandon")
+def api_abandon(qid: int) -> JSONResponse:
+    """放弃(人工废稿,M5 2026-09-04 用户授权):经 queue.py abandon 归档+活池删除。"""
+    return _cli("abandon", str(qid))
+
+
 @app.post("/api/scan")
 def api_scan() -> JSONResponse:
     return _cli("scan")
@@ -243,6 +249,7 @@ if(r.status==='scheduled')acts.push(`<button class="primary" onclick="api('/api/
 if(r.status==='prepped')acts.push(`<button class="copy" onclick="mat(${r.id})">📋 文案</button>`,
 `<button class="primary" onclick="api('/api/queue/${r.id}/mark','POST',{status:'published'})">标记已发</button>`,
 `<button class="danger" onclick="api('/api/queue/${r.id}/mark','POST',{status:'failed'})">失败</button>`);
+if(r.status!=='published')acts.push(`<button class="danger" onclick="abandon(${r.id},this)">放弃</button>`);
 return`<tr><td>${r.id}</td><td>${esc(r.title)}<div style="color:#64748b;font-size:11px">${esc(r.source||'')}</div></td>
 <td>${chip(r.status)}</td><td class="${expCls(r.release_expires)}">${r.release_expires?('至 '+r.release_expires):'—'}</td>
 <td>${esc(r.scheduled_at||'')}</td><td style="white-space:nowrap">${acts.join(' ')}</td></tr>`}).join('')).join('')
@@ -257,6 +264,8 @@ $('cards').innerHTML=cards.map(c=>`<tr><td>${esc(c.topic)} v${c.current_version}
 ||'<tr><td colspan="3" style="color:#64748b">无工程</td></tr>';
 $('ts').textContent='刷新于 '+new Date().toLocaleTimeString()}
 function sched(id){const at=prompt('排期时间(YYYY-MM-DD HH:MM):');if(!at)return;api(`/api/queue/${id}/schedule`,'POST',{at})}
+async function abandon(id,btn){if(btn.dataset.arm){delete btn.dataset.arm;btn.textContent='放弃…';await api(`/api/queue/${id}/abandon`,'POST');return}
+btn.dataset.arm='1';btn.textContent='确认放弃?';setTimeout(()=>{if(btn.isConnected&&btn.dataset.arm){delete btn.dataset.arm;btn.textContent='放弃'}},3000)}
 function cpFallback(txt,done){const t=document.createElement('textarea');t.value=txt;
 t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.select();
 const ok=document.execCommand('copy');t.remove();toast(ok?'✓ 已复制':'✗ 复制失败,请长按手动复制')}
