@@ -1,8 +1,8 @@
 {
   "topic": "南亚新材",
-  "version": 3,
+  "version": 4,
   "as_of": "2026-08-28",
-  "expires_at": "2026-09-04",
+  "expires_at": "2026-09-20",
   "group": "个股研报·AI材料",
   "images": [
     "output/南亚新材_01_封面.png",
@@ -12,7 +12,7 @@
     "output/南亚新材_05_关键日历.png",
     "output/南亚新材_06_结论与风险.png"
   ],
-  "facts_digest": "sha256:4e860fd1080d857650d3d96cd3038373caa2f844c28430c66f4aa183bef74036",
+  "facts_digest": "sha256:8ae7e23bacf7ec3c73fb8daca75ee4ca83ba9d898ab71f907f0319a320ed586d",
   "validate": {
     "passed": true,
     "failures": 0

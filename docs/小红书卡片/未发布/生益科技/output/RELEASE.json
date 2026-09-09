@@ -1,8 +1,8 @@
 {
   "topic": "生益科技",
-  "version": 3,
+  "version": 4,
   "as_of": "2026-08-28",
-  "expires_at": "2026-09-04",
+  "expires_at": "2026-09-20",
   "group": "个股研报·AI材料",
   "images": [
     "output/生益科技_01_封面.png",
@@ -12,7 +12,7 @@
     "output/生益科技_05_关键日历.png",
     "output/生益科技_06_结论与风险.png"
   ],
-  "facts_digest": "sha256:b5f22d4124790191dcd9afb700dbe71c43bbb20340d572c3d1d7bac75fa3d33a",
+  "facts_digest": "sha256:033738ec3c8627be8c6df17e429176f0397cab04025d09f54d86144a18d4e38a",
   "validate": {
     "passed": true,
     "failures": 0

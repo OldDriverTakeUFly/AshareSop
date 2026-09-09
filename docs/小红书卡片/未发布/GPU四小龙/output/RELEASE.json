@@ -1,8 +1,8 @@
 {
   "topic": "GPU四小龙",
-  "version": 6,
+  "version": 7,
   "as_of": "2026-08-28",
-  "expires_at": "2026-09-04",
+  "expires_at": "2026-09-20",
   "group": "产业链调研",
   "images": [
     "output/GPU四小龙_01_封面.png",
@@ -12,7 +12,7 @@
     "output/GPU四小龙_05_关键节点日历.png",
     "output/GPU四小龙_06_结论与风险.png"
   ],
-  "facts_digest": "sha256:5aff9a39ba7556def5f1eec59f036b827b7f17c080b34cc53a71361b33a785f0",
+  "facts_digest": "sha256:6ca5c9e81baa30a119b0705991ee8bd46a12baf2274e674fe8d69fa7991a4c6a",
   "validate": {
     "passed": true,
     "failures": 0

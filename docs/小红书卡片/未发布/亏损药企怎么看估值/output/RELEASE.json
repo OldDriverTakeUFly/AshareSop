@@ -1,8 +1,8 @@
 {
   "topic": "亏损药企怎么看估值",
-  "version": 4,
+  "version": 5,
   "as_of": "2026-08-30",
-  "expires_at": "2026-09-06",
+  "expires_at": "2026-09-20",
   "group": "工具方法",
   "images": [
     "output/亏损药企怎么看估值_01_封面.png",
@@ -10,7 +10,7 @@
     "output/亏损药企怎么看估值_03_四步流程.png",
     "output/亏损药企怎么看估值_04_小结.png"
   ],
-  "facts_digest": "sha256:05876ac02afb39548318810bb21cd6a9f4f0fd1af5a63ec39ab186dc2c0cbb66",
+  "facts_digest": "sha256:c4bc256aac7305c8899fb8a5123607b851ee598fd50a5b38c8697c3235e04dca",
   "validate": {
     "passed": true,
     "failures": 0

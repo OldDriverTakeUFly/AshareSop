@@ -1,8 +1,8 @@
 {
   "topic": "估值分位怎么查",
-  "version": 2,
+  "version": 3,
   "as_of": "2026-08-29",
-  "expires_at": "2026-09-05",
+  "expires_at": "2026-09-20",
   "group": "工具方法",
   "images": [
     "output/估值分位怎么查_01_封面.png",
@@ -11,7 +11,7 @@
     "output/估值分位怎么查_04_真实案例.png",
     "output/估值分位怎么查_05_常见坑.png"
   ],
-  "facts_digest": "sha256:b770670b17bb041038ad1ebbd843f9b53a9c3e999685dc7ac87e97d49c29e312",
+  "facts_digest": "sha256:50b4e4e5a1081c1413a6010f474d99e045f5590aba8ea1fa9b4dfb4509f40bd6",
   "validate": {
     "passed": true,
     "failures": 0

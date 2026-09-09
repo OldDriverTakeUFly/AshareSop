@@ -1,15 +1,15 @@
 {
   "topic": "荣昌生物卡",
-  "version": 2,
+  "version": 3,
   "as_of": "2026-08-30",
-  "expires_at": "2026-09-06",
+  "expires_at": "2026-09-20",
   "group": "个股研报·创新药",
   "images": [
     "output/荣昌生物卡_01_封面.png",
     "output/荣昌生物卡_02_三年三单.png",
     "output/荣昌生物卡_03_结论与风险.png"
   ],
-  "facts_digest": "sha256:41838d5ea5cb4041a453ee68cfa71ab1e1776216c99a83deeb071f94e1fb48aa",
+  "facts_digest": "sha256:343a3f2b61069cca3851959b4a64b8aad48a57353222c32067bf1b771cd59b9a",
   "validate": {
     "passed": true,
     "failures": 0

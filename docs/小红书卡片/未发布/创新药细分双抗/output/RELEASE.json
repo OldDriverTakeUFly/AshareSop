@@ -1,15 +1,15 @@
 {
   "topic": "创新药细分双抗",
-  "version": 5,
+  "version": 6,
   "as_of": "2026-08-30",
-  "expires_at": "2026-09-06",
+  "expires_at": "2026-09-20",
   "group": "产业链调研",
   "images": [
     "output/创新药细分双抗_01_封面.png",
     "output/创新药细分双抗_02_技术阶梯.png",
     "output/创新药细分双抗_03_小结.png"
   ],
-  "facts_digest": "sha256:d402eda720188eeadfa17300c7ad57c42302bc6e19e8cf1c973affd26a006447",
+  "facts_digest": "sha256:d178eb0c78b62aded81f52083f7a4ee5e0af95e36ed4b9f08bbfd9f50b56dae2",
   "validate": {
     "passed": true,
     "failures": 0
