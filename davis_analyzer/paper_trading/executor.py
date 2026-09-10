@@ -679,18 +679,38 @@ def _compute_vol_ratio_250(trade_date: str) -> float | None:
     Returns ratio > 1.0 when volume is above 250d average (放量),
     < 1.0 when below (缩量). None when insufficient data.
     IC=-0.214 for predicting next-month strategy return.
+
+    实现注意(0011): 两步取数——先按索引取目标交易日, 再按日期列表聚合。
+    原单条 "GROUP BY 全历史 + ORDER BY DESC + LIMIT" 在 TEMP VIEW 遮蔽下
+    LIMIT/GROUP BY 无法下推, 会全表物化(实测 5.5s→37.8s/次), 是 0011
+    三腿 9 倍减速的根因; 下界取 420 自然日(≥250 交易日, 覆盖节假日)。
     """
     try:
+        lower = (
+            datetime.strptime(trade_date, "%Y%m%d") - timedelta(days=420)
+        ).strftime("%Y%m%d")
         with get_market_conn() as conn:
+            # step1 纯索引取交易日列表(不带 amount>0, 避免逐行取列)
+            dates = [r[0] for r in conn.execute(
+                "SELECT DISTINCT trade_date FROM daily_price "
+                "WHERE trade_date <= ? AND trade_date >= ? "
+                "ORDER BY trade_date DESC LIMIT 250",
+                (trade_date, lower),
+            ).fetchall()]
+            if len(dates) < 250:
+                return None
+            ph = ",".join("?" * len(dates))
             rows = conn.execute(
-                "SELECT trade_date, SUM(amount) FROM daily_price "
-                "WHERE trade_date <= ? AND amount > 0 "
-                "GROUP BY trade_date ORDER BY trade_date DESC LIMIT 250",
-                (trade_date,),
+                f"SELECT trade_date, SUM(amount) FROM daily_price "
+                f"WHERE trade_date IN ({ph}) AND amount > 0 "
+                "GROUP BY trade_date",
+                dates,
             ).fetchall()
-        if len(rows) < 250:
+        sums = {r[0]: float(r[1]) for r in rows}
+        dates = [d for d in dates if d in sums]  # 与原口径一致: 剔除无 amount>0 行的日期
+        if len(dates) < 250:
             return None
-        vols = [float(r[1]) for r in rows]
+        vols = [sums[d] for d in dates]  # dates 已按日期降序
         avg_20 = sum(vols[:20]) / 20
         avg_250 = sum(vols) / len(vols)
         if avg_250 <= 0:
