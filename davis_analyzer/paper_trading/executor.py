@@ -587,15 +587,21 @@ def _compute_stock_20d_drops(ts_codes: list[str], trade_date: str) -> dict[str, 
             # Batch query: get close prices 20 trading days ago and today
             # for all stocks in one go (much faster than per-stock queries)
             placeholders = ",".join("?" * len(ts_codes))
-            # Latest price for each stock on or before trade_date
+            # 最新交易日: 纯索引 MAX 两步取(0012 修复)。原标量子查询带 vol>0
+            # 在 TEMP VIEW 遮蔽下退化为全历史扫描(实测 ~10s/次, 超跌触发日多次
+            # 调用); vol>0 只会排除"全市场当日零成交"的日期, 实践中不存在,
+            # 外层 close>0 已对个股行做约束。
+            latest = conn.execute(
+                "SELECT MAX(trade_date) FROM daily_price WHERE trade_date <= ?",
+                (trade_date,),
+            ).fetchone()[0]
+            if not latest:
+                return result
             curr_rows = conn.execute(
                 f"""SELECT ts_code, close FROM daily_price
-                    WHERE trade_date = (
-                        SELECT MAX(trade_date) FROM daily_price
-                        WHERE trade_date <= ? AND vol > 0
-                    ) AND ts_code IN ({placeholders})
+                    WHERE trade_date = ? AND ts_code IN ({placeholders})
                     AND close > 0""",
-                [trade_date] + ts_codes,
+                [latest] + ts_codes,
             ).fetchall()
             # Price ~20 trading days ago
             past_date_row = conn.execute(
