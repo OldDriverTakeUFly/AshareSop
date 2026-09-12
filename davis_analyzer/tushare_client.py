@@ -14,6 +14,7 @@ its rows into the new tables.
 """
 
 import json
+import os
 import sqlite3
 import time
 from datetime import date, datetime, timedelta
@@ -110,6 +111,14 @@ class TushareClient:
         # separate short-lived connections in _financial_insert).
         self._cache_conn = sqlite3.connect(str(_CACHE_DB), check_same_thread=False)
         self._cache_conn.execute("PRAGMA journal_mode=WAL")
+        # 研究上下文(0011 幸存者修复补充, 2026-09-12): momentum 等因子经 _cache_conn
+        # 读 daily_price 的快路径此前绕过 market_db 的 TEMP VIEW 钩子, 退市股价格
+        # 不可见 → 动量恒 None → 「买入并退市」价格通道从未被测过。此处同口径挂
+        # 视图(须在 query_only 前建 temp 对象); 写路径走独立连接不受影响;
+        # 默认关 = 实盘零变化。
+        if os.environ.get("MARKET_DB_ATTACH_DELISTED") == "1":
+            from stockhot.data_layer.market_db import _attach_delisted_research_view
+            _attach_delisted_research_view(self._cache_conn)
         self._cache_conn.execute("PRAGMA query_only=1")
         logger.info("TushareClient initialised (rate_limit={}/min)", self._rate_limit)
 
