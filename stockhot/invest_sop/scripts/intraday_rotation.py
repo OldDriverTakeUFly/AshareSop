@@ -47,6 +47,17 @@ from inject_screen_to_paper import _push_rebalance_report, bridge_to_davis_score
 # 与 inject_screen_to_paper.INJECT_ACCOUNTS 保持一致（主仓 + 小仓）
 ROTATION_ACCOUNTS = ["live_factor_test", "mini_100k"]
 
+# ── G2 影子名单（0010 预注册步骤③，2026-09-12 用户拍板启动实盘影子测试）──
+# g2_shadow 账户存在即启用：消费 logs/g2_signals/ 最新 G2 放行名单（数据日须早于
+# 今日＝盘后导出的 T-1 名单，且 ≤4 天），缺名单回退 top20（预注册回退口径）。
+# live_factor_test / mini_100k 的名单路径与打分完全不变——账户存在性即开关，
+# 删除 g2_shadow 账户即整体下线。19:00 inject 的 INJECT_ACCOUNTS 不含 g2_shadow，
+# 影子账户无盘后兜底（14:40 失败当日顺延，可接受）。名单由 scripts/g2_signal_export.py
+# 生产（crontab 18:30 槽，见该脚本 docstring）。
+G2_SHADOW_ACCOUNT = "g2_shadow"
+G2_SIGNAL_DIR = PROJECT_ROOT / "logs" / "g2_signals"
+G2_LIST_MAX_AGE_DAYS = 4
+
 # 尾盘触发时刻：intraday_manager 主循环在 ≥该时刻的周期调用 trigger_rotation，
 # 收盘即止；窗口内失败自动重试（价格源抖动），--force 供人工重放/调试
 ROTATION_TRIGGER = "14:40"
@@ -89,6 +100,37 @@ def _load_latest_top20() -> tuple[str, list[dict]]:
             data = json.loads(p.read_text())
             return d, data.get("top20", [])
     return "", []
+
+
+def _load_latest_g2_list() -> tuple[str, list[dict]]:
+    """加载最新 G2 放行名单（数据日 < 今日 且 ≤4 天），返回 (as_of, entries).
+
+    仅 g2_shadow 账户消费；空名单文件（防守日）也视为有效名单——该日轮动
+    对影子账户无买入候选（预注册 D2：只卖不买），返回非空 as_of + 空列表。
+    """
+    if not G2_SIGNAL_DIR.exists():
+        return "", []
+    today = date.today().strftime("%Y%m%d")
+    best: tuple[str, Path] | None = None
+    for p in G2_SIGNAL_DIR.glob("g2_list_*.json"):
+        d = p.stem.replace("g2_list_", "")
+        if len(d) != 8 or not d.isdigit() or d >= today:
+            continue
+        try:
+            file_day = date(int(d[:4]), int(d[4:6]), int(d[6:]))
+        except ValueError:
+            continue
+        if (date.today() - file_day).days > G2_LIST_MAX_AGE_DAYS:
+            continue
+        if best is None or d > best[0]:
+            best = (d, p)
+    if not best:
+        return "", []
+    try:
+        data = json.loads(best[1].read_text())
+        return best[0], data.get("list", [])
+    except Exception:
+        return "", []
 
 
 def _fallback_close_prices(ts_codes: list[str]) -> dict[str, float]:
@@ -163,15 +205,24 @@ def run_rotation(dry_run: bool = False) -> bool:
     davis_scores = bridge_to_davis_scores(top20)
     print(f"[{today_dash}] 因子基准: top20_screen_{as_of}.json（{len(davis_scores)} 只）")
 
+    # G2 影子名单（仅 g2_shadow 消费；无名单/过期回退 top20）
+    g2_as_of, g2_list = _load_latest_g2_list()
+    davis_scores_g2 = bridge_to_davis_scores(g2_list) if g2_list else {}
+    if g2_as_of:
+        print(f"[{today_dash}] G2 影子名单: g2_list_{g2_as_of}.json（{len(davis_scores_g2)} 只放行）")
+    else:
+        print(f"[{today_dash}] G2 影子名单: 无有效文件（g2_shadow 回退 top20 基准）")
+
     # ── 收集全部需要定价的代码（持仓 + 候选）──
     accounts: dict[str, PaperAccount] = {}
-    pending_codes: set[str] = set(davis_scores.keys())
-    for name in ROTATION_ACCOUNTS:
+    pending_codes: set[str] = set(davis_scores.keys()) | set(davis_scores_g2.keys())
+    for name in [*ROTATION_ACCOUNTS, G2_SHADOW_ACCOUNT]:
         try:
             acc = PaperAccount.load(name)
         except ValueError as e:
-            print(f"[{today_dash}] [WARN] 账户 {name} 不存在: {e}")
-            continue
+            if name != G2_SHADOW_ACCOUNT:
+                print(f"[{today_dash}] [WARN] 账户 {name} 不存在: {e}")
+            continue  # g2_shadow 不存在＝影子测试未启用，静默跳过（存在性即开关）
         accounts[name] = acc
         pending_codes.update(p.ts_code for p in acc.get_positions())
 
@@ -196,7 +247,9 @@ def run_rotation(dry_run: bool = False) -> bool:
     completed = True
     for name, acc in accounts.items():
         try:
-            ok = _rotate_one(acc, davis_scores, prices_ts, pct_map, today, dry_run)
+            scores = (davis_scores_g2 if (name == G2_SHADOW_ACCOUNT and davis_scores_g2)
+                      else davis_scores)
+            ok = _rotate_one(acc, scores, prices_ts, pct_map, today, dry_run)
             if not ok:
                 completed = False
         except Exception as e:
