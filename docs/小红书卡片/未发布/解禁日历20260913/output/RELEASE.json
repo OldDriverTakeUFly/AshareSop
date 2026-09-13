@@ -1,0 +1,19 @@
+{
+  "topic": "解禁日历20260913",
+  "version": 2,
+  "as_of": "2026-09-13",
+  "expires_at": "2026-10-13",
+  "group": "解禁日历",
+  "images": [
+    "output/解禁日历20260913_01_封面.png",
+    "output/解禁日历20260913_02_双峰.png",
+    "output/解禁日历20260913_03_板块.png",
+    "output/解禁日历20260913_04_小结.png"
+  ],
+  "facts_digest": "sha256:67cd4cee141ea2d93a24b14b208621ebf9eaa05667abfea3840bf8fa71490949",
+  "validate": {
+    "passed": true,
+    "failures": 0
+  },
+  "cardgen_version": "0.1"
+}

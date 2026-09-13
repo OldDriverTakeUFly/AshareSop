@@ -1,0 +1,75 @@
+<!DOCTYPE html><html lang='zh-CN'><head><meta charset='UTF-8'><style>  * { margin:0; padding:0; box-sizing:border-box; font-family:'Noto Sans CJK SC','PingFang SC','Microsoft YaHei',sans-serif; }
+  body { background:#e8e8e8; display:flex; flex-direction:column; align-items:center; gap:40px; padding:40px 0; }
+  .card { width:1080px; height:1440px; border-radius:48px; position:relative; overflow:hidden; padding:48px 56px; display:flex; flex-direction:column; }
+  .card1 { background:linear-gradient(160deg,#1a1440 0%,#3b1d6e 45%,#8a2be2 100%); color:#fff; }
+  .card2 { background:#fdf6ec; color:#3a2e20; }
+  .card3 { background:#eef4ff; color:#1e2a44; }
+  .card4 { background:#fff1f0; color:#4a1f1c; }
+  .card5 { background:#f0fbf2; color:#1d3a24; }
+  .card6 { background:#f7f3ff; color:#2e2440; }
+  .tag-top { display:inline-block; background:#ff2442; color:#fff; font-size:30px; font-weight:900; padding:12px 30px; border-radius:999px; letter-spacing:2px; width:fit-content; }
+  .badge { display:inline-block; font-size:26px; font-weight:800; padding:8px 22px; border-radius:999px; margin-right:12px; }
+  .b-purple{background:rgba(138,43,226,.18);color:#6b21a8;} .b-blue{background:rgba(37,99,235,.14);color:#1d4ed8;}
+  .b-red{background:rgba(220,38,38,.12);color:#b91c1c;} .b-green{background:rgba(22,163,74,.14);color:#15803d;}
+  .b-org{background:rgba(234,88,12,.15);color:#c2410c;} .b-gray{background:rgba(0,0,0,.07);color:#555;}
+  h1 { font-size:96px; font-weight:900; line-height:1.18; margin:28px 0 10px; letter-spacing:1px; }
+  .sub { font-size:42px; font-weight:700; opacity:.92; line-height:1.5; }
+  .hl { background:linear-gradient(transparent 62%, rgba(255,210,0,.85) 62%); padding:0 6px; }
+  .hl-r { background:linear-gradient(transparent 62%, rgba(255,77,109,.55) 62%); padding:0 6px; }
+  .big-num { font-size:150px; font-weight:900; line-height:1; letter-spacing:-2px; }
+  h2.title { font-size:56px; font-weight:900; margin-bottom:8px; line-height:1.25; }
+  .subtitle { font-size:30px; font-weight:600; opacity:.65; margin-bottom:24px; }
+  .row { background:#fff; border-radius:28px; padding:20px 28px; margin-bottom:16px; box-shadow:0 6px 24px rgba(0,0,0,.06); }
+  .row .name { font-size:36px; font-weight:900; margin-bottom:8px; display:flex; align-items:center; gap:14px; flex-wrap:wrap;}
+  .row .desc { font-size:26px; line-height:1.48; }
+  .dot { width:24px; height:24px; border-radius:50%; display:inline-block; }
+  table { width:100%; border-collapse:separate; border-spacing:0; background:#fff; border-radius:26px; overflow:hidden; font-size:26px; box-shadow:0 6px 24px rgba(0,0,0,.06); }
+  th { background:#2a2050; color:#fff; font-weight:800; padding:16px 12px; font-size:25px; }
+  td { padding:14px 12px; text-align:center; border-bottom:1px solid #f0ecf5; line-height:1.35; }
+  td.l { text-align:left; font-weight:800; }
+  tr:last-child td { border-bottom:none; }
+  .up{color:#dc2626;font-weight:800;} .down{color:#16a34a;font-weight:800;} .warn{color:#d97706;font-weight:800;}
+  .kbox { background:#fff; border-radius:26px; padding:20px 28px; margin-bottom:14px; box-shadow:0 6px 24px rgba(0,0,0,.06); display:flex; gap:20px; align-items:flex-start; }
+  .kdate { min-width:165px; background:#16a34a; color:#fff; font-weight:900; font-size:27px; border-radius:16px; text-align:center; padding:12px 0; line-height:1.3;}
+  .kdate.red{background:#dc2626;} .kdate.org{background:#ea580c;} .kdate.pu{background:#7c3aed;}
+  .ktext { font-size:26px; line-height:1.48; padding-top:4px;}
+  .ktext b { font-size:27px; }
+  .quote { background:rgba(255,255,255,.14); border-left:8px solid #ffd400; border-radius:0 22px 22px 0; padding:22px 26px; font-size:30px; line-height:1.55; font-weight:600; }
+  .foot { margin-top:auto; font-size:21px; opacity:.6; line-height:1.45; }
+  .tags { font-size:25px; font-weight:700; opacity:.85; margin-top:20px; }
+  .card5 .ktext { font-size:25px; line-height:1.42; }
+  .card5 .kdate { min-width:150px; font-size:25px; }
+  .card5 .kbox { padding:16px 24px; gap:16px; margin-bottom:12px; }
+  .card5 .ktext b { font-size:26px; }
+  .card2 .row .desc { font-size:25px; line-height:1.45; }
+  .card2 .row .name { font-size:34px; }
+  .num-badge { display:flex; gap:26px; margin:34px 0 8px; }
+  .nb { background:rgba(255,255,255,.12); border-radius:26px; padding:24px 30px; flex:1; }
+  .nb .v { font-size:58px; font-weight:900; color:#ffd400; }
+  .nb .k { font-size:25px; opacity:.85; margin-top:6px; }
+</style><style class='cardgen-fill'>.card{justify-content:space-between;}.card>.foot{margin-top:0 !important;}</style></head><body><div class="card card1" id="card1">
+<span class="tag-top" style="background:#ff2442;">解禁日历 · 数据卡</span>
+<h1>未来一年解禁地图<br>两个峰,一种错觉🔓</h1>
+<div class="sub" style="margin-top:24px;">群体峰与孤峰<br>应对完全不同</div>
+<div class="num-badge"><div class="nb"><div class="v">61698亿</div><div class="k">待解禁上限(元)</div></div><div class="nb"><div class="v">260个</div><div class="k">大额事件数</div></div><div class="nb"><div class="v">93.4%</div><div class="k">孤峰之王占总股本</div></div></div>
+<div style="margin-top:30px;"><div class="quote" style="background:rgba(255,255,255,.14);color:inherit;border-left-color:#ffd400;font-size:30px;">"<span style='color:#ffd400'>解禁的正确打开方式</span>——不看月份看占比,不看金额看股东;伤害常在解禁前,不在解禁后"</div></div>
+<div class="tags">#解禁 #数据卡 #风险管理 #研究方法</div><div class="foot">数据来源:解禁日历管线(share_float公告+锁定规则推导,上限口径) · 仅供研究参考,不构成投资建议</div></div><div class="card card3" id="card2">
+<span class="tag-top" style="background:#2563eb;">月度双峰</span>
+<h2 class="title" style="margin-top:24px;">两个集中区的真结构</h2>
+<div class="subtitle">一个是群体,一个是孤峰</div>
+<table><tr><th style=text-align:left>月份</th><th>金额(元)</th><th>构成</th></tr><tr><td class="l">十二月峰</td><td class="">4776亿</td><td class="">半导体次新群体</td></tr><tr><td class="l">峰内事件数</td><td class="">31家</td><td class="">密集到期</td></tr><tr><td class="l">代表:摩尔线程</td><td class="up">1482亿</td><td class="">88.1%</td></tr><tr><td class="l">七月峰</td><td class="">36630亿</td><td class="">孤峰单点主导</td></tr><tr><td class="l">孤峰:长鑫科技</td><td class="up">35956亿</td><td class="up">93.4%</td></tr></table>
+<div style="margin-top:30px;"><div class="kbox"><div class="kdate" style="background:#dc2626;">怎么读</div><div class="ktext">剔除孤峰后七月其实是小月——<b>群体峰影响的是整个板块的供给节奏,孤峰只影响单只个股</b>;两者混为一谈就会错配应对</div></div></div>
+<div class="foot">数据来源:解禁日历管线(上限口径) · 仅供研究参考,不构成投资建议</div></div><div class="card card5" id="card3">
+<span class="tag-top" style="background:#16a34a;">板块分布</span>
+<h2 class="title" style="margin-top:24px;">半导体:一类占七成三</h2>
+<div class="subtitle">IPO潮的账单集中到期</div>
+<table><tr><th style=text-align:left>板块/公司</th><th>事件数</th><th>金额(元)</th></tr><tr><td class="l">半导体板块</td><td class="">23家</td><td class="up">45267亿</td></tr><tr><td class="l">占全期金额</td><td class="">——</td><td class="up">73%</td></tr><tr><td class="l">盛合晶微(次年四月)</td><td class="">——</td><td class="">2225亿</td></tr></table>
+<div style="margin-top:30px;"><div class="kbox"><div class="kdate" style="background:#dc2626;">怎么读</div><div class="ktext">半导体解禁额被孤峰主导,但<b>剔除孤峰仍是第一大板块</b>——存储、GPU、设备、材料的次新锁定股连续到期,板块供给压力是连续而非单点</div></div></div>
+<div class="foot">数据来源:解禁日历管线(占比与金额双门槛筛过的大额事件) · 仅供研究参考,不构成投资建议</div></div><div class="card card6" id="card4">
+<span class="tag-top" style="background:#0f172a;">一句话收束</span>
+<h2 class="title" style="margin-top:24px;">数据说了算</h2>
+<div class="subtitle">五十三个已实现解禁的实证</div>
+<div class="row"><div class="desc"><b>伤害在解禁前</b>——前二十个交易日相对大盘跑输比例 77%,超额中位 -5.4%:市场抢跑定价,不是解禁当日才跌</div></div><div class="row"><div class="desc"><b>解禁后是抛硬币</b>——后二十日跑输比例 53%,约等于随机;悬顶之剑落地,样本里反而有修复</div></div><div class="row"><div class="desc"><b>占比才是实质变量</b>——占比过半的子集尾部更深;占比两三成的多数事件几乎无感</div></div><div class="row"><div class="desc"><b>名单思维不如占比思维</b>——大额事件里占比过半的 151 个才是重点:同一张日历,先看占总股本比例再谈应对</div></div>
+<div style="margin-top:14px;"><div class="kbox"><div class="kdate" style="background:#2563eb;">定位</div><div class="ktext">本卡是信息整理不是操作指令:解禁只是「可流通」,股东性质(国资/创投/实控人)决定真实供给——沿着数据去研究,而不是照着日历恐慌</div></div></div>
+<div style="margin-top:8px;"></div>
+<div class="foot">数据来源:解禁日历管线+事件研究(样本与口径见报告) · 不构成投资建议,市场有风险,投资需谨慎</div></div></body></html>
