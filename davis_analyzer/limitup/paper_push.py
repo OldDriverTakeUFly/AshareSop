@@ -16,9 +16,11 @@ from loguru import logger
 from davis_analyzer.config import LIMITUP_REPORTS_DIR
 
 # (账户名, 展示标签)——如需纳入 gx_* / abtest_* 臂，在此追加即可
+# chase_shadow(影子E 首板隔夜, 2026-09-13 上线): 与 fb 双臂同策略族, 纳入日报
 ARMS: list[tuple[str, str]] = [
     ("fb_base", "基准"),
     ("fb_enhanced", "增强"),
+    ("chase_shadow", "影子E"),
 ]
 
 _MARKER_DIR = Path(__file__).parent / "logs"

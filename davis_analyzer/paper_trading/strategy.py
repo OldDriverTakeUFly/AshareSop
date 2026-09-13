@@ -1389,7 +1389,9 @@ class BoardChasingStrategy:
 
     def __init__(self, enhanced_filter: bool = False, max_positions: int = 3,
                  max_consecutive_losses: int = 5, loss_pause_days: int = 3,
-                 daily_loss_limit_pct: float = 2.0) -> None:
+                 daily_loss_limit_pct: float = 2.0,
+                 max_new_per_day: int | None = None,
+                 max_single_weight: float | None = None) -> None:
         self._enhanced = enhanced_filter
         self.max_positions = max_positions
         self._cache_date: str | None = None
@@ -1398,6 +1400,11 @@ class BoardChasingStrategy:
         self.max_consecutive_losses = max_consecutive_losses
         self.loss_pause_days = loss_pause_days
         self.daily_loss_limit_pct = daily_loss_limit_pct
+        # 影子E尾部风控(2026-09-13 复盘落地, 默认 None=行为与 fb 回放完全一致):
+        # max_new_per_day: 同日新开仓上限(相关性尾部——2026-05 单月-31%为多仓同向);
+        # max_single_weight: 单票权重上限(连板跌停锁仓情景下的单日冲击上限).
+        self.max_new_per_day = max_new_per_day
+        self.max_single_weight = max_single_weight
         # 运行时状态
         self._consecutive_losses = 0
         self._pause_until: str | None = None  # YYYYMMDD
@@ -1546,6 +1553,10 @@ class BoardChasingStrategy:
 
         weight = 1.0 / day_max_positions
         slots = day_max_positions
+        if self.max_new_per_day is not None:
+            slots = min(slots, self.max_new_per_day)   # 影子E: 同日新开上限
+        if self.max_single_weight is not None:
+            weight = min(weight, self.max_single_weight)  # 影子E: 单票权重上限
         for _, row in cands.iterrows():
             if slots <= 0:
                 break
