@@ -60,7 +60,8 @@ def enqueue_one(kind: str, day: str, proj: Path, topic: str, release: dict) -> b
     return True
 
 
-def run_one(kind: str, day: str, do_render: bool, do_enqueue: bool = False) -> bool:
+def run_one(kind: str, day: str, do_render: bool, do_enqueue: bool = False,
+            do_push: bool = False) -> bool:
     try:
         proj, topic, report = daily.generate(kind, day, _projects_root(), _ledger_db())
     except daily.DailyDataMissing as e:
@@ -87,7 +88,53 @@ def run_one(kind: str, day: str, do_render: bool, do_enqueue: bool = False) -> b
     if do_enqueue:
         if not enqueue_one(kind, day, proj, topic, release):
             return False
+    if do_push:
+        if not push_one(kind, day, proj, topic, release):
+            return False
     return True
+
+
+def push_one(kind: str, day: str, proj: Path, topic: str, release: dict) -> bool:
+    """渲染完成后推「红薯财经博主运营」群(封面图+发稿文案);失败不阻断入池结果,只告警。
+
+    幂等锁 logs/.xhs_card_push/{day}_{kind}.ok——当日该品类已推过则跳过。"""
+    lock_dir = REPO_ROOT / "logs" / ".xhs_card_push"
+    lock = lock_dir / f"{day}_{kind}.ok"
+    if lock.exists():
+        print(f"✓ {topic} 当日已推过群,跳过({lock.name})")
+        return True
+    import asyncio
+    try:
+        bundle = daily.fetch_day_bundle(daily.stockhot_db_path(), day)
+        copy = daily.publish_copy(kind, day, bundle)
+    except Exception:  # noqa: BLE001 —— 与 enqueue_one 同口径,回退静态文案
+        copy = daily.publish_copy(kind, day)
+    try:
+        from stockhot.notification.feishu_bot import EnterpriseFeishuNotifier
+        from dotenv import load_dotenv
+        load_dotenv(REPO_ROOT / ".env")
+        chat = os.environ.get("FEISHU_XHS_CHAT_ID", "")
+        if not chat:
+            print("! 未配置 FEISHU_XHS_CHAT_ID,跳过群推送")
+            return True
+
+        async def _send() -> None:
+            n = EnterpriseFeishuNotifier(os.environ["FEISHU_APP_ID"],
+                                         os.environ["FEISHU_APP_SECRET"], chat)
+            for img in release["images"]:
+                p = proj / img
+                if p.exists():
+                    await n.send_image(str(p))
+            await n.send_text(f"【{day} 复盘卡】{copy['title']}\n\n{copy['body']}\n\n{copy['tags']}\n"
+                              "— 入池待审,发布仍人工")
+        asyncio.run(_send())
+        lock_dir.mkdir(parents=True, exist_ok=True)
+        lock.write_text(datetime.now().isoformat(timespec="seconds"), encoding="utf-8")
+        print(f"✓ {topic} 已推红薯运营群({len(release['images'])} 图)")
+        return True
+    except Exception as e:  # noqa: BLE001 —— 推送失败不影响出卡与入池
+        print(f"! {topic} 群推送失败({e!r}),卡片与入池不受影响")
+        return True
 
 
 def main() -> None:
@@ -97,9 +144,11 @@ def main() -> None:
     ap.add_argument("--no-render", action="store_true", help="只生成+validate,不渲染(调试用)")
     ap.add_argument("--enqueue", action="store_true",
                     help="渲染成功后入发稿池(固定文案,发布仍留人工)")
+    ap.add_argument("--push", action="store_true",
+                    help="渲染成功后推红薯运营群(封面图+文案,发布仍留人工)")
     args = ap.parse_args()
-    kinds = ["ladder", "lhb"] if args.type == "all" else [args.type]  # thermo 单独跑(19:35 温度数据就绪后)
-    ok = all(run_one(k, args.date, not args.no_render, args.enqueue) for k in kinds)
+    kinds = ["ladder", "lhb"] if args.type == "all" else args.type  # thermo 单独跑(19:35 温度数据就绪后)
+    ok = all(run_one(k, args.date, not args.no_render, args.enqueue, args.push) for k in kinds)
     sys.exit(0 if ok else 1)
 
 

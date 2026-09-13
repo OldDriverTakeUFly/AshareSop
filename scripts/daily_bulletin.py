@@ -249,6 +249,41 @@ def push_radar_feishu(day: str, lines: list[str], n_do: int, n_skip: int, *, for
     return 0
 
 
+def push_bulletin_xhs(day: str, lines: list[str], n_do: int, n_skip: int, *, force: bool) -> int:
+    """2026-09-13:把公告总结推「红薯财经博主运营」专用群(FEISHU_XHS_CHAT_ID)。
+
+    独立幂等锁 {day}_xhs.ok,与盯盘群推送互不影响;未配置专用群时静默跳过。"""
+    import os as _os
+    import sys as _sys
+    from dotenv import load_dotenv
+    load_dotenv(REPO / ".env")
+    lock = _PUSH_LOCK_DIR / f"{day}_xhs.ok"
+    if not force and lock.exists():
+        print(f"{day} 红薯群已推送过,跳过(--force 可重推)")
+        return 0
+    if str(REPO) not in _sys.path:
+        _sys.path.insert(0, str(REPO))
+    chat = _os.environ.get("FEISHU_XHS_CHAT_ID", "")
+    if not (chat and _os.environ.get("FEISHU_APP_ID") and _os.environ.get("FEISHU_APP_SECRET")):
+        print("未配置 FEISHU_XHS_CHAT_ID(或应用凭证),跳过红薯群推送")
+        return 0
+    from stockhot.notification.feishu_bot import EnterpriseFeishuNotifier
+    text = "📕 " + build_feishu_text(day, lines, n_do, n_skip).replace(
+        "🤖 每日 21:35 自动推送 · 公告雷达=研报选题入口,不做卡",
+        "🤖 公告日报选题推送 · 卡片制作入池后仍需人工发布")
+    try:
+        notifier = EnterpriseFeishuNotifier(_os.environ["FEISHU_APP_ID"],
+                                            _os.environ["FEISHU_APP_SECRET"], chat)
+        asyncio.run(notifier.send_text(text))
+    except Exception as e:  # noqa: BLE001
+        print(f"[WARN] 红薯群推送失败: {type(e).__name__}: {e}")
+        return 1
+    _PUSH_LOCK_DIR.mkdir(parents=True, exist_ok=True)
+    lock.write_text(f"pushed at {datetime.now().isoformat()}\n", encoding="utf-8")
+    print(f"{day} ✓ 已推送红薯运营群({len(text)} 字符)")
+    return 0
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--date", default=datetime.now().strftime("%Y%m%d"))
@@ -256,6 +291,8 @@ def main() -> None:
     ap.add_argument("--no-radar", action="store_true", help="只跑 watchlist,不跑全市场雷达")
     ap.add_argument("--radar-top", type=int, default=15, help="雷达 Top N,默认 15")
     ap.add_argument("--feishu", action="store_true", help="生成后推送飞书群(stockhot 通道,按日幂等)")
+    ap.add_argument("--feishu-xhs", action="store_true",
+                    help="生成后另推「红薯财经博主运营」专用群(独立幂等锁,可与 --feishu 同时)")
     ap.add_argument("--force", action="store_true", help="忽略当日推送锁,强制重推")
     ap.add_argument("--dry", action="store_true", help="只打印推送文本不发送(联调用)")
     args = ap.parse_args()
@@ -296,7 +333,7 @@ def main() -> None:
     out.write_text("\n".join(lines), encoding="utf-8")
     print(summary)
 
-    if args.dry or args.feishu:
+    if args.dry or args.feishu or args.feishu_xhs:
         if radar_stats.get("total", 0) == 0 and n_do == 0:
             print(f"{day} 全市场零公告(休市?),跳过飞书推送")
             return
@@ -304,7 +341,12 @@ def main() -> None:
             print("---- feishu dry run ----")
             print(build_feishu_text(day, lines, n_do, n_skip))
             return
-        raise SystemExit(push_radar_feishu(day, lines, n_do, n_skip, force=args.force))
+        if args.feishu:
+            rc = push_radar_feishu(day, lines, n_do, n_skip, force=args.force)
+            if rc:
+                raise SystemExit(rc)
+        if args.feishu_xhs:
+            raise SystemExit(push_bulletin_xhs(day, lines, n_do, n_skip, force=args.force))
 
 
 if __name__ == "__main__":
