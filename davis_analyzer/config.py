@@ -22,6 +22,10 @@ TOURNAMENT_REPORTS_DIR = PROJECT_ROOT / "davis_analyzer" / "tournament" / "repor
 
 TOURNAMENT_REPORTS_DIR.mkdir(parents=True, exist_ok=True)
 
+THERMOMETER_REPORTS_DIR = PROJECT_ROOT / "davis_analyzer" / "thermometer" / "reports"
+
+THERMOMETER_REPORTS_DIR.mkdir(parents=True, exist_ok=True)
+
 
 def get_tushare_token() -> str:
     """Read Tushare Pro API token from environment variables (.env).

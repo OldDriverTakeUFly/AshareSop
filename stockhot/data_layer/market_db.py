@@ -412,6 +412,99 @@ _SCHEMA_STATEMENTS: list[str] = [
         rows_affected INTEGER,
         created_at    REAL
     )""",
+    # ═══ 板块温度计子系统(davis_analyzer/thermometer)════════════════════
+    # 申万行业分类缓存(L1 31 + L2 134,SW2021 口径,每周刷新)
+    """CREATE TABLE IF NOT EXISTS sw_index (
+        index_code  TEXT PRIMARY KEY,
+        name        TEXT,
+        level       TEXT,             -- 'L1' / 'L2'
+        parent_code TEXT,
+        src         TEXT,
+        is_pub      TEXT,
+        fetched_at  REAL
+    )""",
+    # 申万指数日线(2022-01-04 起 SW2021 稳定口径;按 trade_date 全量 439 指数回补)
+    """CREATE TABLE IF NOT EXISTS sw_daily (
+        ts_code    TEXT NOT NULL,
+        trade_date TEXT NOT NULL,
+        open  REAL, high REAL, low REAL, close REAL NOT NULL,
+        vol   REAL, amount REAL, pct_change REAL,
+        fetched_at REAL,
+        PRIMARY KEY (ts_code, trade_date)
+    )""",
+    # 申万成分(含 in/out 日期;snapshot_date 周级快照,温度用最新快照)
+    """CREATE TABLE IF NOT EXISTS sw_member (
+        index_code    TEXT NOT NULL,
+        con_code      TEXT NOT NULL,
+        in_date       TEXT,
+        out_date      TEXT,
+        is_new        TEXT,
+        snapshot_date TEXT NOT NULL,
+        PRIMARY KEY (index_code, con_code, snapshot_date)
+    )""",
+    # 板块主力资金流日频(moneyflow 按 sw_member 成分自聚合;金额单位万元,Decimal 求和)
+    """CREATE TABLE IF NOT EXISTS sector_moneyflow_daily (
+        level        TEXT NOT NULL,
+        index_code   TEXT NOT NULL,
+        trade_date   TEXT NOT NULL,
+        main_net     REAL,
+        huge_net     REAL,
+        big_net      REAL,
+        mkt_cap      REAL,
+        main_net_pct REAL,
+        fetched_at   REAL,
+        PRIMARY KEY (level, index_code, trade_date)
+    )""",
+    # 同花顺概念指数列表/日线/成分(概念层只建数据,不参与 v1 温度评分)
+    """CREATE TABLE IF NOT EXISTS ths_index (
+        ts_code   TEXT PRIMARY KEY,
+        name      TEXT,
+        count     INTEGER,
+        exchange  TEXT,
+        list_date TEXT,
+        type      TEXT,
+        fetched_at REAL
+    )""",
+    """CREATE TABLE IF NOT EXISTS ths_daily (
+        ts_code    TEXT NOT NULL,
+        trade_date TEXT NOT NULL,
+        open REAL, high REAL, low REAL, close REAL NOT NULL,
+        pre_close REAL, pct_change REAL, vol REAL, turnover_rate REAL,
+        fetched_at REAL,
+        PRIMARY KEY (ts_code, trade_date)
+    )""",
+    """CREATE TABLE IF NOT EXISTS ths_member (
+        ts_code       TEXT NOT NULL,
+        con_code      TEXT NOT NULL,
+        con_name      TEXT,
+        snapshot_date TEXT NOT NULL,
+        PRIMARY KEY (ts_code, con_code, snapshot_date)
+    )""",
+    # 板块温度(五族分+复合z+温度;L1/L2 各自截面铺满 0-100)
+    """CREATE TABLE IF NOT EXISTS thermometer_sector (
+        trade_date TEXT NOT NULL,
+        level      TEXT NOT NULL,
+        index_code TEXT NOT NULL,
+        name       TEXT,
+        mom_score REAL, flow_score REAL, vol_score REAL,
+        trend_score REAL, limit_score REAL,
+        composite_z REAL,
+        temperature REAL,
+        delta_temp5 REAL,
+        hot_streak INTEGER,
+        fetched_at REAL,
+        PRIMARY KEY (trade_date, level, index_code)
+    )""",
+    # 大盘温度(五维扩展窗口分位 → 0-100 + 五档标签)
+    """CREATE TABLE IF NOT EXISTS thermometer_market (
+        trade_date TEXT PRIMARY KEY,
+        trend_dim REAL, width_dim REAL, volume_dim REAL,
+        flow_dim REAL, sentiment_dim REAL,
+        temperature REAL,
+        regime_label TEXT,
+        detail TEXT,
+        fetched_at REAL
+    )""",
 ]
 
 

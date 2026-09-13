@@ -302,3 +302,24 @@ TOURNAMENT_DAVIS_PRESETS: dict[str, dict[str, float]] = {
 
 # 现任冠军参数（部署态；由 champions deploy 流程人工同步，初始为空）
 CHAMPION_PRESETS: dict[str, dict[str, float]] = {}
+
+# ── 板块温度计权重(spec 2026-09-13;校准后按校准报告更新,勿运行时修改) ──
+THERMOMETER_WEIGHTS: dict[str, float] = {
+    "momentum": 0.25, "flow": 0.30, "volume": 0.20, "trend": 0.15, "limit": 0.10,
+}
+# 每族内 (水平, 斜率) 权重
+THERMOMETER_FAMILY_INNER_WEIGHTS: dict[str, tuple[float, float]] = {
+    "momentum": (0.6, 0.4), "flow": (0.6, 0.4), "volume": (0.5, 0.5),
+    "trend": (0.6, 0.4), "limit": (0.6, 0.4),
+}
+# 量价交互衰减系数:放量同向 1.0 / 缩量同向 0.7 / 价格反向 0.3
+THERMOMETER_PRICE_VOLUME_DECAY: dict[str, float] = {
+    "amplified_same": 1.0, "shrinking_same": 0.7, "opposite": 0.3,
+}
+THERMOMETER_MARKET_DIM_WEIGHTS: dict[str, float] = {
+    "trend": 0.2, "width": 0.2, "volume": 0.2, "flow": 0.2, "sentiment": 0.2,
+}
+# 预测力验收线(spec §8.2,样本外 walk-forward)
+THERMOMETER_CALIBRATION_TARGETS: dict[str, float] = {
+    "min_ic": 0.03, "min_icir": 0.25, "spread_pvalue": 0.05,
+}
