@@ -349,3 +349,13 @@ python -m davis_analyzer.cli deep-research --top N
 `TOURNAMENT_ALLOCATOR_TAU`（0.5）与权重夹限 `TOURNAMENT_WEIGHT_BOUNDS`（0.05-0.50）为裁判
 参数，**永不可被进化触碰**（反环化规则）；晋升门槛与进化参数见 `constants.py` TOURNAMENT_*
 段。修改任何 TOURNAMENT_* 常量必须 bump SOP 版本号并记入 tournament_ledger。
+
+## 板块温度计（thermometer）参数 — v1（2026-09-13 建立）
+
+- 族权重 `THERMOMETER_WEIGHTS`：momentum 0.25 / flow 0.30 / volume 0.20 / trend 0.15 / limit 0.10（先验值）。
+- 族内 (水平, 斜率) 权重 `THERMOMETER_FAMILY_INNER_WEIGHTS`：momentum/flow/trend/limit = (0.6, 0.4)，volume = (0.5, 0.5)。
+- 量价交互衰减 `THERMOMETER_PRICE_VOLUME_DECAY`：放量同向 1.0 / 缩量同向 0.7 / 价格反向 0.3。
+- 大盘五维权重 `THERMOMETER_MARKET_DIM_WEIGHTS`：五维等权 0.2；扩展窗口分位锚定，最少 250 交易日历史。
+- 验收线 `THERMOMETER_CALIBRATION_TARGETS`：样本外 walk-forward rank IC ≥ 0.03 且 ICIR ≥ 0.25，五分位 top-bottom 10 日价差单边 p < 0.05。
+
+温度合成路径：子指标 → 当日横截面 z（clip ±3）→ 族内水平/斜率加权 → 族间加权 composite_z → 截面百分位 ×100。**温度只测温不决策**；权重为单一真相源（`constants.py`，运行时禁止修改），校准依据见 `thermometer/reports/` 校准报告，未达验收线禁止部署评分入口（spec §8.4）。
