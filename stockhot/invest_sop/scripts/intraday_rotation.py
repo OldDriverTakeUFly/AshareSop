@@ -58,6 +58,14 @@ G2_SHADOW_ACCOUNT = "g2_shadow"
 G2_SIGNAL_DIR = PROJECT_ROOT / "logs" / "g2_signals"
 G2_LIST_MAX_AGE_DAYS = 4
 
+# ── D 影子:戴维斯困境反转(2026-09-13 用户批准开工)──
+# 消费架构与 G2 影子完全同构: 账户存在性即开关, 名单文件存在即用(空名单=只卖
+# 不买), 无有效文件回退 top20。名单由 scripts/distress_signal_export.py 生产
+# (crontab 18:40 槽): 深回撤≤-40% × PE/PB 3年分位<30% × ΔG>0/上升拐点。
+DISTRESS_SHADOW_ACCOUNT = "distress_shadow"
+DISTRESS_SIGNAL_DIR = PROJECT_ROOT / "logs" / "distress_signals"
+SHADOW_ACCOUNTS = (G2_SHADOW_ACCOUNT, DISTRESS_SHADOW_ACCOUNT)
+
 # 尾盘触发时刻：intraday_manager 主循环在 ≥该时刻的周期调用 trigger_rotation，
 # 收盘即止；窗口内失败自动重试（价格源抖动），--force 供人工重放/调试
 ROTATION_TRIGGER = "14:40"
@@ -108,19 +116,25 @@ def _load_latest_g2_list() -> tuple[str, list[dict]]:
     仅 g2_shadow 账户消费；空名单文件（防守日）也视为有效名单——该日轮动
     对影子账户无买入候选（预注册 D2：只卖不买），返回非空 as_of + 空列表。
     """
-    if not G2_SIGNAL_DIR.exists():
+    return _load_latest_list_file(G2_SIGNAL_DIR, "g2_list")
+
+
+def _load_latest_list_file(signal_dir: Path, prefix: str,
+                           max_age_days: int = G2_LIST_MAX_AGE_DAYS) -> tuple[str, list[dict]]:
+    """通用影子名单加载器(g2_list_* / distress_list_*), 语义与 G2 版一致."""
+    if not signal_dir.exists():
         return "", []
     today = date.today().strftime("%Y%m%d")
     best: tuple[str, Path] | None = None
-    for p in G2_SIGNAL_DIR.glob("g2_list_*.json"):
-        d = p.stem.replace("g2_list_", "")
+    for p in signal_dir.glob(f"{prefix}_*.json"):
+        d = p.stem.replace(f"{prefix}_", "")
         if len(d) != 8 or not d.isdigit() or d >= today:
             continue
         try:
             file_day = date(int(d[:4]), int(d[4:6]), int(d[6:]))
         except ValueError:
             continue
-        if (date.today() - file_day).days > G2_LIST_MAX_AGE_DAYS:
+        if (date.today() - file_day).days > max_age_days:
             continue
         if best is None or d > best[0]:
             best = (d, p)
@@ -205,25 +219,33 @@ def run_rotation(dry_run: bool = False) -> bool:
     davis_scores = bridge_to_davis_scores(top20)
     print(f"[{today_dash}] 因子基准: top20_screen_{as_of}.json（{len(davis_scores)} 只）")
 
-    # G2 影子名单（仅 g2_shadow 消费；无有效文件回退 top20，空名单=防守日只卖不买）
+    # 影子名单(仅对应影子账户消费; 无有效文件回退 top20, 空名单=防守日只卖不买)
     g2_as_of, g2_list = _load_latest_g2_list()
-    davis_scores_g2 = bridge_to_davis_scores(g2_list)  # 空名单→空 dict（D2 语义）
+    davis_scores_g2 = bridge_to_davis_scores(g2_list)  # 空名单→空 dict(D2 语义)
     if g2_as_of:
         note = f"{len(davis_scores_g2)} 只放行" if davis_scores_g2 else "空名单(防守日,只卖不买 D2)"
         print(f"[{today_dash}] G2 影子名单: g2_list_{g2_as_of}.json（{note}）")
     else:
         print(f"[{today_dash}] G2 影子名单: 无有效文件（g2_shadow 回退 top20 基准）")
+    ds_as_of, ds_list = _load_latest_list_file(DISTRESS_SIGNAL_DIR, "distress_list")
+    davis_scores_ds = bridge_to_davis_scores(ds_list)
+    if ds_as_of:
+        note = f"{len(davis_scores_ds)} 只放行" if davis_scores_ds else "空名单(防守日,只卖不买 D2)"
+        print(f"[{today_dash}] 困境反转名单: distress_list_{ds_as_of}.json（{note}）")
+    else:
+        print(f"[{today_dash}] 困境反转名单: 无有效文件（distress_shadow 回退 top20 基准）")
 
     # ── 收集全部需要定价的代码（持仓 + 候选）──
     accounts: dict[str, PaperAccount] = {}
-    pending_codes: set[str] = set(davis_scores.keys()) | set(davis_scores_g2.keys())
-    for name in [*ROTATION_ACCOUNTS, G2_SHADOW_ACCOUNT]:
+    pending_codes: set[str] = (set(davis_scores.keys()) | set(davis_scores_g2.keys())
+                               | set(davis_scores_ds.keys()))
+    for name in [*ROTATION_ACCOUNTS, *SHADOW_ACCOUNTS]:
         try:
             acc = PaperAccount.load(name)
         except ValueError as e:
-            if name != G2_SHADOW_ACCOUNT:
+            if name not in SHADOW_ACCOUNTS:
                 print(f"[{today_dash}] [WARN] 账户 {name} 不存在: {e}")
-            continue  # g2_shadow 不存在＝影子测试未启用，静默跳过（存在性即开关）
+            continue  # 影子账户不存在＝该影子未启用，静默跳过（存在性即开关）
         accounts[name] = acc
         pending_codes.update(p.ts_code for p in acc.get_positions())
 
@@ -248,10 +270,14 @@ def run_rotation(dry_run: bool = False) -> bool:
     completed = True
     for name, acc in accounts.items():
         try:
-            # g2_shadow: 只要存在有效名单文件即用 G2 口径——空名单(防守日)也用,
+            # 影子账户: 存在有效名单文件即用该名单口径——空名单(防守日)也用,
             # 空 davis_scores 使策略只卖不买(预注册 D2); 仅无有效文件才回退 top20。
-            scores = (davis_scores_g2 if name == G2_SHADOW_ACCOUNT and g2_as_of
-                      else davis_scores)
+            if name == G2_SHADOW_ACCOUNT and g2_as_of:
+                scores = davis_scores_g2
+            elif name == DISTRESS_SHADOW_ACCOUNT and ds_as_of:
+                scores = davis_scores_ds
+            else:
+                scores = davis_scores
             ok = _rotate_one(acc, scores, prices_ts, pct_map, today, dry_run)
             if not ok:
                 completed = False
