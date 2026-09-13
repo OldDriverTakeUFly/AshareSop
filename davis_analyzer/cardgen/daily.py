@@ -656,12 +656,10 @@ def build_thermo(day: str, bundle: dict) -> tuple[list[Fact], dict]:
     mkt = bundle["market"]
     top1 = bundle["l1"][0]
 
-    mkt_v, mkt_d = _thermo_num(mkt["temperature"]), f"{_thermo_num(mkt['temperature'])}度"
-    facts.append(_fact("mkt_temp", mkt_v, "度", mkt_d, day, f"{ref_mkt}:temperature"))
-    t1_v, t1_d = _thermo_num(top1["temperature"]), f"{_thermo_num(top1['temperature'])}度"
-    facts.append(_fact("l1_top1_temp", t1_v, "度", t1_d, day,
-                       f"{ref_sec}:L1:top1.temperature"))
-    top_name = _digit_safe(str(top1["name"])) or "-"
+    # 温度/分位 display 用纯数字+空单位(数字闸按 值+单位 匹配,「度」非受认单位)
+    mkt_v = _thermo_num(mkt["temperature"])
+    facts.append(_fact("mkt_temp", mkt_v, "", mkt_v, day, f"{ref_mkt}:temperature"))
+    top_name = _digit_safe(str(bundle["l1"][0]["name"])) or "-"
 
     # 两级热度榜
     def _board_rows(rows: list[dict], level: str) -> tuple[list[dict], list[Fact]]:
@@ -669,14 +667,14 @@ def build_thermo(day: str, bundle: dict) -> tuple[list[Fact], dict]:
         for i, r in enumerate(rows, 1):
             name = _digit_safe(str(r["name"])) or "-"
             fid_t, fid_d = f"{level}_top{i}_temp", f"{level}_top{i}_delta"
-            tv, td = _thermo_num(r["temperature"]), f"{_thermo_num(r['temperature'])}度"
-            board_facts.append(_fact(fid_t, tv, "度", td, day,
+            tv = _thermo_num(r["temperature"])
+            board_facts.append(_fact(fid_t, tv, "", tv, day,
                                      f"{ref_sec}:{level}:top{i}.temperature"))
             cells = [name, {"$fact": fid_t}]
             cls = ["", ""]
             if r.get("delta_temp5") is not None:
                 dv, dd = _thermo_signed(r["delta_temp5"])
-                board_facts.append(_fact(fid_d, dv, "度", dd, day,
+                board_facts.append(_fact(fid_d, dv, "", dd, day,
                                          f"{ref_sec}:{level}:top{i}.delta_temp5"))
                 cells.append({"$fact": fid_d})
                 cls.append("")
@@ -712,7 +710,7 @@ def build_thermo(day: str, bundle: dict) -> tuple[list[Fact], dict]:
              "title": "今天的板块温度<br>冷热一张图",
              "sub": f"大盘{mkt['regime_label']} · 最热{top_name}<br>{day} 交易数据整理",
              "stats": [
-                 {"v": {"$fact": "mkt_temp"}, "k": "大盘温度(度)"},
+                 {"v": {"$fact": "mkt_temp"}, "k": "大盘温度"},
                  {"v": {"$fact": "l1_top1_temp"}, "k": f"最热一级·{top_name}"}],
              "tags": "#板块温度计 #每日复盘 #市场结构 #资金流向",
              "foot": _THERMO_FOOT},

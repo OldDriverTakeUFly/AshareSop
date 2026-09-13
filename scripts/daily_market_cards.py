@@ -147,7 +147,7 @@ def main() -> None:
     ap.add_argument("--push", action="store_true",
                     help="渲染成功后推红薯运营群(封面图+文案,发布仍留人工)")
     args = ap.parse_args()
-    kinds = ["ladder", "lhb"] if args.type == "all" else args.type  # thermo 单独跑(19:35 温度数据就绪后)
+    kinds = ["ladder", "lhb"] if args.type == "all" else [args.type]  # thermo 单独跑(19:35 温度数据就绪后)
     ok = all(run_one(k, args.date, not args.no_render, args.enqueue, args.push) for k in kinds)
     sys.exit(0 if ok else 1)
 

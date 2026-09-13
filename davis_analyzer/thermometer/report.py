@@ -38,6 +38,7 @@ def write_daily_report(conn: sqlite3.Connection, day: str) -> Path:
     for level, label in (("L1", "一级行业"), ("L2", "二级行业")):
         sub = sec[sec["level"] == level].sort_values("temperature", ascending=False)
         top = sub.head(10)[["name", "temperature", "delta_temp5", "hot_streak"]].copy()
+        top["hot_streak"] = top["hot_streak"].astype("Int64")
         top.columns = ["板块", "温度", "5日升温", "连热天数"]
         bottom = sub.tail(5)[["name", "temperature", "delta_temp5"]].copy()
         bottom.columns = ["板块", "温度", "5日升温"]
@@ -54,6 +55,7 @@ def write_daily_report(conn: sqlite3.Connection, day: str) -> Path:
 
     warn = sec[sec["hot_streak"] >= 3].sort_values("hot_streak", ascending=False)
     w = warn[["level", "name", "temperature", "hot_streak"]].copy()
+    w["hot_streak"] = w["hot_streak"].astype("Int64")
     w.columns = ["层级", "板块", "温度", "连热天数"]
     lines += ["## 高温预警(温度>80 连续≥3日)", "",
               _md_table(w.reset_index(drop=True)), ""]
