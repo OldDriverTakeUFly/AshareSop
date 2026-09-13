@@ -205,11 +205,12 @@ def run_rotation(dry_run: bool = False) -> bool:
     davis_scores = bridge_to_davis_scores(top20)
     print(f"[{today_dash}] 因子基准: top20_screen_{as_of}.json（{len(davis_scores)} 只）")
 
-    # G2 影子名单（仅 g2_shadow 消费；无名单/过期回退 top20）
+    # G2 影子名单（仅 g2_shadow 消费；无有效文件回退 top20，空名单=防守日只卖不买）
     g2_as_of, g2_list = _load_latest_g2_list()
-    davis_scores_g2 = bridge_to_davis_scores(g2_list) if g2_list else {}
+    davis_scores_g2 = bridge_to_davis_scores(g2_list)  # 空名单→空 dict（D2 语义）
     if g2_as_of:
-        print(f"[{today_dash}] G2 影子名单: g2_list_{g2_as_of}.json（{len(davis_scores_g2)} 只放行）")
+        note = f"{len(davis_scores_g2)} 只放行" if davis_scores_g2 else "空名单(防守日,只卖不买 D2)"
+        print(f"[{today_dash}] G2 影子名单: g2_list_{g2_as_of}.json（{note}）")
     else:
         print(f"[{today_dash}] G2 影子名单: 无有效文件（g2_shadow 回退 top20 基准）")
 
@@ -247,7 +248,9 @@ def run_rotation(dry_run: bool = False) -> bool:
     completed = True
     for name, acc in accounts.items():
         try:
-            scores = (davis_scores_g2 if (name == G2_SHADOW_ACCOUNT and davis_scores_g2)
+            # g2_shadow: 只要存在有效名单文件即用 G2 口径——空名单(防守日)也用,
+            # 空 davis_scores 使策略只卖不买(预注册 D2); 仅无有效文件才回退 top20。
+            scores = (davis_scores_g2 if name == G2_SHADOW_ACCOUNT and g2_as_of
                       else davis_scores)
             ok = _rotate_one(acc, scores, prices_ts, pct_map, today, dry_run)
             if not ok:
