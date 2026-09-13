@@ -12,7 +12,7 @@ def _conn(tmp_path):
 def _seed(conn) -> None:
     # 成分:801010.SI(L1) ← 000001.SZ;850111.SI(L2,父级801010) ← 600000.SH
     conn.executemany(
-        "INSERT INTO sw_index (index_code,name,level,fetched_at) VALUES (?,?,?,0)",
+        "INSERT INTO sw_index (index_code,name,level,is_pub,fetched_at) VALUES (?,?,?,'1',0)",
         [("801010.SI", "农林牧渔", "L1"), ("850111.SI", "种植业", "L2")])
     conn.executemany(
         "INSERT INTO sw_member (index_code,con_code,snapshot_date) VALUES (?,?,'20260913')",

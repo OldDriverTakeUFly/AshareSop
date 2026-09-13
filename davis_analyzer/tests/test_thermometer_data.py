@@ -65,6 +65,36 @@ def test_update_incremental(tmp_path):
         conn.close()
 
 
+def test_backfill_daily_basic_circ_mv(tmp_path):
+    """circ_mv 回补:UPSERT 不覆盖已有列;幂等."""
+    from davis_analyzer.thermometer import data
+
+    conn = _conn(tmp_path)
+    try:
+        _seed_calendar(conn)
+        conn.execute(
+            "INSERT INTO daily_basic (ts_code,trade_date,pe_ttm,circ_mv,fetched_at) "
+            "VALUES ('000001.SZ','20220104',8.5,NULL,0)")
+        conn.commit()
+        gw = MagicMock()
+        gw.call.return_value = pd.DataFrame({
+            "ts_code": ["000001.SZ", "600000.SH"],
+            "trade_date": ["20220104", "20220104"],
+            "circ_mv": [1000.0, 2000.0],
+        })
+        r = data.backfill_daily_basic_circ_mv(conn, gw, "20220104", "20220104")
+        assert r["days"] == 1 and r["rows"] == 2
+        row = conn.execute(
+            "SELECT pe_ttm, circ_mv FROM daily_basic "
+            "WHERE ts_code='000001.SZ' AND trade_date='20220104'").fetchone()
+        assert row == (8.5, 1000.0)  # pe 保留,circ_mv 补上
+        assert conn.execute(
+            "SELECT circ_mv FROM daily_basic WHERE ts_code='600000.SH' "
+            "AND trade_date='20220104'").fetchone()[0] == 2000.0
+    finally:
+        conn.close()
+
+
 def test_backfill_ths_daily_by_code(tmp_path):
     from davis_analyzer.thermometer import data
 

@@ -72,6 +72,41 @@ def update_sw_daily_incremental(conn: sqlite3.Connection, gw: TushareGateway) ->
     return backfill_sw_daily(conn, gw, latest, latest)
 
 
+def backfill_daily_basic_circ_mv(
+    conn: sqlite3.Connection, gw: TushareGateway, start: str, end: str,
+) -> dict:
+    """全市场 circ_mv 回补(daily_basic 表 UPSERT,只写 circ_mv 不动其他列).
+
+    共享表 daily_basic 既有稀疏行(davis 自选股缓存)——INSERT OR REPLACE 会
+    把 pe/pb 等列置空,必须用 ON CONFLICT DO UPDATE 局部更新。
+    """
+    days = rows = 0
+    pending = 0
+    for d in limitup_db.trading_dates(conn, start, end):
+        df = gw.call("daily_basic", trade_date=d,
+                     fields="ts_code,trade_date,circ_mv", paginate=True)
+        if df is None or df.empty or "circ_mv" not in df.columns:
+            logger.warning("daily_basic circ_mv 无数据 {}", d)
+            continue
+        have = [(r["ts_code"], str(r["trade_date"]), None if pd.isna(r["circ_mv"]) else float(r["circ_mv"]))
+                for _, r in df.iterrows() if not pd.isna(r["circ_mv"])]
+        conn.executemany(
+            "INSERT INTO daily_basic (ts_code, trade_date, circ_mv, fetched_at) "
+            "VALUES (?,?,?,?) ON CONFLICT(ts_code, trade_date) DO UPDATE SET "
+            "circ_mv=excluded.circ_mv, fetched_at=excluded.fetched_at",
+            [(c, t, v, time.time()) for c, t, v in have],
+        )
+        rows += len(have)
+        days += 1
+        pending += 1
+        if pending % _COMMIT_EVERY == 0:
+            conn.commit()
+            logger.info("daily_basic circ_mv 进度: {} 天", days)
+    conn.commit()
+    logger.info("daily_basic circ_mv 回补: {} 日 {} 行", days, rows)
+    return {"days": days, "rows": rows}
+
+
 def backfill_ths_daily(conn: sqlite3.Connection, gw: TushareGateway) -> dict:
     """按概念 ts_code 全历史回补 ths_daily;已有任何行的码跳过(增量由 run 单点补)."""
     codes = [r[0] for r in conn.execute("SELECT ts_code FROM ths_index").fetchall()]

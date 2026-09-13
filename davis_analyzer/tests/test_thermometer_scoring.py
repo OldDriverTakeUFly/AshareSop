@@ -21,7 +21,7 @@ def _conn(tmp_path):
 def _seed(conn) -> None:
     dates = _dates()
     conn.executemany(
-        "INSERT INTO sw_index (index_code,name,level,fetched_at) VALUES (?,?,?,0)",
+        "INSERT INTO sw_index (index_code,name,level,is_pub,fetched_at) VALUES (?,?,?,'1',0)",
         [("801010.SI", "农林牧渔", "L1"), ("801011.SI", "电子", "L1")])
     conn.executemany(
         "INSERT INTO sw_member (index_code,con_code,snapshot_date) VALUES (?,?,'20260913')",

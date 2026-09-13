@@ -23,7 +23,7 @@ def limit_density_daily(conn: sqlite3.Connection, start: str, end: str) -> pd.Da
     """
     members = pd.read_sql_query(
         "SELECT i.level, m.index_code, m.con_code FROM sw_member m "
-        "JOIN sw_index i ON i.index_code=m.index_code "
+        "JOIN sw_index i ON i.index_code=m.index_code AND i.is_pub='1' "
         "JOIN (SELECT index_code, MAX(snapshot_date) ms FROM sw_member GROUP BY index_code) t "
         "ON t.index_code=m.index_code AND t.ms=m.snapshot_date", conn)
     if members.empty:

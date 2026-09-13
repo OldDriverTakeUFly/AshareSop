@@ -93,13 +93,14 @@ def refresh_ths_member(conn: sqlite3.Connection, gw: TushareGateway,
 # ── 读取 ───────────────────────────────────────────────────────────────
 
 def load_universe(conn: sqlite3.Connection, level: str) -> pd.DataFrame:
-    """[index_code, name, level] — 某层级指数清单."""
+    """[index_code, name, level] — 某层级指数清单(仅已发布 is_pub='1',Ⅱ类未发布指数无行情)."""
     return pd.read_sql_query(
-        "SELECT index_code, name, level FROM sw_index WHERE level=?", conn, params=(level,))
+        "SELECT index_code, name, level FROM sw_index WHERE level=? AND is_pub='1'",
+        conn, params=(level,))
 
 
 def load_members(conn: sqlite3.Connection, levels: tuple[str, ...] = ("L1", "L2")) -> pd.DataFrame:
-    """最新快照的 (level, index_code, con_code, snapshot_date) 长表.
+    """最新快照的 (level, index_code, con_code, snapshot_date) 长表(仅已发布指数).
 
     最新快照 = 每个 index_code 的 MAX(snapshot_date);同一 con_code 会出现在
     L1 与其所属 L2 两行,聚合时天然双层级各自成立。
@@ -111,6 +112,6 @@ def load_members(conn: sqlite3.Connection, levels: tuple[str, ...] = ("L1", "L2"
         "JOIN (SELECT index_code, MAX(snapshot_date) AS ms FROM sw_member "
         "      GROUP BY index_code) t "
         "  ON t.index_code = m.index_code AND t.ms = m.snapshot_date "
-        f"WHERE i.level IN ({ph})",
+        f"WHERE i.level IN ({ph}) AND i.is_pub='1'",
         conn, params=levels,
     )
