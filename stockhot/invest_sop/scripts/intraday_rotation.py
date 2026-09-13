@@ -219,6 +219,21 @@ def run_rotation(dry_run: bool = False) -> bool:
     davis_scores = bridge_to_davis_scores(top20)
     print(f"[{today_dash}] 因子基准: top20_screen_{as_of}.json（{len(davis_scores)} 只）")
 
+    # 解禁闸(2026-09-13,实证:高占比解禁伤害在前20日,前窗跑输率77%):
+    # 未来30天解禁占比>50% → 买入候选剔除(持仓不受影响;周级缓存,失败放行并告警)
+    try:
+        from stockhot.unlock_risk import filter_buyable
+        for _pool_name in ("top20",):
+            _kept, _removed = filter_buyable(
+                list(davis_scores.keys()), days=30, threshold=50)
+            if _removed:
+                davis_scores = {k: v for k, v in davis_scores.items() if k in _kept}
+                print(f"[{today_dash}] 解禁闸剔除 {len(_removed)} 只: "
+                      + ", ".join(f"{c}({e['ratio']:.0f}%@{e['date'][4:6]}-{e['date'][6:]})"
+                                  for c, e in _removed.items()))
+    except Exception as _ex:  # noqa: BLE001
+        print(f"[{today_dash}] [WARN] 解禁闸不可用(本次放行): {_ex}")
+
     # 影子名单(仅对应影子账户消费; 无有效文件回退 top20, 空名单=防守日只卖不买)
     g2_as_of, g2_list = _load_latest_g2_list()
     davis_scores_g2 = bridge_to_davis_scores(g2_list)  # 空名单→空 dict(D2 语义)

@@ -275,6 +275,26 @@ def main() -> None:
         row["警报"] = row.get("警报", "") + ("/".join(alerts) if alerts else "")
         report_rows.append(row)
 
+    # ── 解禁窗口闸(2026-09-13,实证:占比≥20% 前窗跑输率77%) ──
+    # 未来90天解禁占比>30% → 警报列追加「解禁MM-DD(占比%)」;周级缓存,失败跳过不阻塞
+    try:
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(
+            os.path.abspath(__file__)))))
+        from stockhot.unlock_risk import forward_unlock
+        unlock_hits = forward_unlock(
+            [r["code"] for r in report_rows], days=90, threshold=30)
+        for r in report_rows:
+            e = unlock_hits.get(r["code"])
+            if e:
+                tag = f"解禁{e['date'][4:6]}-{e['date'][6:]}({e['ratio']:.0f}%)"
+                row_alerts = r.get("警报", "") or ""
+                r["警报"] = (row_alerts + "/" + tag).lstrip("/")
+        log(f"解禁闸: {len(unlock_hits)} 只持仓命中90天/30%窗口 "
+            + ", ".join(f"{c}({e['ratio']:.0f}%@{e['date'][4:6]}-{e['date'][6:]})"
+                        for c, e in list(unlock_hits.items())[:6]))
+    except Exception as _ex:  # noqa: BLE001
+        log(f"解禁闸跳过(不阻塞): {_ex}")
+
     # ── 输出 ──
     df = pd.DataFrame(report_rows)
     sev = {"⚠️已破位": 0, "回调第": 1, "超时未决": 2, "启动运行中": 3, "已续涨确认": 4, "无近期涨停锚": 5}
