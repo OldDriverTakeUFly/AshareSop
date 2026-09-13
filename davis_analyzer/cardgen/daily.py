@@ -64,6 +64,18 @@ _PUBLISH_COPY: dict[str, dict[str, str]] = {
             "盘后观察为方法论视角解读,不构成投资建议。"
         ),
     },
+    "screener": {
+        "title": "筛选器温度计 | 每日数据观察",
+        "tags": "#筛选器温度计 #每日复盘 #量化研究 #市场情绪",
+        "body": (
+            "同一台量化筛选器,行情热的时候放行一堆,冷的时候一只都不放🌡️\n\n"
+            "①当日读数——动量筛选器与困境反转筛选器各放行几只;\n"
+            "②状态判读——空名单不是故障,是筛选器明确说「这摊我不碰」;\n"
+            "③近五次轨迹——放行数量的伸缩,比单日读数更有信息量。\n\n"
+            "只报筛选器通过数量,不含任何个股与操作建议;"
+            "名单由盘后管线自动生成,盘后观察为方法论视角解读,不构成投资建议。"
+        ),
+    },
 }
 
 
@@ -75,7 +87,8 @@ def publish_copy(kind: str, day: str, bundle: dict | None = None) -> dict[str, s
     body = c["body"]
     if bundle is not None:
         picker = {"ladder": ladder_insights, "lhb": lhb_insights,
-                  "thermo": thermo_insights}.get(kind)
+                  "thermo": thermo_insights,
+                  "screener": screener_insights}.get(kind)
         picks = picker(bundle) if picker else []
         if picks:
             body += "\n\n盘后观察:\n" + "\n".join(f"· {p}" for p in picks)
@@ -776,6 +789,10 @@ def generate(kind: str, day: str, projects_root: Path, ledger_db: Path | None,
         # 数据源是 market_data.db 的 thermometer 表,不走 stockhot bundle
         facts, spec = build_thermo(day, fetch_thermo_bundle(day))
         topic = f"板块温度/{day}"
+    elif kind == "screener":
+        # 数据源是影子名单文件(18:30/18:40 cron 产出),19:00 槽单独跑
+        facts, spec = build_screener(day, fetch_screener_bundle(day))
+        topic = f"筛选器温度计/{day}"
     elif kind == "ladder":
         bundle = fetch_day_bundle(db, day)
         facts, spec = build_ladder(day, bundle)
@@ -809,3 +826,142 @@ def generate(kind: str, day: str, projects_root: Path, ledger_db: Path | None,
     for f in report.failures:
         logger.warning(f"[daily] validate 未过 [{f.gate}] {f.card} {f.field}: {f.detail}")
     return proj, topic, report
+
+
+# ── 筛选器温度计(2026-09-13 上线):G2/困境反转影子名单规模 = 市场情绪温度 ──
+# 数据源:logs/g2_signals/g2_list_*.json + logs/distress_signals/distress_list_*.json
+# (盘后 18:30/18:40 cron 自动产出);卡片 19:00 槽单独跑(名单就绪后),不入 all。
+# 合规口径:只报筛选器通过数量与状态词,零个股代码/零操作建议。
+_SCREENER_DIRS = {"g2": REPO_ROOT / "logs" / "g2_signals",
+                  "distress": REPO_ROOT / "logs" / "distress_signals"}
+_REGIME_CN = {"bull": "牛市", "bear": "熊市", "neutral": "中性", "mixed": "混合"}
+
+
+def fetch_screener_bundle(day: str, dirs: dict | None = None) -> dict:
+    """读两台筛选器的最新名单(数据日 ≤ day)+ 全部历史;缺文件 raise DailyDataMissing."""
+    ddirs = dirs or _SCREENER_DIRS
+    hist: dict[str, dict[str, dict]] = {"g2": {}, "distress": {}}
+    for k, d in ddirs.items():
+        prefix = "g2" if k == "g2" else "distress"
+        for p in Path(d).glob(f"{prefix}_list_*.json"):
+            m = re.search(r"_(\d{8})\.json$", p.name)
+            if not m:
+                continue
+            try:
+                hist[k][m.group(1)] = json.loads(p.read_text())
+            except Exception:  # noqa: BLE001 —— 损坏文件跳过,取更早的
+                continue
+    d8_limit = day.replace("-", "")
+    latest = {}
+    for k, files in hist.items():
+        cand = sorted([d for d in files if d <= d8_limit], reverse=True)
+        if not cand:
+            raise DailyDataMissing(f"无 {k} 名单文件(≤{day})——影子导出 cron(18:30/18:40)未产出?")
+        latest[k] = files[cand[0]]
+    return {"latest": latest, "history": hist}
+
+
+def screener_insights(bundle: dict | None) -> list[str]:
+    """按名单形态机械选用(零数字/敏感词零命中,锚点见测试);bundle 为空时返回空。"""
+    if not bundle:
+        return []
+    g2 = bundle.get("latest", {}).get("g2", {})
+    n = int(g2.get("n_pass", 0) or 0)
+    if n == 0:
+        return ["动量筛选器空名单的正确读法:不是坏了,是它明确表态——当前行情里它一只都不想碰,"
+                "防守本身就是输出"]
+    return ["筛选器数量伸缩的正确读法:放行变多说明强趋势标的在变密,变少说明门槛正在拦人——"
+            "看变化方向比看单日数量有用"]
+
+
+def build_screener(day: str, bundle: dict) -> tuple[list[Fact], dict]:
+    """筛选器温度计卡(封面+当日读数+近五次轨迹+收束)。facts 全锚名单文件指纹。"""
+    g2j = bundle["latest"]["g2"]
+    dsj = bundle["latest"]["distress"]
+    as_g2, as_ds = g2j["as_of"], dsj["as_of"]
+    ref_g2 = f"logs/g2_signals/g2_list_{as_g2}.json"
+    ref_ds = f"logs/distress_signals/distress_list_{as_ds}.json"
+    g2_n = int(g2j.get("n_pass", 0) or len(g2j.get("list", [])))
+    ds_n = int(dsj.get("n_pass", 0) or len(dsj.get("list", [])))
+    regime = _REGIME_CN.get(str(g2j.get("regime", "")), "未知")
+
+    facts: list[Fact] = [
+        _fact("g2_pass_n", g2_n, "只", f"{g2_n}只", day, ref_g2 + ":n_pass"),
+        _fact("ds_pass_n", ds_n, "只", f"{ds_n}只", day, ref_ds + ":n_pass"),
+    ]
+
+    # 近五次轨迹(两台流并集按数据日降序;行标签用中文序数,零阿拉伯数字)
+    dates_union = sorted(set(bundle["history"]["g2"]) | set(bundle["history"]["distress"]),
+                         reverse=True)[:5]
+    labels = ["最新", "次新", "第三档", "第四档", "第五档"]
+    track_rows, empty_days = [], 0
+    for i, d8 in enumerate(dates_union):
+        cells, cls = [labels[i]], ["", "", ""]
+        for j, (k, fidp) in enumerate((("g2", "hist_g2"), ("distress", "hist_ds"))):
+            f = bundle["history"][k].get(d8)
+            if f is None:
+                cells.append("—")
+                continue
+            n = int(f.get("n_pass", 0) or len(f.get("list", [])))
+            fid = f"{fidp}_{i + 1}"
+            facts.append(_fact(fid, n, "只", f"{n}只", day,
+                               f"logs/{'g2_signals/g2' if k == 'g2' else 'distress_signals/distress'}_list_{f.get('as_of', d8)}.json:n_pass"))
+            cells.append({"$fact": fid})
+            if k == "g2" and n == 0:
+                empty_days += 1
+        track_rows.append({"cells": cells, "cls": cls})
+    if not track_rows:
+        track_rows = [{"cells": ["暂无历史", "—", "—"], "cls": ["", "", ""]}]
+    facts.append(_fact("g2_empty_5", empty_days, "次", f"{empty_days}次", day,
+                       ref_g2 + ":近五次空名单统计"))
+
+    foot = f"名单基准日:动量 {as_g2[:4]}-{as_g2[4:6]}-{as_g2[6:]} / 困境反转 {as_ds[:4]}-{as_ds[4:6]}-{as_ds[6:]} · " + FOOT
+    g2_state = "空名单 · 防守姿态" if g2_n == 0 else "正常放行"
+    ds_state = "空名单 · 无深度回撤标的" if ds_n == 0 else "正常放行"
+
+    spec = {
+        "group": "每日复盘",
+        "cards": [
+            {"type": "cover", "theme": "blue", "name": "01_封面",
+             "tag_top": "筛选器温度计 · 每日数据观察",
+             "title": "两台量化筛选器<br>今天放行了几只",
+             "sub": "动量闸与困境反转闸 · 空名单=防守语义<br>盘后管线自动生成",
+             "stats": [
+                 {"v": {"$fact": "g2_pass_n"}, "k": "动量放行(只)"},
+                 {"v": {"$fact": "ds_pass_n"}, "k": "困境反转放行(只)"},
+                 {"v": {"$fact": "g2_empty_5"}, "k": "近五次空名单(次)"}],
+             "tags": "#筛选器温度计 #每日复盘 #量化研究 #市场情绪",
+             "foot": foot},
+            {"type": "table", "theme": "cream", "name": "02_当日读数", "first_left": True,
+             "tag_top": "当日读数", "tag_color": "#ea580c",
+             "title": "今日两台筛选器的读数",
+             "subtitle": "动量口径=强趋势门槛 · 困境口径=深回撤+低估值+景气拐点",
+             "table": {"headers": ["筛选器", "放行", "状态"], "rows": [
+                 {"cells": ["动量筛选器", {"$fact": "g2_pass_n"}, g2_state],
+                  "cls": ["", "" if g2_n else "up", ""]},
+                 {"cells": ["困境反转筛选器", {"$fact": "ds_pass_n"}, ds_state], "cls": ["", "", ""]},
+                 {"cells": ["市场状态(模型判读)", regime, "名单规模的背景板"], "cls": ["", "", ""]},
+             ]},
+             "foot": foot},
+            {"type": "table", "theme": "green", "name": "03_近五次轨迹", "first_left": True,
+             "tag_top": "温度轨迹", "tag_color": "#16a34a",
+             "title": ("近五次放行数量轨迹" if len(dates_union) >= 5
+                       else f"放行数量轨迹 · 积累中(第{len(dates_union)}期)" if len(dates_union) >= 2
+                       else "放行数量轨迹 · 首期"),
+             "subtitle": "伸缩方向比单日读数更有信息量(逐日自动累积,基准日见脚注)",
+             "table": {"headers": ["时点", "动量放行", "困境反转"], "rows": track_rows},
+             "foot": foot},
+            {"type": "summary", "theme": "lavender", "name": "04_收束",
+             "tag_top": "读法说明", "tag_color": "#0f172a",
+             "title": "温度计是结构数据",
+             "subtitle": "不是操作清单",
+             "rows": [
+                 {"desc": "<b>动量名单变短</b> → 强趋势品种变稀,筛选器进入谨慎档;"
+                          "空名单是明确防守表态,不是故障"},
+                 {"desc": "<b>困境名单变长</b> → 深回撤且出现景气拐点迹象的品种在增多,"
+                          "市场在挤泡沫的另一面"},
+                 {"desc": "<b>两台互为镜像</b> → 一热一冷同时读,才是完整的市场温度"}],
+             "foot": foot + "。市场有风险,投资需谨慎。"},
+        ],
+    }
+    return facts, spec

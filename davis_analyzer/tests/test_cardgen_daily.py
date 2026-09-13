@@ -273,7 +273,7 @@ class TestRealdataEdgecases:
         import re as _re
         from davis_analyzer.cardgen.compliance import INDUCEMENT_PATTERNS, load_words
         words = load_words()
-        for kind in ("ladder", "lhb"):
+        for kind in ("ladder", "lhb", "screener"):
             c = daily.publish_copy(kind, DAY)
             blob = c["title"] + c["body"] + c["tags"]
             hit = [w for w in words if w in blob]

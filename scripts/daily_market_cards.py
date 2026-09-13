@@ -139,7 +139,7 @@ def push_one(kind: str, day: str, proj: Path, topic: str, release: dict) -> bool
 
 def main() -> None:
     ap = argparse.ArgumentParser(description="每日盘面复盘卡(连板天梯+龙虎榜)")
-    ap.add_argument("--type", choices=["ladder", "lhb", "thermo", "all"], default="all")
+    ap.add_argument("--type", choices=["ladder", "lhb", "thermo", "screener", "all"], default="all")
     ap.add_argument("--date", default=datetime.now().strftime("%Y-%m-%d"))
     ap.add_argument("--no-render", action="store_true", help="只生成+validate,不渲染(调试用)")
     ap.add_argument("--enqueue", action="store_true",
