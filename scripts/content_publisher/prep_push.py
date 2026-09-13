@@ -58,8 +58,15 @@ def _due_today() -> list[sqlite3.Row]:
 
 
 async def _push(rows: list[sqlite3.Row], dry: bool) -> None:
-    from stockhot.notification.feishu_bot import get_feishu_notifier
-    notifier = get_feishu_notifier()
+    """推送到「红薯财经博主运营」专用群(FEISHU_XHS_CHAT_ID,与盯盘/雷达群隔离);缺省回退默认群。"""
+    import os
+    from stockhot.notification.feishu_bot import EnterpriseFeishuNotifier, get_feishu_notifier
+    xhs_chat = os.environ.get("FEISHU_XHS_CHAT_ID", "")
+    if xhs_chat and os.environ.get("FEISHU_APP_ID") and os.environ.get("FEISHU_APP_SECRET"):
+        notifier = EnterpriseFeishuNotifier(
+            os.environ["FEISHU_APP_ID"], os.environ["FEISHU_APP_SECRET"], xhs_chat)
+    else:
+        notifier = get_feishu_notifier()
     if notifier is None:
         raise SystemExit("未配置飞书通知(缺 FEISHU_APP_ID/SECRET/CHAT_ID 或 WEBHOOK_URL)")
     today = datetime.now().strftime("%Y-%m-%d")
