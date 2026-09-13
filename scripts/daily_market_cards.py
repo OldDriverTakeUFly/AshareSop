@@ -92,13 +92,13 @@ def run_one(kind: str, day: str, do_render: bool, do_enqueue: bool = False) -> b
 
 def main() -> None:
     ap = argparse.ArgumentParser(description="每日盘面复盘卡(连板天梯+龙虎榜)")
-    ap.add_argument("--type", choices=["ladder", "lhb", "all"], default="all")
+    ap.add_argument("--type", choices=["ladder", "lhb", "thermo", "all"], default="all")
     ap.add_argument("--date", default=datetime.now().strftime("%Y-%m-%d"))
     ap.add_argument("--no-render", action="store_true", help="只生成+validate,不渲染(调试用)")
     ap.add_argument("--enqueue", action="store_true",
                     help="渲染成功后入发稿池(固定文案,发布仍留人工)")
     args = ap.parse_args()
-    kinds = ["ladder", "lhb"] if args.type == "all" else [args.type]
+    kinds = ["ladder", "lhb"] if args.type == "all" else [args.type]  # thermo 单独跑(19:35 温度数据就绪后)
     ok = all(run_one(k, args.date, not args.no_render, args.enqueue) for k in kinds)
     sys.exit(0 if ok else 1)
 

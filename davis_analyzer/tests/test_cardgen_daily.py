@@ -340,3 +340,73 @@ class TestRealdataEdgecases:
         c = daily.publish_copy("ladder", DAY, b)
         assert "盘后观察" in c["body"] and "抗跌" in c["body"]
         assert "不构成投资建议" in c["body"]
+
+
+# ── 板块温度卡(thermometer 子系统接入,2026-09-13) ─────────────────────
+
+class TestThermoCard:
+    DAY = "2026-09-11"
+
+    def _bundle(self) -> dict:
+        return {
+            "day": "2026-09-11",
+            "l1": [{"name": "半导体", "temperature": 95.0, "delta_temp5": 8.0,
+                    "hot_streak": 4},
+                   {"name": "通信设备", "temperature": 88.0, "delta_temp5": 5.0,
+                    "hot_streak": 2},
+                   {"name": "煤炭", "temperature": 12.0, "delta_temp5": -3.0,
+                    "hot_streak": 0},
+                   {"name": "农业", "temperature": 5.0, "delta_temp5": -6.0,
+                    "hot_streak": 0}],
+            "l2": [{"name": "光伏设备", "temperature": 92.0, "delta_temp5": 7.0,
+                    "hot_streak": 2},
+                   {"name": "航运", "temperature": 10.0, "delta_temp5": -4.0,
+                    "hot_streak": 0}],
+            "cold": [{"name": "农业", "temperature": 5.0, "delta_temp5": -6.0}],
+            "market": {"temperature": 42.0, "regime_label": "温和",
+                       "dims": {"趋势": 0.45, "宽度": 0.5, "量能": 0.4,
+                                "资金": 0.38, "情绪": 0.6}},
+        }
+
+    def test_build_thermo_card(self):
+        facts, spec = daily.build_thermo(self.DAY, self._bundle())
+        assert len(spec["cards"]) == 5
+        ids = {f.id for f in facts}
+        assert {"mkt_temp", "l1_top1_temp", "l2_top1_temp"} <= ids
+        blob = json.dumps(spec, ensure_ascii=False)
+        assert "半导体" in blob and "温和" in blob
+        # 触红线词禁入卡面(主力/追高等由合规表约束)
+        assert "主力" not in blob
+
+    def test_thermo_insights_zero_digit_and_compliance(self):
+        import re as _re
+        from davis_analyzer.cardgen.compliance import INDUCEMENT_PATTERNS, load_words
+        words = load_words()
+        lib = [daily._THERMO_DEFAULT_INSIGHT]
+        lib += daily.thermo_insights(self._bundle())
+        lib += daily.thermo_insights({**self._bundle(),
+                                      "l1": [{"name": "A", "temperature": 95.0,
+                                              "delta_temp5": 8.0, "hot_streak": 0}],
+                                      "market": {"temperature": 30.0,
+                                                 "regime_label": "低温",
+                                                 "dims": {}}})
+        for text in lib:
+            assert not _re.search(r"\d", text), f"见解句含数字: {text}"
+            hit = [w for w in words if w in text]
+            assert not hit, f"见解句命中敏感词{hit}: {text}"
+            for pat, _d in INDUCEMENT_PATTERNS:
+                assert not pat.search(text), f"见解句命中诱导句式: {text}"
+
+    def test_publish_copy_thermo_clean(self):
+        import re as _re
+        from davis_analyzer.cardgen.compliance import INDUCEMENT_PATTERNS, load_words
+        words = load_words()
+        c = daily.publish_copy("thermo", self.DAY)
+        blob = c["title"] + c["body"] + c["tags"]
+        hit = [w for w in words if w in blob]
+        assert not hit, f"thermo 发稿文案命中敏感词: {hit}"
+        for pat, _desc in INDUCEMENT_PATTERNS:
+            assert not pat.search(blob), "thermo 发稿文案命中诱导句式"
+        assert "不构成投资建议" in c["body"]
+        assert not _re.search(r"\d", c["body"])
+        assert c["title"].startswith(self.DAY[5:])

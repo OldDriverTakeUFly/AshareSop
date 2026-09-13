@@ -52,6 +52,18 @@ _PUBLISH_COPY: dict[str, dict[str, str]] = {
             "数据来自沪深交易所/东方财富,盘后观察为方法论视角解读,不构成投资建议。"
         ),
     },
+    "thermo": {
+        "title": "板块温度计 | 每日市场热度",
+        "tags": "#板块温度计 #每日复盘 #市场结构 #资金流向",
+        "body": (
+            "每天盘后,一张卡看懂板块冷热🌡️\n\n"
+            "①大盘温度——趋势、宽度、量能、资金流向与涨停情绪五维合成;\n"
+            "②一级/二级行业热度榜——量能、资金流向、动量、趋势结构与涨停密度合成;\n"
+            "③升降温和连热提示——温度变化与持续高温,比单日温度更有信息量。\n\n"
+            "温度只测温不决策;数据来自公开行情与交易所披露,"
+            "盘后观察为方法论视角解读,不构成投资建议。"
+        ),
+    },
 }
 
 
@@ -62,7 +74,9 @@ def publish_copy(kind: str, day: str, bundle: dict | None = None) -> dict[str, s
     c = _PUBLISH_COPY[kind]
     body = c["body"]
     if bundle is not None:
-        picks = ladder_insights(bundle) if kind == "ladder" else lhb_insights(bundle)
+        picker = {"ladder": ladder_insights, "lhb": lhb_insights,
+                  "thermo": thermo_insights}.get(kind)
+        picks = picker(bundle) if picker else []
         if picks:
             body += "\n\n盘后观察:\n" + "\n".join(f"· {p}" for p in picks)
     return {"title": f"{day[5:]} {c['title']}", "body": body, "tags": c["tags"]}
@@ -555,6 +569,188 @@ def build_lhb(day: str, bundle: dict) -> tuple[list[Fact], dict]:
 
 # ── 工程落盘与编排 ───────────────────────────────────────────────────────
 
+# ── 板块温度卡(thermometer 子系统,2026-09-13;数据源 market_data.db) ───
+
+_THERMO_DEFAULT_INSIGHT = ("温度计的完整读法:量能给燃料,资金流向给方向,动量与趋势给惯性,"
+                           "涨停密度给赚钱效应——合起来读,比任何单一维度都可靠")
+
+_THERMO_FOOT = "数据来源:交易所公开行情与申万指数(经 thermometer 采集) · 仅供研究参考,不构成投资建议"
+_THERMO_FOOT_LAST = _THERMO_FOOT + "。市场有风险,投资需谨慎。"
+
+
+def _market_db_path() -> Path:
+    return REPO_ROOT / "storage" / "database" / "market_data.db"
+
+
+def fetch_thermo_bundle(day: str) -> dict:
+    """day 为 dash 日期;读 thermometer_sector/market 当日快照."""
+    d = day.replace("-", "")
+    con = _ro_conn(_market_db_path())
+    try:
+        sec = con.execute(
+            "SELECT level, name, temperature, delta_temp5, hot_streak "
+            "FROM thermometer_sector WHERE trade_date=?", (d,)).fetchall()
+        mkt = con.execute(
+            "SELECT trend_dim, width_dim, volume_dim, flow_dim, sentiment_dim, "
+            "temperature, regime_label FROM thermometer_market WHERE trade_date=?",
+            (d,)).fetchone()
+        if not sec or not mkt:
+            raise DailyDataMissing(f"{day} 温度数据缺失(thermometer run 未完成?)")
+        rows = [{"level": r[0], "name": r[1] or "-", "temperature": float(r[2] or 0.0),
+                 "delta_temp5": (float(r[3]) if r[3] is not None else None),
+                 "hot_streak": int(r[4] or 0)} for r in sec]
+        l1 = sorted((r for r in rows if r["level"] == "L1"),
+                    key=lambda r: -r["temperature"])
+        l2 = sorted((r for r in rows if r["level"] == "L2"),
+                    key=lambda r: -r["temperature"])
+        return {
+            "day": day,
+            "l1": l1[:5],
+            "l2": l2[:5],
+            "cold": l1[-3:],
+            "market": {"temperature": float(mkt[5] or 0.0), "regime_label": mkt[6],
+                       "dims": {"趋势": mkt[0], "宽度": mkt[1], "量能": mkt[2],
+                                "资金": mkt[3], "情绪": mkt[4]}},
+        }
+    finally:
+        con.close()
+
+
+def thermo_insights(bundle: dict) -> list[str]:
+    """按温度形态选至多两条盘后观察(分化→连热→背离,先结构后节奏)."""
+    picks: list[str] = []
+    l1 = bundle.get("l1") or []
+    mkt = bundle.get("market") or {}
+    if l1:
+        top = l1[0]
+        bot = min(l1, key=lambda r: r.get("temperature", 0))
+        if top["temperature"] - bot["temperature"] > 70:
+            picks.append("冷热分化极端的日子,主线集中度比大盘涨跌更能定义这个市场——"
+                         "结构行情里,板块间的温差比指数读数更值得看")
+        if any((r.get("hot_streak") or 0) >= 3 for r in l1):
+            picks.append("连续高温板块是资金合力的痕迹,但高温本身不等于还会继续热——"
+                         "温度计只测温,不替人做决策")
+        if mkt and mkt.get("temperature", 50) < 35 and top["temperature"] > 85:
+            picks.append("大盘温吞而局部沸腾,是典型的结构行情——这种日子里,"
+                         "热度榜前列的参考价值高于大盘温度")
+    if not picks:
+        picks.append(_THERMO_DEFAULT_INSIGHT)
+    return picks[:2]
+
+
+def _thermo_num(x: float) -> str:
+    """温度/分位 display:去尾零(与 facts 序列化一致)."""
+    return f"{abs(float(x)):.1f}".rstrip("0").rstrip(".") or "0"
+
+
+def _thermo_signed(x: float) -> tuple[str, str]:
+    """带符号 display(升温用;0 亦带 +)."""
+    v = _thermo_num(x)
+    return v, f"{'-' if x < 0 else '+'}{v}"
+
+
+def build_thermo(day: str, bundle: dict) -> tuple[list[Fact], dict]:
+    ref_sec = f"market_data.db:thermometer_sector@{day}"
+    ref_mkt = f"market_data.db:thermometer_market@{day}"
+    facts: list[Fact] = []
+    mkt = bundle["market"]
+    top1 = bundle["l1"][0]
+
+    mkt_v, mkt_d = _thermo_num(mkt["temperature"]), f"{_thermo_num(mkt['temperature'])}度"
+    facts.append(_fact("mkt_temp", mkt_v, "度", mkt_d, day, f"{ref_mkt}:temperature"))
+    t1_v, t1_d = _thermo_num(top1["temperature"]), f"{_thermo_num(top1['temperature'])}度"
+    facts.append(_fact("l1_top1_temp", t1_v, "度", t1_d, day,
+                       f"{ref_sec}:L1:top1.temperature"))
+    top_name = _digit_safe(str(top1["name"])) or "-"
+
+    # 两级热度榜
+    def _board_rows(rows: list[dict], level: str) -> tuple[list[dict], list[Fact]]:
+        board_rows, board_facts = [], []
+        for i, r in enumerate(rows, 1):
+            name = _digit_safe(str(r["name"])) or "-"
+            fid_t, fid_d = f"{level}_top{i}_temp", f"{level}_top{i}_delta"
+            tv, td = _thermo_num(r["temperature"]), f"{_thermo_num(r['temperature'])}度"
+            board_facts.append(_fact(fid_t, tv, "度", td, day,
+                                     f"{ref_sec}:{level}:top{i}.temperature"))
+            cells = [name, {"$fact": fid_t}]
+            cls = ["", ""]
+            if r.get("delta_temp5") is not None:
+                dv, dd = _thermo_signed(r["delta_temp5"])
+                board_facts.append(_fact(fid_d, dv, "度", dd, day,
+                                         f"{ref_sec}:{level}:top{i}.delta_temp5"))
+                cells.append({"$fact": fid_d})
+                cls.append("")
+            else:
+                cells.append("—")
+                cls.append("")
+            board_rows.append({"cells": cells, "cls": cls})
+        return board_rows, board_facts
+
+    l1_rows, l1_facts = _board_rows(bundle["l1"], "l1")
+    l2_rows, l2_facts = _board_rows(bundle["l2"], "l2")
+    facts += l1_facts + l2_facts
+
+    # 大盘五维(分位 0-1 逐项 facts;NaN→文字占位)
+    dim_rows = []
+    for dim_name, v in mkt["dims"].items():
+        if v is None:
+            dim_rows.append({"cells": [dim_name, "数据待齐"], "cls": ["", ""]})
+            continue
+        fid = f"dim_{dim_name}"
+        dv = _thermo_num(v)
+        facts.append(_fact(fid, dv, "", dv, day, f"{ref_mkt}:{fid}"))
+        dim_rows.append({"cells": [dim_name, {"$fact": fid}],
+                         "cls": ["", "up" if float(v) >= 0.65 else
+                                 (" " if float(v) >= 0.35 else "")]})
+    dim_rows.append({"cells": ["综合档位", str(mkt["regime_label"])], "cls": ["", ""]})
+
+    spec = {
+        "group": "每日复盘",
+        "cards": [
+            {"type": "cover", "theme": "red", "name": "01_封面",
+             "tag_top": "板块温度计 · 每日数据复盘",
+             "title": "今天的板块温度<br>冷热一张图",
+             "sub": f"大盘{mkt['regime_label']} · 最热{top_name}<br>{day} 交易数据整理",
+             "stats": [
+                 {"v": {"$fact": "mkt_temp"}, "k": "大盘温度(度)"},
+                 {"v": {"$fact": "l1_top1_temp"}, "k": f"最热一级·{top_name}"}],
+             "tags": "#板块温度计 #每日复盘 #市场结构 #资金流向",
+             "foot": _THERMO_FOOT},
+            {"type": "table", "theme": "cream", "name": "02_一级热度", "first_left": True,
+             "tag_top": "一级热度榜", "tag_color": "#ea580c",
+             "title": "一级行业 · 热度居前",
+             "subtitle": "温度为当日截面分位,五族因子合成",
+             "table": {"headers": ["板块", "温度", "五日升温"], "rows": l1_rows},
+             "foot": _THERMO_FOOT},
+            {"type": "table", "theme": "blue", "name": "03_二级热度", "first_left": True,
+             "tag_top": "二级热度榜", "tag_color": "#2563eb",
+             "title": "二级行业 · 热度居前",
+             "subtitle": "细分方向的温度读数",
+             "table": {"headers": ["板块", "温度", "五日升温"], "rows": l2_rows},
+             "foot": _THERMO_FOOT},
+            {"type": "table", "theme": "green", "name": "04_大盘五维", "first_left": True,
+             "tag_top": "大盘五维", "tag_color": "#16a34a",
+             "title": "大盘温度的五维构成",
+             "subtitle": "各维为自身历史分位",
+             "table": {"headers": ["维度", "历史分位"], "rows": dim_rows},
+             "foot": _THERMO_FOOT},
+            {"type": "summary", "theme": "lavender", "name": "05_收束",
+             "tag_top": "数据说明", "tag_color": "#0f172a",
+             "title": "温度是结构数据",
+             "subtitle": "不是操作清单",
+             "rows": [
+                 {"desc": "<b>大盘温度</b> → 五维历史分位合成,见封面与大盘五维页"},
+                 {"desc": "<b>板块温度</b> → 当日全板块截面分位,回答谁强谁弱"},
+                 {"desc": "<b>升降温和连热</b> → 温度变化率与持续高温,节奏线索"}],
+             "kbox": {"date": "盘后观察", "color": "blue",
+                      "html": "<br>".join(thermo_insights(bundle))},
+             "tags": "#板块温度计 #每日复盘 #市场结构 #资金流向",
+             "foot": _THERMO_FOOT_LAST},
+        ],
+    }
+    return facts, spec
+
+
 def write_project(projects_root: Path, topic: str, facts: list[Fact], spec: dict) -> Path:
     proj = projects_root / PENDING_DIR / topic
     (proj / "output").mkdir(parents=True, exist_ok=True)
@@ -578,15 +774,20 @@ def generate(kind: str, day: str, projects_root: Path, ledger_db: Path | None,
     stockhot_db 缺省取 env CARDGEN_STOCKHOT_DB 或 DEFAULT_STOCKHOT_DB。
     """
     db = stockhot_db or Path(os.environ.get("CARDGEN_STOCKHOT_DB", DEFAULT_STOCKHOT_DB))
-    bundle = fetch_day_bundle(db, day)
-    if kind == "ladder":
+    if kind == "thermo":
+        # 数据源是 market_data.db 的 thermometer 表,不走 stockhot bundle
+        facts, spec = build_thermo(day, fetch_thermo_bundle(day))
+        topic = f"板块温度/{day}"
+    elif kind == "ladder":
+        bundle = fetch_day_bundle(db, day)
         facts, spec = build_ladder(day, bundle)
         topic = f"连板天梯/{day}"
     elif kind == "lhb":
+        bundle = fetch_day_bundle(db, day)
         facts, spec = build_lhb(day, bundle)   # Task 5 实现;先放占位 raise
         topic = f"龙虎榜/{day}"
     else:
-        raise ValueError(f"kind 须 ladder/lhb: {kind}")
+        raise ValueError(f"kind 须 ladder/lhb/thermo: {kind}")
     # 同日重跑保护:rendered/queued 的工程禁止静默覆写(须 --bump 或先删工程);drafting/validated 照常
     guard_conn = ledger.connect(_ledger_db(ledger_db))
     try:
