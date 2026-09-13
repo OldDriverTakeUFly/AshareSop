@@ -312,6 +312,15 @@ THERMOMETER_FAMILY_INNER_WEIGHTS: dict[str, tuple[float, float]] = {
     "momentum": (0.6, 0.4), "flow": (0.6, 0.4), "volume": (0.5, 0.5),
     "trend": (0.6, 0.4), "limit": (0.6, 0.4),
 }
+# v2 中期窗口(2026-09-13 用户拍板:v1 短期窗口实证为板块反转结构,重构为中期口径;
+# 证据见 thermometer/reports/20220104-20260913_校准报告.md 诊断附录)
+THERMOMETER_WINDOWS: dict[str, tuple[int, ...]] = {
+    "momentum": (60, 120),  # level=0.5×ret60+0.5×ret120; slope=ret60−ret120/2
+    "flow": (20, 60),       # level=60日main_net_pct和; slope=20日均−60日均
+    "volume": (20, 120),    # level=当日额/120日均额−1; slope=20日均额/120日均额−1
+    "trend": (60, 120),     # level=MA60/120排列+120日新高; slope=60日上行天数占比
+    "limit": (20, 60),      # level=60日均涨停占比; slope=20日均−60日均
+}
 # 量价交互衰减系数:放量同向 1.0 / 缩量同向 0.7 / 价格反向 0.3
 THERMOMETER_PRICE_VOLUME_DECAY: dict[str, float] = {
     "amplified_same": 1.0, "shrinking_same": 0.7, "opposite": 0.3,

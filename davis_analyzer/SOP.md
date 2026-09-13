@@ -350,9 +350,10 @@ python -m davis_analyzer.cli deep-research --top N
 参数，**永不可被进化触碰**（反环化规则）；晋升门槛与进化参数见 `constants.py` TOURNAMENT_*
 段。修改任何 TOURNAMENT_* 常量必须 bump SOP 版本号并记入 tournament_ledger。
 
-## 板块温度计（thermometer）参数 — v1（2026-09-13 建立）
+## 板块温度计（thermometer）参数 — v2（2026-09-13 中期窗口重构）
 
 - 族权重 `THERMOMETER_WEIGHTS`：momentum 0.25 / flow 0.30 / volume 0.20 / trend 0.15 / limit 0.10（先验值）。
+- **v2 中期窗口**（用户拍板；v1 短期窗口实证为板块反转结构，证据见校准报告诊断附录）`THERMOMETER_WINDOWS`：momentum (60,120) / flow (20,60) / volume (20,120) / trend (60,120) / limit (20,60)；量价交互价格方向判据为 ret60 方向。
 - 族内 (水平, 斜率) 权重 `THERMOMETER_FAMILY_INNER_WEIGHTS`：momentum/flow/trend/limit = (0.6, 0.4)，volume = (0.5, 0.5)。
 - 量价交互衰减 `THERMOMETER_PRICE_VOLUME_DECAY`：放量同向 1.0 / 缩量同向 0.7 / 价格反向 0.3。
 - 大盘五维权重 `THERMOMETER_MARKET_DIM_WEIGHTS`：五维等权 0.2；扩展窗口分位锚定，最少 250 交易日历史。

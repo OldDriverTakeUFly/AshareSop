@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-_N_DAYS = 70  # 60 日趋势窗预热 + 10 个温度日(其中后 5 日有 delta_temp5)
+_N_DAYS = 135  # v2:120 日趋势窗预热 + 15 个温度日(后段有 delta_temp5/hot_streak)
 
 
 def _dates() -> list[str]:

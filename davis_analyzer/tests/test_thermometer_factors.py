@@ -1,4 +1,4 @@
-"""五族因子纯函数:构造 2 指数×22 日 panel,断言关键窗口值与 z 性质."""
+"""五族因子纯函数(v2 中期窗口):窗口值/排序/量价交互/单成员截面."""
 from __future__ import annotations
 
 import numpy as np
@@ -6,9 +6,9 @@ import pandas as pd
 
 
 def _panel() -> pd.DataFrame:
-    # 61 自然日(合成日历):覆盖 60 日滚动窗(trend 族 hh60/ma60)
+    # 135 自然日(合成日历):覆盖 120 日滚动窗(动量/量能/趋势 level)
     dates = [d.strftime("%Y%m%d")
-             for d in pd.date_range("2022-01-04", periods=61, freq="D")]
+             for d in pd.date_range("2022-01-04", periods=135, freq="D")]
     rows = []
     for i, code in enumerate(("801010.SI", "801011.SI")):
         base = 100.0 + i * 10
@@ -29,18 +29,23 @@ def test_add_factor_columns_windows():
 
     p = factors.add_factor_columns(_panel())
     a = p[p["index_code"] == "801010.SI"].reset_index(drop=True)
-    # mom_level 第21行(idx=20 起 20 日窗口满)= 1.01**20−1
-    assert abs(a.loc[21, "mom_level"] - (1.01 ** 20 - 1)) < 1e-9
-    # flow_level 20 日和: 0.001×20 = 0.02
-    assert abs(a.loc[21, "flow_level"] - 0.02) < 1e-9
-    # trend_slope 恒 1(每日上涨)
-    assert a.loc[21, "trend_slope"] == 1.0
-    # pv_decay: 801010 放量(amount 递增)且上涨 → 1.0;801011 缩量上涨?不,下跌 → 0.3
+    # v2 动量 level = 0.5×ret60 + 0.5×ret120(idx=125 处两窗均满)
+    exp = 0.5 * (1.01 ** 60 - 1) + 0.5 * (1.01 ** 120 - 1)
+    assert abs(a.loc[125, "mom_level"] - exp) < 1e-9
+    # v2 动量 slope = ret60 − ret120/2
+    assert abs(a.loc[125, "mom_slope"] - ((1.01 ** 60 - 1) - (1.01 ** 120 - 1) / 2)) < 1e-9
+    # v2 资金 level = 60 日和: 0.001×60 = 0.06
+    assert abs(a.loc[125, "flow_level"] - 0.06) < 1e-9
+    # v2 趋势 slope = 60 日上行占比 = 1.0
+    assert a.loc[125, "trend_slope"] == 1.0
+    # v2 涨停 level = 60 日均 = 0.02
+    assert abs(a.loc[125, "limit_level"] - 0.02) < 1e-9
+    # v2 量价交互:方向判据 ret60 → 801010 放量+60日涨=1.0;801011 60日跌=0.3
     b = p[p["index_code"] == "801011.SI"].reset_index(drop=True)
-    assert a.loc[21, "pv_decay"] == 1.0
-    assert b.loc[21, "pv_decay"] == 0.3  # 价格反向
-    # 窗口不足 → NaN
-    assert np.isnan(a.loc[5, "mom_level"])
+    assert a.loc[125, "pv_decay"] == 1.0
+    assert b.loc[125, "pv_decay"] == 0.3
+    # 窗口不足 → NaN(动量 level 需 120 日)
+    assert np.isnan(a.loc[100, "mom_level"])
 
 
 def test_family_scores_z_and_ordering():
@@ -67,3 +72,13 @@ def test_single_member_cross_section_zero():
     solo = p[p["index_code"] == "801010.SI"].reset_index(drop=True)
     scored = factors.family_scores(solo)
     assert (scored["mom_score"].fillna(0) == 0).all()
+
+
+def test_windows_single_source():
+    """窗口单一真相源:constants.THERMOMETER_WINDOWS 与文档口径一致."""
+    from davis_analyzer.constants import THERMOMETER_WINDOWS
+    assert THERMOMETER_WINDOWS["momentum"] == (60, 120)
+    assert THERMOMETER_WINDOWS["trend"] == (60, 120)
+    assert THERMOMETER_WINDOWS["volume"] == (20, 120)
+    assert THERMOMETER_WINDOWS["flow"] == (20, 60)
+    assert THERMOMETER_WINDOWS["limit"] == (20, 60)
