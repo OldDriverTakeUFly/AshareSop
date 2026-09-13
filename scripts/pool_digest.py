@@ -59,6 +59,8 @@ async def _push(text: str, dry: bool) -> None:
     if dry:
         print("[dry]\n" + text)
         return
+    from dotenv import load_dotenv
+    load_dotenv(REPO_ROOT / ".env")  # 否则读不到 FEISHU_XHS_CHAT_ID,会误落默认盯盘群(首推实测踩坑)
     from stockhot.notification.feishu_bot import EnterpriseFeishuNotifier, get_feishu_notifier
     xhs_chat = os.environ.get("FEISHU_XHS_CHAT_ID", "")
     if xhs_chat and os.environ.get("FEISHU_APP_ID") and os.environ.get("FEISHU_APP_SECRET"):
