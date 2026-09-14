@@ -84,3 +84,4 @@ storage/database/
 
 # card factory generated artifacts
 scripts/card_factory/output/
+storage/files/smb_event/adj_factor_*.csv.gz

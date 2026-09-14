@@ -84,6 +84,20 @@ TUSHARE_MCP_URL=https://api.tushare.pro/mcp/?token=<同上>
 
 > **用途**：`stockhot/fund_flow/__init__.py` 用 `moneyflow` + `stock_basic` 按行业聚合得到板块资金流，作为东财 akshare 被封 IP 时的首选数据源。
 
+### 2.3.1 公司行为事件（回购/增发/复权因子,2026-09-14 实测）
+
+| 接口 | 用途 | 关键参数 | 关键字段 | 状态 |
+|------|------|----------|----------|------|
+| `repurchase` | 股票回购全生命周期 | `ts_code` 或 `start_date`+`end_date` 按月分页(~700行/月) | `ann_date,proc(预案/股东大会通过/实施/完成/停止),end_date(进度统计截止),vol(股),amount(元),exp_date(回购到期),high_limit/low_limit` | ✅ 可用 |
+| `stk_seasoned` | 股票增发(含定增) | `start_date`+`end_date` 按季分页(单次≤3000条);项目归组键=`ts_code+first_ann_date` | `cur_stage(意向/董事会预案/监管审批/实施/终止),plan_chg_type/plan_chg_ann_dt(终止公告),apply_date(申购日),new_share_list_dt(上市日),fo_type(公开/非公开),fo_raise_total(_act),fo_price_ratio,fo_purpose` | ✅ 可用(2000积分) |
+| `adj_factor` | 复权因子 | `trade_date`(全市场~5400行/日) | `ts_code,trade_date,adj_factor` | ✅ 可用 |
+
+> **坑点(2026-09-14 事件研究实测)**:
+> 1. **增发接口名不是 `spo`**(报"请指定正确的接口名"),正确名 `stk_seasoned`;`add_share/spo_basic/private_placement` 等均不存在。
+> 2. **本地 `market_data.db daily_price` 的 adj_factor 有洞**:2025 年 76% 行缺失、2021-2024 有零星缺口(极端如 300454.SZ/600861.SH 整段 NULL),直接 `close*adj_factor` 会制造假跳空(曾产生 +1493% 假收益)。补救:按 `trade_date` 全市场拉 `adj_factor` 做覆盖层(参照 `davis_analyzer/studies/buyback_placement_event_study.py` 的 `ensure_adj_factors`)。
+> 3. `repurchase` 的月度进度行 `proc` 也标「完成」,并非终态——终态要靠「停止」行或 exp_date 判断;预案行的 `amount` 是拟回购金额上限(元)。
+> 4. `stk_seasoned` 一行=一次公告快照(项目多行,靠 first_ann_date 归组);字段可能在任意快照行出现,取值要扫组内非空,不能只看末行。
+
 ### 2.4 宏观经济（macro 模块）
 
 | 接口 | 用途 | 关键参数 | 状态 |
