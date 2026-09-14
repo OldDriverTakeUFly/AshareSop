@@ -1,0 +1,19 @@
+{
+  "topic": "筛选器温度计/2026-09-14",
+  "version": 1,
+  "as_of": "2026-09-14",
+  "expires_at": "2026-09-14",
+  "group": "每日复盘",
+  "images": [
+    "output/筛选器温度计_2026-09-14_01_封面.png",
+    "output/筛选器温度计_2026-09-14_02_当日读数.png",
+    "output/筛选器温度计_2026-09-14_03_近五次轨迹.png",
+    "output/筛选器温度计_2026-09-14_04_收束.png"
+  ],
+  "facts_digest": "sha256:6e4207c9e9e556e9b1b87be8173cdc48fbe31ac227423b7492860f39288f39ab",
+  "validate": {
+    "passed": true,
+    "failures": 0
+  },
+  "cardgen_version": "0.1"
+}
