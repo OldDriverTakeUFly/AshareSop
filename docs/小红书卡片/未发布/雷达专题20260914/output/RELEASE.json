@@ -1,0 +1,19 @@
+{
+  "topic": "雷达专题20260914",
+  "version": 1,
+  "as_of": "2026-09-14",
+  "expires_at": "2026-09-23",
+  "group": "事件雷达",
+  "images": [
+    "output/雷达专题20260914_01_封面.png",
+    "output/雷达专题20260914_02_三一.png",
+    "output/雷达专题20260914_03_慈星.png",
+    "output/雷达专题20260914_04_小结.png"
+  ],
+  "facts_digest": "sha256:c99203035d3a6da95afba0fce0133f40b2f02d0bcb5d4f0853a2f4f60330c912",
+  "validate": {
+    "passed": true,
+    "failures": 0
+  },
+  "cardgen_version": "0.1"
+}
