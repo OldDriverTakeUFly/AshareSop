@@ -1,0 +1,208 @@
+{
+  "facts": [
+    {
+      "id": "zt_count",
+      "value": "55",
+      "unit": "只",
+      "display": "55只",
+      "as_of": "2026-09-14",
+      "source": {
+        "kind": "stockhot",
+        "ref": "stockhot.db:daily_data:limit_up_pool@2026-09-14:len"
+      },
+      "expires": "2026-09-14"
+    },
+    {
+      "id": "broken_count",
+      "value": "30",
+      "unit": "只",
+      "display": "30只",
+      "as_of": "2026-09-14",
+      "source": {
+        "kind": "stockhot",
+        "ref": "stockhot.db:daily_data:broken_pool@2026-09-14:len"
+      },
+      "expires": "2026-09-14"
+    },
+    {
+      "id": "down_count",
+      "value": "15",
+      "unit": "只",
+      "display": "15只",
+      "as_of": "2026-09-14",
+      "source": {
+        "kind": "stockhot",
+        "ref": "stockhot.db:daily_data:limit_down_pool@2026-09-14:len"
+      },
+      "expires": "2026-09-14"
+    },
+    {
+      "id": "board_max",
+      "value": "4",
+      "unit": "",
+      "display": "4板",
+      "as_of": "2026-09-14",
+      "source": {
+        "kind": "stockhot",
+        "ref": "stockhot.db:analysis_results:limit_up_analysis@2026-09-14:consecutive_boards[0].board_count"
+      },
+      "expires": "2026-09-14"
+    },
+    {
+      "id": "tier_4",
+      "value": "4",
+      "unit": "",
+      "display": "4板",
+      "as_of": "2026-09-14",
+      "source": {
+        "kind": "stockhot",
+        "ref": "stockhot.db:analysis_results:limit_up_analysis@2026-09-14:consecutive_boards:board_count=4"
+      },
+      "expires": "2026-09-14"
+    },
+    {
+      "id": "tier_4_count",
+      "value": "1",
+      "unit": "只",
+      "display": "1只",
+      "as_of": "2026-09-14",
+      "source": {
+        "kind": "stockhot",
+        "ref": "stockhot.db:analysis_results:limit_up_analysis@2026-09-14:consecutive_boards:board_count=4:len"
+      },
+      "expires": "2026-09-14"
+    },
+    {
+      "id": "tier_3",
+      "value": "3",
+      "unit": "",
+      "display": "3板",
+      "as_of": "2026-09-14",
+      "source": {
+        "kind": "stockhot",
+        "ref": "stockhot.db:analysis_results:limit_up_analysis@2026-09-14:consecutive_boards:board_count=3"
+      },
+      "expires": "2026-09-14"
+    },
+    {
+      "id": "tier_3_count",
+      "value": "3",
+      "unit": "只",
+      "display": "3只",
+      "as_of": "2026-09-14",
+      "source": {
+        "kind": "stockhot",
+        "ref": "stockhot.db:analysis_results:limit_up_analysis@2026-09-14:consecutive_boards:board_count=3:len"
+      },
+      "expires": "2026-09-14"
+    },
+    {
+      "id": "tier_2",
+      "value": "2",
+      "unit": "",
+      "display": "2板",
+      "as_of": "2026-09-14",
+      "source": {
+        "kind": "stockhot",
+        "ref": "stockhot.db:analysis_results:limit_up_analysis@2026-09-14:consecutive_boards:board_count=2"
+      },
+      "expires": "2026-09-14"
+    },
+    {
+      "id": "tier_2_count",
+      "value": "7",
+      "unit": "只",
+      "display": "7只",
+      "as_of": "2026-09-14",
+      "source": {
+        "kind": "stockhot",
+        "ref": "stockhot.db:analysis_results:limit_up_analysis@2026-09-14:consecutive_boards:board_count=2:len"
+      },
+      "expires": "2026-09-14"
+    },
+    {
+      "id": "top_seal_yi",
+      "value": "0.9",
+      "unit": "亿",
+      "display": "+0.9亿",
+      "as_of": "2026-09-14",
+      "source": {
+        "kind": "stockhot",
+        "ref": "stockhot.db:daily_data:limit_up_pool@2026-09-14:000993.SZ.seal_amount"
+      },
+      "expires": "2026-09-14"
+    },
+    {
+      "id": "top_turnover_pct",
+      "value": "12.25",
+      "unit": "%",
+      "display": "+12.25%",
+      "as_of": "2026-09-14",
+      "source": {
+        "kind": "stockhot",
+        "ref": "stockhot.db:daily_data:limit_up_pool@2026-09-14:000993.SZ.turnover_rate"
+      },
+      "expires": "2026-09-14"
+    },
+    {
+      "id": "top_change_pct",
+      "value": "10.01",
+      "unit": "%",
+      "display": "+10.01%",
+      "as_of": "2026-09-14",
+      "source": {
+        "kind": "stockhot",
+        "ref": "stockhot.db:daily_data:limit_up_pool@2026-09-14:000993.SZ.change_pct"
+      },
+      "expires": "2026-09-14"
+    },
+    {
+      "id": "sector_1_count",
+      "value": "6",
+      "unit": "只",
+      "display": "6只",
+      "as_of": "2026-09-14",
+      "source": {
+        "kind": "stockhot",
+        "ref": "stockhot.db:daily_data:limit_up_pool@2026-09-14:sector=元件:len"
+      },
+      "expires": "2026-09-14"
+    },
+    {
+      "id": "sector_2_count",
+      "value": "3",
+      "unit": "只",
+      "display": "3只",
+      "as_of": "2026-09-14",
+      "source": {
+        "kind": "stockhot",
+        "ref": "stockhot.db:daily_data:limit_up_pool@2026-09-14:sector=汽车零部件:len"
+      },
+      "expires": "2026-09-14"
+    },
+    {
+      "id": "sector_3_count",
+      "value": "3",
+      "unit": "只",
+      "display": "3只",
+      "as_of": "2026-09-14",
+      "source": {
+        "kind": "stockhot",
+        "ref": "stockhot.db:daily_data:limit_up_pool@2026-09-14:sector=电力:len"
+      },
+      "expires": "2026-09-14"
+    },
+    {
+      "id": "sector_4_count",
+      "value": "3",
+      "unit": "只",
+      "display": "3只",
+      "as_of": "2026-09-14",
+      "source": {
+        "kind": "stockhot",
+        "ref": "stockhot.db:daily_data:limit_up_pool@2026-09-14:sector=电网设备:len"
+      },
+      "expires": "2026-09-14"
+    }
+  ]
+}
