@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
-# content_publisher/publish_confirm.py — 发布自动确认对账(2026-09-13)
+# content_publisher/publish_confirm.py — 发布自动确认对账(2026-09-13;2026-09-15 修)
 # 依据:每晚 21:10 小红书数据回流(metrics collect)落库的笔记清单(xhs_metrics.db.notes)。
-# 逻辑:发稿池 prepped/到点 scheduled 行 × 已发布笔记做标题归一化前缀匹配——
-#   命中 → 自动标记 published(留 publish_log 'auto_confirm')并推送确认到红薯运营群;
-#   未命中的 prepped(备料超24h)→ 推送「待发布/未检出」提醒,人工核对。
+# 逻辑:发稿池 draft/reviewed/prepped/到点 scheduled 行 × 已发布笔记做标题归一化前缀匹配——
+#   命中(且笔记发布时间 ≥ 行入池时间,防复活重发的同标题旧卡误对账)→ 自动标记 published
+#   (留 publish_log 'auto_confirm',note_id 记真实笔记 id)并推送确认到红薯运营群;
+#   未命中的 prepped → 推送「待发布/未检出」提醒,人工核对。
+# 2026-09-15 修:9/13 起卡片由 cron 直接入池停在 draft、人工直发,旧扫描集
+#   (prepped/到点 scheduled)导致已发布行永远不被对账(每晚播报「无待对账项」)。
 # 不新增任何爬取;只消费已有回流。幂等:状态迁移本身幂等,推送按日锁。
 # 用法: .venv/bin/python scripts/content_publisher/publish_confirm.py [--dry]
 # systemd: publish-confirm.timer 每日 21:25(21:10 回流采集之后)。
@@ -35,28 +38,42 @@ def _norm(title: str) -> str:
     return re.sub(r"[^\w\u4e00-\u9fff]+", "", title).lower()
 
 
+def _parse(ts: str | None) -> datetime | None:
+    """回流 published_at('2026-09-14 18:08')与池 created_at(ISO带T)统一解析,失败返回 None。"""
+    if not ts:
+        return None
+    try:
+        return datetime.fromisoformat(ts)
+    except ValueError:
+        return None
+
+
 def reconcile(dry: bool = False) -> tuple[list, list]:
     """返回 (自动确认行, 未检出超时行)。"""
     now = datetime.now().isoformat(timespec="minutes")
     q = sqlite3.connect(QUEUE_DB)
     q.row_factory = sqlite3.Row
     rows = q.execute(
-        "SELECT * FROM publish_queue WHERE status='prepped' "
+        "SELECT * FROM publish_queue WHERE status IN ('draft','reviewed','prepped') "
         "OR (status='scheduled' AND scheduled_at<=?) ORDER BY id", (now,)).fetchall()
     m = sqlite3.connect(METRICS_DB)
     m.row_factory = sqlite3.Row
-    notes = m.execute("SELECT title,published_at FROM notes ORDER BY published_at DESC").fetchall()
-    notes_n = [(_norm(r["title"]), r["title"], r["published_at"]) for r in notes]
+    notes = m.execute(
+        "SELECT note_id,title,published_at FROM notes ORDER BY published_at DESC").fetchall()
+    notes_n = [(_norm(r["title"]), r["title"], r["published_at"], r["note_id"],
+                _parse(r["published_at"])) for r in notes]
 
     confirmed, pending = [], []
     for r in rows:
         key = _norm(r["title"])[:10]
-        hit = next((n for n in notes_n if n[0][:10] == key and key), None)
+        created = _parse(r["created_at"]) or datetime.min
+        hit = next((n for n in notes_n
+                    if n[0][:10] == key and key and n[4] and n[4] >= created), None)
         if hit:
             confirmed.append((r["id"], r["title"], hit[2]))
             if not dry:
                 q.execute("UPDATE publish_queue SET status='published', published_at=?, note_id=? "
-                          "WHERE id=?", (hit[2], hit[1], r["id"]))
+                          "WHERE id=?", (hit[2], hit[3], r["id"]))
                 q.execute("INSERT INTO publish_log(queue_id,ts,event,detail) VALUES(?,?,?,?)",
                           (r["id"], datetime.now().isoformat(timespec="seconds"),
                            "auto_confirm", f"回流对账命中: 《{hit[1]}》@{hit[2]}"))
