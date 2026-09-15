@@ -1,0 +1,75 @@
+<!DOCTYPE html><html lang='zh-CN'><head><meta charset='UTF-8'><style>  * { margin:0; padding:0; box-sizing:border-box; font-family:'Noto Sans CJK SC','PingFang SC','Microsoft YaHei',sans-serif; }
+  body { background:#e8e8e8; display:flex; flex-direction:column; align-items:center; gap:40px; padding:40px 0; }
+  .card { width:1080px; height:1440px; border-radius:48px; position:relative; overflow:hidden; padding:48px 56px; display:flex; flex-direction:column; }
+  .card1 { background:linear-gradient(160deg,#1a1440 0%,#3b1d6e 45%,#8a2be2 100%); color:#fff; }
+  .card2 { background:#fdf6ec; color:#3a2e20; }
+  .card3 { background:#eef4ff; color:#1e2a44; }
+  .card4 { background:#fff1f0; color:#4a1f1c; }
+  .card5 { background:#f0fbf2; color:#1d3a24; }
+  .card6 { background:#f7f3ff; color:#2e2440; }
+  .tag-top { display:inline-block; background:#ff2442; color:#fff; font-size:30px; font-weight:900; padding:12px 30px; border-radius:999px; letter-spacing:2px; width:fit-content; }
+  .badge { display:inline-block; font-size:26px; font-weight:800; padding:8px 22px; border-radius:999px; margin-right:12px; }
+  .b-purple{background:rgba(138,43,226,.18);color:#6b21a8;} .b-blue{background:rgba(37,99,235,.14);color:#1d4ed8;}
+  .b-red{background:rgba(220,38,38,.12);color:#b91c1c;} .b-green{background:rgba(22,163,74,.14);color:#15803d;}
+  .b-org{background:rgba(234,88,12,.15);color:#c2410c;} .b-gray{background:rgba(0,0,0,.07);color:#555;}
+  h1 { font-size:96px; font-weight:900; line-height:1.18; margin:28px 0 10px; letter-spacing:1px; }
+  .sub { font-size:42px; font-weight:700; opacity:.92; line-height:1.5; }
+  .hl { background:linear-gradient(transparent 62%, rgba(255,210,0,.85) 62%); padding:0 6px; }
+  .hl-r { background:linear-gradient(transparent 62%, rgba(255,77,109,.55) 62%); padding:0 6px; }
+  .big-num { font-size:150px; font-weight:900; line-height:1; letter-spacing:-2px; }
+  h2.title { font-size:56px; font-weight:900; margin-bottom:8px; line-height:1.25; }
+  .subtitle { font-size:30px; font-weight:600; opacity:.65; margin-bottom:24px; }
+  .row { background:#fff; border-radius:28px; padding:20px 28px; margin-bottom:16px; box-shadow:0 6px 24px rgba(0,0,0,.06); }
+  .row .name { font-size:36px; font-weight:900; margin-bottom:8px; display:flex; align-items:center; gap:14px; flex-wrap:wrap;}
+  .row .desc { font-size:26px; line-height:1.48; }
+  .dot { width:24px; height:24px; border-radius:50%; display:inline-block; }
+  table { width:100%; border-collapse:separate; border-spacing:0; background:#fff; border-radius:26px; overflow:hidden; font-size:26px; box-shadow:0 6px 24px rgba(0,0,0,.06); }
+  th { background:#2a2050; color:#fff; font-weight:800; padding:16px 12px; font-size:25px; }
+  td { padding:14px 12px; text-align:center; border-bottom:1px solid #f0ecf5; line-height:1.35; }
+  td.l { text-align:left; font-weight:800; }
+  tr:last-child td { border-bottom:none; }
+  .up{color:#dc2626;font-weight:800;} .down{color:#16a34a;font-weight:800;} .warn{color:#d97706;font-weight:800;}
+  .kbox { background:#fff; border-radius:26px; padding:20px 28px; margin-bottom:14px; box-shadow:0 6px 24px rgba(0,0,0,.06); display:flex; gap:20px; align-items:flex-start; }
+  .kdate { min-width:165px; background:#16a34a; color:#fff; font-weight:900; font-size:27px; border-radius:16px; text-align:center; padding:12px 0; line-height:1.3;}
+  .kdate.red{background:#dc2626;} .kdate.org{background:#ea580c;} .kdate.pu{background:#7c3aed;}
+  .ktext { font-size:26px; line-height:1.48; padding-top:4px;}
+  .ktext b { font-size:27px; }
+  .quote { background:rgba(255,255,255,.14); border-left:8px solid #ffd400; border-radius:0 22px 22px 0; padding:22px 26px; font-size:30px; line-height:1.55; font-weight:600; }
+  .foot { margin-top:auto; font-size:21px; opacity:.6; line-height:1.45; }
+  .tags { font-size:25px; font-weight:700; opacity:.85; margin-top:20px; }
+  .card5 .ktext { font-size:25px; line-height:1.42; }
+  .card5 .kdate { min-width:150px; font-size:25px; }
+  .card5 .kbox { padding:16px 24px; gap:16px; margin-bottom:12px; }
+  .card5 .ktext b { font-size:26px; }
+  .card2 .row .desc { font-size:25px; line-height:1.45; }
+  .card2 .row .name { font-size:34px; }
+  .num-badge { display:flex; gap:26px; margin:34px 0 8px; }
+  .nb { background:rgba(255,255,255,.12); border-radius:26px; padding:24px 30px; flex:1; }
+  .nb .v { font-size:58px; font-weight:900; color:#ffd400; }
+  .nb .k { font-size:25px; opacity:.85; margin-top:6px; }
+</style><style class='cardgen-fill'>.card{justify-content:space-between;}.card>.foot{margin-top:0 !important;}</style></head><body><div class="card card1" id="card1">
+<span class="tag-top" style="background:#ff2442;">事件雷达 · 重组停牌</span>
+<h1>广汽×一汽<br>发股整合,变二股东🤝</h1>
+<div class="sub" style="margin-top:24px;">地方国企×央企<br>产业资源交叉整合</div>
+<div class="num-badge"><div class="nb"><div class="v">519亿元</div><div class="k">停牌前总市值</div></div><div class="nb"><div class="v">780亿元</div><div class="k">一汽股份注册资本</div></div><div class="nb"><div class="v">5.09元</div><div class="k">停牌前收盘</div></div></div>
+<div style="margin-top:30px;"><div class="quote" style="background:rgba(255,255,255,.14);color:inherit;border-left-color:#ffd400;font-size:30px;">"<span style='color:#ffd400'>读停牌重组的正确姿势</span>——先看结构(发股还是现金),再看边界(实控人变不变),最后等预案;名字没披露不是悬念,是规则"</div></div>
+<div class="tags">#公告解读 #资产重组 #国企整合 #事件研究</div><div class="foot">数据来源:巨潮公告PDF核实(2026-09-15披露) · 仅供研究参考,不构成投资建议</div></div><div class="card card3" id="card2">
+<span class="tag-top" style="background:#2563eb;">交易要素</span>
+<h2 class="title" style="margin-top:24px;">结构比名字更重要</h2>
+<div class="subtitle">一次收购变成交叉整合</div>
+<table><tr><th style=text-align:left>要素</th><th>内容</th></tr><tr><td class="l">交易方式</td><td class="">发行股份购买资产+募集配套资金</td></tr><tr><td class="l">交易对方</td><td class="">一汽股份(央企)</td></tr><tr><td class="l">注入资产</td><td class="">某整车合资公司部分股权</td></tr><tr><td class="l">股权后果</td><td class="up">一汽成为第二大战略股东</td></tr><tr><td class="l">边界声明</td><td class="">不变更实控人/不构成重组上市</td></tr><tr><td class="l">交易性质</td><td class="">重大资产重组+关联交易</td></tr></table>
+<div style="margin-top:30px;"><div class="kbox"><div class="kdate" style="background:#dc2626;">怎么读</div><div class="ktext">「发股买资产」=不掏现金,一汽换股入驻;公告先把「不变更实控人、不重组上市」的边界划清——<b>边界越清楚,审核不确定性越小</b></div></div></div>
+<div class="foot">数据来源:广汽集团停牌公告PDF核实(2026-09-15披露) · 仅供研究参考,不构成投资建议</div></div><div class="card card5" id="card3">
+<span class="tag-top" style="background:#16a34a;">时间与规则</span>
+<h2 class="title" style="margin-top:24px;">自带截止日的事件</h2>
+<div class="subtitle">预案披露前的读法</div>
+<table><tr><th style=text-align:left>要素</th><th>读数</th></tr><tr><td class="l">停牌起始</td><td class="">九月十四日开市起</td></tr><tr><td class="l">停牌窗口</td><td class="">不超过十个交易日</td></tr><tr><td class="l">意向协议签署</td><td class="">九月十四日</td></tr><tr><td class="l">目标公司披露</td><td class="">重组预案中披露(暂缓)</td></tr><tr><td class="l">对方注册资本</td><td class="">780亿元</td></tr></table>
+<div style="margin-top:30px;"><div class="kbox"><div class="kdate" style="background:#dc2626;">怎么读</div><div class="ktext">目标资产涉及境外上市公司所以<b>暂缓披露名称——这是规则不是吊胃口</b>;十个交易日窗口意味着月底前必有预案与复牌,跟踪成本极低</div></div></div>
+<div class="foot">数据来源:广汽集团停牌公告PDF核实(2026-09-15披露) · 仅供研究参考,不构成投资建议</div></div><div class="card card6" id="card4">
+<span class="tag-top" style="background:#0f172a;">一句话收束</span>
+<h2 class="title" style="margin-top:24px;">等预案,不猜名字</h2>
+<div class="subtitle">九月底前见分晓</div>
+<div class="row"><div class="desc"><b>结构已足够特别</b>——发股购资产+一汽变二股东:一次收购写成了央企-地方的交叉持股整合,公告目的原文就是「促进产业资源优化整合」</div></div><div class="row"><div class="desc"><b>边界先划清</b>——不构成实控人变更、不构成重组上市:审核路径的选择本身就含信息</div></div><div class="row"><div class="desc"><b>时间表自带</b>——停牌不超过十个交易日,预案必须先行:一次公告见分晓,不需要天天盯</div></div><div class="row"><div class="desc"><b>定价无从下手是事实</b>——筹划期无交易价格无目标公司财务,任何「值多少」在预案前都是猜测,本卡不猜</div></div>
+<div style="margin-top:14px;"><div class="kbox"><div class="kdate" style="background:#2563eb;">定位</div><div class="ktext">事件雷达把「谁在动真格」摆上桌:央企-地方整合进入汽车业样本期,后续同类动作会持续进雷达——顺着公告结构读,而不是照着情绪追</div></div></div>
+<div style="margin-top:8px;"></div>
+<div class="foot">数据来源:巨潮公告PDF+Tushare(2026-09-11停牌前) · 完整分析见事件研究笔记 · 不构成投资建议,市场有风险,投资需谨慎</div></div></body></html>
