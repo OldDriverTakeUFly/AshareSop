@@ -125,8 +125,9 @@ def push_one(kind: str, day: str, proj: Path, topic: str, release: dict) -> bool
                 p = proj / img
                 if p.exists():
                     await n.send_image(str(p))
-            await n.send_text(f"【{day} 复盘卡】{copy['title']}\n\n{copy['body']}\n\n{copy['tags']}\n"
-                              "— 入池待审,发布仍人工")
+            # tags 必须是消息最后一行:话题标签后跟任何文字都会失效(XHS 规则),
+            # 运营提示(发布人工)只放头部括号行,复制区(正文+tags)保持纯净
+            await n.send_text(f"【{day} 复盘卡·已入池待审,发布人工】{copy['title']}\n\n{copy['body']}\n\n{copy['tags']}")
         asyncio.run(_send())
         lock_dir.mkdir(parents=True, exist_ok=True)
         lock.write_text(datetime.now().isoformat(timespec="seconds"), encoding="utf-8")

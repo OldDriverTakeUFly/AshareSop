@@ -79,10 +79,11 @@ async def _push(rows: list[sqlite3.Row], dry: bool) -> None:
         if not imgs:
             print(f"#{r['id']} 备料目录无 PNG", file=sys.stderr)
             continue
-        text = (f"【今日备料 #{r['id']}】{r['title']}\n"
+        # tags 必须是消息最后一行:话题标签后跟任何文字都会失效(XHS 规则),
+        # 运营提示只放头部括号行,复制区(正文+tags)保持纯净
+        text = (f"【今日备料 #{r['id']}·发布请在手机App人工完成,发后回管理台标记】{r['title']}\n"
                 f"排期 {r['scheduled_at']} | 数据有效至 {r['release_expires'] or '无'}\n\n"
-                f"{(r['body'] or '').strip()}\n\n{r['tags'] or ''}\n"
-                "— 发布请在手机App人工完成,发后回管理台标记")
+                f"{(r['body'] or '').strip()}\n\n{r['tags'] or ''}")
         if dry:
             print(f"[dry] #{r['id']} {imgs[0].name} + {len(text)}字文案")
             continue
