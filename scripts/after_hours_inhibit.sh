@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # 在线窗口防休眠(2026-09-15 盘后窗口上线;2026-09-16 用户授权扩展交易日盘中窗口)
-# 机制:工作日由 user systemd timer 拉起,持有 systemd-inhibit(sleep:idle, block)
+# 机制:工作日由 user systemd timer 拉起,持有 systemd-inhibit(sleep:idle+handle-lid-switch, block)
 #       至窗口结束自然退出;Persistent=true 使休眠/关机错过的场景在机器恢复后补拉
 #       (周末自检退出;已过窗口尾声的自检也直接退出)。
 # 窗口:
@@ -8,7 +8,8 @@
 #               21:10 数据回流/23:00+ 公告日卡等盘后 cron。
 #   trading      09:25 拉起,持锁至当日 15:05——保障盘中 14:40 轮动/实时行情窗口
 #               (0915 白日停机事故沉淀:三影子当日全缺,样本被迫剔除)。
-# 局限:挡「空闲自动休眠」与(取决于 polkit)合盖挂起;人为 poweroff/显式 suspend 不拦;
+# 局限:挡「空闲自动休眠」与「合盖挂起」(handle-lid-switch, GNOME 自管时需实测,2026-09-16);
+#       人为 poweroff/显式 suspend 不拦;
 #       法定节假日为非交易日但仍会持锁(无法从本地数据预判节假日,误持锁无害)。
 set -u
 
@@ -40,4 +41,4 @@ case "$MODE" in
 esac
 
 echo "$(date '+%F %T') [$MODE] inhibit sleep:idle for ${dur}s until $(date -d "@$((now + dur))" '+%F %T')"
-exec /usr/bin/systemd-inhibit --what=sleep:idle --mode=block --who="$who" --why="$why" /bin/sleep "$dur"
+exec /usr/bin/systemd-inhibit --what=sleep:idle:handle-lid-switch --mode=block --who="$who" --why="$why" /bin/sleep "$dur"
