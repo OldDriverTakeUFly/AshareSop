@@ -121,21 +121,29 @@ def _load_latest_g2_list() -> tuple[str, list[dict]]:
 
 def _load_latest_list_file(signal_dir: Path, prefix: str,
                            max_age_days: int = G2_LIST_MAX_AGE_DAYS) -> tuple[str, list[dict]]:
-    """通用影子名单加载器(g2_list_* / distress_list_*), 语义与 G2 版一致."""
+    """通用影子名单加载器(g2_list_* / distress_list_*).
+
+    新鲜度口径(2026-09-16 协议修订): 名单数据日必须 ≥ T-1(上一交易日, 从
+    daily_price 推导, 与导出端同源自洽)。原「自然日≤4天」在节假日+停机叠加时
+    误弃昨夜新名单(0916 事故: 中秋休市+白日停机, 周五名单跨 5 个自然日被弃,
+    两影子回退 top20 造成对照样本污染)。
+    找不到新鲜名单返回 ("", [])——调用方语义: 文件缺失=数据不可用=该影子当日
+    停跑(不交易); 文件存在但空名单=防守日(只卖不买)。
+    """
     if not signal_dir.exists():
         return "", []
     today = date.today().strftime("%Y%m%d")
+    with sqlite3.connect(str(PROJECT_ROOT / "storage" / "database" / "market_data.db")) as _c:
+        _row = _c.execute(
+            "SELECT MAX(trade_date) FROM daily_price WHERE trade_date < ?", (today,)).fetchone()
+    t_minus_1 = _row[0] if _row and _row[0] else ""
     best: tuple[str, Path] | None = None
     for p in signal_dir.glob(f"{prefix}_*.json"):
         d = p.stem.replace(f"{prefix}_", "")
         if len(d) != 8 or not d.isdigit() or d >= today:
             continue
-        try:
-            file_day = date(int(d[:4]), int(d[4:6]), int(d[6:]))
-        except ValueError:
-            continue
-        if (date.today() - file_day).days > max_age_days:
-            continue
+        if t_minus_1 and d < t_minus_1:
+            continue  # 数据日早于上一交易日 = 昨夜导出缺失/停机, 不新鲜
         if best is None or d > best[0]:
             best = (d, p)
     if not best:
@@ -234,27 +242,34 @@ def run_rotation(dry_run: bool = False) -> bool:
     except Exception as _ex:  # noqa: BLE001
         print(f"[{today_dash}] [WARN] 解禁闸不可用(本次放行): {_ex}")
 
-    # 影子名单(仅对应影子账户消费; 无有效文件回退 top20, 空名单=防守日只卖不买)
+    # 影子名单(仅对应影子账户消费; 2026-09-16 协议修订: 文件缺失=当日停跑不交易,
+    # 空名单=防守日只卖不买——不再回退 top20, 防对照样本污染)
     g2_as_of, g2_list = _load_latest_g2_list()
     davis_scores_g2 = bridge_to_davis_scores(g2_list)  # 空名单→空 dict(D2 语义)
     if g2_as_of:
         note = f"{len(davis_scores_g2)} 只放行" if davis_scores_g2 else "空名单(防守日,只卖不买 D2)"
         print(f"[{today_dash}] G2 影子名单: g2_list_{g2_as_of}.json（{note}）")
     else:
-        print(f"[{today_dash}] G2 影子名单: 无有效文件（g2_shadow 回退 top20 基准）")
+        print(f"[{today_dash}] G2 影子名单: 无新鲜名单（g2_shadow 当日停跑,不交易）")
     ds_as_of, ds_list = _load_latest_list_file(DISTRESS_SIGNAL_DIR, "distress_list")
     davis_scores_ds = bridge_to_davis_scores(ds_list)
     if ds_as_of:
         note = f"{len(davis_scores_ds)} 只放行" if davis_scores_ds else "空名单(防守日,只卖不买 D2)"
         print(f"[{today_dash}] 困境反转名单: distress_list_{ds_as_of}.json（{note}）")
     else:
-        print(f"[{today_dash}] 困境反转名单: 无有效文件（distress_shadow 回退 top20 基准）")
+        print(f"[{today_dash}] 困境反转名单: 无新鲜名单（distress_shadow 当日停跑,不交易）")
 
     # ── 收集全部需要定价的代码（持仓 + 候选）──
     accounts: dict[str, PaperAccount] = {}
     pending_codes: set[str] = (set(davis_scores.keys()) | set(davis_scores_g2.keys())
                                | set(davis_scores_ds.keys()))
     for name in [*ROTATION_ACCOUNTS, *SHADOW_ACCOUNTS]:
+        # 协议修订(2026-09-16): 影子账户无新鲜名单=数据不可用=当日停跑(不交易不落NAV),
+        # 防止回退基准污染对照样本; 账户不存在=未启用, 静默跳过
+        if name == G2_SHADOW_ACCOUNT and not g2_as_of:
+            continue
+        if name == DISTRESS_SHADOW_ACCOUNT and not ds_as_of:
+            continue
         try:
             acc = PaperAccount.load(name)
         except ValueError as e:
