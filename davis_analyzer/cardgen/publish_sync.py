@@ -10,6 +10,8 @@
   - build --bump 产生新版本时,已发布工程会被挪回 ``未发布/``(待重新发布)。
   - ``废稿/``(2026-09-02):过期未发工程的终态归档,手工挪入;sync 与归位逻辑跳过,
     工程留在台账里仅作历史记录(resolve 不再解析,如需复活手工挪回 未发布/)。
+  - 平铺长文 ``*.md``(2026-09-17):queue source 形如 ``docs/小红书卡片/[未发布/]xxx.md``
+    的发布载体非目录工程,按文件名(含 .md)命中已发布集合同样归位;无 cards 台账行,不更新 spec_path。
 
 不修改 scripts/content_publisher(AGENTS.md 只读纪律);本模块只消费其 DB。
 """
@@ -122,6 +124,18 @@ def sync(projects_root: Path, db: Path = PUBLISHER_DB,
                 _move(topic, proj, PUBLISHED_DIR, "已发布")
             elif not strict:
                 _move(topic, proj, PENDING_DIR, "归位")
+        # 平铺长文 .md:文件名(含 .md)命中已发布集合→已发布/;根目录存量归位→未发布/
+        for f in sorted(x for x in base.iterdir() if x.is_file() and x.suffix == ".md"):
+            if f.name in published:
+                dest_dir, label = PUBLISHED_DIR, "已发布"
+            elif not strict:
+                dest_dir, label = PENDING_DIR, "归位"
+            else:
+                continue
+            dst = projects_root / dest_dir / f.name
+            actions.append((f"{label}→{dest_dir}", str(dst)))
+            if not dry_run:
+                _safe_move(f, dst)
     return actions
 
 
