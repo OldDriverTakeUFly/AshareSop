@@ -365,7 +365,7 @@ class TestThermoCard:
              "temperature": 88.0, "delta_temp1": None, "delta_temp5": 5.0,
              "hot_streak": 1},
         ]
-        # 补足至 22 个 L1,保证全景 B/C 页非空
+        # 补足至 22 个 L1,验证三组并排多行分块与余位补空
         l1_rows += [
             {"level": "L1", "index_code": f"8011{i:02d}.SI",
              "name": f"行业{chr(65 + i)}", "temperature": 70.0 - i * 3.0,
@@ -390,18 +390,23 @@ class TestThermoCard:
 
     def test_build_thermo_card(self):
         facts, spec = daily.build_thermo(self.DAY, self._bundle())
-        assert len(spec["cards"]) == 7  # 封面/全景A/B/C/低温池/大盘五维/收束
+        assert len(spec["cards"]) == 6  # 封面/温度全景/较昨日全景/低温池/大盘五维/收束
         ids = {f.id for f in facts}
-        assert {"mkt_temp", "hot_temp", "pa1_temp", "pb1_temp", "pc1_temp", "cd1_temp"} <= ids
+        assert {"mkt_temp", "hot_temp", "p1_temp", "p2_temp", "p1_delta", "cd1_temp"} <= ids
         blob = json.dumps(spec, ensure_ascii=False)
         assert "农林牧渔" in blob and "温和" in blob
-        # 固定维度:全景页按申万序,首行=农林牧渔(801010)
-        rows_a = spec["cards"][1]["table"]["rows"]
-        assert rows_a[0]["cells"][0] == "农林牧渔"
+        # 固定维度:单页全景三组并排,首行=农林牧渔(申万序),22 行 = ceil(22/3)
+        pano = spec["cards"][1]["table"]
+        assert len(pano["headers"]) == 6
+        assert pano["rows"][0]["cells"][0] == "农林牧渔"
+        assert len(pano["rows"]) == (22 + 2) // 3
+        # 较昨日页同序独立
+        delta_page = spec["cards"][2]["table"]
+        assert delta_page["rows"][0]["cells"][0] == "农林牧渔"
+        assert any("up" in (c or "") or "down" in (c or "")
+                   for r in delta_page["rows"] for c in r["cls"])
         # 色块:温度格为内联 span(hex 色值,数字裸文本由同值 facts 锚定)
         assert "background:#" in blob
-        # 较昨日:涨红跌绿方向色挂 cls
-        assert any("up" in (r["cls"][2] or "") for r in rows_a)
         # 触红线词禁入卡面
         assert "主力" not in blob
 
