@@ -100,7 +100,7 @@ def analyze_holder_concentration(
             counts.append(n)
             periods.append(str(row["end_date"]))
 
-    if len(counts) < 2:
+    if len(counts) < 3:  # 2026-09-17 审计: 2期→3期, 两期降15%即满分的饱和路径收紧
         return HolderConcentration(
             ts_code=ts_code,
             holder_counts=counts,

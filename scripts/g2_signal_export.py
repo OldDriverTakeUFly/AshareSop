@@ -65,10 +65,16 @@ def t_minus_1() -> str:
 
 
 def universe(as_of: str) -> list[str]:
+    """成交额 top200 ∩ 上市满1年(2026-09-17 反缺失虚高审计: 次新股短窗动量
+    重归一化虚高——60日+30%即满分无长窗证据, 生产宇宙此前无年限闸)."""
+    from datetime import datetime, timedelta
+    age_cut = (datetime.strptime(as_of, "%Y%m%d") - timedelta(days=365)).strftime("%Y%m%d")
     with get_market_conn() as c:
         rows = c.execute(
-            "SELECT ts_code FROM daily_price WHERE trade_date=? AND close>0 AND vol>0 "
-            "ORDER BY amount DESC LIMIT 200", (as_of,)).fetchall()
+            """SELECT d.ts_code FROM daily_price d JOIN stock_basic s ON d.ts_code=s.ts_code
+               WHERE d.trade_date=? AND d.close>0 AND d.vol>0
+                 AND COALESCE(s.list_date,'') <= ? AND s.list_status='L'
+               ORDER BY d.amount DESC LIMIT 200""", (as_of, age_cut)).fetchall()
     return [r[0] for r in rows]
 
 

@@ -173,6 +173,11 @@ def analyze_forecast(
         adj = _clamp((mid - realised_proxy) * 0.3, -15.0, 15.0)
         base_score = _clamp(base_score + adj, 0.0, 100.0)
 
+    # 单期封顶(2026-09-17 反缺失虚高审计): lookback 窗口内只有一期预告时,
+    # 无趋势/修正可言,满分缺乏证据——封顶 80,防一期预增直接拉满。
+    if len(df) < 2:
+        base_score = min(base_score, 80.0)
+
     return ForecastSignal(
         ts_code=ts_code,
         ann_date=str(row.get("ann_date", "")),

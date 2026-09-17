@@ -6,6 +6,11 @@ module fills the CANSLIM "M" (market direction / momentum) and "R" (relative
 strength vs peers) legs that the methodology docs call for but the engine
 never implemented.
 
+口径说明(2026-09-17 审计定案): 生产/回测主管道(executor/backtest_factors)调用的是
+单票 analyze_momentum, rs_percentile 恒为 None——即 ``momentum_score`` 实际为**纯绝对
+动量**; 0.5*绝对+0.5*RS 的合成仅在 analyze_momentum_batch(带行业 peer set)中生效,
+尚未接入主管道。语义按绝对动量解读, RS 接入列为 D3 后候选。
+
 Two sub-scores (each 0–100):
 
 * ``absolute_momentum_score`` — multi-window (60/120/250d) blended adjusted
@@ -103,18 +108,19 @@ def _absolute_score(window_returns: dict[int, float]) -> float:
     """Blend per-window raw returns into a 0–100 score.
 
     Falls back to 50.0 (neutral) when no window has data.
+
+    缺窗惩罚(2026-09-17 反缺失虚高审计落地): 缺失窗口按中性分 50 计入**全额权重**,
+    分母为全部窗口权重——次新股只有短窗暴涨时不再因「重归一化」拿满分。
+    全窗齐备的股票结果与旧口径逐位一致(零行为变化, 回归验证见实验记录)。
     """
     if not window_returns:
         return 50.0
-    total_w = 0.0
     weighted = 0.0
     for window, weight in zip(MOMENTUM_WINDOWS_DAYS, MOMENTUM_WINDOW_WEIGHTS):
-        if window in window_returns:
-            weighted += _return_to_score(window_returns[window], window) * weight
-            total_w += weight
-    if total_w == 0:
-        return 50.0
-    return max(0.0, min(100.0, weighted / total_w))
+        s = (_return_to_score(window_returns[window], window)
+             if window in window_returns else 50.0)
+        weighted += s * weight
+    return max(0.0, min(100.0, weighted))
 
 
 def compute_rs_percentile(

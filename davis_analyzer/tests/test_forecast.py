@@ -167,7 +167,8 @@ class TestAnalyzeForecast:
         assert sig.p_change_mid == 60.0
         assert sig.is_stale is False
         # midpoint 60 → base 84; delta_g 10 → adj = (60-10)*0.3 = +15 (capped)
-        assert sig.leading_score == pytest.approx(99.0, abs=1.0)
+        # 2026-09-17 单期封顶: 单期预增60%原映射~99, 现封顶80(反缺失虚高审计)
+        assert sig.leading_score == pytest.approx(80.0, abs=0.5)
 
     def test_stale_marked(self):
         df = pd.DataFrame(
