@@ -34,10 +34,9 @@ VAL_PCTL_MAX = 0.30         # PE 或 PB 3年分位闸
 
 
 def t_minus_1() -> str:
-    today = datetime.now().strftime("%Y%m%d")
+    """最近已完整收盘日(19:27 槽在 19:20 刷新后, 当日收盘可用——时序修复 2026-09-17)."""
     with get_market_conn() as c:
-        return c.execute(
-            "SELECT MAX(trade_date) FROM daily_price WHERE trade_date < ?", (today,)).fetchone()[0]
+        return c.execute("SELECT MAX(trade_date) FROM daily_price").fetchone()[0]
 
 
 def deep_drawdown_candidates(as_of: str) -> dict[str, float]:

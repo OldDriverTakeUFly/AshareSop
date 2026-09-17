@@ -13,8 +13,8 @@
 
 用法: .venv/bin/python scripts/g2_signal_export.py [--as-of YYYYMMDD](重放指定日)
 输出: logs/g2_signals/g2_list_<T-1>.json
-调度建议(手动挂载, 0010 步骤②兜底): 系统 crontab 18:30 槽——
-  30 18 * * 1-5 cd /home/leo/Projects/CodeAgentDashboard && .venv/bin/python scripts/g2_signal_export.py >> logs/g2_signals/export.log 2>&1
+调度(crontab 19:25 槽, 2026-09-17 重定时——须在 19:20 行情刷新后):
+  25 19 * * 1-5 cd /home/leo/Projects/CodeAgentDashboard && .venv/bin/python scripts/g2_signal_export.py >> logs/g2_signals/export.log 2>&1
 """
 import os, sys, json, sqlite3, time
 from datetime import datetime
@@ -57,10 +57,10 @@ G2_BASE = dict(
 
 
 def t_minus_1() -> str:
-    today = datetime.now().strftime("%Y%m%d")
+    """最近已完整收盘日(2026-09-17 时序修复: 19:25 槽在 19:20 刷新后运行, 当日收盘可用;
+    原 18:30 槽 + "<今日" 口径永远比轮动消费所需晚一个收盘, 造成名单系统性过期)."""
     with get_market_conn() as c:
-        row = c.execute(
-            "SELECT MAX(trade_date) FROM daily_price WHERE trade_date < ?", (today,)).fetchone()
+        row = c.execute("SELECT MAX(trade_date) FROM daily_price").fetchone()
     return row[0]
 
 
