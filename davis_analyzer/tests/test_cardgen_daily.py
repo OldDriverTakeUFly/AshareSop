@@ -348,21 +348,41 @@ class TestThermoCard:
     DAY = "2026-09-11"
 
     def _bundle(self) -> dict:
+        l1_rows = [
+            {"level": "L1", "index_code": "801010.SI", "name": "农林牧渔",
+             "temperature": 60.0, "delta_temp1": 3.0, "delta_temp5": 8.0,
+             "hot_streak": 4},
+            {"level": "L1", "index_code": "801030.SI", "name": "基础化工",
+             "temperature": 50.0, "delta_temp1": -2.0, "delta_temp5": -1.0,
+             "hot_streak": 0},
+            {"level": "L1", "index_code": "801080.SI", "name": "电子",
+             "temperature": 8.0, "delta_temp1": -1.0, "delta_temp5": -6.0,
+             "hot_streak": 0},
+            {"level": "L1", "index_code": "801950.SI", "name": "煤炭",
+             "temperature": 95.0, "delta_temp1": 5.0, "delta_temp5": 9.0,
+             "hot_streak": 2},
+            {"level": "L1", "index_code": "801770.SI", "name": "通信",
+             "temperature": 88.0, "delta_temp1": None, "delta_temp5": 5.0,
+             "hot_streak": 1},
+        ]
+        # 补足至 22 个 L1,保证全景 B/C 页非空
+        l1_rows += [
+            {"level": "L1", "index_code": f"8011{i:02d}.SI",
+             "name": f"行业{chr(65 + i)}", "temperature": 70.0 - i * 3.0,
+             "delta_temp1": (i % 3 - 1) * 2.0, "delta_temp5": 1.0,
+             "hot_streak": 0}
+            for i in range(17)
+        ]
+        l2_row = {"level": "L2", "index_code": "850111.SI", "name": "种植业",
+                  "temperature": 5.0, "delta_temp1": -3.0, "delta_temp5": -4.0,
+                  "hot_streak": 0}
+        all_rows = l1_rows + [l2_row]
         return {
-            "day": "2026-09-11",
-            "l1": [{"name": "半导体", "temperature": 95.0, "delta_temp5": 8.0,
-                    "hot_streak": 4},
-                   {"name": "通信设备", "temperature": 88.0, "delta_temp5": 5.0,
-                    "hot_streak": 2},
-                   {"name": "煤炭", "temperature": 12.0, "delta_temp5": -3.0,
-                    "hot_streak": 0},
-                   {"name": "农业", "temperature": 5.0, "delta_temp5": -6.0,
-                    "hot_streak": 0}],
-            "l2": [{"name": "光伏设备", "temperature": 92.0, "delta_temp5": 7.0,
-                    "hot_streak": 2},
-                   {"name": "航运", "temperature": 10.0, "delta_temp5": -4.0,
-                    "hot_streak": 0}],
-            "cold": [{"name": "农业", "temperature": 5.0, "delta_temp5": -6.0}],
+            "day": "2026-09-11", "prev_date": "20260910",
+            "l1": sorted(l1_rows, key=lambda r: -r["temperature"])[:5],
+            "l1_full": sorted(l1_rows, key=lambda r: r["index_code"]),  # 申万序固定
+            "l2": [l2_row],
+            "cold": sorted(all_rows, key=lambda r: r["temperature"])[:5],
             "market": {"temperature": 42.0, "regime_label": "温和",
                        "dims": {"趋势": 0.45, "宽度": 0.5, "量能": 0.4,
                                 "资金": 0.38, "情绪": 0.6}},
@@ -370,12 +390,19 @@ class TestThermoCard:
 
     def test_build_thermo_card(self):
         facts, spec = daily.build_thermo(self.DAY, self._bundle())
-        assert len(spec["cards"]) == 5
+        assert len(spec["cards"]) == 7  # 封面/全景A/B/C/低温池/大盘五维/收束
         ids = {f.id for f in facts}
-        assert {"mkt_temp", "l1_top1_temp", "l2_top1_temp"} <= ids
+        assert {"mkt_temp", "hot_temp", "pa1_temp", "pb1_temp", "pc1_temp", "cd1_temp"} <= ids
         blob = json.dumps(spec, ensure_ascii=False)
-        assert "半导体" in blob and "温和" in blob
-        # 触红线词禁入卡面(主力/追高等由合规表约束)
+        assert "农林牧渔" in blob and "温和" in blob
+        # 固定维度:全景页按申万序,首行=农林牧渔(801010)
+        rows_a = spec["cards"][1]["table"]["rows"]
+        assert rows_a[0]["cells"][0] == "农林牧渔"
+        # 色块:温度格为内联 span(hex 色值,数字裸文本由同值 facts 锚定)
+        assert "background:#" in blob
+        # 较昨日:涨红跌绿方向色挂 cls
+        assert any("up" in (r["cls"][2] or "") for r in rows_a)
+        # 触红线词禁入卡面
         assert "主力" not in blob
 
     def test_thermo_insights_zero_digit_and_compliance(self):

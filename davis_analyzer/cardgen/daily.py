@@ -562,7 +562,7 @@ def build_lhb(day: str, bundle: dict) -> tuple[list[Fact], dict]:
              "table": {"headers": ["营业部", "净额"], "rows": broker_rows},
              "foot": FOOT},
             inst_page,
-            {"type": "summary", "theme": "lavender", "name": "06_收束",
+            {"type": "summary", "theme": "lavender", "name": "07_收束",
              "tag_top": "交叉视角", "tag_color": "#0f172a",
              "title": "龙虎榜 × 连板梯队",
              "subtitle": "两份公开数据的交集",
@@ -597,31 +597,48 @@ def _market_db_path() -> Path:
 
 
 def fetch_thermo_bundle(day: str) -> dict:
-    """day 为 dash 日期;读 thermometer_sector/market 当日快照."""
+    """day 为 dash 日期;读 thermometer_sector/market 当日快照 + 昨日温度(Δ1)."""
     d = day.replace("-", "")
     con = _ro_conn(_market_db_path())
     try:
+        prev_row = con.execute(
+            "SELECT MAX(trade_date) FROM thermometer_sector WHERE trade_date<?",
+            (d,)).fetchone()
+        prev_d = prev_row[0] if prev_row else None
+        prev_map: dict[str, float] = {}
+        if prev_d:
+            prev_map = {r[0]: float(r[1] or 0.0) for r in con.execute(
+                "SELECT index_code, temperature FROM thermometer_sector WHERE trade_date=?",
+                (prev_d,)).fetchall()}
         sec = con.execute(
-            "SELECT level, name, temperature, delta_temp5, hot_streak "
-            "FROM thermometer_sector WHERE trade_date=?", (d,)).fetchall()
+            "SELECT level, index_code, name, temperature, delta_temp5, hot_streak "
+            "FROM thermometer_sector WHERE trade_date=? ORDER BY index_code", (d,)).fetchall()
         mkt = con.execute(
             "SELECT trend_dim, width_dim, volume_dim, flow_dim, sentiment_dim, "
             "temperature, regime_label FROM thermometer_market WHERE trade_date=?",
             (d,)).fetchone()
         if not sec or not mkt:
             raise DailyDataMissing(f"{day} 温度数据缺失(thermometer run 未完成?)")
-        rows = [{"level": r[0], "name": r[1] or "-", "temperature": float(r[2] or 0.0),
-                 "delta_temp5": (float(r[3]) if r[3] is not None else None),
-                 "hot_streak": int(r[4] or 0)} for r in sec]
+        rows = []
+        for r in sec:
+            temp = float(r[3] or 0.0)
+            prev_t = prev_map.get(r[1])
+            rows.append({"level": r[0], "index_code": r[1], "name": r[2] or "-",
+                         "temperature": temp,
+                         "delta_temp1": (round(temp - prev_t, 1)
+                                         if prev_t is not None else None),
+                         "delta_temp5": (float(r[4]) if r[4] is not None else None),
+                         "hot_streak": int(r[5] or 0)})
         l1 = sorted((r for r in rows if r["level"] == "L1"),
                     key=lambda r: -r["temperature"])
         l2 = sorted((r for r in rows if r["level"] == "L2"),
                     key=lambda r: -r["temperature"])
+        l1_full = sorted((r for r in rows if r["level"] == "L1"),
+                         key=lambda r: r["index_code"])  # 申万代码序=固定维度
+        cold = sorted(rows, key=lambda r: r["temperature"])[:5]  # L1+L2 最低温关注池
         return {
-            "day": day,
-            "l1": l1[:5],
-            "l2": l2[:5],
-            "cold": l1[-3:],
+            "day": day, "prev_date": prev_d,
+            "l1": l1[:5], "l1_full": l1_full, "l2": l2[:5], "cold": cold,
             "market": {"temperature": float(mkt[5] or 0.0), "regime_label": mkt[6],
                        "dims": {"趋势": mkt[0], "宽度": mkt[1], "量能": mkt[2],
                                 "资金": mkt[3], "情绪": mkt[4]}},
@@ -663,44 +680,85 @@ def _thermo_signed(x: float) -> tuple[str, str]:
     return v, f"{'-' if x < 0 else '+'}{v}"
 
 
+# 温度五档色带(反向语义:红=拥挤风险,蓝=冷清机会;style 只用 background/color,
+# hex 色值走数字闸掩码豁免,禁带 padding/radius 等数字属性)
+_THERMO_BANDS: list[tuple[float, str, str]] = [
+    (85.0, "#fee2e2", "#b91c1c"),  # 过热
+    (65.0, "#ffedd5", "#c2410c"),  # 偏热
+    (35.0, "#f1f5f9", "#475569"),  # 中性
+    (15.0, "#dbeafe", "#1d4ed8"),  # 偏冷
+    (-1.0, "#bfdbfe", "#1e40af"),  # 冰点
+]
+
+
+def _temp_cell(temp: float) -> str:
+    """温度色块单元格:五档底色+字色,数字裸文本(同值 facts 锚定过数字闸)."""
+    for th, bg, tx in _THERMO_BANDS:
+        if temp >= th:
+            return (f'<span style="background:{bg};color:{tx};'
+                    f'font-weight:bold;">&nbsp;{_thermo_num(temp)}&nbsp;</span>')
+    bg, tx = _THERMO_BANDS[-1][1], _THERMO_BANDS[-1][2]
+    return (f'<span style="background:{bg};color:{tx};'
+            f'font-weight:bold;">&nbsp;{_thermo_num(temp)}&nbsp;</span>')
+
+
 def build_thermo(day: str, bundle: dict) -> tuple[list[Fact], dict]:
+    """七页卡:封面 / L1 全景A-C(固定维度,申万序) / 低温关注池 / 大盘五维 / 收束.
+
+    全景行固定申万代码序(每天同一位置);温度格为五档色块(红=拥挤风险,
+    蓝=冷清机会,反向语义);较昨日列带方向色。数字闸:色块数字裸文本,
+    依赖同值 facts 锚定;style 只用 background/color(hex 有掩码豁免)。
+    """
     ref_sec = f"market_data.db:thermometer_sector@{day}"
     ref_mkt = f"market_data.db:thermometer_market@{day}"
     facts: list[Fact] = []
     mkt = bundle["market"]
     top1 = bundle["l1"][0]
 
-    # 温度/分位 display 用纯数字+空单位(数字闸按 值+单位 匹配,「度」非受认单位)
     mkt_v = _thermo_num(mkt["temperature"])
     facts.append(_fact("mkt_temp", mkt_v, "", mkt_v, day, f"{ref_mkt}:temperature"))
-    top_name = _digit_safe(str(bundle["l1"][0]["name"])) or "-"
+    top_name = _digit_safe(str(top1["name"])) or "-"
+    hot_v = _thermo_num(top1["temperature"])
+    facts.append(_fact("hot_temp", hot_v, "", hot_v, day,
+                       f"{ref_sec}:{top1['index_code']}.temperature"))
 
-    # 两级热度榜
-    def _board_rows(rows: list[dict], level: str) -> tuple[list[dict], list[Fact]]:
-        board_rows, board_facts = [], []
-        for i, r in enumerate(rows, 1):
-            name = _digit_safe(str(r["name"])) or "-"
-            fid_t, fid_d = f"{level}_top{i}_temp", f"{level}_top{i}_delta"
-            tv = _thermo_num(r["temperature"])
-            board_facts.append(_fact(fid_t, tv, "", tv, day,
-                                     f"{ref_sec}:{level}:top{i}.temperature"))
-            cells = [name, {"$fact": fid_t}]
-            cls = ["", ""]
-            if r.get("delta_temp5") is not None:
-                dv, dd = _thermo_signed(r["delta_temp5"])
-                board_facts.append(_fact(fid_d, dv, "", dd, day,
-                                         f"{ref_sec}:{level}:top{i}.delta_temp5"))
-                cells.append({"$fact": fid_d})
-                cls.append("")
-            else:
-                cells.append("—")
-                cls.append("")
-            board_rows.append({"cells": cells, "cls": cls})
-        return board_rows, board_facts
+    def _row(r: dict, prefix: str, with_level: bool) -> tuple[dict, list[Fact]]:
+        name = _digit_safe(str(r["name"])) or "-"
+        tv = _thermo_num(r["temperature"])
+        fids: list[Fact] = []
+        cells = ([r["level"], name] if with_level else [name])
+        cls = ["", ""] if with_level else [""]
+        fids.append(_fact(f"{prefix}_temp", tv, "", tv, day,
+                          f"{ref_sec}:{r['index_code']}.temperature"))
+        cells.append(_temp_cell(r["temperature"]))
+        cls.append("")
+        if r.get("delta_temp1") is not None:
+            dv, dd = _thermo_signed(r["delta_temp1"])
+            fids.append(_fact(f"{prefix}_delta", dv, "", dd, day,
+                              f"{ref_sec}:{r['index_code']}:vs_prev"))
+            cells.append({"$fact": f"{prefix}_delta"})
+            cls.append("up" if r["delta_temp1"] > 0
+                       else ("down" if r["delta_temp1"] < 0 else ""))
+        else:
+            cells.append("—")
+            cls.append("")
+        return {"cells": cells, "cls": cls}, fids
 
-    l1_rows, l1_facts = _board_rows(bundle["l1"], "l1")
-    l2_rows, l2_facts = _board_rows(bundle["l2"], "l2")
-    facts += l1_facts + l2_facts
+    l1_full = bundle["l1_full"]
+    # 三页全景(11+10+10):1440px 高度预算内每页 ≤11 行(渲染溢出闸)
+    rows_a, rows_b, rows_c, cold_rows = [], [], [], []
+    for i, r in enumerate(l1_full[:11], 1):
+        row, fs = _row(r, f"pa{i}", with_level=False)
+        rows_a.append(row); facts += fs
+    for i, r in enumerate(l1_full[11:21], 1):
+        row, fs = _row(r, f"pb{i}", with_level=False)
+        rows_b.append(row); facts += fs
+    for i, r in enumerate(l1_full[21:], 1):
+        row, fs = _row(r, f"pc{i}", with_level=False)
+        rows_c.append(row); facts += fs
+    for i, r in enumerate(bundle["cold"], 1):
+        row, fs = _row(r, f"cd{i}", with_level=True)
+        cold_rows.append(row); facts += fs
 
     # 大盘五维(分位 0-1 逐项 facts;NaN→文字占位)
     dim_rows = []
@@ -714,46 +772,58 @@ def build_thermo(day: str, bundle: dict) -> tuple[list[Fact], dict]:
         dim_rows.append({"cells": [dim_name, {"$fact": fid}],
                          "cls": ["", "up" if float(v) >= 0.65 else
                                  (" " if float(v) >= 0.35 else "")]})
-    dim_rows.append({"cells": ["综合档位", str(mkt["regime_label"])], "cls": ["", ""]})
 
+    legend = "色越红越拥挤(风险提醒) 越蓝越冷清(关注线索) · 板块按申万序固定排列"
     spec = {
         "group": "每日复盘",
         "cards": [
             {"type": "cover", "theme": "red", "name": "01_封面",
              "tag_top": "板块温度计 · 每日数据复盘",
-             "title": "今天的板块温度<br>冷热一张图",
+             "title": "今天的板块温度<br>全景一张图",
              "sub": f"大盘{mkt['regime_label']} · 最热{top_name}<br>{day} 交易数据整理",
              "stats": [
                  {"v": {"$fact": "mkt_temp"}, "k": "大盘温度"},
-                 {"v": {"$fact": "l1_top1_temp"}, "k": f"最热一级·{top_name}"}],
+                 {"v": {"$fact": "hot_temp"}, "k": f"最热一级·{top_name}"}],
              "tags": "#板块温度计 #每日复盘 #市场结构 #资金流向",
              "foot": _THERMO_FOOT},
-            {"type": "table", "theme": "cream", "name": "02_一级热度", "first_left": True,
-             "tag_top": "一级温度榜", "tag_color": "#ea580c",
-             "title": "一级行业 · 高温预警区",
-             "subtitle": "温度高=拥挤度过热,注意风险;温度为当日截面分位",
-             "table": {"headers": ["板块", "温度", "五日升温"], "rows": l1_rows},
+            {"type": "table", "theme": "cream", "name": "02_一级全景A", "first_left": True,
+             "tag_top": "一级全景 · 上", "tag_color": "#ea580c",
+             "title": "一级行业温度全景(上)",
+             "subtitle": legend,
+             "table": {"headers": ["板块", "温度", "较昨日"], "rows": rows_a},
              "foot": _THERMO_FOOT},
-            {"type": "table", "theme": "blue", "name": "03_二级热度", "first_left": True,
-             "tag_top": "二级温度榜", "tag_color": "#2563eb",
-             "title": "二级行业 · 高温预警区",
-             "subtitle": "细分方向的温度读数,读法同上",
-             "table": {"headers": ["板块", "温度", "五日升温"], "rows": l2_rows},
+            {"type": "table", "theme": "blue", "name": "03_一级全景B", "first_left": True,
+             "tag_top": "一级全景 · 中", "tag_color": "#2563eb",
+             "title": "一级行业温度全景(中)",
+             "subtitle": "读法同上 · 申万序固定排列",
+             "table": {"headers": ["板块", "温度", "较昨日"], "rows": rows_b},
              "foot": _THERMO_FOOT},
-            {"type": "table", "theme": "green", "name": "04_大盘五维", "first_left": True,
-             "tag_top": "大盘五维", "tag_color": "#16a34a",
+            {"type": "table", "theme": "cream", "name": "04_一级全景C", "first_left": True,
+             "tag_top": "一级全景 · 下", "tag_color": "#ea580c",
+             "title": "一级行业温度全景(下)",
+             "subtitle": "读法同上 · 低温板块详见下一页关注池",
+             "table": {"headers": ["板块", "温度", "较昨日"], "rows": rows_c},
+             "foot": _THERMO_FOOT},
+            {"type": "table", "theme": "green", "name": "05_低温关注池", "first_left": True,
+             "tag_top": "低温关注池", "tag_color": "#16a34a",
+             "title": "无人问津处 · 低温板块",
+             "subtitle": "全市场温度最低的方向,关注度低谷(左侧研究线索)",
+             "table": {"headers": ["层级", "板块", "温度", "较昨日"], "rows": cold_rows},
+             "foot": _THERMO_FOOT},
+            {"type": "table", "theme": "lavender", "name": "06_大盘五维", "first_left": True,
+             "tag_top": "大盘五维", "tag_color": "#7c3aed",
              "title": "大盘温度的五维构成",
              "subtitle": "各维为自身历史分位",
              "table": {"headers": ["维度", "历史分位"], "rows": dim_rows},
              "foot": _THERMO_FOOT},
-            {"type": "summary", "theme": "lavender", "name": "05_收束",
+            {"type": "summary", "theme": "lavender", "name": "07_收束",
              "tag_top": "数据说明", "tag_color": "#0f172a",
              "title": "温度是结构数据",
              "subtitle": "不是操作清单",
              "rows": [
-                 {"desc": "<b>大盘温度</b> → 五维历史分位合成,见封面与大盘五维页"},
                  {"desc": "<b>高温</b> → 人声鼎沸处,预期打得过满,是风险提醒"},
-                 {"desc": "<b>低温</b> → 无人问津时,关注度低谷,是研究线索"}],
+                 {"desc": "<b>低温</b> → 无人问津时,关注度低谷,是研究线索"},
+                 {"desc": "<b>较昨日</b> → 温度日变化,升温降温都比温度本身更值得盯"}],
              "kbox": {"date": "盘后观察", "color": "blue",
                       "html": "<br>".join(thermo_insights(bundle))},
              "tags": "#板块温度计 #每日复盘 #市场结构 #资金流向",
