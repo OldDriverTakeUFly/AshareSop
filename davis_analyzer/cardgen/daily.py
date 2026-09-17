@@ -58,10 +58,11 @@ _PUBLISH_COPY: dict[str, dict[str, str]] = {
         "body": (
             "每天盘后,一张卡看懂板块冷热🌡️\n\n"
             "①大盘温度——趋势、宽度、量能、资金流向与涨停情绪五维合成;\n"
-            "②一级/二级行业热度榜——量能、资金流向、动量、趋势结构与涨停密度合成;\n"
-            "③升降温和连热提示——温度变化与持续高温,比单日温度更有信息量。\n\n"
-            "温度只测温不决策;数据来自公开行情与交易所披露,"
-            "盘后观察为方法论视角解读,不构成投资建议。"
+            "②一级/二级行业温度榜——量能、资金流向、动量、趋势与涨停密度合成;\n"
+            "③高温看拥挤,低温看冷清——温度高是预期打得过满的提醒,"
+            "温度低是关注度不足的线索。\n\n"
+            "买在无人问津,卖在人声鼎沸——温度计只测温,不替人做决策;"
+            "数据来自公开行情与交易所披露,盘后观察为方法论视角解读,不构成投资建议。"
         ),
     },
     "screener": {
@@ -584,8 +585,8 @@ def build_lhb(day: str, bundle: dict) -> tuple[list[Fact], dict]:
 
 # ── 板块温度卡(thermometer 子系统,2026-09-13;数据源 market_data.db) ───
 
-_THERMO_DEFAULT_INSIGHT = ("温度计的完整读法:量能给燃料,资金流向给方向,动量与趋势给惯性,"
-                           "涨停密度给赚钱效应——合起来读,比任何单一维度都可靠")
+_THERMO_DEFAULT_INSIGHT = ("温度计的反向读法:高温是人声鼎沸处,预期往往打得过满;"
+                           "低温是无人问津时,研究的价值反而更高——温度计只测温,方向自己定")
 
 _THERMO_FOOT = "数据来源:交易所公开行情与申万指数(经 thermometer 采集) · 仅供研究参考,不构成投资建议"
 _THERMO_FOOT_LAST = _THERMO_FOOT + "。市场有风险,投资需谨慎。"
@@ -630,7 +631,7 @@ def fetch_thermo_bundle(day: str) -> dict:
 
 
 def thermo_insights(bundle: dict) -> list[str]:
-    """按温度形态选至多两条盘后观察(分化→连热→背离,先结构后节奏)."""
+    """按温度形态选至多两条盘后观察(反向语义:高温=拥挤预警,低温=冷清线索)."""
     picks: list[str] = []
     l1 = bundle.get("l1") or []
     mkt = bundle.get("market") or {}
@@ -641,11 +642,11 @@ def thermo_insights(bundle: dict) -> list[str]:
             picks.append("冷热分化极端的日子,主线集中度比大盘涨跌更能定义这个市场——"
                          "结构行情里,板块间的温差比指数读数更值得看")
         if any((r.get("hot_streak") or 0) >= 3 for r in l1):
-            picks.append("连续高温板块是资金合力的痕迹,但高温本身不等于还会继续热——"
-                         "温度计只测温,不替人做决策")
-        if mkt and mkt.get("temperature", 50) < 35 and top["temperature"] > 85:
-            picks.append("大盘温吞而局部沸腾,是典型的结构行情——这种日子里,"
-                         "热度榜前列的参考价值高于大盘温度")
+            picks.append("连续高温不是继续升温的理由,而是拥挤度的警报——"
+                         "人声鼎沸处的预期,通常随温度升高而打得更满")
+        if bot["temperature"] < 15:
+            picks.append("温度垫底的板块,是当下的无人问津处——关注度的低谷"
+                         "往往比热度的顶峰更值得花时间研究")
     if not picks:
         picks.append(_THERMO_DEFAULT_INSIGHT)
     return picks[:2]
@@ -728,15 +729,15 @@ def build_thermo(day: str, bundle: dict) -> tuple[list[Fact], dict]:
              "tags": "#板块温度计 #每日复盘 #市场结构 #资金流向",
              "foot": _THERMO_FOOT},
             {"type": "table", "theme": "cream", "name": "02_一级热度", "first_left": True,
-             "tag_top": "一级热度榜", "tag_color": "#ea580c",
-             "title": "一级行业 · 热度居前",
-             "subtitle": "温度为当日截面分位,五族因子合成",
+             "tag_top": "一级温度榜", "tag_color": "#ea580c",
+             "title": "一级行业 · 高温预警区",
+             "subtitle": "温度高=拥挤度过热,注意风险;温度为当日截面分位",
              "table": {"headers": ["板块", "温度", "五日升温"], "rows": l1_rows},
              "foot": _THERMO_FOOT},
             {"type": "table", "theme": "blue", "name": "03_二级热度", "first_left": True,
-             "tag_top": "二级热度榜", "tag_color": "#2563eb",
-             "title": "二级行业 · 热度居前",
-             "subtitle": "细分方向的温度读数",
+             "tag_top": "二级温度榜", "tag_color": "#2563eb",
+             "title": "二级行业 · 高温预警区",
+             "subtitle": "细分方向的温度读数,读法同上",
              "table": {"headers": ["板块", "温度", "五日升温"], "rows": l2_rows},
              "foot": _THERMO_FOOT},
             {"type": "table", "theme": "green", "name": "04_大盘五维", "first_left": True,
@@ -751,8 +752,8 @@ def build_thermo(day: str, bundle: dict) -> tuple[list[Fact], dict]:
              "subtitle": "不是操作清单",
              "rows": [
                  {"desc": "<b>大盘温度</b> → 五维历史分位合成,见封面与大盘五维页"},
-                 {"desc": "<b>板块温度</b> → 当日全板块截面分位,回答谁强谁弱"},
-                 {"desc": "<b>升降温和连热</b> → 温度变化率与持续高温,节奏线索"}],
+                 {"desc": "<b>高温</b> → 人声鼎沸处,预期打得过满,是风险提醒"},
+                 {"desc": "<b>低温</b> → 无人问津时,关注度低谷,是研究线索"}],
              "kbox": {"date": "盘后观察", "color": "blue",
                       "html": "<br>".join(thermo_insights(bundle))},
              "tags": "#板块温度计 #每日复盘 #市场结构 #资金流向",

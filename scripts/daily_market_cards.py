@@ -105,8 +105,12 @@ def push_one(kind: str, day: str, proj: Path, topic: str, release: dict) -> bool
         return True
     import asyncio
     try:
-        bundle = daily.fetch_day_bundle(daily.stockhot_db_path(), day)
-        copy = daily.publish_copy(kind, day, bundle)
+        if kind == "thermo":
+            # thermo 数据源是 market_data.db thermometer 表,不走 stockhot bundle
+            copy = daily.publish_copy(kind, day, daily.fetch_thermo_bundle(day))
+        else:
+            bundle = daily.fetch_day_bundle(daily.stockhot_db_path(), day)
+            copy = daily.publish_copy(kind, day, bundle)
     except Exception:  # noqa: BLE001 —— 与 enqueue_one 同口径,回退静态文案
         copy = daily.publish_copy(kind, day)
     try:

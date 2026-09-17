@@ -66,3 +66,25 @@ def test_market_flow_series(tmp_path):
         assert d1["circ_mv_sum"] == 2000.0
     finally:
         conn.close()
+
+
+def test_market_flow_from_sectors(tmp_path):
+    """大盘资金历史口径:L1 聚合求和,不依赖 daily_basic."""
+    from davis_analyzer.thermometer import moneyflow_agg
+
+    conn = _conn(tmp_path)
+    try:
+        conn.executemany(
+            "INSERT INTO sector_moneyflow_daily "
+            "(level,index_code,trade_date,main_net,mkt_cap,fetched_at) VALUES (?,?,?,?,?,0)",
+            [("L1", "801010.SI", "20220104", 50.0, 1000.0),
+             ("L1", "801080.SI", "20220104", -30.0, 3000.0),
+             ("L2", "850111.SI", "20220104", -80.0, 1000.0),  # L2 不计入大盘
+             ("L1", "801010.SI", "20220105", -2.0, 1000.0)])
+        conn.commit()
+        df = moneyflow_agg.market_flow_from_sectors(conn, "20220104", "20220105")
+        d1 = df[df["trade_date"] == "20220104"].iloc[0]
+        assert d1["main_net_sum"] == 20.0    # 50 − 30(L2 排除)
+        assert d1["circ_mv_sum"] == 4000.0
+    finally:
+        conn.close()

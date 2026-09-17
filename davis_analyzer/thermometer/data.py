@@ -107,6 +107,79 @@ def backfill_daily_basic_circ_mv(
     return {"days": days, "rows": rows}
 
 
+def refresh_recent(conn: sqlite3.Connection, gw: TushareGateway,
+                    dates: list[str] | None = None, lookback_days: int = 12) -> dict:
+    """盘后自举:补最近缺失交易日的 daily_price/moneyflow/circ_mv/limit_pool/sw_daily.
+
+    直连 Tushare,不依赖 stockhot 采集链先行——无人值守 cron 的数据自给自足
+    (2026-09-17 事故沉淀:机器停数日后 moneyflow/daily_price 陈旧,增量链空转)。
+    dates 显式传入(测试)或缺省取最近 lookback_days 自然日,非交易日自然空返。
+    """
+    from datetime import datetime, timedelta
+
+    if dates is None:
+        today = datetime.now()
+        dates = [(today - timedelta(days=i)).strftime("%Y%m%d")
+                 for i in range(lookback_days - 1, -1, -1)]
+    out = {"daily_days": 0, "moneyflow_days": 0, "limit_days": 0}
+    for d in dates:
+        have = conn.execute(
+            "SELECT COUNT(*) FROM daily_price WHERE trade_date=?", (d,)).fetchone()[0]
+        if have <= 1000:
+            df = gw.call("daily", trade_date=d, fields=(
+                "ts_code,trade_date,open,high,low,close,pre_close,pct_chg,vol,amount"),
+                paginate=True)
+            if df is not None and not df.empty:
+                conn.executemany(
+                    "INSERT OR REPLACE INTO daily_price (ts_code,trade_date,open,high,"
+                    "low,close,pre_close,pct_chg,vol,amount,fetched_at) "
+                    "VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                    [(r["ts_code"], str(r["trade_date"]), r.get("open"), r.get("high"),
+                      r.get("low"), r["close"], r.get("pre_close"), r.get("pct_chg"),
+                      r.get("vol"), r.get("amount"), time.time()) for _, r in df.iterrows()])
+                conn.commit()
+                out["daily_days"] += 1
+        have = conn.execute(
+            "SELECT COUNT(*) FROM moneyflow WHERE trade_date=?", (d,)).fetchone()[0]
+        if have <= 1000:
+            df = gw.call("moneyflow", trade_date=d, fields=(
+                "trade_date,ts_code,buy_sm_amount,sell_sm_amount,buy_md_amount,"
+                "sell_md_amount,buy_lg_amount,sell_lg_amount,buy_elg_amount,"
+                "sell_elg_amount,net_mf_amount"), paginate=True)
+            if df is not None and not df.empty:
+                conn.executemany(
+                    "INSERT OR REPLACE INTO moneyflow (trade_date,ts_code,buy_sm_amount,"
+                    "sell_sm_amount,buy_md_amount,sell_md_amount,buy_lg_amount,"
+                    "sell_lg_amount,buy_elg_amount,sell_elg_amount,net_mf_amount,"
+                    "fetched_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+                    [(str(r["trade_date"]), r["ts_code"], r.get("buy_sm_amount"),
+                      r.get("sell_sm_amount"), r.get("buy_md_amount"),
+                      r.get("sell_md_amount"), r.get("buy_lg_amount"),
+                      r.get("sell_lg_amount"), r.get("buy_elg_amount"),
+                      r.get("sell_elg_amount"), r.get("net_mf_amount"), time.time())
+                     for _, r in df.iterrows()])
+                conn.commit()
+                out["moneyflow_days"] += 1
+    if dates:
+        backfill_daily_basic_circ_mv(conn, gw, dates[0], dates[-1])
+        from davis_analyzer.limitup import backfill as lu_bf, db as lu_db
+        lu_bf.ensure_ext_table(conn)  # limit_pool_ext 为 limitup 模块自管表,可能不存在
+        for d in dates:
+            dash = lu_db.to_dash_date(d)
+            if not lu_bf.day_has_ext(conn, dash):
+                got = False
+                for lt, pk in lu_bf.POOL_KIND_BY_TYPE.items():
+                    df = gw.call("limit_list_d", trade_date=d, limit_type=lt)
+                    if df is not None and not df.empty:
+                        got = True
+                        lu_bf.write_pool_day(conn, d, df, lt, pk)
+                if got:
+                    out["limit_days"] += 1
+        backfill_sw_daily(conn, gw, dates[0], dates[-1])
+    logger.info("refresh_recent: {}", out)
+    return out
+
+
 def backfill_ths_daily(conn: sqlite3.Connection, gw: TushareGateway) -> dict:
     """按概念 ts_code 全历史回补 ths_daily;已有任何行的码跳过(增量由 run 单点补)."""
     codes = [r[0] for r in conn.execute("SELECT ts_code FROM ths_index").fetchall()]

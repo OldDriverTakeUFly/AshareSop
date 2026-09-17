@@ -117,3 +117,52 @@ def test_backfill_ths_daily_by_code(tmp_path):
         assert r2["codes_done"] == 0
     finally:
         conn.close()
+
+
+def test_refresh_recent_self_healing(tmp_path):
+    """盘后自举:缺最近的 daily_price/moneyflow 日自动直连补齐."""
+    from davis_analyzer.thermometer import data
+
+    conn = _conn(tmp_path)
+    try:
+        # 日历仅有 20220104(旧),20220105 缺失
+        _seed_calendar(conn)
+        conn.execute("DELETE FROM daily_price WHERE trade_date='20220105'")
+        conn.commit()
+
+        def _gw_call(api, **kw):
+            if api == "daily":
+                return pd.DataFrame({
+                    "ts_code": ["000001.SZ"], "trade_date": [kw["trade_date"]],
+                    "close": [10.0], "pre_close": [10.0], "pct_chg": [0.0],
+                    "vol": [100.0], "amount": [1e6]})
+            if api == "moneyflow":
+                return pd.DataFrame({
+                    "ts_code": ["000001.SZ"], "trade_date": [kw["trade_date"]],
+                    "buy_elg_amount": [10.0], "sell_elg_amount": [5.0],
+                    "buy_lg_amount": [1.0], "sell_lg_amount": [1.0],
+                    "net_mf_amount": [5.0]})
+            if api == "daily_basic":
+                return pd.DataFrame({"ts_code": ["000001.SZ"],
+                                     "trade_date": [kw["trade_date"]],
+                                     "circ_mv": [1000.0]})
+            if api == "sw_daily":
+                return _sw_df(kw["trade_date"])
+            return pd.DataFrame()  # limit_list_d 空(无涨停)
+
+        gw = MagicMock()
+        gw.call.side_effect = _gw_call
+        r = data.refresh_recent(conn, gw, dates=["20220104", "20220105"])
+        assert r["moneyflow_days"] >= 1
+        assert conn.execute(
+            "SELECT COUNT(*) FROM daily_price WHERE trade_date='20220105'").fetchone()[0] == 1
+        assert conn.execute(
+            "SELECT COUNT(*) FROM moneyflow WHERE trade_date='20220105'").fetchone()[0] == 1
+        # 幂等:再跑行数不变(INSERT OR REPLACE 按主键去重;单行夹具≤1000 视为缺失会重拉)
+        data.refresh_recent(conn, gw, dates=["20220104", "20220105"])
+        assert conn.execute(
+            "SELECT COUNT(*) FROM daily_price WHERE trade_date='20220105'").fetchone()[0] == 1
+        assert conn.execute(
+            "SELECT COUNT(*) FROM moneyflow WHERE trade_date='20220105'").fetchone()[0] == 1
+    finally:
+        conn.close()

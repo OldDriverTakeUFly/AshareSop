@@ -32,6 +32,11 @@ def _seed(conn, days: int = 300) -> None:
         conn.execute(
             "INSERT INTO daily_basic (ts_code,trade_date,circ_mv,fetched_at) VALUES (?,?,?,0)",
             ("000001.SZ", d, 1000.0))
+        # 大盘资金维走 L1 板块聚合沉淀表(market_flow_from_sectors)
+        conn.execute(
+            "INSERT INTO sector_moneyflow_daily "
+            "(level,index_code,trade_date,main_net,mkt_cap,fetched_at) "
+            "VALUES ('L1','801010.SI',?,5.0,1000.0,0)", (d,))
         dash = f"{d[:4]}-{d[4:6]}-{d[6:]}"
         conn.execute(
             "INSERT INTO limit_pool (trade_date,ts_code,pool_kind,consecutive_boards,fetched_at) "

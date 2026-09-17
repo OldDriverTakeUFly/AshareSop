@@ -73,7 +73,7 @@ def cmd_run(args: argparse.Namespace) -> None:
     conn = _conn()
     try:
         gw = _gw()
-        data.update_sw_daily_incremental(conn, gw)
+        data.refresh_recent(conn, gw)  # 盘后自举:直连补最近缺失日(不依赖 stockhot 采集链)
         latest = limitup_db.latest_trade_date(conn)
         if latest is None:
             sys.exit("daily_price 为空,先跑 19:20 daily_refresh")

@@ -97,7 +97,12 @@ def aggregate_sector_moneyflow(conn: sqlite3.Connection, start: str, end: str) -
 
 
 def market_flow_series(conn: sqlite3.Connection, start: str, end: str) -> pd.DataFrame:
-    """全市场(不分板块)主力净额与流通市值日和,大盘资金维用(Decimal 累加)."""
+    """全市场(不分板块)主力净额与流通市值日和,大盘资金维用(Decimal 累加).
+
+    注意:直接扫 moneyflow+daily_basic——daily_basic 是 30 天滚动缓存
+    (cleanup_expired_cache 会删历史行),此函数仅适用于近期窗口或测试;
+    历史口径请用 market_flow_from_sectors(读已沉淀的板块聚合)。
+    """
     mf = pd.read_sql_query(
         "SELECT trade_date, ts_code, buy_elg_amount, sell_elg_amount, "
         "buy_lg_amount, sell_lg_amount FROM moneyflow "
@@ -120,3 +125,18 @@ def market_flow_series(conn: sqlite3.Connection, start: str, end: str) -> pd.Dat
         "main_net_sum": [float(acc[d]) for d in sorted(acc)],
         "circ_mv_sum": [float(cap_map.get(d) or 0.0) for d in sorted(acc)],
     })
+
+
+def market_flow_from_sectors(conn: sqlite3.Connection, start: str, end: str) -> pd.DataFrame:
+    """大盘资金序列的历史口径:L1 板块聚合求和(成分互斥,无重复计).
+
+    sector_moneyflow_daily.mkt_cap 是聚合时点沉淀的分母,不受 daily_basic
+    30 天滚动清理影响——大盘资金维的历史计算必须走这里。
+    """
+    return pd.read_sql_query(
+        "SELECT trade_date, SUM(main_net) AS main_net_sum, SUM(mkt_cap) AS circ_mv_sum "
+        "FROM sector_moneyflow_daily WHERE level='L1' "
+        "AND trade_date>=? AND trade_date<=? AND mkt_cap IS NOT NULL "
+        "GROUP BY trade_date ORDER BY trade_date",
+        conn, params=(start, end),
+    )

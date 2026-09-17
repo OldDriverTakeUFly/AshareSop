@@ -26,7 +26,7 @@ def test_run_orchestration_order(fake_conn, tmp_path):
     with patch.object(cli, "_conn", return_value=fake_conn), \
          patch.object(cli, "_gw", return_value=gw), \
          patch("davis_analyzer.limitup.db.latest_trade_date", return_value="20260911"), \
-         patch.object(cli.data, "update_sw_daily_incremental",
+         patch.object(cli.data, "refresh_recent",
                       side_effect=_rec("sw_incr")), \
          patch.object(cli.moneyflow_agg, "aggregate_sector_moneyflow",
                       side_effect=_rec("mf_agg")), \
@@ -56,7 +56,7 @@ def test_run_no_card_flag(fake_conn, tmp_path):
     with patch.object(cli, "_conn", return_value=fake_conn), \
          patch.object(cli, "_gw", return_value=gw), \
          patch("davis_analyzer.limitup.db.latest_trade_date", return_value="20260911"), \
-         patch.object(cli.data, "update_sw_daily_incremental"), \
+         patch.object(cli.data, "refresh_recent"), \
          patch.object(cli.moneyflow_agg, "aggregate_sector_moneyflow"), \
          patch.object(cli.scoring, "score_history"), \
          patch.object(cli.market_temp, "compute_market_history"), \

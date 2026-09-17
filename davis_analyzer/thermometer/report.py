@@ -33,7 +33,14 @@ def write_daily_report(conn: sqlite3.Connection, day: str) -> Path:
         "SELECT * FROM thermometer_sector WHERE trade_date=?", conn, params=(day,))
     mkt = pd.read_sql_query(
         "SELECT * FROM thermometer_market WHERE trade_date=?", conn, params=(day,))
-    lines = [f"# 板块温度计 · {dash}", ""]
+    lines = [
+        f"# 板块温度计 · {dash}",
+        "",
+        "> **温度语义(反向,2026-09-13 部署拍板)**:温度=板块拥挤度。高温=预期打得过满,"
+        "注意风险(人声鼎沸处);低温=关注度低,可跟踪左侧机会(无人问津时)。",
+        "> 校准依据:反向 OOS IC +0.068 / ICIR 0.28(2022-2026 walk-forward)。",
+        "",
+    ]
 
     for level, label in (("L1", "一级行业"), ("L2", "二级行业")):
         sub = sec[sec["level"] == level].sort_values("temperature", ascending=False)
@@ -43,12 +50,15 @@ def write_daily_report(conn: sqlite3.Connection, day: str) -> Path:
         bottom = sub.tail(5)[["name", "temperature", "delta_temp5"]].copy()
         bottom.columns = ["板块", "温度", "5日升温"]
         lines += [f"## {level} 温度榜 · {label}", "",
-                  "### 最热 top10", "", _md_table(top.reset_index(drop=True)), "",
-                  "### 最冷 bottom5", "", _md_table(bottom.reset_index(drop=True)), ""]
+                  "### 高温 · 过热预警 top10(拥挤度高,注意风险)", "",
+                  _md_table(top.reset_index(drop=True)), "",
+                  "### 低温 · 关注池 bottom5(无人问津,左侧跟踪)", "",
+                  _md_table(bottom.reset_index(drop=True)), ""]
 
     hottest = sec.sort_values("delta_temp5", ascending=False).head(5)
     coldest = sec.sort_values("delta_temp5").head(5)
-    for title, df in (("升温榜", hottest), ("降温榜", coldest)):
+    for title, df in (("升温榜(预期快速打满,警惕过热)", hottest),
+                      ("降温榜(关注度回落,观察出清)", coldest)):
         t = df[["level", "name", "temperature", "delta_temp5"]].copy()
         t.columns = ["层级", "板块", "温度", "5日升温"]
         lines += [f"## {title}", "", _md_table(t.reset_index(drop=True)), ""]

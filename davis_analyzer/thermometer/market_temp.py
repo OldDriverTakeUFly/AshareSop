@@ -12,7 +12,7 @@ from loguru import logger
 
 from davis_analyzer.constants import THERMOMETER_MARKET_DIM_WEIGHTS
 from davis_analyzer.limitup import db as limitup_db
-from davis_analyzer.thermometer.moneyflow_agg import market_flow_series
+from davis_analyzer.thermometer.moneyflow_agg import market_flow_from_sectors
 
 _MIN_HISTORY = 250  # 约一年交易日,不足不分位
 _LABELS = [(85.0, "过热"), (65.0, "偏热"), (35.0, "温和"), (15.0, "低温"), (-1.0, "冰点")]
@@ -116,7 +116,8 @@ def compute_market_history(conn: sqlite3.Connection, start: str, end: str) -> pd
     trend = _trend_axis(conn, start, end)
     wv = _width_volume_axis(conn, start, end)
     sent = _sentiment_axis(conn, start, end)
-    flow = market_flow_series(conn, start, end)
+    # 历史口径:L1 板块聚合求和(mkt_cap 已沉淀,不受 daily_basic 30 天滚动清理影响)
+    flow = market_flow_from_sectors(conn, start, end)
     flow["flow_raw"] = flow["main_net_sum"] / flow["circ_mv_sum"].replace(0, np.nan)
     flow["flow_raw"] = flow["flow_raw"].rolling(5).mean()
 
