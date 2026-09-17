@@ -395,16 +395,17 @@ class TestThermoCard:
         assert {"mkt_temp", "hot_temp", "p1_temp", "p2_temp", "p1_delta", "cd1_temp"} <= ids
         blob = json.dumps(spec, ensure_ascii=False)
         assert "农林牧渔" in blob and "温和" in blob
-        # 固定维度:单页全景三组并排,首行=农林牧渔(申万序),22 行 = ceil(22/3)
+        # 固定维度:单页四列芯片格(名上块下),首格=农林牧渔(申万序),22 板块 = 6 行
         pano = spec["cards"][1]["table"]
-        assert len(pano["headers"]) == 6
-        assert pano["rows"][0]["cells"][0] == "农林牧渔"
-        assert len(pano["rows"]) == (22 + 2) // 3
-        # 较昨日页同序独立
+        assert len(pano["headers"]) == 4
+        assert pano["rows"][0]["cells"][0].startswith("农林牧渔<br>")
+        assert len(pano["rows"]) == (22 + 3) // 4
+        # 芯片内含色块
+        assert "background:#" in pano["rows"][0]["cells"][0]
+        # 较昨日页同序芯片,方向色内联
         delta_page = spec["cards"][2]["table"]
-        assert delta_page["rows"][0]["cells"][0] == "农林牧渔"
-        assert any("up" in (c or "") or "down" in (c or "")
-                   for r in delta_page["rows"] for c in r["cls"])
+        assert delta_page["rows"][0]["cells"][0].startswith("农林牧渔<br>")
+        assert "#dc2626" in json.dumps(spec, ensure_ascii=False)
         # 色块:温度格为内联 span(hex 色值,数字裸文本由同值 facts 锚定)
         assert "background:#" in blob
         # 触红线词禁入卡面

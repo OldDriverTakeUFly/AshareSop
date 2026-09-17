@@ -752,37 +752,35 @@ def build_thermo(day: str, bundle: dict) -> tuple[list[Fact], dict]:
     l1_full = bundle["l1_full"]
     cold_rows = []
     # 单页全景:每行三组(板块|温度),31 板块 = 11 行(余位补空)
+    _CHIP_COLS = 4  # 芯片格:每行 4 板块,31 个 = 8 行
+
+    def _chip_cell(r: dict, idx: int, mode: str) -> str:
+        """纵向芯片:板块名在上,温度色块/较昨日变化在下(整格一个板块)."""
+        name = _digit_safe(str(r["name"])) or "-"
+        if mode == "temp":
+            tv = _thermo_num(r["temperature"])
+            facts.append(_fact(f"p{idx}_temp", tv, "", tv, day,
+                               f"{ref_sec}:{r['index_code']}.temperature"))
+            return f"{name}<br>{_temp_cell(r['temperature'])}"
+        if r.get("delta_temp1") is not None:
+            dv, dd = _thermo_signed(r["delta_temp1"])
+            facts.append(_fact(f"p{idx}_delta", dv, "", dd, day,
+                               f"{ref_sec}:{r['index_code']}:vs_prev"))
+            color = ("#dc2626" if r["delta_temp1"] > 0
+                     else "#16a34a" if r["delta_temp1"] < 0 else "#475569")
+            return (f'{name}<br><span style="display:block;color:{color};'
+                    f'font-weight:bold;text-align:center;">{dd}</span>')
+        return f"{name}<br><span style=\"display:block;color:#475569;font-weight:bold;text-align:center;\">—</span>"
+
     def _dense_rows(mode: str) -> list[dict]:
-        """mode='temp' 温度色块视图;mode='delta' 较昨日方向色视图;固定申万序."""
+        """mode='temp' 温度芯片视图;mode='delta' 较昨日芯片视图;固定申万序四列."""
         out = []
-        for gi in range(0, len(l1_full), 3):
-            cells: list = []
-            cls: list = []
-            for j, r in enumerate(l1_full[gi:gi + 3], 1):
-                idx = gi + j
-                name = _digit_safe(str(r["name"])) or "-"
-                if mode == "temp":
-                    tv = _thermo_num(r["temperature"])
-                    facts.append(_fact(f"p{idx}_temp", tv, "", tv, day,
-                                       f"{ref_sec}:{r['index_code']}.temperature"))
-                    cells += [name, _temp_cell(r["temperature"])]
-                    cls += ["", ""]
-                else:
-                    if r.get("delta_temp1") is not None:
-                        dv, dd = _thermo_signed(r["delta_temp1"])
-                        facts.append(_fact(f"p{idx}_delta", dv, "", dd, day,
-                                           f"{ref_sec}:{r['index_code']}:vs_prev"))
-                        cells.append(name)
-                        cells.append({"$fact": f"p{idx}_delta"})
-                        cls += ["", "up" if r["delta_temp1"] > 0
-                                else ("down" if r["delta_temp1"] < 0 else "")]
-                    else:
-                        cells += [name, "—"]
-                        cls += ["", ""]
-            while len(cells) < 6:  # 余位补空
+        for gi in range(0, len(l1_full), _CHIP_COLS):
+            cells = [_chip_cell(r, gi + j, mode)
+                     for j, r in enumerate(l1_full[gi:gi + _CHIP_COLS], 1)]
+            while len(cells) < _CHIP_COLS:
                 cells.append("")
-                cls.append("")
-            out.append({"cells": cells, "cls": cls})
+            out.append({"cells": cells, "cls": [""] * len(cells)})
         return out
 
     rows_temp = _dense_rows("temp")
@@ -817,19 +815,17 @@ def build_thermo(day: str, bundle: dict) -> tuple[list[Fact], dict]:
                  {"v": {"$fact": "hot_temp"}, "k": f"最热一级·{top_name}"}],
              "tags": "#板块温度计 #每日复盘 #市场结构 #资金流向",
              "foot": _THERMO_FOOT},
-            {"type": "table", "theme": "cream", "name": "02_温度全景", "first_left": True,
+            {"type": "table", "theme": "cream", "name": "02_温度全景",
              "tag_top": "温度全景", "tag_color": "#ea580c",
              "title": "一级行业温度全景",
              "subtitle": legend,
-             "table": {"headers": ["板块", "温度", "板块", "温度", "板块", "温度"],
-                       "rows": rows_temp},
+             "table": {"headers": ["", "", "", ""], "rows": rows_temp},
              "foot": _THERMO_FOOT},
-            {"type": "table", "theme": "blue", "name": "03_较昨日全景", "first_left": True,
+            {"type": "table", "theme": "blue", "name": "03_较昨日全景",
              "tag_top": "较昨日全景", "tag_color": "#2563eb",
              "title": "一级行业 · 较昨日温度变化",
              "subtitle": "与全景页同序固定排列 · 红升绿降 · 无人问津与降温方向见下页",
-             "table": {"headers": ["板块", "较昨日", "板块", "较昨日", "板块", "较昨日"],
-                       "rows": rows_delta},
+             "table": {"headers": ["", "", "", ""], "rows": rows_delta},
              "foot": _THERMO_FOOT},
             {"type": "table", "theme": "green", "name": "04_低温关注池", "first_left": True,
              "tag_top": "低温关注池", "tag_color": "#16a34a",
