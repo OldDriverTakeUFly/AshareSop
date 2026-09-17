@@ -1,0 +1,20 @@
+{
+  "topic": "连板天梯/2026-09-17",
+  "version": 1,
+  "as_of": "2026-09-17",
+  "expires_at": "2026-09-17",
+  "group": "每日复盘",
+  "images": [
+    "output/连板天梯_2026-09-17_01_封面.png",
+    "output/连板天梯_2026-09-17_02_梯队.png",
+    "output/连板天梯_2026-09-17_03_高度明细.png",
+    "output/连板天梯_2026-09-17_04_板块联动.png",
+    "output/连板天梯_2026-09-17_05_收束.png"
+  ],
+  "facts_digest": "sha256:253acef7bfabe810db59bd93173396d47f03f1ddf3f1fccc6a949bd486e02efa",
+  "validate": {
+    "passed": true,
+    "failures": 0
+  },
+  "cardgen_version": "0.1"
+}
