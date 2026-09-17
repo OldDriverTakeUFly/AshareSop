@@ -370,17 +370,18 @@ class TestThermoCard:
             {"level": "L1", "index_code": f"8011{i:02d}.SI",
              "name": f"行业{chr(65 + i)}", "temperature": 70.0 - i * 3.0,
              "delta_temp1": (i % 3 - 1) * 2.0, "delta_temp5": 1.0,
-             "hot_streak": 0}
+             "hot_streak": 0, "tags": ["长期低温"]}
             for i in range(17)
         ]
         l2_row = {"level": "L2", "index_code": "850111.SI", "name": "种植业",
                   "temperature": 5.0, "delta_temp1": -3.0, "delta_temp5": -4.0,
-                  "hot_streak": 0}
+                  "hot_streak": 0,
+                  "tags": ["大单资金持续流出", "中期跌幅深", "长期低温"]}
         all_rows = l1_rows + [l2_row]
         return {
             "day": "2026-09-11", "prev_date": "20260910",
             "l1": sorted(l1_rows, key=lambda r: -r["temperature"])[:5],
-            "l1_full": sorted(l1_rows, key=lambda r: r["index_code"]),  # 申万序固定
+            "l1_full": sorted(l1_rows, key=lambda r: -r["temperature"]),  # 温度降序
             "l2": [l2_row],
             "cold": sorted(all_rows, key=lambda r: r["temperature"])[:5],
             "market": {"temperature": 42.0, "regime_label": "温和",
@@ -390,22 +391,24 @@ class TestThermoCard:
 
     def test_build_thermo_card(self):
         facts, spec = daily.build_thermo(self.DAY, self._bundle())
-        assert len(spec["cards"]) == 6  # 封面/温度全景/较昨日全景/低温池/大盘五维/收束
+        assert len(spec["cards"]) == 5  # 封面/温度全景/低温池(诊断)/大盘五维/收束
         ids = {f.id for f in facts}
         assert {"mkt_temp", "hot_temp", "p1_temp", "p2_temp", "p1_delta", "cd1_temp"} <= ids
         blob = json.dumps(spec, ensure_ascii=False)
         assert "农林牧渔" in blob and "温和" in blob
-        # 固定维度:单页四列芯片格(名上块下),首格=农林牧渔(申万序),22 板块 = 6 行
+        # 温度降序:首格=最高温煤炭(95),22 板块四列 = 6 行
         pano = spec["cards"][1]["table"]
         assert len(pano["headers"]) == 4
-        assert pano["rows"][0]["cells"][0].startswith("农林牧渔<br>")
+        assert pano["rows"][0]["cells"][0].startswith("煤炭<br>")
         assert len(pano["rows"]) == (22 + 3) // 4
-        # 芯片内含色块
-        assert "background:#" in pano["rows"][0]["cells"][0]
-        # 较昨日页同序芯片,方向色内联
-        delta_page = spec["cards"][2]["table"]
-        assert delta_page["rows"][0]["cells"][0].startswith("农林牧渔<br>")
-        assert "#dc2626" in json.dumps(spec, ensure_ascii=False)
+        # 芯片内含色块+内嵌较昨日小字
+        c0 = pano["rows"][0]["cells"][0]
+        assert "background:#" in c0 and "<small" in c0
+        # 低温池带成因列(四列,数据事实标签)
+        cold = spec["cards"][2]["table"]
+        assert cold["headers"] == ["板块", "温度", "低温成因"]
+        assert cold["rows"][0]["cells"][0].startswith("二级·种植业")
+        assert "大单资金持续流出" in cold["rows"][0]["cells"][2]
         # 色块:温度格为内联 span(hex 色值,数字裸文本由同值 facts 锚定)
         assert "background:#" in blob
         # 触红线词禁入卡面
