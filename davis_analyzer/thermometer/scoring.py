@@ -148,3 +148,75 @@ def latest_snapshot(conn: sqlite3.Connection, day: str) -> pd.DataFrame:
     return pd.read_sql_query(
         "SELECT * FROM thermometer_sector WHERE trade_date=? ORDER BY temperature DESC",
         conn, params=(day,))
+
+
+# ── 温度轮动信号(盘后日频口径:捕捉日间排名迁移,非盘中) ────────────────
+
+_BANDS: list[tuple[float, str]] = [
+    (85.0, "过热"), (65.0, "偏热"), (35.0, "中性"), (15.0, "偏冷"), (-1.0, "冰点"),
+]
+
+
+def _band_of(t: float) -> str:
+    for th, name in _BANDS:
+        if t >= th:
+            return name
+    return _BANDS[-1][1]
+
+
+def rotation_signals(conn: sqlite3.Connection, day: str, lookback: int = 5) -> dict:
+    """轮动签名:排名自相关(强度) + 档位迁移(方向) + top5 进出(主线切换).
+
+    口径:盘后日频温度的日间迁移——捕捉「轮动的痕迹」;盘中温度需分钟级
+    板块行情,属另一数据层。lookback=5 表示与 5 个交易日前对比。
+    """
+    from scipy import stats as _stats
+
+    df = pd.read_sql_query(
+        "SELECT trade_date, level, index_code, name, temperature FROM thermometer_sector "
+        "WHERE trade_date<=? ORDER BY trade_date DESC", conn, params=(day,))
+    if df.empty:
+        return {"ac1": None, "ac5": None, "moves": [], "new_hot": [], "exit_hot": []}
+    dates = sorted(df["trade_date"].unique())
+    d0 = dates[-1]
+    if len(dates) < 2:
+        return {"ac1": None, "ac5": None, "moves": [], "new_hot": [], "exit_hot": []}
+    d1 = dates[-2]
+    d5 = dates[-min(lookback + 1, len(dates))]
+    t0 = df[df["trade_date"] == d0].set_index("index_code")
+    t1 = df[df["trade_date"] == d1].set_index("index_code")
+    t5 = df[df["trade_date"] == d5].set_index("index_code")
+    common = t0.index.intersection(t5.index)
+
+    ac1 = ac5 = None
+    if len(common) >= 5:
+        c1 = t0.index.intersection(t1.index)
+        ac1 = float(_stats.spearmanr(t0.loc[c1, "temperature"],
+                                     t1.loc[c1, "temperature"]).statistic)
+        ac5 = float(_stats.spearmanr(t0.loc[common, "temperature"],
+                                     t5.loc[common, "temperature"]).statistic)
+
+    moves = []
+    for c in common:
+        b5, b0 = _band_of(t5.loc[c, "temperature"]), _band_of(t0.loc[c, "temperature"])
+        if b5 != b0:
+            moves.append({
+                "level": t0.loc[c, "level"], "name": t0.loc[c, "name"],
+                "index_code": c,
+                "from_band": b5, "to_band": b0,
+                "d5": round(float(t0.loc[c, "temperature"] - t5.loc[c, "temperature"]), 1),
+            })
+    moves.sort(key=lambda m: -abs(m["d5"]))
+
+    l1_0 = t0[t0["level"] == "L1"]
+    l1_5 = t5[t5["level"] == "L1"]
+    top0 = set(l1_0.nlargest(5, "temperature").index)
+    top5_ = set(l1_5.nlargest(5, "temperature").index)
+    name_of = lambda s, c: s.loc[c, "name"]
+    return {
+        "ac1": ac1, "ac5": ac5, "as_of": d0, "vs_day": d5, "moves": moves,
+        "n_up": sum(1 for m in moves if m["d5"] > 0),
+        "n_down": sum(1 for m in moves if m["d5"] < 0),
+        "new_hot": [name_of(l1_0, c) for c in top0 - top5_],
+        "exit_hot": [name_of(l1_0, c) for c in top5_ - top0],
+    }

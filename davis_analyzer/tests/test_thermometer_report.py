@@ -38,7 +38,7 @@ def test_write_daily_report(tmp_path, monkeypatch):
         path = report.write_daily_report(conn, day)
         text = path.read_text(encoding="utf-8")
         assert "板块温度计" in path.name
-        for sec in ("L1 温度榜", "L2 温度榜", "升温榜", "降温榜", "高温预警", "大盘温度", "数据完整性"):
+        for sec in ("L1 温度榜", "L2 温度榜", "升温榜", "降温榜", "高温预警", "温度轮动", "大盘温度", "数据完整性"):
             assert sec in text, sec
         assert "行业0" in text and "42.0" in text
         assert "温和" in text

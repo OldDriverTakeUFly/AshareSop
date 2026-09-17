@@ -377,7 +377,7 @@ def build_ladder(day: str, bundle: dict) -> tuple[list[Fact], dict]:
              "subtitle": "代表股取该板块最早封板个股",
              "table": {"headers": ["板块", "涨停家数", "代表股"], "rows": sector_rows},
              "foot": FOOT},
-            {"type": "summary", "theme": "lavender", "name": "05_收束",
+            {"type": "summary", "theme": "lavender", "name": "06_收束",
              "tag_top": "数据说明", "tag_color": "#0f172a",
              "title": "天梯是结构数据",
              "subtitle": "不是操作清单",
@@ -562,7 +562,7 @@ def build_lhb(day: str, bundle: dict) -> tuple[list[Fact], dict]:
              "table": {"headers": ["营业部", "净额"], "rows": broker_rows},
              "foot": FOOT},
             inst_page,
-            {"type": "summary", "theme": "lavender", "name": "05_收束",
+            {"type": "summary", "theme": "lavender", "name": "06_收束",
              "tag_top": "交叉视角", "tag_color": "#0f172a",
              "title": "龙虎榜 × 连板梯队",
              "subtitle": "两份公开数据的交集",
@@ -679,8 +679,14 @@ def fetch_thermo_bundle(day: str) -> dict:
         cold = sorted(rows, key=lambda r: r["temperature"])[:5]  # L1+L2 最低温关注池
         for r in cold:  # 低温成因诊断(纯数据事实标签,判断留给读者)
             r["tags"] = _cold_diagnosis(con, d, r)
+        from davis_analyzer.thermometer.scoring import rotation_signals
+        rot = rotation_signals(con, d)
+        rot_moves = rot["moves"][:8]
         return {
             "day": day, "prev_date": prev_d,
+            "rotation": {"ac5": rot["ac5"], "n_moves": len(rot["moves"]),
+                         "n_up": rot["n_up"], "n_down": rot["n_down"],
+                         "moves": rot_moves},
             "l1": l1[:5], "l1_full": l1_full, "l2": l2[:5], "cold": cold,
             "market": {"temperature": float(mkt[5] or 0.0), "regime_label": mkt[6],
                        "dims": {"趋势": mkt[0], "宽度": mkt[1], "量能": mkt[2],
@@ -755,7 +761,7 @@ def _temp_cell(temp: float, delta1: str | None = None) -> str:
 
 
 def build_thermo(day: str, bundle: dict) -> tuple[list[Fact], dict]:
-    """五页卡:封面 / 温度全景(单页31板块,温度降序,色块内嵌较昨日) / 低温关注池(含成因标签) / 大盘五维 / 收束.
+    """动态五至六页:封面 / 温度全景 / 低温关注池(成因) / 轮动脉搏(有迁移才出) / 大盘五维 / 收束.
 
     全景行固定申万代码序(每天同一位置);温度格为五档色块(红=拥挤风险,
     蓝=冷清机会,反向语义);较昨日独立成页(固定同序,红升绿降)。
@@ -845,6 +851,22 @@ def build_thermo(day: str, bundle: dict) -> tuple[list[Fact], dict]:
                                     "<br>".join(r.get("tags") or [])],
                           "cls": ["", "", ""]})
 
+    # 轮动脉搏页(有档位迁移才出页)
+    rot_rows = []
+    rot = bundle.get("rotation") or {}
+    for i, m in enumerate(rot.get("moves") or [], 1):
+        lv_label = "一级" if m["level"] == "L1" else "二级"
+        name = _digit_safe(str(m["name"])) or "-"
+        d5v = _thermo_num(abs(m["d5"]))
+        d5d = f"{'+' if m['d5'] > 0 else '-'}{d5v}" if m["d5"] != 0 else f"±{d5v}"
+        facts.append(_fact(f"rt{i}_d5", d5v, "", d5d, day,
+                           f"{ref_sec}:{m['index_code']}:d5"))
+        rot_rows.append({"cells": [f"{lv_label}·{name}",
+                                   f"{m['from_band']}→{m['to_band']}",
+                                   {"$fact": f"rt{i}_d5"}],
+                         "cls": ["", "", "up" if m["d5"] > 0
+                                 else ("down" if m["d5"] < 0 else "")]})
+
     # 大盘五维(分位 0-1 逐项 facts;NaN→文字占位)
     dim_rows = []
     for dim_name, v in mkt["dims"].items():
@@ -883,13 +905,19 @@ def build_thermo(day: str, bundle: dict) -> tuple[list[Fact], dict]:
              "subtitle": "全市场温度最低方向 · 成因为数据事实标签,判断留给读者",
              "table": {"headers": ["板块", "温度", "低温成因"], "rows": cold_rows},
              "foot": _THERMO_FOOT},
-            {"type": "table", "theme": "lavender", "name": "04_大盘五维", "first_left": True,
+            {"type": "table", "theme": "blue", "name": "04_轮动脉搏", "first_left": True,
+             "tag_top": "轮动脉搏", "tag_color": "#2563eb",
+             "title": "近五日温度轮动",
+             "subtitle": "档位迁移=左侧补涨与高位退潮 · 按温度变化幅度排序",
+             "table": {"headers": ["板块", "档位迁移", "五日温度变化"], "rows": rot_rows},
+             "foot": _THERMO_FOOT},
+            {"type": "table", "theme": "lavender", "name": "05_大盘五维", "first_left": True,
              "tag_top": "大盘五维", "tag_color": "#7c3aed",
              "title": "大盘温度的五维构成",
              "subtitle": "各维为自身历史分位",
              "table": {"headers": ["维度", "历史分位"], "rows": dim_rows},
              "foot": _THERMO_FOOT},
-            {"type": "summary", "theme": "lavender", "name": "05_收束",
+            {"type": "summary", "theme": "lavender", "name": "06_收束",
              "tag_top": "数据说明", "tag_color": "#0f172a",
              "title": "温度是结构数据",
              "subtitle": "不是操作清单",

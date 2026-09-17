@@ -380,6 +380,12 @@ class TestThermoCard:
         all_rows = l1_rows + [l2_row]
         return {
             "day": "2026-09-11", "prev_date": "20260910",
+            "rotation": {"ac5": 0.6, "n_moves": 3, "n_up": 2, "n_down": 1,
+                         "moves": [
+                             {"level": "L1", "name": "煤炭", "index_code": "801950.SI",
+                              "from_band": "偏热", "to_band": "过热", "d5": 9.0},
+                             {"level": "L2", "name": "种植业", "index_code": "850111.SI",
+                              "from_band": "冰点", "to_band": "偏冷", "d5": -4.0}]},
             "l1": sorted(l1_rows, key=lambda r: -r["temperature"])[:5],
             "l1_full": sorted(l1_rows, key=lambda r: -r["temperature"]),  # 温度降序
             "l2": [l2_row],
@@ -391,7 +397,7 @@ class TestThermoCard:
 
     def test_build_thermo_card(self):
         facts, spec = daily.build_thermo(self.DAY, self._bundle())
-        assert len(spec["cards"]) == 5  # 封面/温度全景/低温池(诊断)/大盘五维/收束
+        assert len(spec["cards"]) == 6  # 封面/温度全景/低温池(诊断)/轮动脉搏/大盘五维/收束
         ids = {f.id for f in facts}
         assert {"mkt_temp", "hot_temp", "p1_temp", "p2_temp", "p1_delta", "cd1_temp"} <= ids
         blob = json.dumps(spec, ensure_ascii=False)
@@ -409,6 +415,10 @@ class TestThermoCard:
         assert cold["headers"] == ["板块", "温度", "低温成因"]
         assert cold["rows"][0]["cells"][0].startswith("二级·种植业")
         assert "大单资金持续流出" in cold["rows"][0]["cells"][2]
+        # 轮动脉搏页:档位迁移+五日温度变化
+        rot = spec["cards"][3]["table"]
+        assert rot["headers"] == ["板块", "档位迁移", "五日温度变化"]
+        assert "→" in rot["rows"][0]["cells"][1]
         # 色块:温度格为内联 span(hex 色值,数字裸文本由同值 facts 锚定)
         assert "background:#" in blob
         # 触红线词禁入卡面

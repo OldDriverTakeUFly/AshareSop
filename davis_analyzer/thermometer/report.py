@@ -9,6 +9,7 @@ import pandas as pd
 
 from davis_analyzer.config import THERMOMETER_REPORTS_DIR
 from davis_analyzer.limitup import db as limitup_db
+from davis_analyzer.thermometer.scoring import rotation_signals
 
 REPORTS_DIR = THERMOMETER_REPORTS_DIR  # 测试可 monkeypatch
 
@@ -62,6 +63,28 @@ def write_daily_report(conn: sqlite3.Connection, day: str) -> Path:
         t = df[["level", "name", "temperature", "delta_temp5"]].copy()
         t.columns = ["层级", "板块", "温度", "5日升温"]
         lines += [f"## {title}", "", _md_table(t.reset_index(drop=True)), ""]
+
+    # 温度轮动(盘后日频口径:日间排名迁移与档位跃迁)
+    rot = rotation_signals(conn, day)
+    lines += ["## 温度轮动(近五个交易日)", ""]
+    if rot["ac1"] is not None:
+        lines += [
+            f"- 轮动强度: 排名自相关 1日 {rot['ac1']:.2f} / 5日 {rot['ac5']:.2f}"
+            "(越低轮动越快);"
+            f"档位迁移 {len(rot['moves'])} 个板块(升 {rot['n_up']} / 降 {rot['n_down']})",
+        ]
+    if rot["new_hot"] or rot["exit_hot"]:
+        lines.append(f"- 主线 top5 切换: 新晋 {('、'.join(rot['new_hot']) or '无')}"
+                     f" / 退出 {('、'.join(rot['exit_hot']) or '无')}")
+    if rot["moves"]:
+        mdf = pd.DataFrame(rot["moves"][:12])
+        mdf["迁移"] = mdf["from_band"] + "→" + mdf["to_band"]
+        show = mdf[["level", "name", "迁移", "d5"]].copy()
+        show.columns = ["层级", "板块", "档位迁移", "5日温度变化"]
+        lines += ["", "### 档位迁移 top12(升档=左侧补涨/降档=高位退潮)", "",
+                  _md_table(show.reset_index(drop=True)), ""]
+    else:
+        lines += ["- 五日内无档位迁移(格局稳定)", ""]
 
     warn = sec[sec["hot_streak"] >= 3].sort_values("hot_streak", ascending=False)
     w = warn[["level", "name", "temperature", "hot_streak"]].copy()
