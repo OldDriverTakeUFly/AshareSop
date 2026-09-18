@@ -26,6 +26,7 @@ _BGM_DIR = RECAP_ROOT / "assets" / "bgm"    # 用户自备 mp3(建议平台曲�
 _SFX_DIR = RECAP_ROOT / "assets" / "sfx"    # 合成音效缓存(零外部音频,规避版权)
 _BGM_VOL = 0.22                 # BGM 垫底音量(spec §八),人声经 sidechain 自动压它
 _SFX_VOL = 0.6
+_INTRO_DUR = 1.2                # 段首排名冲击卡时长(央视五佳球式)
 
 
 def speed_factor(clip: float, need: float) -> float:
@@ -87,8 +88,10 @@ def ensure_sfx(cache_dir: Path | None = None) -> dict[str, Path]:
     return {"whoosh": whoosh, "impact": impact}
 
 
-def sfx_offsets(timings: list[dict]) -> list[tuple[str, float]]:
-    """SFX 时间点:impact@0;whoosh@每个段起点(首段除外——开场已有 impact)。"""
+def sfx_offsets(timings: list[dict],
+                intros: dict[str, float] | None = None) -> list[tuple[str, float]]:
+    """SFX 时间点:impact@0;whoosh@每个段起点(含段首冲击卡,首段除外)。"""
+    intros = intros or {}
     seg_audio: dict[str, float] = {}
     order: list[str] = []
     for t in timings:
@@ -100,7 +103,7 @@ def sfx_offsets(timings: list[dict]) -> list[tuple[str, float]]:
     acc = 0.0
     for sid in order:
         starts.append(acc)
-        acc += seg_audio[sid] + _PAD_TAIL
+        acc += intros.get(sid, 0.0) + seg_audio[sid] + _PAD_TAIL
     out = [("impact", 0.0)] if order else []
     out += [("whoosh", s) for s in starts[1:]]
     return out
@@ -137,9 +140,11 @@ _ASS_HEADER = (
 )
 
 
-def build_burn_ass(timings: list[dict]) -> tuple[str, float]:
-    """视频时间轴 ASS 字幕(样式写进文件本体):段内无缝,段尾 _PAD_TAIL。
-    返回 (ass文本, 全片总时长)。ASS 时间 H:MM:SS.CC(厘秒)。"""
+def build_burn_ass(timings: list[dict],
+                   intros: dict[str, float] | None = None) -> tuple[str, float]:
+    """视频时间轴 ASS 字幕(样式写进文件本体):段首可含排名冲击卡(intros[seg_id] 秒,
+    无音轨),段内 mp3 无缝,段尾 _PAD_TAIL。返回 (ass文本, 全片总时长)。"""
+    intros = intros or {}
     seg_order: list[str] = []
     by_seg: dict[str, list[dict]] = {}
     for t in timings:
@@ -156,7 +161,7 @@ def build_burn_ass(timings: list[dict]) -> tuple[str, float]:
     events: list[str] = []
     seg_start = 0.0
     for seg_id in seg_order:
-        t0 = seg_start
+        t0 = seg_start + intros.get(seg_id, 0.0)
         for line in by_seg[seg_id]:
             text = line["text"].replace("\n", "\\N")   # ASS 换行转义
             events.append(f"Dialogue: 0,{ts(t0)},{ts(t0 + line['dur'])},Default,,0,0,0,,{text}")
@@ -234,6 +239,22 @@ def _has_subtitles_filter() -> bool:
     return " subtitles " in r.stdout or r.stdout.find("\n ... subtitles ") >= 0
 
 
+def _intro_clip(png: Path, out: Path, dur: float = _INTRO_DUR) -> Path:
+    """段首排名冲击卡:急推近(1.0→1.06)+白闪入+快出,静音轨(与各 part 统一 a+v 编码)。"""
+    frames = max(1, int(dur * 30))
+    vf = (f"[0:v]scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},"
+          f"zoompan=z='min(zoom+0.0022,1.06)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)'"
+          f":d={frames}:s={W}x{H}:fps=30,format=yuv420p,"
+          f"fade=t=in:st=0:d=0.15:color=white,fade=t=out:st={max(0.0, dur - 0.2):.2f}:d=0.2[v]")
+    _run([ffmpeg(), "-y", "-loop", "1", "-t", f"{dur:.2f}", "-i", str(png),
+          "-f", "lavfi", "-t", f"{dur:.2f}", "-i", "anullsrc=r=44100:cl=mono",
+          "-filter_complex", vf, "-map", "[v]", "-map", "1:a",
+          "-c:v", "libx264", "-preset", "fast", "-crf", "22", "-r", "30",
+          "-c:a", "aac", "-b:a", "128k", "-ar", "44100", "-shortest", str(out)],
+         "intro_clip")
+    return out
+
+
 def compose(day_dash: str, burn_subs: bool = True) -> Path:
     """素材+原料包 → final/{day}_recap.mp4(1080x1920,烧字幕,统一 30fps/aac44100)。
     娱乐版:顶部五佳横幅+REPLAY 角标(素材段),终混 BGM(人声闪避)+SFX。"""
@@ -249,6 +270,8 @@ def compose(day_dash: str, burn_subs: bool = True) -> Path:
     final_dir = ep_dir / "final"
     final_dir.mkdir(parents=True, exist_ok=True)
     deco = card_renderer.render_banners(day_dash)     # 五佳横幅 + REPLAY 角标
+    intros_cards = card_renderer.render_rank_intros(day_dash)   # 段首排名冲击卡
+    intros_map: dict[str, float] = {}
 
     with tempfile.TemporaryDirectory(prefix="recap_post_") as td:
         tdp = Path(td)
@@ -266,6 +289,9 @@ def compose(day_dash: str, burn_subs: bool = True) -> Path:
                     f"stock_*_{seg.ts_code.split('.')[0]}.png"), None)
                 if card is None:
                     raise SystemExit(f"缺数据卡: {seg.ts_code}")
+                parts.append(_intro_clip(intros_cards[stock_idx],
+                                         tdp / f"intro_{seg.seg_id}.mp4"))
+                intros_map[seg.seg_id] = _INTRO_DUR
                 parts.append(_stock_clip(
                     clip_map[seg.seg_id], card,
                     deco["banners"].get(stock_idx, deco["banners"][1]),
@@ -284,7 +310,7 @@ def compose(day_dash: str, burn_subs: bool = True) -> Path:
         if bgm_src is None:
             bgm_src = synth_bgm(tdp / "bgm_synth.m4a", total + 1.0)
         sfx = ensure_sfx()
-        plan = sfx_offsets(durs.get("lines", []))
+        plan = sfx_offsets(durs.get("lines", []), intros_map)
         inputs = ["-i", str(rough), "-stream_loop", "-1", "-i", str(bgm_src)]
         chains: list[str] = []
         mix_labels = ["[com]"]
@@ -302,7 +328,7 @@ def compose(day_dash: str, burn_subs: bool = True) -> Path:
                       f"amix=inputs={len(mix_labels)}:duration=first:normalize=0[a]")
         vchain = ""
         if burn_subs and durs.get("lines") and _has_subtitles_filter():
-            ass_text, _ = build_burn_ass(durs["lines"])
+            ass_text, _ = build_burn_ass(durs["lines"], intros_map)
             ass_path = tdp / "burn.ass"          # ASCII 路径,规避 libass 路径转义坑
             ass_path.write_text(ass_text, encoding="utf-8")
             vchain = f"[0:v]subtitles={ass_path}[v]"

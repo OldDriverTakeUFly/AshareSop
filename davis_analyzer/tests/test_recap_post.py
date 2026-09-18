@@ -136,3 +136,25 @@ def test_resolve_bgm(tmp_path, monkeypatch):
     (tmp_path / "bgm").mkdir()
     (tmp_path / "bgm" / "hype.mp3").write_bytes(b"x")
     assert pc.resolve_bgm() == tmp_path / "bgm" / "hype.mp3"
+
+
+def test_build_burn_ass_with_intros():
+    """段首冲击卡(intros)把该段字幕与总时长后移。"""
+    lines = [
+        {"seg_id": "open", "speaker": "pb", "text": "开场", "dur": 2.0, "file": "a"},
+        {"seg_id": "s1", "speaker": "pb", "text": "正片", "dur": 3.0, "file": "b"},
+    ]
+    ass, total = pc.build_burn_ass(lines, intros={"s1": 1.2})
+    # open 2.0+0.6=2.6;s1 冲击卡 1.2 + 正片 3.0 + 尾 0.6 → 总 7.4;正片字幕 3.8-6.8
+    assert total == pytest.approx(7.4)
+    assert "Dialogue: 0,0:00:03.80,0:00:06.80" in ass
+
+
+def test_sfx_offsets_with_intros():
+    lines = [
+        {"seg_id": "open", "speaker": "pb", "text": "a", "dur": 2.0, "file": "a"},
+        {"seg_id": "s1", "speaker": "pb", "text": "b", "dur": 3.0, "file": "b"},
+    ]
+    # open 起点仍 0;s1 起点 = 2.6(含其冲击卡 1.2 在起点处)
+    assert pc.sfx_offsets(lines, intros={"s1": 1.2}) == [
+        ("impact", 0.0), ("whoosh", 2.6)]

@@ -44,6 +44,18 @@ body{margin:0;font-family:'PingFang SC','Noto Sans SC',sans-serif;background:tra
 .badge{width:320px;height:120px;box-sizing:border-box;background:#c81e28;color:#fff;
   display:flex;align-items:center;justify-content:center;font-size:52px;font-weight:900;
   font-style:italic;letter-spacing:6px;border-radius:14px;border:3px solid #ffffffcc}
+.rankintro{width:1080px;height:1920px;box-sizing:border-box;
+  background:radial-gradient(circle at 50% 38%,#1c2a4a 0%,#0b1220 70%);color:#eef2f8;
+  display:flex;flex-direction:column;align-items:center;justify-content:center}
+.rilabel{font-size:44px;letter-spacing:24px;color:#8fa3c0;margin-bottom:30px}
+.rirank{font-size:360px;font-weight:900;line-height:1;
+  background:linear-gradient(180deg,#ffe89a,#ffb52e);-webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;text-shadow:0 20px 60px #ffb52e44}
+.risingle{font-size:170px;font-weight:900;letter-spacing:8px;
+  background:linear-gradient(180deg,#ffe89a,#ffb52e);-webkit-background-clip:text;
+  -webkit-text-fill-color:transparent}
+.riname{margin-top:40px;font-size:72px;font-weight:800}
+.risub{margin-top:14px;font-size:36px;color:#8fa3c0;letter-spacing:12px}
 """
 
 
@@ -124,6 +136,40 @@ def countdown_banner_html(rank: int | None, name: str, ts_code: str) -> str:
 
 def replay_badge_html() -> str:
     return _page("<div class='badge'>REPLAY</div>")
+
+
+def rank_intro_html(rank: int | None, name: str) -> str:
+    """段首排名冲击卡(全屏):巨大 TOP N 数字(单候选「本场最佳」)+ 名称。"""
+    mid = (f"<div class='rirank'>{rank}</div>" if rank is not None
+           else "<div class='risingle'>本场最佳</div>")
+    label = "TONIGHT'S TOP PLAY" if rank is not None else "BEST OF THE NIGHT"
+    body = (f"<div class='rankintro'><div class='rilabel'>五佳时刻</div>{mid}"
+            f"<div class='riname'>{html.escape(name)}</div>"
+            f"<div class='risub'>{label}</div></div>")
+    return _page(body)
+
+
+def render_rank_intros(day_dash: str) -> dict[int, Path]:
+    """每股票段一张段首冲击卡:{段序i(1基): Path};rank 与横幅同口径(N-i+1,单候选无rank)。"""
+    ep_dir = EPISODES_DIR / day_dash
+    ep = json.loads((ep_dir / "episode.json").read_text(encoding="utf-8"))
+    cand_path = ep_dir / "candidates.json"
+    cands = ({c["ts_code"]: c for c in json.loads(cand_path.read_text(encoding="utf-8"))}
+             if cand_path.exists() else {})
+    out_dir = ep_dir / "原料包" / "cards"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    stock_segs = [s for s in ep.get("segments", []) if s.get("kind") == "stock"]
+    n = len(stock_segs)
+    cards: dict[int, Path] = {}
+    for i, seg in enumerate(stock_segs, 1):
+        cand = cands.get(seg.get("ts_code") or {})
+        name = cand.get("name") or seg.get("ts_code") or "?"
+        rank = (n - i + 1) if n > 1 else None
+        p = out_dir / f"rankintro_{i:02d}.png"
+        asyncio.run(_shoot(rank_intro_html(rank, name), p, 1080, 1920))
+        cards[i] = p
+    logger.info(f"recap 排名冲击卡 {len(cards)} 张 → {out_dir}")
+    return cards
 
 
 def render_banners(day_dash: str) -> dict:

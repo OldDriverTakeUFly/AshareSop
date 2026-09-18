@@ -75,3 +75,12 @@ def test_countdown_banner_and_badge():
     hs = cr.countdown_banner_html(None, "沈鼓", "601091.SH")
     assert "本场最佳" in hs and "TOP" not in hs
     assert "REPLAY" in cr.replay_badge_html()
+
+
+def test_rank_intro_html():
+    """段首冲击卡:多候选巨号 TOP N;单候选「本场最佳」。"""
+    from davis_analyzer.recap import card_renderer as cr
+    h2 = cr.rank_intro_html(2, "金健米业")
+    assert ">2<" in h2 and "金健米业" in h2 and "五佳时刻" in h2
+    hs = cr.rank_intro_html(None, "沈鼓")
+    assert "本场最佳" in hs
