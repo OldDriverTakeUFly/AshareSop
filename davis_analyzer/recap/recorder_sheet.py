@@ -37,7 +37,7 @@ def build_sheet_markdown(ep: Episode, cands: list[Candidate]) -> str:
         lines += [
             f"{i}️⃣ {c.ts_code} {c.name}(板块:{c.sector or '未知'})",
             f"   剧情点: {'、'.join(c.notes) or '常规涨停'}",
-            "   App路径(东方财富): 搜索代码 → 分时 → 底部「功能」→ 超级复盘(同花顺: 分时 → 超级盘口回放)",
+            "   App路径(东方财富): 搜索代码 → 分时 → 底部「功能」→ 超级复盘(同花顺: 分时左下角「超级盘口」,需Level-2)",
             f"   回放区间: {c.replay_start[:5]}-{c.replay_end[:5]} | 建议倍速: 1x",
             f"   保存为: {day_compact}_{c.ts_code}_{i:02d}.mp4", "",
         ]
