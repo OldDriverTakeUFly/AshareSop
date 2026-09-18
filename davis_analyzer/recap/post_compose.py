@@ -54,12 +54,13 @@ def synth_bgm(out: Path, dur: float) -> Path:
     """合成 hype 节拍占位(kick 四踩 + hat 反拍 + 低音线,aevalsrc 单表达式)。
     版权零风险;想要更好的音乐:丢 mp3 进 recap/assets/bgm/ 即自动替换。"""
     # kick: 55Hz 衰减冲击 every 0.5s;hat: 高频短噪 on off-beat;bass: 110/98Hz 交替小节
+    # 注意:aevalsrc 作为输入URL解析,表达式内逗号必须转义(否则被当滤镜分隔符)
     expr = (
         "0.55*sin(2*PI*55*t)*exp(-22*mod(t,0.5))"
         "+0.10*sin(2*PI*8000*t)*exp(-70*mod(t+0.25,0.5))"
         "+0.22*(lt(mod(t,4),2))*sin(2*PI*110*t)*(0.6+0.4*sin(PI*t/2))"
         "+0.22*(gte(mod(t,4),2))*sin(2*PI*98*t)*(0.6+0.4*sin(PI*t/2))"
-    )
+    ).replace(",", "\\,")
     _run([ffmpeg(), "-y", "-f", "lavfi",
           "-i", f"aevalsrc={expr}:s=44100:d={dur:.2f}", "-c:a", "aac", "-b:a", "96k",
           str(out)], "synth_bgm")
