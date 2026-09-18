@@ -21,12 +21,14 @@ for _env in [ROOT / ".env"]:
                 _k, _, _v = _ln.partition("=")
                 os.environ.setdefault(_k.strip(), _v.strip().strip('"').strip("'"))
 LOCK_DIR = BASE / ".push_locks"
-# 时效闸:图上数据为 9-15/9-16 口径,5 天发布窗口,超窗禁止推送
+# 时效闸:工程数据均为 2026-09-18 口径,5 天发布窗口,超窗禁止推送
 EXPIRE_DATE = date(2026, 9, 23)
 PROJECTS = [
-    ("长文图卡_AI基建涨价", 1),
-    ("长文图卡_全球龙头对照", 2),
-    ("长文图卡_国产替代梯度", 3),
+    # (工程目录, 消息头标签)——头部只放运营提示,tags 永远末行
+    ("长文图卡_AI基建涨价", "剪刀差系列长图卡 第1/3篇"),
+    ("长文图卡_全球龙头对照", "剪刀差系列长图卡 第2/3篇"),
+    ("长文图卡_国产替代梯度", "剪刀差系列长图卡 第3/3篇"),
+    ("板块热点复盘/2026-09-18_光通信复活", "板块热点复盘系列 第1篇·光通信复活"),
 ]
 
 
@@ -54,6 +56,7 @@ async def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--dry", action="store_true", help="只构建消息不发送")
     ap.add_argument("--force", action="store_true", help="忽略当日幂等锁重推")
+    ap.add_argument("--only", help="只推指定工程目录名(精确匹配,如 板块热点复盘/2026-09-18_光通信复活)")
     args = ap.parse_args()
 
     if date.today() > EXPIRE_DATE:
@@ -71,9 +74,12 @@ async def main() -> None:
     notifier = EnterpriseFeishuNotifier(
         os.environ["FEISHU_APP_ID"], os.environ["FEISHU_APP_SECRET"], xhs_chat)
 
+    targets = [(p, lbl) for p, lbl in PROJECTS if not args.only or p == args.only]
+    if not targets:
+        raise SystemExit(f"--only 未匹配任何工程: {args.only}")
     sent = 0
-    for proj, idx in PROJECTS:
-        lock = LOCK_DIR / f"{today}_{proj}.ok"
+    for proj, label in targets:
+        lock = LOCK_DIR / f"{today}_{proj.replace('/', '_')}.ok"
         if lock.exists() and not args.force:
             print(f"{proj}: 当日已推送(幂等锁),跳过")
             continue
@@ -81,7 +87,7 @@ async def main() -> None:
         img = d / "长图.png"
         title, body, tags = parse_copy(d / "文案.md")
         # 铁律:tags 是消息最后一行;运营提示只放头部括号行
-        text = (f"【剪刀差系列长图卡 第{idx}/3篇·发布请在手机App人工完成,图+文一起发】\n"
+        text = (f"【{label}·发布请在手机App人工完成,图+文一起发】\n"
                 f"{title}\n\n{body}\n\n{tags}")
         if args.dry:
             print(f"[dry] {proj}: {img.name}({img.stat().st_size // 1024}KB) + 文案{len(text)}字 | 末行: {text.splitlines()[-1]}")
@@ -92,7 +98,7 @@ async def main() -> None:
         sent += 1
         print(f"{proj}: 已推送(图+文案)")
     if not args.dry:
-        print(f"完成:共推送 {sent}/3")
+        print(f"完成:共推送 {sent}/{len(targets)}")
 
 
 if __name__ == "__main__":
