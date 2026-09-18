@@ -85,3 +85,64 @@ def test_moneyflow_missing_net_mf():
     r = compute_moneyflow(mf, amount_today_k=100.0)
     assert np.isnan(r["net_ratio_d0"])
     assert r["elg_net_d0"] == 100.0
+
+
+# ── 5.6/5.7 压力支撑 ──
+
+from davis_analyzer.surge.factors import compute_resistance_support  # noqa: E402
+
+
+def test_resistance_picks_nearest_above():
+    # 130日: 箱体 high=11 low=9 close=10;今日拉到10.2
+    px = _px([10.0] * 130, highs=[11.0] * 130, lows=[9.0] * 130)
+    px.iloc[-1, px.columns.get_loc("close")] = 10.2
+    px.iloc[-1, px.columns.get_loc("high")] = 10.4
+    cyq = pd.Series({"cost_5pct": 9.5, "cost_15pct": 9.8, "cost_50pct": 10.0,
+                     "cost_85pct": 10.5, "cost_95pct": 10.8, "weight_avg": 10.1,
+                     "his_high": 12.0})
+    r = compute_resistance_support(px, cyq)
+    # 候选>10.2*1.005=10.251: cost_85=10.5, cost_95=10.8, his_high=12, high_120=11 → 最近=10.5
+    assert abs(r["resistance_price"] - 10.5) < 1e-9
+    # 候选<10.2*0.995=10.149: cost_15=9.8, cost_5=9.5, weight_avg=10.1, low_120=9 → 最近=10.1
+    assert abs(r["support_price"] - 10.1) < 1e-9
+    assert "cost_85pct" in r["resistance_ladder"]
+
+
+def test_resistance_all_below_nan():
+    px = _px([10.0] * 130, highs=[10.0] * 130, lows=[9.5] * 130)
+    r = compute_resistance_support(px, None)
+    assert np.isnan(r["resistance_price"])  # 无高于现价的档位
+    assert abs(r["support_price"] - 9.5) < 1e-9
+
+
+def test_weight_avg_flips_to_resistance_when_lost():
+    # 现价跌破成本中枢 → weight_avg 从支撑变阻力
+    px = _px([10.0] * 130, highs=[11.0] * 130, lows=[8.0] * 130)
+    px.iloc[-1, px.columns.get_loc("close")] = 9.0  # 跌破 weight_avg=10.1
+    cyq = pd.Series({"cost_5pct": 8.5, "cost_15pct": 8.8, "cost_50pct": 9.2,
+                     "cost_85pct": 10.5, "cost_95pct": 10.8, "weight_avg": 10.1,
+                     "his_high": 12.0})
+    r = compute_resistance_support(px, cyq)
+    # 阻力最近档=MA20=(19×10+9)/20=9.95(现价9.0上方均线压);weight_avg 转压在梯队中
+    assert abs(r["resistance_price"] - 9.95) < 1e-6
+    assert "weight_avg" in r["resistance_ladder"]
+    assert "cost_85pct" in r["resistance_ladder"]
+
+
+def test_gap_down_becomes_resistance():
+    # 构造近端向下缺口: 昨日 [low=11,high=11.5] → 今日 [low=9.5,high=10] 缺口;收盘10.5回补中
+    closes = [10.0] * 128
+    px = _px(closes, highs=[10.5] * 128, lows=[9.8] * 128)
+    px = pd.concat([px, pd.DataFrame([{
+        "ts_code": "000001.SZ", "trade_date": "d128", "open": 11.2, "high": 11.5,
+        "low": 11.0, "close": 11.2, "vol": 1000.0, "adj_factor": 1.0}]),
+        pd.DataFrame([{
+        "ts_code": "000001.SZ", "trade_date": "d129", "open": 9.8, "high": 10.0,
+        "low": 9.5, "close": 9.8, "vol": 1000.0, "adj_factor": 1.0}])],
+        ignore_index=True)
+    r = compute_resistance_support(px, None)
+    # 收盘9.8;最近阻力=MA20=(18×10+11.2+9.8)/20=10.05;缺口下沿11.0在梯队(先于high_120=11.5)
+    assert abs(r["resistance_price"] - 10.05) < 1e-6
+    assert "gap_down" in r["resistance_ladder"]
+    lad = r["resistance_ladder"]
+    assert lad.index("gap_down") < lad.index("high_120d")  # 缺口档位先于滚动高点
