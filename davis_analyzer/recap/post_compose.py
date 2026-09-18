@@ -2,7 +2,7 @@
 """recap 二期:素材+原料包 → 1080x1920 成片(变速对齐/叠层/字幕烧录/concat)。
 
 时间轴口径(2026-09-18 首跑设计):视频合成轴 = 段内 mp3 无缝拼接 + 每段尾 _PAD_TAIL 留白;
-与原料包 字幕.srt 的「剪辑轴」(句间 0.2s 间隙)不同——烧录字幕用 build_burn_srt 重建,
+与原料包 字幕.srt 的「剪辑轴」(句间 0.2s 间隙)不同——烧录字幕用 build_burn_ass 重建,
 否则全片漂移约 0.2s×句数+0.6s×段数。
 """
 from __future__ import annotations
@@ -22,8 +22,6 @@ from davis_analyzer.recap.types import Episode
 W, H = 1080, 1920
 _PAD_TAIL = 0.6                 # 每段旁白后的留白(与 cardgen.video 同口径)
 _MAX_SPEED = 4.0                # 变速封顶(再快就看不清盘口了)
-_SUB_STYLE = ("FontName=Noto Sans CJK SC,FontSize=16,PrimaryColour=&H00FFFFFF,"
-              "OutlineColour=&HA0000000,BorderStyle=1,Outline=1.4,Shadow=0,MarginV=64")
 
 
 def speed_factor(clip: float, need: float) -> float:
@@ -55,8 +53,22 @@ def _fmt_ts(sec: float) -> str:
             f"{ms % 60000 // 1000:02d},{ms % 1000:03d}")
 
 
-def build_burn_srt(timings: list[dict]) -> tuple[str, float]:
-    """视频时间轴字幕:按段分组,段内无缝,段尾 _PAD_TAIL;返回 (srt文本, 全片总时长)。"""
+_ASS_HEADER = (
+    "[Script Info]\nScriptType: v4.00+\nPlayResX: 1080\nPlayResY: 1920\nWrapStyle: 0\n\n"
+    "[V4+ Styles]\nFormat: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, "
+    "OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, "
+    "Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, "
+    "MarginV, Encoding\n"
+    "Style: Default,Noto Sans CJK SC,17,&H00FFFFFF,&H00FFFFFF,&H90000000,&H00000000,"
+    "0,0,0,0,100,100,0,0,1,1.4,0,2,40,40,64,1\n\n"
+    "[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, "
+    "Effect, Text\n"
+)
+
+
+def build_burn_ass(timings: list[dict]) -> tuple[str, float]:
+    """视频时间轴 ASS 字幕(样式写进文件本体):段内无缝,段尾 _PAD_TAIL。
+    返回 (ass文本, 全片总时长)。ASS 时间 H:MM:SS.CC(厘秒)。"""
     seg_order: list[str] = []
     by_seg: dict[str, list[dict]] = {}
     for t in timings:
@@ -64,17 +76,21 @@ def build_burn_srt(timings: list[dict]) -> tuple[str, float]:
             seg_order.append(t["seg_id"])
             by_seg[t["seg_id"]] = []
         by_seg[t["seg_id"]].append(t)
-    blocks: list[str] = []
+
+    def ts(sec: float) -> str:
+        cs = int(round(sec * 100))
+        return f"{cs // 360000}:{cs % 360000 // 60000:02d}:{cs % 60000 // 1000:02d}.{cs % 100:02d}"
+
+    events: list[str] = []
     seg_start = 0.0
-    idx = 0
     for seg_id in seg_order:
         t0 = seg_start
         for line in by_seg[seg_id]:
-            idx += 1
-            blocks.append(f"{idx}\n{_fmt_ts(t0)} --> {_fmt_ts(t0 + line['dur'])}\n{line['text']}\n")
+            text = line["text"].replace("\n", "\\N")   # ASS 换行转义
+            events.append(f"Dialogue: 0,{ts(t0)},{ts(t0 + line['dur'])},Default,,0,0,0,,{text}")
             t0 += line["dur"]
         seg_start = t0 + _PAD_TAIL
-    return "\n".join(blocks), seg_start
+    return _ASS_HEADER + "\n".join(events) + "\n", seg_start
 
 
 def seg_audio_files(pack: Path, seg_id: str) -> list[Path]:
@@ -176,11 +192,11 @@ def compose(day_dash: str, burn_subs: bool = True) -> Path:
 
         final = final_dir / f"{day_dash}_recap.mp4"
         if burn_subs and durs.get("lines") and _has_subtitles_filter():
-            srt_text, _ = build_burn_srt(durs["lines"])
-            srt_path = tdp / "burn.srt"          # ASCII 路径,规避 libass 路径转义坑
-            srt_path.write_text(srt_text, encoding="utf-8")
+            ass_text, _ = build_burn_ass(durs["lines"])
+            ass_path = tdp / "burn.ass"          # ASCII 路径,规避 libass 路径转义坑
+            ass_path.write_text(ass_text, encoding="utf-8")
             _run([ffmpeg(), "-y", "-i", str(rough),
-                  "-vf", f"subtitles={srt_path}:force_style='{_SUB_STYLE}'",
+                  "-vf", f"subtitles={ass_path}",
                   "-c:v", "libx264", "-preset", "fast", "-crf", "23", "-r", "30",
                   "-c:a", "copy", str(final)], "burn_subs")
         else:

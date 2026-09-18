@@ -24,22 +24,24 @@ def test_overlay_geometry():
     assert pc.overlay_y(video_h=1920, card_h=420, margin=120) == 1380
 
 
-def test_build_burn_srt_video_timeline():
-    """烧录字幕用视频时间轴:段内 mp3 无缝(无 0.2s 句隙)+每段尾 _PAD_TAIL 留白。"""
+def test_build_burn_ass_video_timeline():
+    """烧录字幕(ASS)用视频时间轴:段内 mp3 无缝(无 0.2s 句隙)+每段尾 _PAD_TAIL 留白;
+    样式写进 ASS 文件本体(绕开 force_style 逗号解析坑,2026-09-18 首跑实锤超宽裁切)。"""
     lines = [
         {"seg_id": "open", "speaker": "pb", "text": "开场", "dur": 2.0, "file": "a"},
         {"seg_id": "s1", "speaker": "pb", "text": "第一句", "dur": 3.0, "file": "b"},
         {"seg_id": "s1", "speaker": "color", "text": "第二句", "dur": 4.0, "file": "c"},
         {"seg_id": "close", "speaker": "pb", "text": "收尾", "dur": 2.0, "file": "d"},
     ]
-    srt, total = pc.build_burn_srt(lines)
+    ass, total = pc.build_burn_ass(lines)
     # open 段视频 2.0+0.6=2.6;s1 段 3+4+0.6=7.6;close 2.0+0.6=2.6;全片 12.8
     assert total == pytest.approx(12.8)
-    assert "00:00:00,000 --> 00:00:02,000" in srt          # 开场 0-2
-    assert "00:00:02,600 --> 00:00:05,600" in srt          # s1 句1:2.6-5.6(无缝)
-    assert "00:00:05,600 --> 00:00:09,600" in srt          # s1 句2:5.6-9.6
-    assert "00:00:10,200 --> 00:00:12,200" in srt          # close:10.2-12.2
-    assert srt.count("开场") == 1
+    assert "PlayResX: 1080" in ass and "Style: Default,Noto Sans CJK SC" in ass
+    assert "Dialogue: 0,0:00:00.00,0:00:02.00" in ass          # 开场 0-2
+    assert "Dialogue: 0,0:00:02.60,0:00:05.60" in ass          # s1 句1:2.6-5.6(无缝)
+    assert "Dialogue: 0,0:00:05.60,0:00:09.60" in ass          # s1 句2:5.6-9.6
+    assert "Dialogue: 0,0:00:10.20,0:00:12.20" in ass          # close:10.2-12.2
+    assert ass.count("开场") == 1
 
 
 def _ff_make(src_args: list[str], out: Path) -> None:
