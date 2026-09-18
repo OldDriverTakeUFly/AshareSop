@@ -16,12 +16,16 @@ from pathlib import Path
 from loguru import logger
 
 from davis_analyzer.cardgen.video import audio_duration, concat_clips, ffmpeg
-from davis_analyzer.recap.constants import EPISODES_DIR
+from davis_analyzer.recap.constants import EPISODES_DIR, RECAP_ROOT
 from davis_analyzer.recap.types import Episode
 
 W, H = 1080, 1920
 _PAD_TAIL = 0.6                 # 每段旁白后的留白(与 cardgen.video 同口径)
 _MAX_SPEED = 4.0                # 变速封顶(再快就看不清盘口了)
+_BGM_DIR = RECAP_ROOT / "assets" / "bgm"    # 用户自备 mp3(建议平台曲库导出,版权自担)
+_SFX_DIR = RECAP_ROOT / "assets" / "sfx"    # 合成音效缓存(零外部音频,规避版权)
+_BGM_VOL = 0.22                 # BGM 垫底音量(spec §八),人声经 sidechain 自动压它
+_SFX_VOL = 0.6
 
 
 def speed_factor(clip: float, need: float) -> float:
@@ -33,6 +37,72 @@ def speed_factor(clip: float, need: float) -> float:
 
 def overlay_y(video_h: int, card_h: int, margin: int) -> int:
     return video_h - card_h - margin
+
+
+# ── 娱乐版素材:BGM(用户mp3优先,否则合成节拍)与 SFX(全部合成,零外部音频) ──
+
+def resolve_bgm() -> Path | None:
+    """用户自备 BGM(recap/assets/bgm/*.mp3 第一个);无则 None(走合成节拍)。"""
+    if _BGM_DIR.exists():
+        files = sorted(_BGM_DIR.glob("*.mp3"))
+        if files:
+            return files[0]
+    return None
+
+
+def synth_bgm(out: Path, dur: float) -> Path:
+    """合成 hype 节拍占位(kick 四踩 + hat 反拍 + 低音线,aevalsrc 单表达式)。
+    版权零风险;想要更好的音乐:丢 mp3 进 recap/assets/bgm/ 即自动替换。"""
+    # kick: 55Hz 衰减冲击 every 0.5s;hat: 高频短噪 on off-beat;bass: 110/98Hz 交替小节
+    expr = (
+        "0.55*sin(2*PI*55*t)*exp(-22*mod(t,0.5))"
+        "+0.10*sin(2*PI*8000*t)*exp(-70*mod(t+0.25,0.5))"
+        "+0.22*(lt(mod(t,4),2))*sin(2*PI*110*t)*(0.6+0.4*sin(PI*t/2))"
+        "+0.22*(gte(mod(t,4),2))*sin(2*PI*98*t)*(0.6+0.4*sin(PI*t/2))"
+    )
+    _run([ffmpeg(), "-y", "-f", "lavfi",
+          "-i", f"aevalsrc={expr}:s=44100:d={dur:.2f}", "-c:a", "aac", "-b:a", "96k",
+          str(out)], "synth_bgm")
+    return out
+
+
+def ensure_sfx(cache_dir: Path | None = None) -> dict[str, Path]:
+    """合成 whoosh(白噪扫频)/impact(低频下坠)并缓存(幂等;cache_dir 供测试注入)。"""
+    sdir = cache_dir or _SFX_DIR
+    sdir.mkdir(parents=True, exist_ok=True)
+    whoosh = sdir / "whoosh.wav"
+    impact = sdir / "impact.wav"
+    if not whoosh.exists():
+        _run([ffmpeg(), "-y", "-f", "lavfi", "-i",
+              "anoisesrc=color=pink:d=0.5:a=0.8",
+              "-af", "lowpass=f=1000,highpass=f=150,"
+                     "volume='if(lt(t,0.25),t*4,1-(t-0.25)*2.2)':eval=frame",
+              str(whoosh)], "synth_whoosh")
+    if not impact.exists():
+        _run([ffmpeg(), "-y", "-f", "lavfi", "-i",
+              "sine=frequency=110:duration=0.35",
+              "-af", "volume='exp(-t*10)':eval=frame,lowpass=f=300", str(impact)],
+             "synth_impact")
+    return {"whoosh": whoosh, "impact": impact}
+
+
+def sfx_offsets(timings: list[dict]) -> list[tuple[str, float]]:
+    """SFX 时间点:impact@0;whoosh@每个段起点(首段除外——开场已有 impact)。"""
+    seg_audio: dict[str, float] = {}
+    order: list[str] = []
+    for t in timings:
+        if t["seg_id"] not in seg_audio:
+            seg_audio[t["seg_id"]] = 0.0
+            order.append(t["seg_id"])
+        seg_audio[t["seg_id"]] += t["dur"]
+    starts: list[float] = []
+    acc = 0.0
+    for sid in order:
+        starts.append(acc)
+        acc += seg_audio[sid] + _PAD_TAIL
+    out = [("impact", 0.0)] if order else []
+    out += [("whoosh", s) for s in starts[1:]]
+    return out
 
 
 def _run(cmd: list[str], tag: str) -> None:
@@ -107,14 +177,15 @@ def probe_resolution(path: Path) -> tuple[int, int]:
     return int(m.group(1)), int(m.group(2))
 
 
-def _stock_clip(clip: Path, card_png: Path, seg_audio: Path, out: Path,
-                need: float) -> Path:
+def _stock_clip(clip: Path, card_png: Path, banner_png: Path, replay_png: Path,
+                seg_audio: Path, out: Path, need: float) -> Path:
     """素材段:变速对齐 + 等比适配(不裁内容:高缩放到 1920,不足 1080 宽处模糊底填充,
-    手机录屏常为 9:20 等长条比例,crop 填满会吃掉上下盘口)+ 底部数据卡叠层。
-    注意:overlay 坐标必须用数字——表达式坐标 (ow-iw)/2 在本 ffmpeg 7.0.2 静态包下
-    静默产出 0 帧(2026-09-18 首跑实锤)。"""
+    手机录屏常为 9:20 等长条比例,crop 填满会吃掉上下盘口)+ 底部数据卡 + 顶部五佳横幅
+    (淡入淡出)+ REPLAY 角标。注意:overlay 坐标必须用数字——表达式坐标在本
+    ffmpeg 7.0.2 静态包下静默产出 0 帧(2026-09-18 首跑实锤)。"""
     dur = audio_duration(clip)
     sp = speed_factor(dur, need + _PAD_TAIL)
+    seg_dur = need + _PAD_TAIL
     cw, ch = probe_resolution(clip)
     fg_w = max(2, round(cw * H / ch / 2) * 2)          # 前景等比宽(取偶)
     fg_x = max(0, (W - fg_w) // 2)                     # 居中横坐标(数字)
@@ -124,14 +195,21 @@ def _stock_clip(clip: Path, card_png: Path, seg_audio: Path, out: Path,
         f"[0:v]setpts=PTS/{sp:.4f},scale=-2:{H}[fg];"
         f"[bg][fg]overlay={fg_x}:0[m];"
         f"[2:v]scale={W}:-2[card];"
-        f"[m][card]overlay=0:{overlay_y(H, 420, 230)},format=yuv420p[v]"
+        f"[m][card]overlay=0:{overlay_y(H, 420, 230)}[m2];"
+        f"[3:v]scale={W}:-2,fade=t=in:st=0:d=0.3,"
+        f"fade=t=out:st={max(0.0, seg_dur - 0.5):.2f}:d=0.4[bn];"
+        f"[m2][bn]overlay=0:40[m3];"
+        f"[4:v]scale=320:-2[rb];"
+        f"[m3][rb]overlay={W - 320 - 40}:1080,format=yuv420p[v]"
     )
     _run([ffmpeg(), "-y", "-i", str(clip), "-i", str(seg_audio),
-          "-i", str(card_png), "-filter_complex", vf,
+          "-i", str(card_png), "-loop", "1", "-t", f"{seg_dur:.2f}", "-i", str(banner_png),
+          "-loop", "1", "-t", f"{seg_dur:.2f}", "-i", str(replay_png),
+          "-filter_complex", vf,
           "-map", "[v]", "-map", "1:a",
           "-c:v", "libx264", "-preset", "fast", "-crf", "23",
           "-c:a", "aac", "-b:a", "128k", "-ar", "44100",
-          "-t", f"{need + _PAD_TAIL:.2f}", str(out)], "stock_clip")
+          "-t", f"{seg_dur:.2f}", str(out)], "stock_clip")
     return out
 
 
@@ -156,7 +234,9 @@ def _has_subtitles_filter() -> bool:
 
 
 def compose(day_dash: str, burn_subs: bool = True) -> Path:
-    """素材+原料包 → final/{day}_recap.mp4(1080x1920,烧字幕,统一 30fps/aac44100)。"""
+    """素材+原料包 → final/{day}_recap.mp4(1080x1920,烧字幕,统一 30fps/aac44100)。
+    娱乐版:顶部五佳横幅+REPLAY 角标(素材段),终混 BGM(人声闪避)+SFX。"""
+    from davis_analyzer.recap import card_renderer
     from davis_analyzer.recap.recorder_sheet import match_clips
     ep_dir = EPISODES_DIR / day_dash
     ep = Episode.from_dict(json.loads((ep_dir / "episode.json").read_text(encoding="utf-8")))
@@ -167,10 +247,12 @@ def compose(day_dash: str, burn_subs: bool = True) -> Path:
         raise SystemExit(f"缺素材段落: {missing}(先补录丢 inbox)")
     final_dir = ep_dir / "final"
     final_dir.mkdir(parents=True, exist_ok=True)
+    deco = card_renderer.render_banners(day_dash)     # 五佳横幅 + REPLAY 角标
 
     with tempfile.TemporaryDirectory(prefix="recap_post_") as td:
         tdp = Path(td)
         parts: list[Path] = []
+        stock_idx = 0
         for seg in ep.segments:
             audios = seg_audio_files(pack, seg.seg_id)
             if not audios:
@@ -178,32 +260,62 @@ def compose(day_dash: str, burn_subs: bool = True) -> Path:
             merged = (_concat_mp3(audios, tdp / f"aud_{seg.seg_id}.mp3") if len(audios) > 1
                       else audios[0])
             if seg.kind == "stock":
+                stock_idx += 1
                 card = next((pack / "cards").glob(
                     f"stock_*_{seg.ts_code.split('.')[0]}.png"), None)
                 if card is None:
                     raise SystemExit(f"缺数据卡: {seg.ts_code}")
-                parts.append(_stock_clip(clip_map[seg.seg_id], card, merged,
-                                         tdp / f"part_{seg.seg_id}.mp4",
-                                         durs["segments"].get(seg.seg_id,
-                                                              audio_duration(merged))))
+                parts.append(_stock_clip(
+                    clip_map[seg.seg_id], card,
+                    deco["banners"].get(stock_idx, deco["banners"][1]),
+                    deco["replay"], merged,
+                    tdp / f"part_{seg.seg_id}.mp4",
+                    durs["segments"].get(seg.seg_id, audio_duration(merged))))
             else:
                 parts.append(_board_clip(pack / "cards" / "scoreboard.png", merged,
                                          tdp / f"part_{seg.seg_id}.mp4"))
         rough = concat_clips(parts, tdp / "rough.mp4")
+        total = audio_duration(rough)
 
+        # 终混:字幕烧录 + BGM(人声闪避) + SFX,单次编码
         final = final_dir / f"{day_dash}_recap.mp4"
+        bgm_src = resolve_bgm()
+        if bgm_src is None:
+            bgm_src = synth_bgm(tdp / "bgm_synth.m4a", total + 1.0)
+        sfx = ensure_sfx()
+        plan = sfx_offsets(durs.get("lines", []))
+        inputs = ["-i", str(rough), "-stream_loop", "-1", "-i", str(bgm_src)]
+        chains: list[str] = []
+        mix_labels = ["[com]"]
+        chains.append(f"[0:a]asplit=2[com][key]")
+        chains.append(f"[1:a]atrim=0:{total:.2f},volume={_BGM_VOL}[bgm0]")
+        chains.append("[bgm0][key]sidechaincompress=threshold=0.02:ratio=6:"
+                      "attack=25:release=350[duck]")
+        mix_labels.append("[duck]")
+        for j, (kind, t) in enumerate(plan):
+            inputs += ["-i", str(sfx[kind])]
+            ms = int(t * 1000)
+            chains.append(f"[{j + 2}:a]adelay={ms}|{ms},volume={_SFX_VOL}[s{j}]")
+            mix_labels.append(f"[s{j}]")
+        chains.append("".join(mix_labels) +
+                      f"amix=inputs={len(mix_labels)}:duration=first:normalize=0[a]")
+        vchain = ""
         if burn_subs and durs.get("lines") and _has_subtitles_filter():
             ass_text, _ = build_burn_ass(durs["lines"])
             ass_path = tdp / "burn.ass"          # ASCII 路径,规避 libass 路径转义坑
             ass_path.write_text(ass_text, encoding="utf-8")
-            _run([ffmpeg(), "-y", "-i", str(rough),
-                  "-vf", f"subtitles={ass_path}",
-                  "-c:v", "libx264", "-preset", "fast", "-crf", "23", "-r", "30",
-                  "-c:a", "copy", str(final)], "burn_subs")
+            vchain = f"[0:v]subtitles={ass_path}[v]"
         else:
-            final.write_bytes(rough.read_bytes())
+            vchain = "[0:v]null[v]"
             if burn_subs:
                 logger.warning("成片未烧字幕(无 libass 或无字幕轴),沿用无字幕版")
+        _run([ffmpeg(), "-y", *inputs, "-filter_complex",
+              ";".join([vchain] + chains),
+              "-map", "[v]", "-map", "[a]",
+              "-c:v", "libx264", "-preset", "fast", "-crf", "23", "-r", "30",
+              "-c:a", "aac", "-b:a", "128k", "-ar", "44100",
+              "-t", f"{total:.2f}", str(final)], "final_mix")
     size_mb = final.stat().st_size / 1048576
-    logger.info(f"recap 成片: {final} ({size_mb:.1f}MB, {audio_duration(final):.0f}s)")
+    logger.info(f"recap 成片(娱乐版): {final} ({size_mb:.1f}MB, {audio_duration(final):.0f}s, "
+                f"BGM={'自备' if resolve_bgm() else '合成节拍'})")
     return final

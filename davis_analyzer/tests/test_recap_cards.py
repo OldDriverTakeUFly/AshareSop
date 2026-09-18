@@ -65,3 +65,13 @@ def test_render_cards_smoke(tmp_path, monkeypatch):
     monkeypatch.setattr(cr, "EPISODES_DIR", tmp_path / "episodes")
     pngs = cr.render_cards("2026-09-18")
     assert pngs and all(p.suffix == ".png" and p.stat().st_size > 10_000 for p in pngs)
+
+
+def test_countdown_banner_and_badge():
+    """五佳横幅:多候选 TOP N 倒数;单候选「本场最佳」;REPLAY 角标。"""
+    from davis_analyzer.recap import card_renderer as cr
+    h3 = cr.countdown_banner_html(3, "金健米业", "600127.SH")
+    assert "TOP 3" in h3 and "今晚第3佳" in h3 and "金健米业" in h3
+    hs = cr.countdown_banner_html(None, "沈鼓", "601091.SH")
+    assert "本场最佳" in hs and "TOP" not in hs
+    assert "REPLAY" in cr.replay_badge_html()

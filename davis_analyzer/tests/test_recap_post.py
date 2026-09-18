@@ -114,3 +114,25 @@ def test_compose_missing_clip_exits(tmp_path, monkeypatch):
     with pytest.raises(SystemExit) as ei:
         pc.compose(day)
     assert "s1" in str(ei.value)
+
+
+def test_sfx_offsets():
+    """impact@0,whoosh@段起点(首段外);段间含 _PAD_TAIL。"""
+    lines = [
+        {"seg_id": "open", "speaker": "pb", "text": "a", "dur": 2.0, "file": "a"},
+        {"seg_id": "s1", "speaker": "pb", "text": "b", "dur": 3.0, "file": "b"},
+        {"seg_id": "s1", "speaker": "color", "text": "c", "dur": 4.0, "file": "c"},
+        {"seg_id": "close", "speaker": "pb", "text": "d", "dur": 2.0, "file": "d"},
+    ]
+    # 段音频:open=2.0, s1=7.0, close=2.0;起点 [0, 2.6, 10.2]
+    assert pc.sfx_offsets(lines) == [("impact", 0.0), ("whoosh", 2.6), ("whoosh", 10.2)]
+    assert pc.sfx_offsets([]) == []
+
+
+def test_resolve_bgm(tmp_path, monkeypatch):
+    """用户自备优先;空目录走合成。"""
+    monkeypatch.setattr(pc, "_BGM_DIR", tmp_path / "bgm")
+    assert pc.resolve_bgm() is None
+    (tmp_path / "bgm").mkdir()
+    (tmp_path / "bgm" / "hype.mp3").write_bytes(b"x")
+    assert pc.resolve_bgm() == tmp_path / "bgm" / "hype.mp3"

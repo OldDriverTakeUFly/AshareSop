@@ -32,6 +32,18 @@ body{margin:0;font-family:'PingFang SC','Noto Sans SC',sans-serif;background:tra
 .sname{font-size:58px;font-weight:800}.scode{font-size:32px;color:#8fa3c0;margin-left:20px}
 .stags{margin-top:18px;font-size:36px;color:#ffd34d;font-weight:700}
 .sfacts{margin-top:16px;font-size:34px;color:#c9d6ea}
+.banner{width:1080px;height:220px;box-sizing:border-box;padding:0 48px;
+  background:linear-gradient(90deg,#0b1220f2,#1a2440f2 55%,#0b1220f2);color:#eef2f8;
+  display:flex;align-items:center;gap:36px;border-bottom:4px solid #ffd34d}
+.brank{min-width:300px;height:132px;border-radius:20px;display:flex;align-items:center;
+  justify-content:center;font-size:64px;font-weight:900;letter-spacing:2px;
+  background:linear-gradient(135deg,#ffd34d,#ff9d2e);color:#1a1206;
+  box-shadow:0 6px 24px #ff9d2e55}
+.brank .sub{font-size:30px;font-weight:700;margin-left:10px;letter-spacing:0}
+.bname{font-size:56px;font-weight:800}.bcode{font-size:30px;color:#8fa3c0;margin-top:6px}
+.badge{width:320px;height:120px;box-sizing:border-box;background:#c81e28;color:#fff;
+  display:flex;align-items:center;justify-content:center;font-size:52px;font-weight:900;
+  font-style:italic;letter-spacing:6px;border-radius:14px;border:3px solid #ffffffcc}
 """
 
 
@@ -98,6 +110,47 @@ async def _shoot(html: str, out: Path, w: int, h: int) -> None:
         await page.wait_for_timeout(400)
         await page.screenshot(path=str(out), clip={"x": 0, "y": 0, "width": w, "height": h})
         await browser.close()
+
+
+def countdown_banner_html(rank: int | None, name: str, ts_code: str) -> str:
+    """五佳倒计时横幅:rank=今晚第N佳(1=最高戏剧性);单候选(rank=None)显示「本场最佳」。"""
+    badge = ("本场最佳" if rank is None
+             else f"TOP {rank}<span class='sub'>今晚第{rank}佳</span>")
+    body = (f"<div class='banner'><div class='brank'>{badge}</div>"
+            f"<div><div class='bname'>{html.escape(name)}</div>"
+            f"<div class='bcode'>{html.escape(ts_code)}</div></div></div>")
+    return _page(body)
+
+
+def replay_badge_html() -> str:
+    return _page("<div class='badge'>REPLAY</div>")
+
+
+def render_banners(day_dash: str) -> dict:
+    """每股票段一张横幅(段序 i → rank = N-i+1,倒数排位)+ 一张 REPLAY 角标。
+    返回 {"banners": {段序i(1基): Path}, "replay": Path}。"""
+    ep_dir = EPISODES_DIR / day_dash
+    ep = json.loads((ep_dir / "episode.json").read_text(encoding="utf-8"))
+    cand_path = ep_dir / "candidates.json"
+    cands = ({c["ts_code"]: c for c in json.loads(cand_path.read_text(encoding="utf-8"))}
+             if cand_path.exists() else {})
+    out_dir = ep_dir / "原料包" / "cards"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    stock_segs = [s for s in ep.get("segments", []) if s.get("kind") == "stock"]
+    n = len(stock_segs)
+    banners: dict[int, Path] = {}
+    for i, seg in enumerate(stock_segs, 1):
+        cand = cands.get(seg.get("ts_code") or "", {"name": seg.get("ts_code", "?"),
+                                                    "ts_code": seg.get("ts_code", "?")})
+        rank = (n - i + 1) if n > 1 else None
+        p = out_dir / f"banner_{i:02d}.png"
+        asyncio.run(_shoot(countdown_banner_html(rank, cand["name"], cand["ts_code"]),
+                           p, 1080, 220))
+        banners[i] = p
+    replay = out_dir / "replay_badge.png"
+    asyncio.run(_shoot(replay_badge_html(), replay, 320, 120))
+    logger.info(f"recap 五佳横幅 {len(banners)} 张 + REPLAY 角标 → {out_dir}")
+    return {"banners": banners, "replay": replay}
 
 
 def render_cards(day_dash: str) -> list[Path]:
