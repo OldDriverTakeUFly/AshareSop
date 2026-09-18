@@ -19,9 +19,14 @@ KIND_MAP = {"ladder": "连板天梯", "lhb": "龙虎榜"}
 
 THEMES = {
     "ladder": {
-        "bg": "#1a0a0a", "card": "#2a1210", "border": "#5c2a22", "text": "#ffeee8",
-        "dim": "#c49a8a", "accent1": "#ff6b5e", "accent2": "#ffd166",
-        "tagbg": "#4a1d16", "tagfg": "#ffab9e", "pos": "#6ee7b7", "neg": "#ff8f9e", "th": "#ffab9e",
+        "bg": "#0f1014", "card": "#191b22", "border": "#343846", "text": "#f2f3f7",
+        "dim": "#9aa0b5", "accent1": "#ff4d4f", "accent2": "#ffd166",
+        "tagbg": "#3a1d1f", "tagfg": "#ff9c9c", "pos": "#6ee7b7", "neg": "#ff8f9e", "th": "#ff9c9c",
+    },
+    "ladder_c": {  # 候选C:与龙虎榜同深蓝底,红强调(家族感方案)
+        "bg": "#0b1026", "card": "#141b40", "border": "#2b3775", "text": "#eaf0ff",
+        "dim": "#8d97c9", "accent1": "#ff5a52", "accent2": "#ffd166",
+        "tagbg": "#3a1d22", "tagfg": "#ff9c9c", "pos": "#6ee7b7", "neg": "#fda4af", "th": "#ff9c9c",
     },
     "lhb": {
         "bg": "#0b1026", "card": "#141b40", "border": "#2b3775", "text": "#eaf0ff",
@@ -169,20 +174,21 @@ async def shoot(html_path: Path, png_path: Path) -> int:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description="每日复盘卡长图渲染(天梯/龙虎榜)")
-    ap.add_argument("--kind", required=True, choices=list(KIND_MAP))
+    ap.add_argument("--kind", required=True)
     ap.add_argument("--day", default=date.today().strftime("%Y-%m-%d"))
     ap.add_argument("--out", default=None, help="png 输出路径(默认工程目录/长图.png)")
     args = ap.parse_args()
 
-    day_dir = CARDS_ROOT / KIND_MAP[args.kind] / args.day
+    base_kind = "ladder" if args.kind.startswith("ladder") else "lhb"
+    day_dir = CARDS_ROOT / KIND_MAP[base_kind] / args.day
     if not (day_dir / "cards.spec.json").exists():
         raise SystemExit(f"工程不存在: {day_dir}(先跑 daily_market_cards 生成)")
-    theme = THEMES[args.kind]
+    theme = THEMES.get(args.kind) or THEMES[base_kind]
     html_path = day_dir / "长图.html"
     html_path.write_text(build_html(args.kind, day_dir, theme), encoding="utf-8")
     png = Path(args.out) if args.out else day_dir / "长图.png"
     h = asyncio.run(shoot(html_path, png))
-    print(f"{KIND_MAP[args.kind]} {args.day}: {h}px -> {png}")
+    print(f"{args.kind}({KIND_MAP[base_kind]}) {args.day}: {h}px -> {png}")
 
 
 if __name__ == "__main__":
