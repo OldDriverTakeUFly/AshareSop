@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import html
 import json
 from pathlib import Path
 
@@ -38,27 +39,33 @@ def _page(body: str) -> str:
     return f"<!DOCTYPE html><html><head><meta charset='utf-8'><style>{_CSS}</style></head><body>{body}</body></html>"
 
 
+def _strip(display: str, prefix: str) -> str:
+    """display 去掉标签前缀后转义(槽位已带同名标签,防重复印);数字/符号原样,不重排。"""
+    return html.escape(display.removeprefix(prefix))
+
+
 def scoreboard_html(ep: dict) -> str:
     facts = {f["id"]: f["display"] for f in ep.get("facts", [])}
 
     def row(key: str, name: str) -> str:
-        val, chg = facts.get(f"idx_{key}_close", "-"), facts.get(f"idx_{chg_key(key)}", "")
+        val = _strip(facts.get(f"idx_{key}_close", "-"), name)
+        chg = _strip(facts.get(f"idx_{chg_key(key)}", ""), name)
         cls = "up" if chg.startswith("+") or "涨" in chg else "dn"
-        return (f"<div class='idxrow'><span class='idxname'>{name}</span>"
+        return (f"<div class='idxrow'><span class='idxname'>{html.escape(name)}</span>"
                 f"<span class='idxval'>{val}</span>"
                 f"<span class='idxchg {cls}'>{chg}</span></div>")
 
     def chg_key(key: str) -> str:
         return f"{key}_chg"
 
-    breadth = (f"<div class='bcard'><div class='bnum up'>{facts.get('breadth_up', '-')}</div>"
-               f"<div class='blab'>上涨家数</div></div>"
-               f"<div class='bcard'><div class='bnum dn'>{facts.get('breadth_down', '-')}</div>"
-               f"<div class='blab'>下跌家数</div></div>"
-               f"<div class='bcard'><div class='bnum'>{facts.get('limit_up_count', '-')}</div>"
-               f"<div class='blab'>涨停家数</div></div>")
+    breadth = (f"<div class='bcard'><div class='bnum up'>{_strip(facts.get('breadth_up', '-'), '上涨')}</div>"
+               "<div class='blab'>上涨家数</div></div>"
+               f"<div class='bcard'><div class='bnum dn'>{_strip(facts.get('breadth_down', '-'), '下跌')}</div>"
+               "<div class='blab'>下跌家数</div></div>"
+               f"<div class='bcard'><div class='bnum'>{_strip(facts.get('limit_up_count', '-'), '涨停')}</div>"
+               "<div class='blab'>涨停家数</div></div>")
     body = (f"<div class='scoreboard'><h1 class='title'>今日战报</h1>"
-            f"<div class='date'>{ep['trade_date']} · A股全场回放</div>"
+            f"<div class='date'>{html.escape(str(ep['trade_date']))} · A股全场回放</div>"
             + row("sh", "上证指数") + row("sz", "深证成指") + row("cyb", "创业板指")
             + f"<div class='breadth'>{breadth}</div>"
             f"<div class='footer'>数据来源:盘后公开行情 · 仅为盘面复盘记录,不构成投资建议</div></div>")
@@ -66,13 +73,19 @@ def scoreboard_html(ep: dict) -> str:
 
 
 def stock_card_html(cand: dict) -> str:
-    tags = " · ".join(cand.get("notes", [])[:4]) or "今日高光"
-    fact_disp = " / ".join(f["display"] for f in cand.get("facts", [])[:6])
+    notes = [str(n) for n in cand.get("notes", [])[:4]]
+    tags = " · ".join(notes) or "今日高光"
+    joined = " · ".join(notes)
+    # 与 notes 语义重复的 fact(互为子串)不再在 facts 行重印;清空则整行省略
+    kept = [f["display"] for f in cand.get("facts", [])[:6]
+            if f["display"] not in joined and not any(n in f["display"] for n in notes)]
     replay = f"{cand['replay_start'][:5]}-{cand['replay_end'][:5]}"
-    body = (f"<div class='stockcard'><div><span class='sname'>{cand['name']}</span>"
-            f"<span class='scode'>{cand['ts_code']} · {cand.get('sector') or ''} · 回放 {replay}</span></div>"
-            f"<div class='stags'>{tags}</div>"
-            f"<div class='sfacts'>{fact_disp}</div></div>")
+    facts_line = (f"<div class='sfacts'>{html.escape(' / '.join(kept))}</div>" if kept else "")
+    body = (f"<div class='stockcard'><div><span class='sname'>{html.escape(cand['name'])}</span>"
+            f"<span class='scode'>{html.escape(cand['ts_code'])} · "
+            f"{html.escape(cand.get('sector') or '')} · 回放 {html.escape(replay)}</span></div>"
+            f"<div class='stags'>{html.escape(tags)}</div>"
+            f"{facts_line}</div>")
     return _page(body)
 
 

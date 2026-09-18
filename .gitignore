@@ -85,3 +85,7 @@ storage/database/
 # card factory generated artifacts
 scripts/card_factory/output/
 storage/files/smb_event/adj_factor_*.csv.gz
+
+# recap 每晚定时产物(episode 原料包/收件箱),不入库
+davis_analyzer/recap/episodes/
+davis_analyzer/recap/inbox/

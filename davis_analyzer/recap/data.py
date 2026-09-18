@@ -56,31 +56,45 @@ def _dedup_pool(rows: list[dict]) -> list[dict]:
     return list(out.values())
 
 
+def _daily_row(con: sqlite3.Connection, day: str, data_type: str) -> str | None:
+    """daily_data 原始 JSON 文本;行不存在(未采集)= None,与「采集了但为空」('[]')区分。"""
+    row = con.execute("SELECT data_json FROM daily_data WHERE trade_date=? AND data_type=?",
+                      (day, data_type)).fetchone()
+    return row[0] if row else None
+
+
+def _daily_json(con: sqlite3.Connection, day: str, data_type: str) -> list[dict] | None:
+    """daily_data 解析结果;未采集 = None,采集了但空池 = [](真冰点口径)。"""
+    raw = _daily_row(con, day, data_type)
+    return None if raw is None else json.loads(raw)
+
+
+def _analysis_json(con: sqlite3.Connection, day: str, analysis_type: str) -> dict | None:
+    row = con.execute("SELECT result_json FROM analysis_results WHERE trade_date=? AND analysis_type=?",
+                      (day, analysis_type)).fetchone()
+    return json.loads(row[0]) if row else None
+
+
 def fetch_bundle(day_dash: str) -> dict:
-    """一站式当日 bundle;缺 limit_up_pool / 天梯抛 DailyDataMissing。"""
+    """一站式当日 bundle;仅「未采集」(行缺失)抛 DailyDataMissing。
+
+    涨停池采集了但为空(真冰点)是合法 bundle:limit_up_count=0、boards=[],
+    由 cli._ice_episode 走「今日无战事」降级剧本。
+    """
     con = _ro(stockhot_db_path())
 
-    def dj(dt: str) -> list[dict]:
-        row = con.execute("SELECT data_json FROM daily_data WHERE trade_date=? AND data_type=?",
-                          (day_dash, dt)).fetchone()
-        return json.loads(row[0]) if row else []
-
-    def aj(at: str) -> dict | None:
-        row = con.execute("SELECT result_json FROM analysis_results WHERE trade_date=? AND analysis_type=?",
-                          (day_dash, at)).fetchone()
-        return json.loads(row[0]) if row else None
-
     try:
-        lu = aj("limit_up_analysis")
-        pool_raw = dj("limit_up_pool")
-        if not lu or not lu.get("consecutive_boards") or not pool_raw:
+        lu = _analysis_json(con, day_dash, "limit_up_analysis")
+        pool_raw = _daily_json(con, day_dash, "limit_up_pool")
+        # 行缺失 = 盘面扫描未跑;行在而池空 = 真冰点,放行
+        if lu is None or pool_raw is None:
             raise DailyDataMissing(
                 f"{day_dash} 缺 limit_up_analysis/limit_up_pool(盘面扫描未完成?)")
         pool = _dedup_pool(pool_raw)
-        broken = _dedup_pool(dj("broken_pool"))
-        down = _dedup_pool(dj("limit_down_pool"))
-        lhb_detail = dj("dragon_tiger_detail")
-        dt = aj("dragon_tiger") or {}
+        broken = _dedup_pool(_daily_json(con, day_dash, "broken_pool") or [])
+        down = _dedup_pool(_daily_json(con, day_dash, "limit_down_pool") or [])
+        lhb_detail = _daily_json(con, day_dash, "dragon_tiger_detail") or []
+        dt = _analysis_json(con, day_dash, "dragon_tiger") or {}
     finally:
         con.close()
 
@@ -118,7 +132,7 @@ def fetch_bundle(day_dash: str) -> dict:
                       consecutive_boards=int(r.get("consecutive_boards") or 1),
                       broken_count=int(r.get("broken_count") or 0)) for r in pool],
         "broken": broken, "down": down,
-        "boards": sorted(lu["consecutive_boards"], key=lambda t: -int(t["board_count"])),
+        "boards": sorted(lu.get("consecutive_boards") or [], key=lambda t: -int(t["board_count"])),
         "lhb_codes": {str(r.get("code", "")) for r in lhb_detail},
         "lhb_detail": lhb_detail,
         "brokers": dt.get("brokers") or [],

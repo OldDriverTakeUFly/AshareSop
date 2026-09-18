@@ -102,6 +102,23 @@ def test_missing_pool_raises(tmp_path, monkeypatch):
         data.fetch_bundle("2026-09-18")
 
 
+def test_ice_day_empty_pool_returns_bundle(tmp_path, monkeypatch):
+    """真冰点(采集了但涨停池为空):行在、内容空 → 返回 limit_up_count=0 的降级 bundle,不抛。"""
+    sh, mk = tmp_path / "s.db", tmp_path / "m.db"
+    _mk_stockhot_db(sh)
+    con = sqlite3.connect(sh)
+    con.execute("UPDATE daily_data SET data_json='[]' WHERE data_type='limit_up_pool'")
+    con.execute("UPDATE analysis_results SET result_json=? WHERE analysis_type='limit_up_analysis'",
+                (json.dumps({"consecutive_boards": []}),))
+    con.commit(); con.close()
+    _mk_market_db(mk)
+    monkeypatch.setattr(data, "stockhot_db_path", lambda: sh)
+    monkeypatch.setattr(data, "market_db_path", lambda: mk)
+    bundle = data.fetch_bundle("2026-09-18")
+    assert bundle["limit_up_count"] == 0
+    assert bundle["pool"] == [] and bundle["boards"] == []
+
+
 def test_missing_index_raises(tmp_path, monkeypatch):
     sh, mk = tmp_path / "s.db", tmp_path / "m.db"
     _mk_stockhot_db(sh)

@@ -36,12 +36,16 @@ def _ep_dir(tmp_path):
     return tmp_path
 
 
-def test_scoreboard_html_uses_display_verbatim(tmp_path):
+def test_scoreboard_html_strips_duplicate_labels(tmp_path):
+    """槽位已带标签(指数名/上涨家数),display 去标签前缀防同排三连印;数字符号原样。"""
     ep = json.loads((_ep_dir(tmp_path) / "episodes" / "2026-09-18" / "episode.json").read_text("utf-8"))
     html = cr.scoreboard_html(ep)
-    assert "上证指数3876点" in html          # display 原样,不重排数字
-    assert "上涨3200家" in html
-    assert "1080" in html                    # 竖屏宽度声明
+    assert "3876点" in html                    # 数字+单位保留
+    assert "上证指数3876点" not in html        # 不再整串 display 直塞(槽位已有指数名)
+    assert "-0.41%" in html                    # 负号原样保留
+    assert "上涨3200家" not in html            # 宽度卡槽位自带「上涨家数」标签
+    assert "3200家" in html
+    assert "1080" in html                      # 竖屏宽度声明
 
 
 def test_stock_card_html(tmp_path):
@@ -49,7 +53,9 @@ def test_stock_card_html(tmp_path):
     cand = json.loads((_ep_dir(tmp_path) / "episodes" / "2026-09-18" / "candidates.json")
                       .read_text("utf-8"))[0]
     html = cr.stock_card_html(cand)
-    assert "龙版传媒" in html and "5连板" in html and "09:27-14:51" in html
+    assert "龙版传媒" in html and "09:27-14:51" in html
+    assert "5连板" in html                     # tags 行保留
+    assert html.count("5连板") == 1            # facts 行不得与 notes 重复印同一事实
 
 
 @pytest.mark.integration
