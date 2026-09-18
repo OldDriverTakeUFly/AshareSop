@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import tempfile
 from pathlib import Path
@@ -80,17 +81,31 @@ def seg_audio_files(pack: Path, seg_id: str) -> list[Path]:
     return sorted((pack / "audio").glob(f"{seg_id}_*.mp3"))
 
 
+def probe_resolution(path: Path) -> tuple[int, int]:
+    """ffmpeg -i stderr 解析视频分辨率(imageio 静态包无 ffprobe,与 audio_duration 同源)。"""
+    r = subprocess.run([ffmpeg(), "-i", str(path)], capture_output=True, text=True)
+    m = re.search(r",\s*(\d{2,5})x(\d{2,5})[,\s]", r.stderr)
+    if not m:
+        raise RuntimeError(f"无法解析分辨率: {path}")
+    return int(m.group(1)), int(m.group(2))
+
+
 def _stock_clip(clip: Path, card_png: Path, seg_audio: Path, out: Path,
                 need: float) -> Path:
     """素材段:变速对齐 + 等比适配(不裁内容:高缩放到 1920,不足 1080 宽处模糊底填充,
-    手机录屏常为 9:20 等长条比例,crop 填满会吃掉上下盘口)+ 底部数据卡叠层。"""
+    手机录屏常为 9:20 等长条比例,crop 填满会吃掉上下盘口)+ 底部数据卡叠层。
+    注意:overlay 坐标必须用数字——表达式坐标 (ow-iw)/2 在本 ffmpeg 7.0.2 静态包下
+    静默产出 0 帧(2026-09-18 首跑实锤)。"""
     dur = audio_duration(clip)
     sp = speed_factor(dur, need + _PAD_TAIL)
+    cw, ch = probe_resolution(clip)
+    fg_w = max(2, round(cw * H / ch / 2) * 2)          # 前景等比宽(取偶)
+    fg_x = max(0, (W - fg_w) // 2)                     # 居中横坐标(数字)
     vf = (
         f"[0:v]setpts=PTS/{sp:.4f},scale={W}:{H}:force_original_aspect_ratio=increase,"
         f"crop={W}:{H},gblur=sigma=22,eq=brightness=-0.06[bg];"
         f"[0:v]setpts=PTS/{sp:.4f},scale=-2:{H}[fg];"
-        f"[bg][fg]overlay=(ow-iw)/2:(oh-ih)/2[m];"
+        f"[bg][fg]overlay={fg_x}:0[m];"
         f"[2:v]scale={W}:-2[card];"
         f"[m][card]overlay=0:{overlay_y(H, 420, 120)},format=yuv420p[v]"
     )
