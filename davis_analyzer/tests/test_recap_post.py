@@ -158,3 +158,13 @@ def test_sfx_offsets_with_intros():
     # open 起点仍 0;s1 起点 = 2.6(含其冲击卡 1.2 在起点处)
     assert pc.sfx_offsets(lines, intros={"s1": 1.2}) == [
         ("impact", 0.0), ("whoosh", 2.6)]
+
+
+def test_stock_vf_cover_bands():
+    """素材段遮幅几何(2026-09-18 用户拍板:挡录屏上下杂区)——单测锁定 drawbox 参数。"""
+    vf = pc._stock_vf(sp=1.5, fg_x=108, seg_dur=40.0)
+    assert f"drawbox=x=0:y=0:w=1080:h={pc._COVER_TOP_H}:color={pc._COVER_COLOR}:t=fill" in vf
+    assert (f"drawbox=x=0:y={pc._COVER_BOTTOM_Y}:w=1080:h={1920 - pc._COVER_BOTTOM_Y}:"
+            f"color={pc._COVER_COLOR}:t=fill") in vf
+    # 遮幅在卡/横幅叠层之前(m 链上),overlay 数字坐标不变
+    assert "overlay=0:40[m3]" in vf and "format=yuv420p[v]" in vf

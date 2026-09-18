@@ -189,23 +189,25 @@ def probe_resolution(path: Path) -> tuple[int, int]:
     return int(m.group(1)), int(m.group(2))
 
 
-def _stock_clip(clip: Path, card_png: Path, banner_png: Path, replay_png: Path,
-                seg_audio: Path, out: Path, need: float) -> Path:
-    """素材段:变速对齐 + 等比适配(不裁内容:高缩放到 1920,不足 1080 宽处模糊底填充,
-    手机录屏常为 9:20 等长条比例,crop 填满会吃掉上下盘口)+ 底部数据卡 + 顶部五佳横幅
-    (淡入淡出)+ REPLAY 角标。注意:overlay 坐标必须用数字——表达式坐标在本
-    ffmpeg 7.0.2 静态包下静默产出 0 帧(2026-09-18 首跑实锤)。"""
-    dur = audio_duration(clip)
-    sp = speed_factor(dur, need + _PAD_TAIL)
-    seg_dur = need + _PAD_TAIL
-    cw, ch = probe_resolution(clip)
-    fg_w = max(2, round(cw * H / ch / 2) * 2)          # 前景等比宽(取偶)
-    fg_x = max(0, (W - fg_w) // 2)                     # 居中横坐标(数字)
-    vf = (
+_INTRO_DUR = 1.2                # 段首排名冲击卡时长(央视五佳球式)
+# ── 素材段遮幅(2026-09-18 用户拍板:挡住录屏上下杂区——状态栏/录屏悬浮窗/底部时间轴) ──
+_COVER_TOP_H = 260              # 顶部实心带高(0..260,盖住状态栏区,横幅叠其上)
+_COVER_BOTTOM_Y = 1270          # 底部实心带起点(=数据卡顶,1270..1920,字幕落其上更清楚)
+_COVER_COLOR = "0x0b1220"       # 主题深色,与比分牌底色同源
+
+
+def _stock_vf(sp: float, fg_x: int, seg_dur: float) -> str:
+    """素材段滤镜链(独立成函数供单测锁定几何):模糊底+等比前景 → 上下遮幅实心带
+    → 数据卡 → 顶部横幅 → REPLAY 角标。overlay 坐标必须用数字(表达式坐标本
+    ffmpeg 静态包静默 0 帧)。"""
+    return (
         f"[0:v]setpts=PTS/{sp:.4f},scale={W}:{H}:force_original_aspect_ratio=increase,"
         f"crop={W}:{H},gblur=sigma=22,eq=brightness=-0.06[bg];"
         f"[0:v]setpts=PTS/{sp:.4f},scale=-2:{H}[fg];"
-        f"[bg][fg]overlay={fg_x}:0[m];"
+        f"[bg][fg]overlay={fg_x}:0,"
+        f"drawbox=x=0:y=0:w={W}:h={_COVER_TOP_H}:color={_COVER_COLOR}:t=fill,"
+        f"drawbox=x=0:y={_COVER_BOTTOM_Y}:w={W}:h={H - _COVER_BOTTOM_Y}:"
+        f"color={_COVER_COLOR}:t=fill[m];"
         f"[2:v]scale={W}:-2[card];"
         f"[m][card]overlay=0:{overlay_y(H, 420, 230)}[m2];"
         f"[3:v]scale={W}:-2,fade=t=in:st=0:d=0.3,"
@@ -214,6 +216,19 @@ def _stock_clip(clip: Path, card_png: Path, banner_png: Path, replay_png: Path,
         f"[4:v]scale=260:-2[rb];"
         f"[m3][rb]overlay={W - 260 - 40}:1130,format=yuv420p[v]"
     )
+
+
+def _stock_clip(clip: Path, card_png: Path, banner_png: Path, replay_png: Path,
+                seg_audio: Path, out: Path, need: float) -> Path:
+    """素材段:变速对齐 + 等比适配(不裁内容)+ 上下遮幅(挡录屏状态栏/底部杂区)
+    + 底部数据卡 + 顶部五佳横幅 + REPLAY 角标。"""
+    dur = audio_duration(clip)
+    sp = speed_factor(dur, need + _PAD_TAIL)
+    seg_dur = need + _PAD_TAIL
+    cw, ch = probe_resolution(clip)
+    fg_w = max(2, round(cw * H / ch / 2) * 2)          # 前景等比宽(取偶)
+    fg_x = max(0, (W - fg_w) // 2)                     # 居中横坐标(数字)
+    vf = _stock_vf(sp, fg_x, seg_dur)
     _run([ffmpeg(), "-y", "-i", str(clip), "-i", str(seg_audio),
           "-i", str(card_png), "-loop", "1", "-t", f"{seg_dur:.2f}", "-i", str(banner_png),
           "-loop", "1", "-t", f"{seg_dur:.2f}", "-i", str(replay_png),
