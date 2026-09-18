@@ -22,11 +22,11 @@ for _env in [ROOT / ".env"]:
                 os.environ.setdefault(_k.strip(), _v.strip().strip('"').strip("'"))
 LOCK_DIR = BASE / ".push_locks"
 # 时效闸:图上数据为 9-15/9-16 口径,5 天发布窗口,超窗禁止推送
-EXPIRE_DATE = date(2026, 9, 20)
+EXPIRE_DATE = date(2026, 9, 23)
 PROJECTS = [
-    ("长文图卡_镍出海链", 1),
-    ("长文图卡_碳价CBAM", 2),
-    ("长文图卡_电解家族", 3),
+    ("长文图卡_AI基建涨价", 1),
+    ("长文图卡_全球龙头对照", 2),
+    ("长文图卡_国产替代梯度", 3),
 ]
 
 

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; font-family:"PingFang SC","Noto Sans CJK SC","Microsoft YaHei",sans-serif; }
+  body { width:750px; background:#160b1e; color:#f5ecff; padding:36px 30px; }
+  .tag { display:inline-block; background:#42215e; color:#c99df0; border-radius:6px; padding:4px 10px; font-size:20px; }
+  h1 { font-size:44px; margin:16px 0 6px; line-height:1.28; background:linear-gradient(90deg,#c56bff,#5eead4); -webkit-background-clip:text; color:transparent; }
+  .sub { color:#a88cc4; font-size:22px; margin-bottom:24px; line-height:1.5; }
+  .hook { border:2px solid #c56bff; background:linear-gradient(135deg,#2b1238,#1d0f2b); border-radius:16px; padding:22px; margin-bottom:20px; }
+  .hook .h { font-size:26px; color:#e0b3ff; margin-bottom:12px; }
+  .hook p { font-size:21px; line-height:1.75; }
+  .hook b { color:#5eead4; }
+  .card { background:#221233; border:1px solid #4a2a68; border-radius:16px; padding:22px; margin-bottom:20px; }
+  .card h2 { font-size:26px; color:#ffd166; margin-bottom:14px; }
+  .big { display:flex; gap:14px; margin-bottom:14px; }
+  .stat { flex:1; background:#2e1a44; border-radius:12px; padding:14px; text-align:center; }
+  .stat .v { font-size:30px; font-weight:700; color:#6ee7b7; }
+  .stat .v.hot { color:#fda4af; }
+  .stat .k { font-size:17px; color:#a88cc4; margin-top:4px; }
+  table { width:100%; border-collapse:collapse; font-size:18px; }
+  th { color:#c99df0; text-align:left; padding:8px 6px; border-bottom:1px solid #4a2a68; }
+  td { padding:8px 6px; border-bottom:1px solid #382252; color:#ece0f7; line-height:1.55; }
+  .pos { color:#6ee7b7; } .neg { color:#fda4af; }
+  .note { font-size:17px; color:#9a7fb8; margin-top:10px; line-height:1.6; }
+  .insight { border-left:4px solid #5eead4; background:#123038; padding:14px 16px; border-radius:0 10px 10px 0; font-size:20px; line-height:1.75; margin-bottom:20px; }
+  .grad { display:flex; flex-direction:column-reverse; gap:7px; margin:6px 0 4px; }
+  .g { border-radius:9px; padding:10px 14px; font-size:18px; line-height:1.5; position:relative; }
+  .g .pct { float:right; font-weight:700; }
+  .g0 { background:#1d3b2e; border:1px solid #2b8a5f; width:96%; }
+  .g1 { background:#27402a; border:1px solid #4a8a3f; width:82%; }
+  .g2 { background:#3b3320; border:1px solid #8a6d2b; width:68%; }
+  .g3 { background:#3b2d1d; border:1px solid #8a5a2b; width:54%; }
+  .g4 { background:#3b1d2e; border:1px solid #8a3b55; width:40%; }
+  .g5 { background:#2a1d3b; border:1px solid #5a3b8a; width:26%; }
+  .g6 { background:#1d1d3b; border:1px solid #3b3b8a; width:12%; }
+  .tl2 { list-style:none; }
+  .tl2 li { position:relative; padding:0 0 12px 24px; font-size:19px; line-height:1.6; }
+  .tl2 li::before { content:""; position:absolute; left:5px; top:9px; width:9px; height:9px; border-radius:50%; background:#5eead4; }
+  .tl2 b { color:#ffd166; }
+  .foot { font-size:16px; color:#8a6fa8; line-height:1.7; margin-top:8px; padding:16px; background:#1c0f2b; border-radius:12px; }
+</style>
+</head>
+<body>
+  <span class="tag">产业链研报长图 · 2026-09-18 数据刷新版</span>
+  <h1>涨幅榜,<br>就是国产化率的倒序榜</h1>
+  <div class="sub">中国AI建设的「平行市场」:22个环节的国产化率梯度,和它的市场定价</div>
+
+  <div class="hook">
+    <div class="h">今年的涨幅榜,倒着读就是国产化率</div>
+    <p>电子布龙头宏和科技年内<b>+294%</b>、光芯片源杰科技<b>+178%</b>、测试设备长川科技<b>+164%</b>——涨得最猛的,全部是国产化率最低的环节。而国产化率最高的光模块,反而涨幅垫底。<b>越是被「卡」的地方,越是行情的主战场。</b></p>
+  </div>
+
+  <div class="card">
+    <h2>一、22个环节的国产化率梯度图</h2>
+    <div class="grad">
+      <div class="g g0">光模块 <span class="pct pos">65-70%</span></div>
+      <div class="g g1">AI服务器整机 <span class="pct pos">约80%(份额维度)</span></div>
+      <div class="g g2">AI芯片设计(国产卡份额41%,IDC) <span class="pct" style="color:#ffd166">41%</span></div>
+      <div class="g g3">先进封装设备/材料(刚起步) <span class="pct" style="color:#ffd166">23-35%</span></div>
+      <div class="g g4">HBM(长鑫投片中) <span class="pct neg">&lt;2%</span></div>
+      <div class="g g5">2.5D封装/量检测 <span class="pct neg">约10%</span></div>
+      <div class="g g6">先进制程光刻 <span class="pct neg">≈0</span></div>
+    </div>
+    <div class="note">梯度越往下,替代空间越大,股价弹性越大——但兑现周期也越长。来源:研报v1.0梯度表+IDC/Bernstein口径。</div>
+  </div>
+
+  <div class="insight">替代的总闸门不在设计端,在制造端:2026年国产AI芯片需求约420万颗,而国内先进制程产能只能供给约260万颗——差出来的这160万颗,才是整个国产替代叙事真正的「物理约束」。中芯国际最新季度产能利用率93.7%、资本开支持平,说明扩张受限的是设备而非意愿。</div>
+
+  <div class="card">
+    <h2>二、里程碑时钟:整体在往前拨</h2>
+    <ul class="tl2">
+      <li><b>9月17日,华为全联接大会发布昇腾960超节点</b>:单节点4096张卡、约8 EFLOPS——芯片时间表比原计划提前了9个月;昇腾950超节点同场亮相</li>
+      <li><b>长鑫HBM3已在送样</b>:2026年底小批量试产、2027年规模投产;DRAM月产能年底冲40万片,全球份额已约7%</li>
+      <li><b>管制面8月中以来真空</b>:无新管制清单、无新反制;H200对华出货「数量极少」,北京未大规模放行——平行市场格局未变</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>三、9月的回调怎么读</h2>
+    <table>
+      <tr><th>公司</th><th>8月底以来</th><th>年内累计</th></tr>
+      <tr><td>盛科通信(交换芯片)</td><td class="neg">-20.4%(叠加解禁+定增)</td><td class="pos">+124%</td></tr>
+      <tr><td>海光信息(CPU/DCU)</td><td class="neg">-17.4%</td><td class="pos">+3%</td></tr>
+      <tr><td>中芯国际A(代工)</td><td class="neg">-10.7%</td><td class="neg">-3%</td></tr>
+      <tr><td>寒武纪(AI芯片)</td><td class="pos">+1.2%</td><td class="neg">-18%</td></tr>
+      <tr><td>源杰科技(光芯片)</td><td class="pos">+17.5%</td><td class="pos">+178%</td></tr>
+    </table>
+    <div class="note">Tushare 2026-09-18收盘。9月回调最深的是前期涨幅最大的低国产化率环节(高位兑现),年内梯度规律未破坏。</div>
+  </div>
+
+  <div class="card">
+    <h2>四、下一个催化窗口</h2>
+    <ul style="font-size:19px; line-height:1.85; color:#ece0f7;">
+      <li><b>10月下旬三季报</b>:设备/封测环节的订单与存货是验证「替代加速」的第一手证据</li>
+      <li><b>昇腾960商用订单落地</b>:超节点从发布到订单的时间差,决定2027年供需假设</li>
+      <li><b>长鑫HBM3试产爬坡</b>:HBM是梯度图上最陡的一格(&lt;2%),任何爬坡超预期都是重估事件</li>
+    </ul>
+  </div>
+
+  <div class="foot">信源:自研《AI建设国产替代产业链深度研报》v1.1(华为HC大会/中芯Q2/Counterpoint/Tushare等,数据截至9月18日收盘),分析为原创框架。本内容仅为研究分享,不构成投资建议,市场有风险,决策需独立。</div>
+</body>
+</html>
