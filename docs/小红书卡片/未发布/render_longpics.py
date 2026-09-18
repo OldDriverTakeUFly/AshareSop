@@ -9,7 +9,7 @@ from playwright.async_api import async_playwright
 
 BASE = Path("/home/leo/Projects/CodeAgentDashboard/docs/小红书卡片/未发布")
 PROJECTS = ["长文图卡_镍出海链", "长文图卡_碳价CBAM", "长文图卡_电解家族"]
-SPLIT_THRESHOLD = 6000  # 超过则拆上下两张
+SPLIT_THRESHOLD = 9000  # 2026-09-18 用户拍板:长度不限、内容更详细,超9000px才拆上下两张
 
 
 async def shoot(project: str) -> None:
