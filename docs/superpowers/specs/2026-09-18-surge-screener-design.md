@@ -2,7 +2,7 @@
 
 - **日期**: 2026-09-18
 - **状态**: 待用户审阅
-- **决策**: 方案A——独立子包 `davis_analyzer/surge/`,纯脚本 cron 无人值守(2026-09-18 用户确认);同日增补:巨潮公告数据源+major_events 大事库、待测因子库定位、形态副本筛选腿(C1量能纪律/C2回调结构/C3平台突破,两份报告输出)
+- **决策**: 方案A——独立子包 `davis_analyzer/surge/`,纯脚本 cron 无人值守(2026-09-18 用户确认);同日增补:巨潮公告数据源+major_events 大事库、待测因子库定位、形态副本筛选腿(C1量能纪律/C2回调结构/C3平台突破)、16 形态标签库(都标不互斥)、阻力支撑增强(成本线转压/均线/缺口)
 - **定位**: 每日数据更新后,筛选当日涨幅 >7% 的个股,九维综合分析(位置/资金/筹码/获利盘/压力/支撑/炒作预期/扫雷),全量入台账 + Top N 深析报告
 
 ## 1. 背景与目标
@@ -54,8 +54,8 @@ davis_analyzer/surge/
   chips.py      # cyq_perf 拉取与 cyq_perf_cache 维护
   cninfo.py     # 巨潮拉取: orgId 映射 + 公告标题分页 + 关键词规则匹配 → major_events
   factors.py    # 九维指标计算(纯函数,DataFrame in/out)
-  pattern.py    # 量价形态识别(副本筛选: 前期放量阳→缩量回调→突破平台阳,纯计算)
-  screen.py     # 编排:筛选 >7% → 巨潮拉取(命中池) → 装配九维 → 形态副本筛选 → 综合分 → 入库
+  pattern.py    # 量价形态: C1/C2/C3 副本筛选 + 16 形态标签库(纯计算)
+  screen.py     # 编排:筛选 >7% → 巨潮拉取(命中池) → 装配九维 → 形态副本筛选+标签 → 综合分 → 入库
   report.py     # md 报告生成(模板化,无 LLM;全量报告+形态副本报告两份)
   reports/      # surge_YYYYMMDD.md 与 surge_pattern_YYYYMMDD.md 输出目录
 ```
@@ -146,6 +146,18 @@ CREATE TABLE IF NOT EXISTS surge_pattern_hits (
 
 形态命中本身是二元待测因子,结构参数列(回撤深度/量能衰减/突破幅度)供后续分层研究(§10)。
 
+### 4.3 形态标签台账 surge_tags(长表,每个标签=一个二元因子)
+
+```sql
+CREATE TABLE IF NOT EXISTS surge_tags (
+  trade_date TEXT NOT NULL, ts_code TEXT NOT NULL,
+  tag TEXT NOT NULL,          -- 16 形态标签之一(§5.12)
+  fetched_at REAL,
+  PRIMARY KEY (trade_date, ts_code, tag));
+```
+
+长表设计: calibrate 阶段 `GROUP BY tag` 直接验证各标签前向收益,标签组合(如 底部放量∧筹码低位密集)可临时 join 展开,无需改 schema。
+
 `MAJOR_EVENT_RULES`(冻结先验,方向为标注默认值):
 
 | event_type | 标题正则(示例口径,实施冻结) | direction |
@@ -193,13 +205,14 @@ CREATE TABLE IF NOT EXISTS surge_pattern_hits (
 ### 5.6 压力(取高于现价最近的档位)
 
 - 本维度与 5.7 统一用**未复权现价口径**(与 cyq_perf 成本价及交易软件显示价位同口径,严禁与后复权价混用)
-- 候选: cost_85pct、cost_95pct、his_high、max(high,120)(120 日滚动最高)
+- 候选: cost_85pct、cost_95pct、his_high、max(high,120)(120 日滚动最高)、**weight_avg(仅当 close<weight_avg 时,成本线失守转压)**、**MA60/120/250 后复权价(仅当现价位于该均线下方时,长期均线压)**、**近 120 日向下跳空缺口下沿(即昨 low,回补目标位)**
 - `resistance_price = min(候选中 > close×1.005)`;`resistance_dist = resistance_price/close - 1`;全候选缺失 → NaN
 
 ### 5.7 支撑(取低于现价最近的档位)
 
-- 候选: cost_15pct、cost_5pct、weight_avg、min(low,120)(120 日滚动最低)
+- 候选: cost_15pct、cost_5pct、weight_avg(仅当 close>weight_avg)、min(low,120)(120 日滚动最低)、**MA20/MA60 后复权价(仅当现价位于该均线上方时)**、**近 120 日向上跳空缺口上沿(即缺口前日 high,缺口支撑)**
 - `support_price = max(候选中 < close×0.995)`;`support_dist = support_price/close - 1`
+- 均线/缺口口径说明: 均线用后复权价计算,与现价比较时以未复权 close 对齐(除权日附近会有微小口径差,接受);缺口定义: 当日 low>前日 high=向上缺口,当日 high<前日 low=向下缺口,回看 120 日取最近一个
 
 ### 5.8 炒作预期 hype_tags(命中即列,不配分权重)
 
@@ -264,13 +277,38 @@ resist_support 0.10 | hype 0.20 | risk 0.15
 2. 直接续涨不回抽——更强(用户拍板「这种更好」)
 突破后走哪条路径是未来信息,筛选器不预测,报告两路径并列供人工跟踪;因子验证阶段可用台账回测两种路径的前向收益差。
 
+### 5.12 形态标签库(2026-09-18 用户拍板:16 标签全要、互斥对都标)
+
+每股可命中多标签,叠加层,与 C1/C2/C3 副本筛选独立。判据全部复用 §5 已算指标(pattern.py 内纯函数,参数进 `PATTERN_PARAMS`):
+
+| 组 | 标签 | 判据 |
+|---|---|---|
+| 位置 | 底部放量 | pos_250d <25% 且今日量 ≥2×VMA120 |
+| 位置 | 高位分歧 | pos_250d >80% 且量 ≥2×VMA120 且(上影≥实体50% 或 winner_rate ≥85%) |
+| 位置 | 创新高 | close ≥ 250日最高×0.995 |
+| 位置 | 超跌反弹 | pos_250d <15% 且近20日最大回撤 ≥25% |
+| 突破 | 平台突破 | 同 C3: close > 近20日(不含今日)最高 |
+| 突破 | 箱体突破 | 近60日(max/min−1) ≤25% 且 close > 箱体上沿 |
+| 突破 | 前高突破 | close > 近120日前高(排除近20日,即 20~120 日前区间最高) |
+| 突破 | 跳空缺口 | 今日 low > 昨日 high |
+| 量能 | 天量 | 今日量 ≥5×VMA120 |
+| 量能 | 量价背离 | 近20日价创60日新高 但 20日均量 < 前20日均量 |
+| 量能 | 温和放量 | 近5日均量 ∈[1.2,2]×VMA120 且 5日均量 > 前5日均量 |
+| 筹码 | 筹码低位密集 | cost_95/cost_5 −1 ≤30% 且 weight_avg 对应位置 pos_250d <40% |
+| 筹码 | 获利盘拥挤 | winner_rate ≥85% |
+| 筹码 | 上方套牢近 | resistance_dist <3% |
+| 趋势 | 均线多头 | MA20>MA60>MA120>MA250 且 close>MA20(后复权) |
+| 趋势 | 大阳反包 | 昨阴今阳 且 今实体 ≥ 昨实体 且今开盘 ≤ 昨收盘 |
+
+「箱体上沿」= 近 60 日(不含今日)最高价;「weight_avg 对应位置」= weight_avg 在 250 日高低区间中的分位。上影线/实体 = 未复权 OHLC。多标签命中**都标不互斥**(如「底部放量+筹码低位密集+温和放量」组合);标签组合的价值验证走 §10 台账。
+
 ## 6. 报告(两份输出,2026-09-18 用户拍板)
 
 ### 6.1 全量报告 `surge/reports/surge_YYYYMMDD.md`
 
 1. **头部**: 日期、命中数、市场环境(thermometer_market 大盘五维引用,注明温度反向语义)
-2. **全量表**: 按综合分排序,列 = 代码/名称/行业/涨幅/位置分位/超大单净额/获利盘%/winner Δ5d/压力距/支撑距/hype 数/risk 数/形态命中/综合分
-3. **Top 12 深析**: 每股一段——九维逐项数字 + 事件时间线(corp_event 近 90 日 + major_events 近 180 日,日期+事件+规模/标题)+ 叙事待查清单(仅剩「转型判断」需人工)
+2. **全量表**: 按综合分排序,列 = 代码/名称/行业/涨幅/位置分位/超大单净额/获利盘%/winner Δ5d/压力距/支撑距/hype 数/risk 数/形态标签/综合分
+3. **Top 12 深析**: 每股一段——九维逐项数字 + 命中形态标签(含数字证据) + 事件时间线(corp_event 近 90 日 + major_events 近 180 日,日期+事件+规模/标题)+ 叙事待查清单(仅剩「转型判断」需人工)
 4. **尾部**: 口径说明、缺失标注(pledge 陈旧/当日 cyqperf 回退/次新 NaN)、免责声明
 
 ### 6.2 形态副本报告 `surge/reports/surge_pattern_YYYYMMDD.md`
@@ -294,6 +332,8 @@ resist_support 0.10 | hype 0.20 | risk 0.15
 
 - `tests/test_surge_factors.py`: 合成日线 fixture 验证 pos_250d/压力支撑选取/量价齐升口径
 - `tests/test_surge_pattern.py`: 合成 K 线序列 fixture——标准形态命中/回撤过深/量能断裂(连低 3 日)/平台未突破/无放量阳锚 五类用例
+- `tests/test_surge_tags.py`: 16 标签判据用例(每标签至少一正一负合成样例;缺口/均线/箱体边界值)
+- `tests/test_surge_factors.py`: 阻力支撑增强口径——weight_avg 失守转压、均线上下方切换、缺口回补位选取
 - `tests/test_surge_cninfo.py`: 规则表匹配(重组/定增/爆雷标题样例、终止类优先于 ma 类)、orgId 缓存、响应结构断言与降级路径、原始层→规则层重放幂等
 - 报告空数据防线: 0 命中/全 NaN/巨潮全失败单照常出报告
 - `backfill --replay` 幂等与快照纯度(回放行不含未来信息列)
