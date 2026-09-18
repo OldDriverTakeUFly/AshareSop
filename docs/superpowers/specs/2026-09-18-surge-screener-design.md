@@ -2,7 +2,7 @@
 
 - **日期**: 2026-09-18
 - **状态**: 待用户审阅
-- **决策**: 方案A——独立子包 `davis_analyzer/surge/`,纯脚本 cron 无人值守(2026-09-18 用户确认)
+- **决策**: 方案A——独立子包 `davis_analyzer/surge/`,纯脚本 cron 无人值守(2026-09-18 用户确认);同日增补:巨潮公告数据源+major_events 大事库、待测因子库定位、形态副本筛选腿(C1量能纪律/C2回调结构/C3平台突破,两份报告输出)
 - **定位**: 每日数据更新后,筛选当日涨幅 >7% 的个股,九维综合分析(位置/资金/筹码/获利盘/压力/支撑/炒作预期/扫雷),全量入台账 + Top N 深析报告
 
 ## 1. 背景与目标
@@ -19,7 +19,7 @@
 8. 个股扫雷(近期减持/行业下行/逆周期/周期顶部/近期定增/经营爆雷/持续实质亏损)
 9. 综合分(Top N 深析排序依据)
 
-**输出形态(用户拍板)**: 全量入 SQLite 台账(九维指标每股一行),md 报告只对综合分 Top 12 做深析段落,其余以汇总表格列出。不遗漏、报告可读。
+**输出形态(用户拍板,2026-09-18 增补两份输出)**: 全量入 SQLite 台账(九维指标每股一行);报告两份——①全量报告(所有 >7% 个股九维汇总表 + Top 12 深析) ②形态副本报告(命中 §5.11 量价形态的标的,含形态结构与观察路径)。不遗漏、报告可读。
 
 **因子研究定位(2026-09-18 用户补充)**: 本系统同时是一套**待测因子库**——`surge_snapshot` 每个指标列即一个候选因子,台账持续沉淀供后续优化与有效性验证(§10)。所有外部获取的数据一律先落库再消费,原始层全量留存,规则层可由原始层重放重建。
 
@@ -54,12 +54,13 @@ davis_analyzer/surge/
   chips.py      # cyq_perf 拉取与 cyq_perf_cache 维护
   cninfo.py     # 巨潮拉取: orgId 映射 + 公告标题分页 + 关键词规则匹配 → major_events
   factors.py    # 九维指标计算(纯函数,DataFrame in/out)
-  screen.py     # 编排:筛选 >7% → 巨潮拉取(命中池) → 装配九维 → 综合分 → 入库
-  report.py     # md 报告生成(模板化,无 LLM)
-  reports/      # surge_YYYYMMDD.md 输出目录
+  pattern.py    # 量价形态识别(副本筛选: 前期放量阳→缩量回调→突破平台阳,纯计算)
+  screen.py     # 编排:筛选 >7% → 巨潮拉取(命中池) → 装配九维 → 形态副本筛选 → 综合分 → 入库
+  report.py     # md 报告生成(模板化,无 LLM;全量报告+形态副本报告两份)
+  reports/      # surge_YYYYMMDD.md 与 surge_pattern_YYYYMMDD.md 输出目录
 ```
 
-依赖方向: cli → screen → factors/cninfo/chips → db。factors 为纯计算不触网,便于单测。cninfo/chips 为唯一两个触网模块。遵循项目风格:`from __future__ import annotations`、loguru、Decimal 仅用于金额聚合处(指标比率用 float,frozen 先例同口径)。
+依赖方向: cli → screen → factors/cninfo/chips/pattern → db。factors/pattern 为纯计算不触网,便于单测。cninfo/chips 为唯一两个触网模块。遵循项目风格:`from __future__ import annotations`、loguru、Decimal 仅用于金额聚合处(指标比率用 float,frozen 先例同口径)。
 
 权重单一真相源: `constants.py` 新增 `SURGE_WEIGHTS`(§5.9),SOP 同步。
 
@@ -128,6 +129,22 @@ CREATE TABLE IF NOT EXISTS cninfo_org_map (
 - `column` 参数: 沪深用 `szse`、北交用 `bj`(920xxx,实测通过);沪市返回口径实施首日验证。
 - orgId 经 topSearch 查询并缓存于 `cninfo_org_map`,避免重复调用。
 - 限速 0.2s/请求 + 失败重试 1 次;单股失败降级为「该股事件维度缺失」,不阻塞整批。
+
+### 4.2 形态命中台账 surge_pattern_hits(副本筛选)
+
+```sql
+CREATE TABLE IF NOT EXISTS surge_pattern_hits (
+  trade_date TEXT NOT NULL, ts_code TEXT NOT NULL,
+  boom_date TEXT, boom_pct REAL, boom_vol_ratio REAL,  -- 前期放量阳(日期/涨幅/量比)
+  pullback_start TEXT, pullback_end TEXT,              -- 回调段(不含今日)
+  pullback_depth REAL, vol_decay REAL,                 -- 高点回撤幅度/回调量能衰减比
+  plateau_high REAL, plateau_days INTEGER,             -- 平台高点与平台窗口
+  breakout_pct REAL,                                   -- 突破幅度 close/plateau_high-1
+  fetched_at REAL,
+  PRIMARY KEY (trade_date, ts_code));
+```
+
+形态命中本身是二元待测因子,结构参数列(回撤深度/量能衰减/突破幅度)供后续分层研究(§10)。
 
 `MAJOR_EVENT_RULES`(冻结先验,方向为标注默认值):
 
@@ -225,19 +242,48 @@ resist_support 0.10 | hype 0.20 | risk 0.15
 - resist_support 得分 = 100×clip(resistance_dist/0.20, 0, 1)(压力越远上方空间越大;support_dist 只入报告不入分)
 - 因子验证路线见 §10(本期只落台账,calibrate 后续另立任务)
 
-## 6. 报告
+### 5.11 形态副本筛选(2026-09-18 用户补充,pattern.py)
 
-`surge/reports/surge_YYYYMMDD.md`:
+在当日 >7% 命中池内二次筛选,命中形态 = **C1 ∧ C2 ∧ C3**。全部参数集中 `PATTERN_PARAMS` 常量(冻结先验,因子库定位,迭代走 §10 重放纪律):
+
+**C1 量能纪律(120 均量)**: 「最近持续的量都在 120 均量之上,低于最多不超过 2 天,3 天就不要」
+- 近 15 交易日(不含今日)窗口内,vol < VMA120 的最长连续段 ≤2 日
+- 今日 vol ≥ VMA120(突破日必须站上均量)
+
+**C2 回调结构(放量阳→缩量下跌)**: 「前期放量阳线,然后缩量下跌,阴线越来越小量越来越小」
+- 前期放量阳: 回看 5~20 日前存在阳线(close>open)且 pct_chg ≥4% 且 vol ≥2×VMA120,取最近一根为锚
+- 回调段(放量阳次日至昨日): 高点回撤 ≤15%;不破放量阳最低价;后半窗 5 日均量 ≤ 前半窗 70%(量越来越小);后半窗阴线平均实体 ≤ 前半窗(阴线越来越小)——递减性按窗口均值验证,不要求逐日单调
+- **口径澄清(消歧)**: 「缩量」指相对放量阳的天量萎缩,但绝对量能仍受 C1 的 120 均量纪律约束——健康回调是量能萎缩而不冷掉,连续 3 日掉到均量下即量能断裂淘汰
+
+**C3 突破平台阳**: 「然后出一个阳线——突破平台的阳线」
+- 今日 close > 近 20 日(不含今日)最高价(平台高点)
+- `breakout_pct = close/plateau_high - 1`;今日即 >7% 大阳(C 系前提),形态语义=「缩量回调末端的平台突破启动阳」
+
+**事后观察路径(报告固定两分法,事前不判别)**:
+1. 回抽平台确认——回抽观察位=平台高点,缩量回抽企稳可关注
+2. 直接续涨不回抽——更强(用户拍板「这种更好」)
+突破后走哪条路径是未来信息,筛选器不预测,报告两路径并列供人工跟踪;因子验证阶段可用台账回测两种路径的前向收益差。
+
+## 6. 报告(两份输出,2026-09-18 用户拍板)
+
+### 6.1 全量报告 `surge/reports/surge_YYYYMMDD.md`
 
 1. **头部**: 日期、命中数、市场环境(thermometer_market 大盘五维引用,注明温度反向语义)
-2. **全量表**: 按综合分排序,列 = 代码/名称/行业/涨幅/位置分位/超大单净额/获利盘%/winner Δ5d/压力距/支撑距/hype 数/risk 数/综合分
+2. **全量表**: 按综合分排序,列 = 代码/名称/行业/涨幅/位置分位/超大单净额/获利盘%/winner Δ5d/压力距/支撑距/hype 数/risk 数/形态命中/综合分
 3. **Top 12 深析**: 每股一段——九维逐项数字 + 事件时间线(corp_event 近 90 日 + major_events 近 180 日,日期+事件+规模/标题)+ 叙事待查清单(仅剩「转型判断」需人工)
 4. **尾部**: 口径说明、缺失标注(pledge 陈旧/当日 cyqperf 回退/次新 NaN)、免责声明
+
+### 6.2 形态副本报告 `surge/reports/surge_pattern_YYYYMMDD.md`
+
+1. **头部**: 当日形态命中数(可为 0,照常出报告并说明)
+2. **命中表**: 代码/名称/行业/涨幅 + 形态结构(放量阳日期及其涨幅量比/回调区间/回撤深度/量能衰减比/平台高点/突破幅度) + 九维简表(复用 surge_snapshot) + hype/risk
+3. **每股观察卡**: 两条固定路径——①回抽平台确认(观察位=平台高点,缩量企稳信号) ②直接续涨(更强);不预测走哪条,供人工跟踪
+4. **尾部**: PATTERN_PARAMS 口径说明与免责声明
 
 ## 7. 调度与防御
 
 - user systemd timer `surge-run`,工作日 19:30(19:20 daily_refresh 之后,19:35 thermometer 之前空档)
-- run 流程: 筛选 >7% → 命中池巨潮拉取(约 60~204 只 × 2~4 请求,0.2s 限速 ≈ 2~4 分钟) → cyq_perf 当日按日期拉取(1 次) → 九维装配 → 入库 → 报告
+- run 流程: 筛选 >7% → 命中池巨潮拉取(约 60~204 只 × 2~4 请求,0.2s 限速 ≈ 2~4 分钟) → cyq_perf 当日按日期拉取(1 次) → 九维装配 → 形态副本筛选(纯本地) → 入库 → 两份报告
 - 当日 cyq_perf 未出 → 回退最近一日缓存并在报告标注;backfill 幂等跳过已有日期
 - `backfill`: ① cyq_perf 按日期回补近 30 个交易日(winner_delta_5d 最低需 6 日,留裕量);② major_events 按指定日期的命中池重拉巨潮;③ `--replay N` 历史截面回放:对最近 N 个交易日逐日重建 surge_snapshot(数据全部来自本地已有表+cyq_perf 按日期回补;巨潮默认**不**回放,`--with-cninfo` 显式开启且仅对回放日命中池拉取——防巨潮请求量失控);可重复执行
 - 巨潮整批失败(网络/接口变更) → 事件维度降级标注「巨潮未取到」,主流程照常出报告;巨潮接口属网页 API,字段变更风险高于 Tushare,cninfo.py 单点隔离 + 响应结构断言
@@ -247,6 +293,7 @@ resist_support 0.10 | hype 0.20 | risk 0.15
 ## 8. 测试
 
 - `tests/test_surge_factors.py`: 合成日线 fixture 验证 pos_250d/压力支撑选取/量价齐升口径
+- `tests/test_surge_pattern.py`: 合成 K 线序列 fixture——标准形态命中/回撤过深/量能断裂(连低 3 日)/平台未突破/无放量阳锚 五类用例
 - `tests/test_surge_cninfo.py`: 规则表匹配(重组/定增/爆雷标题样例、终止类优先于 ma 类)、orgId 缓存、响应结构断言与降级路径、原始层→规则层重放幂等
 - 报告空数据防线: 0 命中/全 NaN/巨潮全失败单照常出报告
 - `backfill --replay` 幂等与快照纯度(回放行不含未来信息列)
