@@ -61,3 +61,30 @@ def test_bad_speaker_and_length_fails():
     fails = validate_episode(Episode("2026-09-18", "t", segs, []))
     assert any("speaker" in f for f in fails)
     assert any("时长" in f for f in fails)
+
+
+def test_allowed_stock_codes_gate():
+    """2026-09-18 首跑实锤:LLM 会擅自增段/写候选外的票——stock 段必须与候选一一对应。"""
+    from davis_analyzer.recap.types import Episode, EpisodeSegment
+    from davis_analyzer.recap.validator import validate_episode
+    facts = [_fact("idx_sh_close", "3875", "点", "上证收3875点")]
+    base = {
+        "trade_date": "2026-09-18", "title": "t", "facts": facts,
+        "segments": [
+            {"seg_id": "open", "kind": "scoreboard", "ts_code": None,
+             "lines": [{"speaker": "pb", "text": "上证收3875点。"}]},
+            {"seg_id": "s1", "kind": "stock", "ts_code": "601091.SH",
+             "lines": [{"speaker": "pb", "text": "史诗深V。"}]},
+            {"seg_id": "close", "kind": "outlook", "ts_code": None,
+             "lines": [{"speaker": "color", "text": "本内容仅为盘面复盘记录,不构成投资建议。"}]},
+        ]}
+    ep = Episode.from_dict(base)
+    assert validate_episode(ep, min_seconds=5.0,
+                            allowed_stock_codes={"601091.SH"}) == []
+    extra = dict(base)
+    extra["segments"] = base["segments"] + [
+        {"seg_id": "s2", "kind": "stock", "ts_code": "002555.SZ",
+         "lines": [{"speaker": "pb", "text": "自由发挥段。"}]}]
+    fails = validate_episode(Episode.from_dict(extra), min_seconds=5.0,
+                             allowed_stock_codes={"601091.SH"})
+    assert any("候选数" in f for f in fails) and any("不在候选清单内" in f for f in fails)

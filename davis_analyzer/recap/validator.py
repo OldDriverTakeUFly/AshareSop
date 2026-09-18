@@ -31,7 +31,8 @@ def _facts_of(ep: Episode) -> list[Fact]:
 
 
 def validate_episode(ep: Episode, min_seconds: float = _MIN_SECONDS,
-                     max_seconds: float = _MAX_SECONDS) -> list[str]:
+                     max_seconds: float = _MAX_SECONDS,
+                     allowed_stock_codes: set[str] | None = None) -> list[str]:
     fails: list[str] = []
     if not ep.segments:
         return ["剧本为空"]
@@ -39,6 +40,16 @@ def validate_episode(ep: Episode, min_seconds: float = _MIN_SECONDS,
         fails.append("完整性: 首段必须为 scoreboard(片头比分牌)")
     if ep.segments[-1].kind != "outlook":
         fails.append("完整性: 末段必须为 outlook(明日看点)")
+
+    stock_segs = [s for s in ep.segments if s.kind == "stock"]
+    if allowed_stock_codes is not None:
+        # 段落与候选一一对应(2026-09-18 首跑实锤:LLM 会拿天梯信息自由发挥加段)
+        if len(stock_segs) != len(allowed_stock_codes):
+            fails.append(f"完整性: stock 段数 {len(stock_segs)} ≠ 候选数 {len(allowed_stock_codes)},"
+                         f"只准为候选各写一段,不得增删")
+        for s in stock_segs:
+            if s.ts_code not in allowed_stock_codes:
+                fails.append(f"完整性: {s.seg_id} 的 {s.ts_code} 不在候选清单内,删除该段")
 
     facts = _facts_of(ep)
     words = set(load_words()) | set(EXTRA_SENSITIVE_WORDS)

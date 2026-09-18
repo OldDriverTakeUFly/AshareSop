@@ -12,7 +12,7 @@ from davis_analyzer.recap.constants import NBA_STYLE_TABLE
 from davis_analyzer.recap.types import Candidate, DialogueLine, Episode, EpisodeSegment
 from davis_analyzer.recap.validator import validate_episode
 
-_MAX_ATTEMPTS = 2
+_MAX_ATTEMPTS = 3
 _TEMPERATURE = 0.7
 
 
@@ -23,9 +23,12 @@ class ScriptGenError(RuntimeError):
 _SYSTEM = (
     "你是A股盘后复盘短视频的金牌编剧,风格对标NBA赛事转播解说。"
     "两位解说:pb=实况解说(激情,喊动作、短句、有画面感),color=嘉宾分析(娓娓道来,讲资金与板块逻辑)。"
-    "铁律:①解说词中任何数字(点位/涨幅/连板数/炸板次数/振幅/金额/家数)只准使用【可用事实】清单里给出的数字,"
-    "一个都不能自己编、不能换算;②只描述已发生的事实,不给任何操作建议;"
-    "③末段(outlook)必须原话包含「不构成投资建议」;④输出只给一个JSON对象,不要多余文字。"
+    "铁律:①解说词中任何数字(点位/涨幅/连板数/炸板次数/振幅/金额/家数)只准逐字使用【可用事实】清单给出的数值——"
+    "禁止四舍五入(4234家不得写成4200家)、禁止换算单位、禁止自行计算倍数或百分比,宁可少说数字也不改写;"
+    "②段落数量固定:open + 每只候选恰好一段 stock + close,不得增删拆并;"
+    "③每句话不超过60字(超长会被机器闸打回);"
+    "④只描述已发生的事实,不给任何操作建议;无涨跌幅限制的新股不得说成涨停/跌停(低开不是跌停);"
+    "⑤末段(outlook)必须原话包含「不构成投资建议」;⑥输出只给一个JSON对象,不要多余文字。"
 )
 
 
@@ -141,7 +144,7 @@ def generate_episode(trade_date: str, cands: list[Candidate], bundle: dict,
             logger.warning(f"recap 剧本 attempt{attempt} 失败: {e}")
             continue
         ep = assemble_episode(trade_date, cands, bundle, data)
-        last_fails = validate_episode(ep)
+        last_fails = validate_episode(ep, allowed_stock_codes={c.ts_code for c in cands})
         if not last_fails:
             return ep
         logger.warning(f"recap 剧本 attempt{attempt} 未过闸: {last_fails[:3]}")
