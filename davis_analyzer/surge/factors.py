@@ -136,3 +136,133 @@ def compute_resistance_support(
             "support_price": sp,
             "support_dist": sp / close - 1 if sup_ok else _NAN,
             "resistance_ladder": ladder}
+
+
+# ── 5.8/5.9 炒作预期与扫雷标签 ──
+
+def industry_momentum(sw_daily_all: pd.DataFrame) -> pd.DataFrame:
+    """全行业截面(spec §5.8): 每指数 ret20/ret60/截面分位/250日位置."""
+    cols = ["index_code", "ret20", "ret60", "pct_rank60", "pos_250"]
+    if sw_daily_all is None or sw_daily_all.empty:
+        return pd.DataFrame(columns=cols)
+    g = sw_daily_all.sort_values("trade_date").groupby("index_code")["close"]
+
+    def _ret(s: pd.Series, n: int) -> float:
+        return float(s.iloc[-1] / s.iloc[-1 - n] - 1) if len(s) > n else _NAN
+
+    rows = []
+    for code, s in g:
+        if len(s) < 21:
+            continue
+        pos = _NAN
+        if len(s) >= 120:
+            tail = s.tail(250)
+            rng = float(tail.max() - tail.min())
+            pos = (float(s.iloc[-1]) - float(tail.min())) / rng if rng > 0 else _NAN
+        rows.append({"index_code": code, "ret20": _ret(s, 20), "ret60": _ret(s, 60),
+                     "pos_250": pos})
+    df = pd.DataFrame(rows, columns=cols)
+    if not df.empty:
+        df["pct_rank60"] = df["ret60"].rank(pct=True)
+    return df
+
+
+def classify_hype_risk(
+    *, corp_events: pd.DataFrame, major_events: pd.DataFrame,
+    pledge_ratio: float | None, fin_consecutive_loss: bool, is_st: bool,
+    industry_row: pd.Series | None, vol_price_ok: bool, research_count: int,
+    day: str, event_window_days: int = 90, major_window_days: int = 180,
+) -> tuple[list[str], list[str]]:
+    """标签装配(spec §5.8/§5.9): 窗口按自然日回推;宁缺毋错."""
+    from datetime import datetime, timedelta
+
+    d0 = datetime.strptime(day, "%Y%m%d")
+    corp_start = (d0 - timedelta(days=event_window_days)).strftime("%Y%m%d")
+    major_start = (d0 - timedelta(days=major_window_days)).strftime("%Y%m%d")
+    hype: list[str] = []
+    risk: list[str] = []
+
+    def _in(df: pd.DataFrame, start: str) -> pd.DataFrame:
+        if df is None or df.empty or "ann_date" not in df.columns:
+            return pd.DataFrame()
+        return df[(df["ann_date"] >= start) & (df["ann_date"] <= day)]
+
+    corp_w = _in(corp_events, corp_start)
+    if not corp_w.empty:
+        if ((corp_w["event_type"] == "holder_trade")
+                & (corp_w["direction"] == "positive")).any():
+            hype.append("增持")
+        if ((corp_w["event_type"] == "holder_trade")
+                & (corp_w["direction"] == "negative")).any():
+            risk.append("减持")
+        if (corp_w["event_type"] == "repurchase").any():
+            hype.append("回购")
+        if (corp_w["event_type"] == "share_float").any():
+            risk.append("解禁")
+
+    major_w = _in(major_events, major_start)
+    if not major_w.empty:
+        et = set(major_w["event_type"])
+        if "ma" in et:
+            hype.append("并购重组")
+        if "divest" in et:
+            hype.append("转型线索")
+        if "refinance" in et:
+            risk.append("定增")
+        if "distress" in et:
+            risk.append("爆雷监管")
+        if "ma_halt" in et:
+            risk.append("重组终止")
+
+    if pledge_ratio is not None and pledge_ratio > 50:
+        risk.append("质押率高")
+    if fin_consecutive_loss:
+        risk.append("持续亏损")
+    if is_st:
+        risk.append("ST")
+
+    if industry_row is not None:
+        rank = industry_row.get("pct_rank60", _NAN)
+        ret20 = industry_row.get("ret20", _NAN)
+        pos250 = industry_row.get("pos_250", _NAN)
+        if rank == rank:
+            if rank >= 0.70:
+                hype.append("行业动量强")
+            if rank <= 0.30 and ret20 == ret20 and ret20 < 0:
+                risk.append("行业下行")
+        if pos250 == pos250:
+            if pos250 < 0.20 and ret20 == ret20 and ret20 > 0:
+                hype.append("行业底部拐点")
+            if pos250 >= 0.80 and ret20 == ret20 and ret20 < 0:
+                risk.append("周期顶部")
+
+    if vol_price_ok:
+        hype.append("量价齐升")
+    if research_count >= 3:
+        hype.append("研报覆盖热")
+    return hype, risk
+
+
+def check_consecutive_loss(income_rows: list[tuple[str, dict]]) -> bool:
+    """持续实质亏损(spec §5.9): 最近2个年报+最新一期归母净利均<0.
+
+    income_rows: [(end_date, {n_income: ...})] 任意序;数据不足→False(宁缺毋错).
+    """
+    if not income_rows:
+        return False
+    annuals = sorted([d for d, _ in income_rows if d.endswith("1231")])
+    latest2 = annuals[-2:]
+    if len(latest2) < 2:
+        return False
+    lookup = dict(income_rows)
+    vals = []
+    for d in latest2:
+        v = lookup[d].get("n_income")
+        if v is None:
+            return False
+        vals.append(v)
+    latest_any = max(income_rows, key=lambda t: t[0])
+    v_latest = latest_any[1].get("n_income")
+    if v_latest is None:
+        return False
+    return all(v < 0 for v in vals) and v_latest < 0

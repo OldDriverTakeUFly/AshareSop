@@ -153,3 +153,48 @@ def read_pool(conn: sqlite3.Connection, day: str) -> pd.DataFrame:
         return df
     df["is_st"] = df["name"].fillna("").str.contains("ST").astype(int)
     return df.sort_values("pct_chg", ascending=False).reset_index(drop=True)
+
+
+def read_sw_industry(conn: sqlite3.Connection, ts_codes: list[str]) -> pd.DataFrame:
+    """con_code→行业(优先L2,无则L1;取最新快照且 out_date 为空)."""
+    out_cols = ["ts_code", "index_code", "level", "name"]
+    snap = conn.execute(
+        "SELECT MAX(snapshot_date) FROM sw_member").fetchone()[0]
+    if not snap or not ts_codes:
+        return pd.DataFrame(columns=out_cols)
+    # 库内 con_code 带后缀(000019.SZ);同查带/不带两种形式兜底
+    codes = list({to_suffixed_code(c) for c in ts_codes} | set(ts_codes))
+    ph = ",".join("?" * len(codes))
+    df = pd.read_sql_query(
+        f"SELECT m.con_code AS ts_code, m.index_code, i.level, i.name "
+        f"FROM sw_member m JOIN sw_index i ON m.index_code=i.index_code "
+        f"WHERE m.snapshot_date=? AND m.con_code IN ({ph}) "
+        f"AND (m.out_date IS NULL OR m.out_date='')",
+        conn, params=(snap, *codes))
+    if df.empty:
+        return pd.DataFrame(columns=out_cols)
+    df["ts_code"] = df["ts_code"].map(to_suffixed_code)
+    # L2 优先('L2'>'L1' 字典序,降序取首行)
+    df = df.sort_values(["ts_code", "level"], ascending=[True, False])
+    return df.drop_duplicates("ts_code", keep="first").reset_index(drop=True)
+
+
+def read_sw_daily_all(conn: sqlite3.Connection, end_day: str,
+                      lookback: int = 260) -> pd.DataFrame:
+    """全行业收盘序列(供截面动量;日期格式以库内样例为准,归一为 YYYYMMDD)."""
+    sample = conn.execute(
+        "SELECT trade_date FROM sw_daily LIMIT 1").fetchone()
+    if not sample:
+        return pd.DataFrame()
+    norm = sample[0].replace("-", "")  # 兼容 YYYY-MM-DD 落库格式
+    end = normalize_date(end_day)
+    dates = [r[0] for r in conn.execute(
+        "SELECT DISTINCT trade_date FROM sw_daily WHERE replace(trade_date,'-','')<=? "
+        "ORDER BY trade_date DESC LIMIT ?", (end, lookback))]
+    if not dates:
+        return pd.DataFrame()
+    ph = ",".join("?" * len(dates))
+    df = pd.read_sql_query(
+        f"SELECT ts_code AS index_code, replace(trade_date,'-','') AS trade_date, "
+        f"close FROM sw_daily WHERE trade_date IN ({ph})", conn, params=dates)
+    return df
