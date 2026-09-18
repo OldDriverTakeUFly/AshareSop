@@ -9,9 +9,9 @@ RECAP_ROOT = Path(__file__).resolve().parent
 EPISODES_DIR = RECAP_ROOT / "episodes"
 INBOX_DIR = RECAP_ROOT / "inbox"
 
-# ── TTS 双解说音色(edge-tts;实况=激情男声,嘉宾=沉稳女声)──
-VOICE_PB = "zh-CN-YunjianNeural"
-VOICE_COLOR = "zh-CN-XiaoxiaoNeural"
+# ── TTS 双解说音色(v3 脱口秀模式 2026-09-18:反差萌——鬼马少年吐槽役 × 大叔捧哏)──
+VOICE_PB = "zh-CN-YunxiaNeural"      # 吐槽役:少年音,语速快,自带喜感
+VOICE_COLOR = "zh-CN-YunjianNeural"  # 捧哏:大叔播音腔反差,一本正经地补刀
 
 # ── 素材文件名协议:20260918_605577.SH_01.mp4 ──
 CLIP_FILENAME_RE = re.compile(r"^(\d{8})_([0-9]{6}\.(?:SH|SZ|BJ))_(\d{2})\.mp4$")

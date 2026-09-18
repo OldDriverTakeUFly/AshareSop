@@ -24,7 +24,7 @@ _PAD_TAIL = 0.6                 # 每段旁白后的留白(与 cardgen.video 同
 _MAX_SPEED = 4.0                # 变速封顶(再快就看不清盘口了)
 _BGM_DIR = RECAP_ROOT / "assets" / "bgm"    # 用户自备 mp3(建议平台曲库导出,版权自担)
 _SFX_DIR = RECAP_ROOT / "assets" / "sfx"    # 合成音效缓存(零外部音频,规避版权)
-_BGM_VOL = 0.22                 # BGM 垫底音量(spec §八),人声经 sidechain 自动压它
+_BGM_VOL = 0.28                 # BGM 垫底音量(俏皮小调需要更「在场」),人声经 sidechain 自动压它
 _SFX_VOL = 0.6
 _INTRO_DUR = 1.2                # 段首排名冲击卡时长(央视五佳球式)
 
@@ -52,15 +52,21 @@ def resolve_bgm() -> Path | None:
 
 
 def synth_bgm(out: Path, dur: float) -> Path:
-    """合成 hype 节拍占位(kick 四踩 + hat 反拍 + 低音线,aevalsrc 单表达式)。
-    版权零风险;想要更好的音乐:丢 mp3 进 recap/assets/bgm/ 即自动替换。"""
-    # kick: 55Hz 衰减冲击 every 0.5s;hat: 高频短噪 on off-beat;bass: 110/98Hz 交替小节
-    # 注意:aevalsrc 作为输入URL解析,表达式内逗号必须转义(否则被当滤镜分隔符)
+    """合成俏皮 8-bit 小调(v3 脱口秀模式 2026-09-18):原创大五声弹跳旋律(方波)
+    +低音+碎拍帽,版权零风险;想换真音乐:丢 mp3 进 recap/assets/bgm/ 即自动优先。
+    注意:aevalsrc 作为输入URL解析,表达式内逗号必须转义(否则被当滤镜分隔符)。"""
+    step = 0.25                                            # 0.25s/音 ≈ 120bpm 八分音符
+    motif = [523.25, 659.26, 783.99, 880.00, 783.99, 659.26, 587.33, 523.25,
+             659.26, 783.99, 880.00, 1046.50, 880.00, 783.99, 659.26, 587.33]
+    mel = f"{motif[-1]:.2f}"
+    for i in range(len(motif) - 2, -1, -1):
+        mel = (f"if(lt(mod(t,{len(motif) * step}),{(i + 1) * step}),"
+               f"{motif[i]:.2f},{mel})")
+    bass = "if(lt(mod(t,1),0.5),130.81,98.00)"             # C3/G2 交替
     expr = (
-        "0.55*sin(2*PI*55*t)*exp(-22*mod(t,0.5))"
-        "+0.10*sin(2*PI*8000*t)*exp(-70*mod(t+0.25,0.5))"
-        "+0.22*(lt(mod(t,4),2))*sin(2*PI*110*t)*(0.6+0.4*sin(PI*t/2))"
-        "+0.22*(gte(mod(t,4),2))*sin(2*PI*98*t)*(0.6+0.4*sin(PI*t/2))"
+        f"0.28*tanh(4*sin(2*PI*({mel})*t))*exp(-12*mod(t,{step}))"
+        f"+0.30*tanh(3*sin(2*PI*({bass})*t))"
+        f"+0.05*sin(2*PI*9000*t)*exp(-90*mod(t+0.125,{step}))"
     ).replace(",", "\\,")
     _run([ffmpeg(), "-y", "-f", "lavfi",
           "-i", f"aevalsrc={expr}:s=44100:d={dur:.2f}", "-c:a", "aac", "-b:a", "96k",
