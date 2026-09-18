@@ -25,6 +25,15 @@ def _fmt(v, pct=False, nd=1) -> str:
     return f"{v:+.1%}" if pct else f"{v:.{nd}f}"
 
 
+def _text(v) -> str:
+    """NaN/None 安全的文本渲染(行业列 None 读回 NaN 是真值,`or ""` 不生效)."""
+    if v is None:
+        return ""
+    if isinstance(v, float) and v != v:
+        return ""
+    return str(v)
+
+
 def _parse_tags(s) -> str:
     if not isinstance(s, str) or not s or s == "[]":
         return "—"
@@ -61,23 +70,23 @@ def render_full_report(day: str, out: dict, *, out_dir: Path | None = None) -> P
                   "|" + "---|" * 15]
         for _, r in snap.sort_values("rank").iterrows():
             lines.append(
-                f"| {int(r['rank'])} | {r['ts_code']} | {r.get('name') or ''} | "
-                f"{r.get('industry') or ''} | {_fmt(r.get('pct_chg'))} | "
+                f"| {int(r['rank'])} | {r['ts_code']} | {_text(r.get('name'))} | "
+                f"{_text(r.get('industry'))} | {_fmt(r.get('pct_chg'))} | "
                 f"{_fmt(r.get('pos_250d'), pct=True)} | "
                 f"{_fmt(r.get('elg_net_d0'), nd=0)} | "
                 f"{_fmt(r.get('winner_rate'))} | "
                 f"{_fmt(r.get('winner_delta_5d'))} | "
                 f"{_fmt(r.get('resistance_dist'), pct=True)} | "
                 f"{_fmt(r.get('support_dist'), pct=True)} | "
-                f"{int(r.get('hype_count') or 0)} | "
-                f"{int(r.get('risk_flag_count') or 0)} | "
+                f"{_fmt(r.get('hype_count'), nd=0)} | "
+                f"{_fmt(r.get('risk_flag_count'), nd=0)} | "
                 f"{'、'.join(tags_map.get(r['ts_code'], [])) or '—'} | "
                 f"{_fmt(r.get('composite'))} |")
         lines += ["", "## Top 12 深析", ""]
         for _, r in snap.sort_values("rank").head(12).iterrows():
             lines += [
-                f"### {int(r['rank'])}. {r['ts_code']} {r.get('name') or ''}"
-                f"({r.get('industry') or '—'}) 涨幅 {_fmt(r.get('pct_chg'))}%",
+                f"### {int(r['rank'])}. {r['ts_code']} {_text(r.get('name'))}"
+                f"({_text(r.get('industry')) or '—'}) 涨幅 {_fmt(r.get('pct_chg'))}%",
                 "",
                 f"- 位置: 250日分位 {_fmt(r.get('pos_250d'), pct=True)}"
                 f"(MA60 {_fmt(r.get('dist_ma60'), pct=True)}"
@@ -87,7 +96,7 @@ def render_full_report(day: str, out: dict, *, out_dir: Path | None = None) -> P
                 + (" [ST]" if r.get("is_st") else ""),
                 f"- 资金: 超大单净额 {_fmt(r.get('elg_net_d0'), nd=0)} 万,"
                 f"5日大单+超大单 {_fmt(r.get('lg_net_5d'), nd=0)} 万,"
-                f"连续净流入 {int(r.get('consec_net_days') or 0)} 天,"
+                f"连续净流入 {_fmt(r.get('consec_net_days'), nd=0)} 天,"
                 f"净流入/成交额 {_fmt(r.get('net_ratio_d0'), pct=True)}",
                 f"- 筹码: 成本中枢 {_fmt(r.get('weight_avg'))},"
                 f"主力低位筹码 {_fmt(r.get('cost_5pct'))},"
@@ -125,7 +134,7 @@ def render_pattern_report(day: str, out: dict, *, out_dir: Path | None = None) -
             "|" + "---|" * 13]
         for _, r in merged.iterrows():
             lines.append(
-                f"| {r['ts_code']} | {r.get('name') or ''} | "
+                f"| {r['ts_code']} | {_text(r.get('name'))} | "
                 f"{_fmt(r.get('pct_chg'))} | "
                 f"{r['boom_date']}(+{_fmt(r.get('boom_pct'))}%) | "
                 f"{_fmt(r.get('boom_vol_ratio'))}× | "
@@ -133,13 +142,13 @@ def render_pattern_report(day: str, out: dict, *, out_dir: Path | None = None) -
                 f"{r['pullback_depth']:.1%} | {r['vol_decay']:.0%} | "
                 f"{_fmt(r.get('plateau_high'), nd=2)} | "
                 f"+{r['breakout_pct']:.1%} | "
-                f"{int(r.get('hype_count') or 0)} | "
-                f"{int(r.get('risk_flag_count') or 0)} | "
+                f"{_fmt(r.get('hype_count'), nd=0)} | "
+                f"{_fmt(r.get('risk_flag_count'), nd=0)} | "
                 f"{_fmt(r.get('composite'))} |")
         lines += ["", "## 观察卡(两路径,事前不判别)", ""]
         for _, r in merged.iterrows():
             lines += [
-                f"### {r['ts_code']} {r.get('name') or ''}",
+                f"### {r['ts_code']} {_text(r.get('name'))}",
                 f"- 路径①回抽平台确认: 观察位 {_fmt(r.get('plateau_high'), nd=2)}"
                 f"(平台高点),缩量回抽企稳可关注",
                 "- 路径②直接续涨不回抽: 更强",

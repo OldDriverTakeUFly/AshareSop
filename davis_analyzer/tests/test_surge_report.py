@@ -65,3 +65,26 @@ def test_pattern_report_hits(tmp_path, monkeypatch):
     text = p.read_text(encoding="utf-8")
     assert "1 只" in text and "路径①" in text and "路径②" in text
     assert "10.50" in text
+
+
+def test_full_report_nan_row_renders(tmp_path, monkeypatch):
+    """健壮性审查C2: consec_net_days/industry 为 NaN 不崩溃不泄漏 'nan'."""
+    import math
+    monkeypatch.setattr(report, "SURGE_REPORTS_DIR", tmp_path)
+    snap = pd.DataFrame([{
+        "ts_code": "920298.BJ", "name": "北交所股", "industry": math.nan,
+        "pct_chg": 30.0, "dist_ma60": 0.1, "dist_ma250": 0.2,
+        "dd_high_250": -0.1, "elg_net_d0": math.nan, "lg_net_5d": math.nan,
+        "net_ratio_d0": math.nan, "consec_net_days": math.nan,
+        "winner_rate": math.nan, "winner_delta_5d": math.nan,
+        "cost_5pct": math.nan, "weight_avg": math.nan,
+        "resistance_price": math.nan, "resistance_dist": math.nan,
+        "support_price": math.nan, "support_dist": math.nan,
+        "hype_tags": "[]", "risk_flags": "[]",
+        "hype_count": math.nan, "risk_flag_count": math.nan,
+        "composite": 40.0, "rank": 1, "is_new": 1, "is_st": 0}])
+    p = report.render_full_report("20260918", _out(snap))
+    text = p.read_text(encoding="utf-8")
+    assert "920298.BJ" in text
+    assert "nan" not in text  # 无 NaN 泄漏文本
+    assert "—" in text

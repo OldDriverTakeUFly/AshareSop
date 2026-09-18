@@ -71,3 +71,15 @@ def test_read_cyq_lookback(mem_conn):
         chips._insert(mem_conn, df)
     got = chips.read_cyq(mem_conn, ["000001.SZ"], "20260918", lookback=2)
     assert set(got["trade_date"]) == {"20260911", "20260918"}
+
+
+def test_ensure_cyq_network_exception_falls_back(mem_conn):
+    """健壮性审查C1: 网络异常≠崩溃,按当日未出走回退."""
+    pro0 = FakePro({"20260917": _df("20260917", 60.0)})
+    chips.ensure_cyq(mem_conn, pro0, "20260917")
+
+    class ExplodingPro:
+        def cyq_perf(self, **kw):
+            raise RuntimeError("tushare timeout")
+
+    assert chips.ensure_cyq(mem_conn, ExplodingPro(), "20260918") == "20260917"

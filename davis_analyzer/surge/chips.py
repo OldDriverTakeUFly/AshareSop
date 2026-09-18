@@ -65,7 +65,11 @@ def ensure_cyq(conn: sqlite3.Connection, pro, day: str) -> str:
     day = db.normalize_date(day)
     if _has_date(conn, day):
         return day
-    n = _insert(conn, fetch_cyq_by_date(pro, day))
+    try:
+        n = _insert(conn, fetch_cyq_by_date(pro, day))
+    except Exception as e:  # 健壮性审查C1:网络异常≠崩溃,按"当日未出"走回退
+        logger.warning("cyq_perf {} 拉取异常(走回退): {}", day, e)
+        n = 0
     if n >= _FULL_DAY_MIN_ROWS:
         logger.info("cyq_perf {} 拉取 {} 行", day, n)
         return day

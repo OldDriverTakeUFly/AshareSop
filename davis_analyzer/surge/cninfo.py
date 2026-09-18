@@ -17,7 +17,7 @@ from loguru import logger
 from davis_analyzer.constants import MAJOR_EVENT_RULES
 from davis_analyzer.surge import db
 
-_BASE = "http://www.cninfo.com.cn"
+_BASE = "https://www.cninfo.com.cn"  # 2026-09-18 安全审查:明文HTTP改HTTPS
 _HEADERS = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36"}
 _COMPILED = [(r["event_type"], r["direction"], re.compile(r["pattern"]))
              for r in MAJOR_EVENT_RULES]
@@ -52,7 +52,8 @@ def fetch_org_id(session: requests.Session, code: str) -> str | None:
     try:
         r = session.post(f"{_BASE}/new/information/topSearch/query",
                          data={"keyWord": code, "maxNum": "10"},
-                         headers=_HEADERS, timeout=10)
+                         headers=_HEADERS, timeout=10,
+                         allow_redirects=False)
         rows = r.json()
         return rows[0]["orgId"] if rows else None
     except Exception as e:  # 网页API防御:单点失败不阻塞整批
@@ -75,7 +76,8 @@ def fetch_announcements(
                       "tabName": "fulltext", "stock": f"{code},{org_id}",
                       "searchkey": "", "seDate": f"{start_dash}~{end_dash}",
                       "isHLtitle": "true"},
-                headers=_HEADERS, timeout=15)
+                headers=_HEADERS, timeout=15,
+                allow_redirects=False)
             d = r.json()
             assert isinstance(d, dict) and "announcements" in d, "响应结构变更"
         except Exception as e:
@@ -83,13 +85,17 @@ def fetch_announcements(
             return None if page == 1 else out  # 首页失败=整股失败
         anns = d.get("announcements") or []
         for a in anns:
-            ts = a.get("announcementTime")
-            if not ts:
-                continue
-            out.append({
-                "ann_date": datetime.fromtimestamp(ts / 1000).strftime("%Y%m%d"),
-                "title": re.sub(r"</?em>", "", a.get("announcementTitle") or ""),
-            })
+            try:
+                ts = a.get("announcementTime")
+                if not ts:
+                    continue
+                out.append({
+                    "ann_date": datetime.fromtimestamp(ts / 1000).strftime("%Y%m%d"),
+                    "title": re.sub(r"</?em>", "", a.get("announcementTitle") or ""),
+                })
+            except (TypeError, ValueError, OSError) as e:
+                # 单条畸形记录跳过(安全审查A2:不放大为整股/整批降级)
+                logger.warning("cninfo ann {} 单条解析失败: {!r}", code, e)
         if len(anns) < 30:
             break
         time.sleep(_RATE_LIMIT_S)
@@ -144,8 +150,8 @@ def sync_cninfo(
                      "cninfo", now))
                 stats["events"] += 1
         stats["ok"] += 1
+        conn.commit()  # 健壮性审查I1:每股一提交,锁持有毫秒级(防与19:35/19:40 timer写锁互斥)
         time.sleep(_RATE_LIMIT_S)
-    conn.commit()
     logger.info("cninfo sync {} 股: ok={} fail={} events={}",
                 len(ts_codes), stats["ok"], stats["fail"], stats["events"])
     return stats

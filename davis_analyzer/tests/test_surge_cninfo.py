@@ -73,7 +73,7 @@ class FakeSession:
         self.responses = list(responses)
         self.requests: list[tuple] = []
 
-    def post(self, url, data=None, headers=None, timeout=None):
+    def post(self, url, data=None, headers=None, timeout=None, **kw):
         self.requests.append((url, dict(data or {})))
         item = self.responses.pop(0)
         if isinstance(item, Exception):
@@ -133,3 +133,15 @@ def test_sync_cninfo_org_fail_degrades(mem_conn):
     s = FakeSession([RuntimeError("down")])
     stats = cninfo.sync_cninfo(mem_conn, ["000009.SZ"], "20260918", session=s)
     assert stats["fail"] == 1 and stats["ok"] == 0
+
+
+def test_fetch_announcements_skips_malformed_record():
+    """安全审查A2: 单条畸形 announcementTime 跳过,不影响其余公告."""
+    page = {"announcements": [
+        {"announcementTitle": "公告A", "announcementTime": 1756684800000},
+        {"announcementTitle": "坏记录", "announcementTime": "not-a-ts"},
+        {"announcementTitle": "公告B", "announcementTime": 1756500000000}]}
+    s = FakeSession([page])
+    anns = cninfo.fetch_announcements(s, "000001", "gssz0000001",
+                                      "2026-07-01", "2026-09-18")
+    assert [a["title"] for a in anns] == ["公告A", "公告B"]
