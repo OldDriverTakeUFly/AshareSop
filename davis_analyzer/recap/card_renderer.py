@@ -25,7 +25,7 @@ body{margin:0;font-family:'PingFang SC','Noto Sans SC',sans-serif;background:tra
 .breadth{display:flex;gap:28px;margin-top:48px}
 .bcard{flex:1;background:#16233c;border-radius:24px;padding:34px;text-align:center}
 .bnum{font-size:66px;font-weight:800}.blab{font-size:32px;color:#8fa3c0;margin-top:8px}
-.footer{position:absolute;bottom:60px;left:60px;right:60px;font-size:28px;color:#63748f}
+.footer{position:absolute;bottom:210px;left:60px;right:60px;font-size:28px;color:#63748f}
 .stockcard{width:1080px;height:420px;box-sizing:border-box;padding:40px 56px;
   background:linear-gradient(90deg,#101a30ee,#0b1220ee);color:#eef2f8;
   display:flex;flex-direction:column;justify-content:center}

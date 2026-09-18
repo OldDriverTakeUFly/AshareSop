@@ -20,8 +20,8 @@ def test_setpts_speed_formula():
 
 
 def test_overlay_geometry():
-    # 1080p 合成层:卡片缩放后 420 高,底部留 120 → y = 1920-420-120
-    assert pc.overlay_y(video_h=1920, card_h=420, margin=120) == 1380
+    # 1080p 合成层:卡片缩放后 420 高,底部留 230 避开字幕带(1780-1860) → y = 1920-420-230
+    assert pc.overlay_y(video_h=1920, card_h=420, margin=230) == 1270
 
 
 def test_build_burn_ass_video_timeline():

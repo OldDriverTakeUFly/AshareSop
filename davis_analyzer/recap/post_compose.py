@@ -78,8 +78,9 @@ def build_burn_ass(timings: list[dict]) -> tuple[str, float]:
         by_seg[t["seg_id"]].append(t)
 
     def ts(sec: float) -> str:
+        # ASS 时间 H:MM:SS.CC(厘秒):秒=cs//100,厘秒=cs%100(勿照抄毫秒分母)
         cs = int(round(sec * 100))
-        return f"{cs // 360000}:{cs % 360000 // 60000:02d}:{cs % 60000 // 1000:02d}.{cs % 100:02d}"
+        return f"{cs // 360000}:{cs % 360000 // 6000:02d}:{cs % 6000 // 100:02d}.{cs % 100:02d}"
 
     events: list[str] = []
     seg_start = 0.0
@@ -123,7 +124,7 @@ def _stock_clip(clip: Path, card_png: Path, seg_audio: Path, out: Path,
         f"[0:v]setpts=PTS/{sp:.4f},scale=-2:{H}[fg];"
         f"[bg][fg]overlay={fg_x}:0[m];"
         f"[2:v]scale={W}:-2[card];"
-        f"[m][card]overlay=0:{overlay_y(H, 420, 120)},format=yuv420p[v]"
+        f"[m][card]overlay=0:{overlay_y(H, 420, 230)},format=yuv420p[v]"
     )
     _run([ffmpeg(), "-y", "-i", str(clip), "-i", str(seg_audio),
           "-i", str(card_png), "-filter_complex", vf,
