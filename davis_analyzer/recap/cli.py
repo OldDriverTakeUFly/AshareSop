@@ -141,10 +141,21 @@ def cmd_sheet(args) -> None:
     _do_sheet(args.date, ep, cands)
 
 
-def cmd_audio(args) -> None:   # Task 8 实现
+def cmd_audio(args) -> None:   # Task 8 实现 + Task 10 视觉质检闸
     from davis_analyzer.recap.audio_pack import make_pack
+    from davis_analyzer.recap import card_renderer, vision_qc
     out = make_pack(args.date)
+    cards = card_renderer.render_cards(args.date)
+    rep = vision_qc.qc_dir(out / "cards")
+    import json as _json
+    (out / "视觉质检.json").write_text(_json.dumps(rep, ensure_ascii=False, indent=2),
+                                       encoding="utf-8")
     print(f"audio: 原料包 → {out}")
+    print(f"视觉质检: {'通过' if rep['pass'] else '发现问题,见 原料包/视觉质检.json'}")
+    if not rep["pass"]:
+        for f in rep["frames"]:
+            if not f["pass"]:
+                print(f"  ✗ {f['file']}: {'; '.join(f['issues'][:3])}")
 
 
 def cmd_post(args) -> None:    # 二期(Task 11)实现
