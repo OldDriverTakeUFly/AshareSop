@@ -688,7 +688,7 @@
       "id": "temp_dev_d1",
       "value": 16.2,
       "unit": "℃",
-      "display": "单日+16.2",
+      "display": "16.2℃",
       "as_of": "2026-09-18",
       "source": {
         "kind": "thermometer",

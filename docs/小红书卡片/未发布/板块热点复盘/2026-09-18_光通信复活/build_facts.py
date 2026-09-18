@@ -102,7 +102,7 @@ prev = md.execute(
 add("temp_dev_prev", round(prev, 1), "℃", f"{prev:.1f}℃", "thermometer",
     "market_data.db:thermometer_sector@20260917:通信设备:temperature")
 dev_today = [f for f in facts if f["id"] == "temp_dev"][0]["value"]
-add("temp_dev_d1", round(float(dev_today) - prev, 1), "℃", f"单日+{float(dev_today) - prev:.1f}", "thermometer",
+add("temp_dev_d1", round(float(dev_today) - prev, 1), "℃", f"{float(dev_today) - prev:.1f}℃", "thermometer",
     "calc:temp(20260918)-temp(20260917) thermometer_sector:通信设备")
 
 # ── 催化(web,高盛/美股) ──
