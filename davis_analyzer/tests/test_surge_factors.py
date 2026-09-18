@@ -58,8 +58,8 @@ def _mf(elg_nets: list[float], net_mf=None):
         "trade_date": [f"d{i:03d}" for i in range(n)],
         "buy_lg_amount": [0.0] * n,
         "sell_lg_amount": [0.0] * n,
-        "buy_elg_amount": [abs(x) for x in elg_nets],
-        "sell_elg_amount": [0.0] * n,
+        "buy_elg_amount": [max(x, 0.0) for x in elg_nets],
+        "sell_elg_amount": [max(-x, 0.0) for x in elg_nets],
         "net_mf_amount": net_mf if net_mf is not None else [float(x) for x in elg_nets],
     })
 
@@ -72,7 +72,7 @@ def test_moneyflow_units_and_streak():
     assert r["lg_net_5d"] == 500.0 + 400.0 + 300.0 + 200.0 - 50.0  # tail(5)=-50,200,300,400,500
     # net_ratio: 500万元 / (1000千元×10=10000万元) = 0.05
     assert abs(r["net_ratio_d0"] - 0.05) < 1e-9
-    assert r["consec_net_days"] == 3
+    assert r["consec_net_days"] == 4  # 500,400,300,200 连续正,-50 截断
 
 
 def test_moneyflow_empty_nan():
