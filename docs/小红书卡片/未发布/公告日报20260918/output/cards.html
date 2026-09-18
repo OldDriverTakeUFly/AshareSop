@@ -1,0 +1,75 @@
+<!DOCTYPE html><html lang='zh-CN'><head><meta charset='UTF-8'><style>  * { margin:0; padding:0; box-sizing:border-box; font-family:'Noto Sans CJK SC','PingFang SC','Microsoft YaHei',sans-serif; }
+  body { background:#e8e8e8; display:flex; flex-direction:column; align-items:center; gap:40px; padding:40px 0; }
+  .card { width:1080px; height:1440px; border-radius:48px; position:relative; overflow:hidden; padding:48px 56px; display:flex; flex-direction:column; }
+  .card1 { background:linear-gradient(160deg,#1a1440 0%,#3b1d6e 45%,#8a2be2 100%); color:#fff; }
+  .card2 { background:#fdf6ec; color:#3a2e20; }
+  .card3 { background:#eef4ff; color:#1e2a44; }
+  .card4 { background:#fff1f0; color:#4a1f1c; }
+  .card5 { background:#f0fbf2; color:#1d3a24; }
+  .card6 { background:#f7f3ff; color:#2e2440; }
+  .tag-top { display:inline-block; background:#ff2442; color:#fff; font-size:30px; font-weight:900; padding:12px 30px; border-radius:999px; letter-spacing:2px; width:fit-content; }
+  .badge { display:inline-block; font-size:26px; font-weight:800; padding:8px 22px; border-radius:999px; margin-right:12px; }
+  .b-purple{background:rgba(138,43,226,.18);color:#6b21a8;} .b-blue{background:rgba(37,99,235,.14);color:#1d4ed8;}
+  .b-red{background:rgba(220,38,38,.12);color:#b91c1c;} .b-green{background:rgba(22,163,74,.14);color:#15803d;}
+  .b-org{background:rgba(234,88,12,.15);color:#c2410c;} .b-gray{background:rgba(0,0,0,.07);color:#555;}
+  h1 { font-size:96px; font-weight:900; line-height:1.18; margin:28px 0 10px; letter-spacing:1px; }
+  .sub { font-size:42px; font-weight:700; opacity:.92; line-height:1.5; }
+  .hl { background:linear-gradient(transparent 62%, rgba(255,210,0,.85) 62%); padding:0 6px; }
+  .hl-r { background:linear-gradient(transparent 62%, rgba(255,77,109,.55) 62%); padding:0 6px; }
+  .big-num { font-size:150px; font-weight:900; line-height:1; letter-spacing:-2px; }
+  h2.title { font-size:56px; font-weight:900; margin-bottom:8px; line-height:1.25; }
+  .subtitle { font-size:30px; font-weight:600; opacity:.65; margin-bottom:24px; }
+  .row { background:#fff; border-radius:28px; padding:20px 28px; margin-bottom:16px; box-shadow:0 6px 24px rgba(0,0,0,.06); }
+  .row .name { font-size:36px; font-weight:900; margin-bottom:8px; display:flex; align-items:center; gap:14px; flex-wrap:wrap;}
+  .row .desc { font-size:26px; line-height:1.48; }
+  .dot { width:24px; height:24px; border-radius:50%; display:inline-block; }
+  table { width:100%; border-collapse:separate; border-spacing:0; background:#fff; border-radius:26px; overflow:hidden; font-size:26px; box-shadow:0 6px 24px rgba(0,0,0,.06); }
+  th { background:#2a2050; color:#fff; font-weight:800; padding:16px 12px; font-size:25px; }
+  td { padding:14px 12px; text-align:center; border-bottom:1px solid #f0ecf5; line-height:1.35; }
+  td.l { text-align:left; font-weight:800; }
+  tr:last-child td { border-bottom:none; }
+  .up{color:#dc2626;font-weight:800;} .down{color:#16a34a;font-weight:800;} .warn{color:#d97706;font-weight:800;}
+  .kbox { background:#fff; border-radius:26px; padding:20px 28px; margin-bottom:14px; box-shadow:0 6px 24px rgba(0,0,0,.06); display:flex; gap:20px; align-items:flex-start; }
+  .kdate { min-width:165px; background:#16a34a; color:#fff; font-weight:900; font-size:27px; border-radius:16px; text-align:center; padding:12px 0; line-height:1.3;}
+  .kdate.red{background:#dc2626;} .kdate.org{background:#ea580c;} .kdate.pu{background:#7c3aed;}
+  .ktext { font-size:26px; line-height:1.48; padding-top:4px;}
+  .ktext b { font-size:27px; }
+  .quote { background:rgba(255,255,255,.14); border-left:8px solid #ffd400; border-radius:0 22px 22px 0; padding:22px 26px; font-size:30px; line-height:1.55; font-weight:600; }
+  .foot { margin-top:auto; font-size:21px; opacity:.6; line-height:1.45; }
+  .tags { font-size:25px; font-weight:700; opacity:.85; margin-top:20px; }
+  .card5 .ktext { font-size:25px; line-height:1.42; }
+  .card5 .kdate { min-width:150px; font-size:25px; }
+  .card5 .kbox { padding:16px 24px; gap:16px; margin-bottom:12px; }
+  .card5 .ktext b { font-size:26px; }
+  .card2 .row .desc { font-size:25px; line-height:1.45; }
+  .card2 .row .name { font-size:34px; }
+  .num-badge { display:flex; gap:26px; margin:34px 0 8px; }
+  .nb { background:rgba(255,255,255,.12); border-radius:26px; padding:24px 30px; flex:1; }
+  .nb .v { font-size:58px; font-weight:900; color:#ffd400; }
+  .nb .k { font-size:25px; opacity:.85; margin-top:6px; }
+</style><style class='cardgen-fill'>.card{justify-content:space-between;}.card>.foot{margin-top:0 !important;}</style></head><body><div class="card card3" id="card1">
+<span class="tag-top" style="background:#ff2442;">公告日报 · 公司行为篇</span>
+<h1>今日公告速览<br>恒瑞出手了🗳</h1>
+<div class="sub" style="margin-top:24px;">回购·定增·收购<br>动作比表态诚实</div>
+<div class="num-badge"><div class="nb"><div class="v">1170条</div><div class="k">今日全市场公告</div></div><div class="nb"><div class="v">27家</div><div class="k">回购公告组数</div></div><div class="nb"><div class="v">32家</div><div class="k">定增募资组数</div></div></div>
+<div style="margin-top:30px;"><div class="quote" style="background:rgba(255,255,255,.14);color:inherit;border-left-color:#ffd400;font-size:30px;">"<span style='color:#ffd400'>公告日报的正确打开方式</span>——不看公司说了什么,看公司拿真金白银做了什么"</div></div>
+<div class="tags">#公告解读 #回购 #定增 #恒瑞医药 #研究方法</div><div class="foot">数据来源:巨潮资讯当日公告(2026-09-18披露,PDF核实) · 仅供研究参考,不构成投资建议</div></div><div class="card card5" id="card2">
+<span class="tag-top" style="background:#16a34a;">公司回购</span>
+<h2 class="title" style="margin-top:24px;">回购:恒瑞首单落地</h2>
+<div class="subtitle">方案在手半月,真金白银开跑</div>
+<table><tr><th style=text-align:left>公司</th><th>动作与读数</th></tr><tr><td class="l">恒瑞医药</td><td class="up">首次回购落地:1450.36万元(33.5万股,占总股本0.005%),成交价43.10元/股~43.58元/股;方案区间10亿元~20亿元,价格上限81.78元/股</td></tr><tr><td class="l">红塔证券</td><td class="">注销式回购报告书:0.5亿元~1亿元,价格上限10.53元/股——股东会已批,回购完成即注销</td></tr></table>
+<div style="margin-top:30px;"><div class="kbox"><div class="kdate" style="background:#dc2626;">怎么读回购</div><div class="ktext">半个月前恒瑞方案在手、成交为零;今晚首单落地——<b>读回购永远盯成交金额,不盯方案额度</b>;用途为注销(红塔)的,含金量再高一档</div></div></div>
+<div class="foot">数据来源:巨潮资讯当日公告(2026-09-18披露,PDF核实) · 仅供研究参考,不构成投资建议</div></div><div class="card card3" id="card3">
+<span class="tag-top" style="background:#2563eb;">募资动向</span>
+<h2 class="title" style="margin-top:24px;">定增:钱去哪了</h2>
+<div class="subtitle">节余转投与发行落地</div>
+<table><tr><th style=text-align:left>公司</th><th>动作与读数</th></tr><tr><td class="l">东材科技</td><td class="">节余募资转投:10648.72万元从1亿平方米功能膜三期项目,转投1.8万吨偏光片保护基膜新项目,专户已落地</td></tr><tr><td class="l">冠昊生物</td><td class="">简易程序定增发行完成:募资0.97亿元,发行价10.22元/股</td></tr><tr><td class="l">同日落地</td><td class="">弘信电子、博世科发行情况报告书同日披露——定增落地小高峰</td></tr></table>
+<div style="margin-top:30px;"><div class="kbox"><div class="kdate" style="background:#c2410c;">怎么读募资</div><div class="ktext">募资的钱去哪了,比募了多少更重要——<b>节余资金转投新项目,是公司项目优先级变化的直接信号</b>;东材把功能膜的钱挪去做了偏光片基膜</div></div></div>
+<div class="foot">数据来源:巨潮资讯当日公告(2026-09-18披露,PDF核实) · 仅供研究参考,不构成投资建议</div></div><div class="card card6" id="card4">
+<span class="tag-top" style="background:#0f172a;">一句话收束</span>
+<h2 class="title" style="margin-top:24px;">两类公告</h2>
+<div class="subtitle">钱的两条去处</div>
+<div class="row"><div class="desc"><b>回购</b> → 盯成交不盯预案(恒瑞首单1450.36万元落地,红塔证券注销式方案获批)</div></div><div class="row"><div class="desc"><b>定增</b> → 读资金去向(东材科技节余转投偏光片基膜,冠昊生物发行完成)</div></div><div class="row"><div class="desc"><b>今日密度</b> → 全市场公告1170条:回购27家/定增募资32家/收购重组13家——回购与定增同日双旺</div></div>
+<div style="margin-top:14px;"><div class="kbox"><div class="kdate" style="background:#2563eb;">定位</div><div class="ktext">本栏目每天从公告里挑信号最强的公司行为——搬运给人信息,我们给人判断框架</div></div></div>
+<div style="margin-top:8px;"><div class="quote" style="background:rgba(124,58,237,.10);color:#2e2440;border-left-color:#ffd400;font-size:30px;">公告日报的价值不在「今天发生了什么」,在<b>「哪个动作的信号强度最高」</b>——排序就是观点</div></div>
+<div class="tags">#公告日报 #回购 #定增 #恒瑞医药 #研究方法</div><div class="foot">数据来源:巨潮资讯当日公告(2026-09-18披露,PDF核实) · 仅供研究参考,不构成投资建议。市场有风险,投资需谨慎。</div></div></body></html>
