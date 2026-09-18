@@ -8,7 +8,7 @@ from pathlib import Path
 from playwright.async_api import async_playwright
 
 BASE = Path("/home/leo/Projects/CodeAgentDashboard/docs/小红书卡片/未发布")
-PROJECTS = ["长文图卡_镍出海链", "长文图卡_碳价CBAM", "长文图卡_电解家族", "长文图卡_AI基建涨价", "长文图卡_全球龙头对照", "长文图卡_国产替代梯度"]
+PROJECTS = ["长文图卡_镍出海链", "长文图卡_碳价CBAM", "长文图卡_电解家族", "长文图卡_AI基建涨价", "长文图卡_全球龙头对照", "长文图卡_国产替代梯度", "板块热点复盘/2026-09-18_光通信复活"]
 SPLIT_THRESHOLD = 9000  # 2026-09-18 用户拍板:长度不限、内容更详细,超9000px才拆上下两张
 
 
