@@ -96,3 +96,105 @@ def detect_pattern(px: pd.DataFrame) -> dict | None:
         "plateau_days": int(PP["plateau_days"]),
         "breakout_pct": close / plateau_high - 1,
     }
+
+
+# ── 5.12 16 形态标签库(都标不互斥) ──
+
+def detect_tags(
+    px: pd.DataFrame, cyq: pd.Series | None,
+    resistance_dist: float, position: dict,
+) -> list[str]:
+    tags: list[str] = []
+    close = float(px["close"].iloc[-1])
+    open_ = float(px["open"].iloc[-1])
+    vma = _vma(px, int(PP["vma_period"]))
+    vma_today = float(vma.iloc[-1]) if pd.notna(vma.iloc[-1]) else _NAN
+    ratio = float(px["vol"].iloc[-1]) / vma_today if vma_today == vma_today and vma_today > 0 else _NAN
+    pos250 = position.get("pos_250d", _NAN)
+
+    # 位置组
+    if pos250 == pos250 and ratio == ratio:
+        if pos250 < PP["bottom_pos_max"] and ratio >= 2.0:
+            tags.append("底部放量")
+        upper_shadow = float(px["high"].iloc[-1]) - max(open_, close)
+        body = abs(close - open_)
+        crowded = bool(cyq is not None and pd.notna(cyq.get("winner_rate"))
+                       and cyq["winner_rate"] >= PP["winner_crowd"])
+        if (pos250 > PP["top_pos_min"] and ratio >= 2.0
+                and (upper_shadow >= body * 0.5 or crowded)):
+            tags.append("高位分歧")
+    if len(px) >= 120:
+        h250 = float(px["high"].tail(250).max())
+        if h250 and close >= h250 * 0.995:
+            tags.append("创新高")
+        if pos250 == pos250 and pos250 < 0.15:
+            t20 = px.tail(20)
+            drop = 1 - float(t20["low"].min()) / float(t20["high"].max())
+            if drop >= 0.25:
+                tags.append("超跌反弹")
+
+    # 突破组
+    if len(px) > int(PP["plateau_days"]):
+        plateau_high = float(px.iloc[-1 - int(PP["plateau_days"]): -1]["high"].max())
+        if close > plateau_high:
+            tags.append("平台突破")
+    if len(px) > int(PP["box_days"]):
+        box = px.iloc[-1 - int(PP["box_days"]): -1]
+        if box["low"].min() > 0:
+            box_range = float(box["high"].max()) / float(box["low"].min()) - 1
+            if box_range <= PP["box_max_range"] and close > float(box["high"].max()):
+                tags.append("箱体突破")
+    if len(px) > 121:
+        prior_high = float(px["high"].iloc[-121: -20].max())
+        if close > prior_high:
+            tags.append("前高突破")
+    if len(px) >= 2 and float(px["low"].iloc[-1]) > float(px["high"].iloc[-2]):
+        tags.append("跳空缺口")
+
+    # 量能组
+    if ratio == ratio and ratio >= PP["huge_vol_ratio"]:
+        tags.append("天量")
+    if len(px) >= 61:
+        ma20v = float(px["vol"].tail(20).mean())
+        pre20v = float(px["vol"].iloc[-40: -20].mean())
+        if (close / float(px["close"].iloc[-21]) - 1 > 0
+                and float(px["close"].tail(20).max()) >= float(px["close"].tail(60).max())
+                and ma20v < pre20v):
+            tags.append("量价背离")
+        ma5v = float(px["vol"].tail(5).mean())
+        pre5v = float(px["vol"].iloc[-10: -5].mean())
+        if (vma_today == vma_today and vma_today > 0
+                and 1.2 <= ma5v / vma_today <= 2.0 and ma5v > pre5v):
+            tags.append("温和放量")
+
+    # 筹码组
+    if cyq is not None and pd.notna(cyq.get("cost_5pct")) and pd.notna(cyq.get("cost_95pct")):
+        dense = float(cyq["cost_95pct"]) / float(cyq["cost_5pct"]) - 1
+        if len(px) >= 120:
+            lo250 = float(px["low"].tail(250).min())
+            hi250 = float(px["high"].tail(250).max())
+            wa_pos = ((float(cyq["weight_avg"]) - lo250) / (hi250 - lo250)
+                      if hi250 > lo250 and pd.notna(cyq.get("weight_avg")) else _NAN)
+            if dense <= PP["chip_dense_range"] and wa_pos == wa_pos and wa_pos < 0.40:
+                tags.append("筹码低位密集")
+        if pd.notna(cyq.get("winner_rate")) and cyq["winner_rate"] >= PP["winner_crowd"]:
+            tags.append("获利盘拥挤")
+    if resistance_dist is not None and resistance_dist == resistance_dist \
+            and resistance_dist < PP["near_resist"]:
+        tags.append("上方套牢近")
+
+    # 趋势组(MA250 不满窗时取可得均值,tail().mean() 自然降级)
+    if len(px) >= 120:
+        mas = {n: float(px["close"].tail(n).mean()) for n in (20, 60, 120, 250)}
+        if mas[20] > mas[60] > mas[120] > mas[250] and close > mas[20]:
+            tags.append("均线多头")
+    if len(px) >= 2:
+        prev = px.iloc[-2]
+        prev_yin = prev["close"] < prev["open"]
+        today_yang = close > open_
+        today_body = abs(close - open_)
+        prev_body = abs(float(prev["close"]) - float(prev["open"]))
+        if (prev_yin and today_yang and today_body >= prev_body
+                and open_ <= float(prev["close"])):
+            tags.append("大阳反包")
+    return tags
