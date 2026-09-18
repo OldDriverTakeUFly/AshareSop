@@ -141,8 +141,9 @@ def test_gap_down_becomes_resistance():
         "low": 9.5, "close": 9.8, "vol": 1000.0, "adj_factor": 1.0}])],
         ignore_index=True)
     r = compute_resistance_support(px, None)
-    # 收盘9.8;最近阻力=MA20=(18×10+11.2+9.8)/20=10.05;缺口下沿11.0在梯队(先于high_120=11.5)
-    assert abs(r["resistance_price"] - 10.05) < 1e-6
+    # 收盘9.8;最近阻力=MA120=(118×10+11.2+9.8)/120≈10.0083(MA120比MA20均值更低更近);
+    # 缺口下沿11.0在梯队(先于high_120=11.5)
+    assert abs(r["resistance_price"] - 10.008333333333) < 1e-6
     assert "gap_down" in r["resistance_ladder"]
     lad = r["resistance_ladder"]
     assert lad.index("gap_down") < lad.index("high_120d")  # 缺口档位先于滚动高点
