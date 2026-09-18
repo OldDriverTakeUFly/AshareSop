@@ -82,14 +82,17 @@ def seg_audio_files(pack: Path, seg_id: str) -> list[Path]:
 
 def _stock_clip(clip: Path, card_png: Path, seg_audio: Path, out: Path,
                 need: float) -> Path:
+    """素材段:变速对齐 + 等比适配(不裁内容:高缩放到 1920,不足 1080 宽处模糊底填充,
+    手机录屏常为 9:20 等长条比例,crop 填满会吃掉上下盘口)+ 底部数据卡叠层。"""
     dur = audio_duration(clip)
     sp = speed_factor(dur, need + _PAD_TAIL)
-    # card 是 2160 宽(dsf=2 渲染),滤镜内缩到 1080 宽;叠底部留 120px
     vf = (
         f"[0:v]setpts=PTS/{sp:.4f},scale={W}:{H}:force_original_aspect_ratio=increase,"
-        f"crop={W}:{H},setsar=1,fps=30[v0];"
+        f"crop={W}:{H},gblur=sigma=22,eq=brightness=-0.06[bg];"
+        f"[0:v]setpts=PTS/{sp:.4f},scale=-2:{H}[fg];"
+        f"[bg][fg]overlay=(ow-iw)/2:(oh-ih)/2[m];"
         f"[2:v]scale={W}:-2[card];"
-        f"[v0][card]overlay=0:{overlay_y(H, 420, 120)}:shortest=0,format=yuv420p[v]"
+        f"[m][card]overlay=0:{overlay_y(H, 420, 120)},format=yuv420p[v]"
     )
     _run([ffmpeg(), "-y", "-i", str(clip), "-i", str(seg_audio),
           "-i", str(card_png), "-filter_complex", vf,
@@ -101,12 +104,12 @@ def _stock_clip(clip: Path, card_png: Path, seg_audio: Path, out: Path,
 
 
 def _board_clip(board_png: Path, seg_audio: Path, out: Path) -> Path:
-    """比分牌静态段:图+音轨(轻微推近,与 cardgen.video Ken Burns 同思路),统一 30fps。"""
+    """比分牌静态段:整卡完整呈现+淡入淡出(不做推拉——首跑实锤 zoompan 会裁掉
+    footer 免责文字,信息完整性优先于动感)。"""
     need = audio_duration(seg_audio) + _PAD_TAIL
-    frames = max(1, int(need * 30))
     vf = (f"[0:v]scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},"
-          f"zoompan=z='min(zoom+0.0003,1.05)':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)'"
-          f":d={frames}:s={W}x{H}:fps=30,format=yuv420p[v]")
+          f"fps=30,format=yuv420p,"
+          f"fade=t=in:st=0:d=0.4,fade=t=out:st={max(0.0, need - 0.4):.2f}:d=0.4[v]")
     _run([ffmpeg(), "-y", "-loop", "1", "-t", f"{need:.2f}", "-i", str(board_png),
           "-i", str(seg_audio), "-filter_complex", vf, "-map", "[v]", "-map", "1:a",
           "-c:v", "libx264", "-preset", "fast", "-crf", "22", "-r", "30",
