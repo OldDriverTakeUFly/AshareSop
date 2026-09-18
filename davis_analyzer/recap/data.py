@@ -94,6 +94,8 @@ def fetch_bundle(day_dash: str) -> dict:
                 (day_compact, *INDEX_CODES)):
             index.append({"code": code, "name": INDEX_NAMES[code],
                           "close": float(close), "pct_chg": float(pct)})
+        if not index:
+            raise DailyDataMissing(f"{day_dash} 缺 index_daily(当日日线刷新未完成?)")
         amp = [{"ts_code": r[0], "amplitude_pct": float(r[1])} for r in mcon.execute(
             "SELECT ts_code, ROUND((high-low)/pre_close*100,2) AS amp FROM daily_price "
             "WHERE trade_date=? AND pre_close>0 AND high>0 "

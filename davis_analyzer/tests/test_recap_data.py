@@ -100,3 +100,16 @@ def test_missing_pool_raises(tmp_path, monkeypatch):
     monkeypatch.setattr(data, "market_db_path", lambda: mk)
     with pytest.raises(data.DailyDataMissing):
         data.fetch_bundle("2026-09-18")
+
+
+def test_missing_index_raises(tmp_path, monkeypatch):
+    sh, mk = tmp_path / "s.db", tmp_path / "m.db"
+    _mk_stockhot_db(sh)
+    _mk_market_db(mk)
+    con = sqlite3.connect(mk)
+    con.execute("DELETE FROM index_daily")
+    con.commit(); con.close()
+    monkeypatch.setattr(data, "stockhot_db_path", lambda: sh)
+    monkeypatch.setattr(data, "market_db_path", lambda: mk)
+    with pytest.raises(data.DailyDataMissing):
+        data.fetch_bundle("2026-09-18")
