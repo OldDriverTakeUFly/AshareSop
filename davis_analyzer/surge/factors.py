@@ -266,3 +266,57 @@ def check_consecutive_loss(income_rows: list[tuple[str, dict]]) -> bool:
     if v_latest is None:
         return False
     return all(v < 0 for v in vals) and v_latest < 0
+
+
+# ── 5.10 综合分 ──
+
+def _clip01(x: float) -> float:
+    return 0.0 if x != x or x < 0 else (1.0 if x > 1 else x)  # NaN→0
+
+
+def compute_composite(
+    *, money: dict, chips: dict, winner: dict, position: dict, rs: dict,
+    hype: list[str], risk: list[str],
+) -> float:
+    """各维 0~100 加权(SURGE_WEIGHTS 单一真相源);NaN 安全."""
+    from davis_analyzer.constants import SURGE_WEIGHTS as W
+
+    def s_money() -> float:
+        r = _clip01(money.get("net_ratio_d0", _NAN) / 0.15)
+        s = _clip01(money.get("consec_net_days", 0) / 5.0)
+        n5 = money.get("lg_net_5d", _NAN)
+        v = _clip01(n5 / 30000.0) if n5 == n5 else 0.0
+        return 100 * (0.4 * r + 0.3 * s + 0.3 * v)
+
+    def s_chips() -> float:
+        wa = chips.get("weight_avg", _NAN)
+        c50 = chips.get("cost_50pct", _NAN)
+        if wa != wa:
+            return 50.0
+        profit = wa / c50 - 1 if (c50 == c50 and c50 > 0) else 0.0
+        return 100 * _clip01((profit + 0.10) / 0.30)
+
+    def s_winner() -> float:
+        wr = winner.get("winner_rate", _NAN)
+        if wr != wr:
+            return 50.0
+        if 20 <= wr <= 60:
+            return 100.0
+        return 100 - (wr - 60) * 2.0 if wr > 60 else wr / 20 * 100
+
+    def s_position() -> float:
+        p = position.get("pos_250d", _NAN)
+        if p != p:
+            return 50.0
+        return 100 * (1 - abs(p - 0.35) / 0.65)  # 0.35 分位最优先验
+
+    def s_rs() -> float:
+        d = rs.get("resistance_dist", _NAN)
+        return 100 * _clip01(d / 0.20) if d == d else 50.0
+
+    total = (W["money"] * s_money() + W["chips"] * s_chips()
+             + W["winner"] * s_winner() + W["position"] * s_position()
+             + W["resist_support"] * s_rs()
+             + W["hype"] * min(100.0, 25.0 * len(hype))
+             + W["risk"] * max(0.0, 100.0 - 20.0 * len(risk)))
+    return float(max(0.0, min(100.0, total)))
