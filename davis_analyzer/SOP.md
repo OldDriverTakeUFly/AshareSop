@@ -360,3 +360,10 @@ python -m davis_analyzer.cli deep-research --top N
 - 验收线 `THERMOMETER_CALIBRATION_TARGETS`：样本外 walk-forward rank IC ≥ 0.03 且 ICIR ≥ 0.25，五分位 top-bottom 10 日价差单边 p < 0.05。
 
 温度合成路径：子指标 → 当日横截面 z（clip ±3）→ 族内水平/斜率加权 → 族间加权 composite_z → 截面百分位 ×100。**温度只测温不决策**；权重为单一真相源（`constants.py`，运行时禁止修改），校准依据见 `thermometer/reports/` 校准报告，未达验收线禁止部署评分入口（spec §8.4）。
+
+## Surge 涨幅筛选子系统（2026-09-18）
+
+- 九维综合分权重 `SURGE_WEIGHTS`（先验值，未校准）：money: 0.20 / chips: 0.15 / winner: 0.10 / position: 0.10 / resist_support: 0.10 / hype: 0.20 / risk: 0.15。
+- 形态副本筛选（C1 量能纪律/C2 回调结构/C3 平台突破）与 16 形态标签参数见 `constants.py` `PATTERN_PARAMS`（冻结先验）。
+- 巨潮公告事件归类规则见 `constants.py` `MAJOR_EVENT_RULES`（原始层 `cninfo_announcement` 全量留存，规则层 `major_events` 可重放重建）。
+- 口径冻结于 spec `docs/superpowers/specs/2026-09-18-surge-screener-design.md`；快照纯度纪律：`surge_snapshot` 禁落未来信息列。

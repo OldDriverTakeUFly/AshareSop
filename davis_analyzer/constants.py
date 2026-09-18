@@ -347,3 +347,54 @@ RECAP_DRAMA_WEIGHTS: dict[str, float] = {
     "lhb_listed": 15.0,        # 上龙虎榜=球星对位入场
     "lhb_big_broker": 10.0,    # 席位净额>1亿=巨星对决
 }
+
+# ── surge 子系统权重与参数(spec 2026-09-18,先验未校准;单一真相源,勿运行时修改)──
+
+# 九维综合分权重(spec §5.10,和为1)
+SURGE_WEIGHTS: dict[str, float] = {
+    "money": 0.20,           # 资金流入
+    "chips": 0.15,           # 主力筹码价格
+    "winner": 0.10,          # 获利盘
+    "position": 0.10,        # 相对位置
+    "resist_support": 0.10,  # 压力支撑(压力距离单向)
+    "hype": 0.20,            # 炒作预期
+    "risk": 0.15,            # 扫雷(倒扣)
+}
+
+# 形态副本筛选与16标签参数(spec §5.11/§5.12)
+PATTERN_PARAMS: dict[str, float | int] = {
+    "vma_period": 120,            # 均量周期
+    "vol_window": 15,             # C1 回看交易日数(不含今日)
+    "vol_max_below_streak": 2,    # C1 低于VMA最长连续容忍(3天淘汰)
+    "boom_lookback_min": 5,       # C2 放量阳回看下界(日前)
+    "boom_lookback_max": 20,      # C2 放量阳回看上界(日前)
+    "boom_pct_min": 4.0,          # C2 放量阳最小涨幅%
+    "boom_vol_ratio": 2.0,        # C2 放量阳量比(×VMA)
+    "pullback_depth_max": 0.15,   # C2 高点回撤上限
+    "vol_decay_ratio": 0.70,      # C2 后半窗均量/前半窗均量上限(量越来越小)
+    "plateau_days": 20,           # C3 平台窗口(不含今日)
+    "box_days": 60,               # 标签:箱体窗口
+    "box_max_range": 0.25,        # 标签:箱体最大振幅
+    "bottom_pos_max": 0.25,       # 标签:底部放量位置上限
+    "top_pos_min": 0.80,          # 标签:高位分歧位置下限
+    "huge_vol_ratio": 5.0,        # 标签:天量倍数
+    "winner_crowd": 85.0,         # 标签:获利盘拥挤%
+    "chip_dense_range": 0.30,     # 标签:筹码低位密集(95/5-1上限)
+    "near_resist": 0.03,          # 标签:上方套牢近
+    "event_window": 90,           # corp_event 回看自然日
+    "major_event_window": 180,    # major_events 回看自然日
+}
+
+# 巨潮公告规则(spec §4.1,冻结先验;列表顺序即匹配优先级,ma_halt须先于ma)
+MAJOR_EVENT_RULES: list[dict] = [
+    {"event_type": "ma_halt", "direction": "negative",
+     "pattern": r"终止.*(重组|发行|购买|资产重组)"},
+    {"event_type": "ma", "direction": "positive",
+     "pattern": r"重大资产重组|发行股份.{0,12}购买资产|吸收合并|重大资产购买"},
+    {"event_type": "divest", "direction": "neutral",
+     "pattern": r"重大资产出售|出售.{0,10}股权|转让控股权"},
+    {"event_type": "refinance", "direction": "negative",
+     "pattern": r"向特定对象发行股票|非公开发行"},
+    {"event_type": "distress", "direction": "negative",
+     "pattern": r"立案|警示函|监管函|问询函|关注函|处罚|诉讼|仲裁|商誉减值|终止上市"},
+]

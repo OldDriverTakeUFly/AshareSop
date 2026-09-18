@@ -194,3 +194,28 @@ class TestConstantsInvariants:
     def test_prosperity_weights_sum_to_one(self) -> None:
         total = sum(constants.PROSPERITY_WEIGHTS.values())
         assert abs(total - 1.0) < 1e-9, f"PROSPERITY_WEIGHTS sum to {total}"
+
+
+# ── Surge subsystem (2026-09-18 spec) ────────────────────────────────────────
+
+def test_surge_weights_documented_and_sum_to_one(docs) -> None:
+    """SURGE_WEIGHTS 每键值须在 SOP 文档化,权重和为 1."""
+    for key, value in constants.SURGE_WEIGHTS.items():
+        documented = _weight_values(docs["sop"], key)
+        assert documented, f"SOP.md 未文档化 SURGE_WEIGHTS.{key}"
+        assert float(value) in documented, (
+            f"SOP.md 中 {key} 值 {documented} 与 constants {value} 不一致")
+
+    assert abs(sum(constants.SURGE_WEIGHTS.values()) - 1.0) < 1e-9
+
+
+def test_surge_params_and_rules_registered_in_sop(docs) -> None:
+    for name in ("PATTERN_PARAMS", "MAJOR_EVENT_RULES"):
+        assert name in docs["sop"], f"SOP.md 缺少 {name} 声明"
+        assert name in dir(constants), f"constants.py 缺少 {name}"
+
+    rule_types = {r["event_type"] for r in constants.MAJOR_EVENT_RULES}
+    assert rule_types == {"ma", "divest", "refinance", "distress", "ma_halt"}
+    # ma_halt 必须排在 ma 之前(终止类优先匹配)
+    types_order = [r["event_type"] for r in constants.MAJOR_EVENT_RULES]
+    assert types_order.index("ma_halt") < types_order.index("ma")
