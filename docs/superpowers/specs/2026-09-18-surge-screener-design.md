@@ -21,6 +21,8 @@
 
 **输出形态(用户拍板)**: 全量入 SQLite 台账(九维指标每股一行),md 报告只对综合分 Top 12 做深析段落,其余以汇总表格列出。不遗漏、报告可读。
 
+**因子研究定位(2026-09-18 用户补充)**: 本系统同时是一套**待测因子库**——`surge_snapshot` 每个指标列即一个候选因子,台账持续沉淀供后续优化与有效性验证(§10)。所有外部获取的数据一律先落库再消费,原始层全量留存,规则层可由原始层重放重建。
+
 ## 2. 数据基础(全部已验证)
 
 | 数据 | 表/接口 | 覆盖(2026-09-18 核实) | 用途 |
@@ -87,6 +89,7 @@ CREATE TABLE IF NOT EXISTS surge_snapshot (
   support_price REAL, support_dist REAL,
   hype_tags TEXT,    -- JSON 数组,如 ["增持","行业动量强"]
   risk_flags TEXT,   -- JSON 数组,如 ["减持","行业下行"]
+  hype_count INTEGER, risk_flag_count INTEGER,  -- 数值化(因子验证用,综合分中间量)
   composite REAL, rank INTEGER,
   fetched_at REAL,
   PRIMARY KEY (trade_date, ts_code));
@@ -96,13 +99,21 @@ CREATE TABLE IF NOT EXISTS surge_snapshot (
 
 快照表只存报告表格所需关键列;cost_15pct/cost_85pct 等中间量不入快照,深析段现读 cyq_perf_cache。
 
-### 4.1 个股大事库 major_events(巨潮沉淀,surge 自管)
+### 4.1 个股大事库(巨潮沉淀,surge 自管;原始层+规则层两级)
 
 ```sql
+-- 原始层: 巨潮拉取的公告标题全量落库(含未命中任何规则的,因子研发的原始素材)
+CREATE TABLE IF NOT EXISTS cninfo_announcement (
+  ts_code TEXT NOT NULL, ann_date TEXT NOT NULL,
+  title TEXT NOT NULL,            -- 公告原文标题(去高亮标签)
+  fetched_at REAL,
+  PRIMARY KEY (ts_code, ann_date, title));
+
+-- 规则层: 冻结规则匹配结果,可由原始层重放重建(不依赖重新请求巨潮)
 CREATE TABLE IF NOT EXISTS major_events (
   ts_code TEXT NOT NULL, ann_date TEXT NOT NULL,
   event_type TEXT NOT NULL,   -- ma/divest/refinance/distress/ma_halt
-  title TEXT,                 -- 公告原文标题(去高亮标签)
+  title TEXT,                 -- 公告原文标题
   direction TEXT,             -- positive/negative/neutral
   source TEXT,                -- 'cninfo'
   fetched_at REAL,
@@ -112,7 +123,8 @@ CREATE TABLE IF NOT EXISTS cninfo_org_map (
   ts_code TEXT PRIMARY KEY, org_id TEXT, updated_at REAL);
 ```
 
-- 拉取策略: **拉全量标题、本地规则匹配**——每日对命中池(当日 >7% 个股)按股拉近 180 日全部公告标题(分页 pageSize=30),落库后由代码内冻结规则表 `MAJOR_EVENT_RULES` 匹配归类。规则迭代只重放本地,无需重新请求巨潮;噪音可审计(未命中标题不落库,命中落原文标题)。
+- 两级设计理由: 用户定位本系统为待测因子库——MAJOR_EVENT_RULES 是先验规则,后续优化迭代规则时由 `cninfo_announcement` 重放重建 `major_events`,无需重新请求巨潮;新事件类型的研发也直接从原始层起步。
+- 拉取策略: 每日对命中池(当日 >7% 个股)按股拉近 180 日全部公告标题(分页 pageSize=30),**全量入原始层**,再由代码内冻结规则表 `MAJOR_EVENT_RULES` 匹配归类入规则层。噪音可审计(原始层可查未命中标题)。
 - `column` 参数: 沪深用 `szse`、北交用 `bj`(920xxx,实测通过);沪市返回口径实施首日验证。
 - orgId 经 topSearch 查询并缓存于 `cninfo_org_map`,避免重复调用。
 - 限速 0.2s/请求 + 失败重试 1 次;单股失败降级为「该股事件维度缺失」,不阻塞整批。
@@ -211,7 +223,7 @@ resist_support 0.10 | hype 0.20 | risk 0.15
 
 - hype 得分 = min(100, 25×命中数);risk 得分 = max(0, 100-20×命中数)
 - resist_support 得分 = 100×clip(resistance_dist/0.20, 0, 1)(压力越远上方空间越大;support_dist 只入报告不入分)
-- 台账沉淀 ≥60 交易日后可按 thermometer calibrate 模式做 IC/walk-forward 校准(本期不实施)
+- 因子验证路线见 §10(本期只落台账,calibrate 后续另立任务)
 
 ## 6. 报告
 
@@ -227,7 +239,7 @@ resist_support 0.10 | hype 0.20 | risk 0.15
 - user systemd timer `surge-run`,工作日 19:30(19:20 daily_refresh 之后,19:35 thermometer 之前空档)
 - run 流程: 筛选 >7% → 命中池巨潮拉取(约 60~204 只 × 2~4 请求,0.2s 限速 ≈ 2~4 分钟) → cyq_perf 当日按日期拉取(1 次) → 九维装配 → 入库 → 报告
 - 当日 cyq_perf 未出 → 回退最近一日缓存并在报告标注;backfill 幂等跳过已有日期
-- `backfill`: ① cyq_perf 按日期回补近 30 个交易日(winner_delta_5d 最低需 6 日,留裕量);② major_events 按指定日期的命中池重拉巨潮;可重复执行
+- `backfill`: ① cyq_perf 按日期回补近 30 个交易日(winner_delta_5d 最低需 6 日,留裕量);② major_events 按指定日期的命中池重拉巨潮;③ `--replay N` 历史截面回放:对最近 N 个交易日逐日重建 surge_snapshot(数据全部来自本地已有表+cyq_perf 按日期回补;巨潮默认**不**回放,`--with-cninfo` 显式开启且仅对回放日命中池拉取——防巨潮请求量失控);可重复执行
 - 巨潮整批失败(网络/接口变更) → 事件维度降级标注「巨潮未取到」,主流程照常出报告;巨潮接口属网页 API,字段变更风险高于 Tushare,cninfo.py 单点隔离 + 响应结构断言
 - 非交易日/当日 daily_price 未更新 → 自检退出并记 log
 - 限流: 触网仅 cyq_perf(每日 1 次)与巨潮(命中池逐股)两处
@@ -235,8 +247,9 @@ resist_support 0.10 | hype 0.20 | risk 0.15
 ## 8. 测试
 
 - `tests/test_surge_factors.py`: 合成日线 fixture 验证 pos_250d/压力支撑选取/量价齐升口径
-- `tests/test_surge_cninfo.py`: 规则表匹配(重组/定增/爆雷标题样例、终止类优先于 ma 类)、orgId 缓存、响应结构断言与降级路径
+- `tests/test_surge_cninfo.py`: 规则表匹配(重组/定增/爆雷标题样例、终止类优先于 ma 类)、orgId 缓存、响应结构断言与降级路径、原始层→规则层重放幂等
 - 报告空数据防线: 0 命中/全 NaN/巨潮全失败单照常出报告
+- `backfill --replay` 幂等与快照纯度(回放行不含未来信息列)
 - 权重一致性: test_doc_consistency 增 SURGE_WEIGHTS 与 SOP.md 同步校验
 
 ## 9. 不做的事(范围外)
@@ -246,3 +259,14 @@ resist_support 0.10 | hype 0.20 | risk 0.15
 - 不做 IC 校准(留台账沉淀后)
 - 不接 cardgen/飞书推送(先跑通日报,后续按需)
 - 不改现有表与既有子系统;不动 daily_basic 缓存与 corp_event(巨潮事件独立落 major_events,不与 corp_event 混写)
+- calibrate 因子验证子命令不在本期实施(§10 里程碑,表结构本期保证不堵路)
+
+## 10. 因子研究路线(后续里程碑,2026-09-18 用户定位补充)
+
+本系统按「待测因子库」标准设计,后续优化与验证遵循:
+
+- **台账即因子库**: `surge_snapshot` 每个指标列即一个候选因子(列名=因子名,口径冻结于本 spec §5,改口径须 --bump 式记录);`hype_count`/`risk_flag_count` 为数值化汇总,hype_tags/risk_flags 明细可展开为哑变量因子。
+- **快照纯度纪律(防前视偏差)**: snapshot 只存 T 日及以前的截面信息,严禁落任何未来数据列(前向收益、未来事件);验证所需前向收益在分析时 join daily_price 动态计算,不回写 snapshot。
+- **验证方式**(thermometer calibrate 先例): 截面 Rank IC / ICIR / 五分位分组前向收益(5/10/20 日) / walk-forward 硬验收;验证对象为各单因子与 composite。
+- **历史样本获取**: `backfill --replay N` 逐日回放生成历史 snapshot(cyq_perf 按日期回补,每历史日 1 次调用;巨潮默认不回放),因子验证不必等待实时沉淀。
+- **规则层重放**: MAJOR_EVENT_RULES 迭代后由 cninfo_announcement 原始层重建 major_events 并重放受影响日期的 snapshot,规则实验与数据获取解耦。
