@@ -20,7 +20,7 @@ _HIST_DAYS = 400  # 日线回看自然日(≥250交易日)
 def _tushare_pro():
     from davis_analyzer.tushare_client import TushareClient
 
-    return TushareClient().pro
+    return TushareClient()._pro
 
 
 def _read_hist(conn: sqlite3.Connection, ts_code: str, end_day: str) -> pd.DataFrame:
@@ -65,6 +65,7 @@ def run_day(
     pro=None, do_cninfo: bool = True,
 ) -> dict:
     conn = conn or db.connect()
+    db.ensure_tables(conn)
     pro = pro or _tushare_pro()
     day = db.normalize_date(day or db.latest_trade_date(conn) or "")
     if not day:
