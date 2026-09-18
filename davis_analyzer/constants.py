@@ -332,3 +332,18 @@ THERMOMETER_MARKET_DIM_WEIGHTS: dict[str, float] = {
 THERMOMETER_CALIBRATION_TARGETS: dict[str, float] = {
     "min_ic": 0.03, "min_icir": 0.25, "spread_pvalue": 0.05,
 }
+
+# ── 复盘视频选片戏剧权重(spec 2026-09-18 §三;节目效果分,非投资分;勿运行时修改)──
+RECAP_DRAMA_WEIGHTS: dict[str, float] = {
+    "limit_up_base": 20.0,     # 收盘涨停基础分
+    "reseal_per_broken": 8.0,  # 每次炸板后回封(烂板回封戏剧性)
+    "reseal_late": 15.0,       # 尾盘(>=14:30)最后回封=压哨绝杀
+    "ladder_top": 25.0,        # 当日最高板=积分榜首
+    "ladder_extra_per_board": 5.0,   # 每多 1 板
+    "streak_3plus": 10.0,      # 3 板及以上=连胜纪录
+    "earth_sky": 35.0,         # 地天板(曾跌停→收盘涨停)=大逆转
+    "broken_close_base": 15.0, # 收盘炸板(被帽戏码)基础分
+    "long_leg_amp": 10.0,      # 振幅>=15 大长腿基础分
+    "lhb_listed": 15.0,        # 上龙虎榜=球星对位入场
+    "lhb_big_broker": 10.0,    # 席位净额>1亿=巨星对决
+}
