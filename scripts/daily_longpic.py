@@ -51,7 +51,7 @@ CSS = """
   .card .st { color:{dim}; font-size:18px; margin-bottom:12px; }
   table { width:100%; border-collapse:collapse; font-size:18px; }
   th { color:{th}; text-align:left; padding:8px 6px; border-bottom:1px solid {border}; }
-  td { padding:8px 6px; border-bottom:1px solid {border}66; color:{text}; line-height:1.55; }
+  td { padding:8px 6px; border-bottom:1px solid {border}66; color:{text}; line-height:1.55; word-break:break-all; }
   td.up { color:{pos}; }} td.down { color:{neg}; }}
   .note { font-size:16px; color:{dim}; margin-top:8px; line-height:1.6; }
   .insight { border-left:4px solid {accent2}; background:{border}55; padding:14px 16px; border-radius:0 10px 10px 0; font-size:19px; line-height:1.75; margin-bottom:20px; }
@@ -142,8 +142,9 @@ def page_html(p: dict, theme: dict) -> str:
     return "\n".join(buf)
 
 
-def build_html(kind: str, day_dir: Path, theme: dict) -> str:
-    spec = json.loads((day_dir / "cards.spec.json").read_text(encoding="utf-8"))
+def build_html(kind: str, day_dir: Path, theme: dict, spec: dict | None = None) -> str:
+    if spec is None:
+        spec = json.loads((day_dir / "cards.spec.json").read_text(encoding="utf-8"))
     facts_raw = json.loads((day_dir / "facts.json").read_text(encoding="utf-8"))
     facts_list = facts_raw["facts"] if isinstance(facts_raw, dict) else facts_raw
     facts = {f["id"]: f for f in facts_list}
@@ -177,6 +178,8 @@ def main() -> None:
     ap.add_argument("--kind", required=True)
     ap.add_argument("--day", default=date.today().strftime("%Y-%m-%d"))
     ap.add_argument("--out", default=None, help="png 输出路径(默认工程目录/长图.png)")
+    ap.add_argument("--rebuild", action="store_true",
+                    help="绕过工程spec,内存中重跑daily生成逻辑(当日工程已入池锁定时的热修通道)")
     args = ap.parse_args()
 
     base_kind = "ladder" if args.kind.startswith("ladder") else "lhb"
@@ -184,8 +187,19 @@ def main() -> None:
     if not (day_dir / "cards.spec.json").exists():
         raise SystemExit(f"工程不存在: {day_dir}(先跑 daily_market_cards 生成)")
     theme = THEMES.get(args.kind) or THEMES[base_kind]
+    spec_override = None
+    if args.rebuild:
+        import sys as _sys
+        _sys.path.insert(0, str(ROOT))
+        from davis_analyzer.cardgen import daily as daily_mod
+        con = daily_mod._ro_conn(daily_mod.stockhot_db_path())
+        bundle = daily_mod.fetch_day_bundle(daily_mod.stockhot_db_path(), args.day)
+        builder = daily_mod.build_ladder if base_kind == "ladder" else daily_mod.build_lhb
+        facts_list, spec_override = builder(args.day, bundle)
+        con.close()
+        spec_override = {"group": spec_override.get("group", KIND_MAP[base_kind]), "cards": spec_override["cards"]} if isinstance(spec_override, dict) and "cards" in spec_override else spec_override
     html_path = day_dir / "长图.html"
-    html_path.write_text(build_html(args.kind, day_dir, theme), encoding="utf-8")
+    html_path.write_text(build_html(args.kind, day_dir, theme, spec=spec_override), encoding="utf-8")
     png = Path(args.out) if args.out else day_dir / "长图.png"
     h = asyncio.run(shoot(html_path, png))
     print(f"{args.kind}({KIND_MAP[base_kind]}) {args.day}: {h}px -> {png}")

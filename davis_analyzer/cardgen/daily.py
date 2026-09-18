@@ -413,7 +413,8 @@ def _reason_label(reason: str) -> str:
     return "异动"
 
 
-def _truncate(name: str, n: int = 18) -> str:
+def _truncate(name: str, n: int = 26) -> str:
+    # 2026-09-18 用户反馈:18字截断致游资席位显示不全(营业部全名普遍22-24字),放宽到26全容纳
     return name if len(name) <= n else name[: n - 1] + "…"
 
 
