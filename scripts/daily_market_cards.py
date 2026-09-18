@@ -60,8 +60,45 @@ def enqueue_one(kind: str, day: str, proj: Path, topic: str, release: dict) -> b
     return True
 
 
+def _vision_check(proj: Path, topic: str, release: dict) -> bool:
+    """渲染后逐张 vision 目检(2026-09-18 用户授权, 公告日报流程同款)。
+
+    任一张 pass=false → 返回 False(调用方不入池, 卡留 rendered 等人工);
+    vision API 故障 → 重试一次, 仍失败则放行并告警(目检故障不静默杀产卡线)。
+    依据 AGENTS 视觉任务规范: 结构化 JSON, 主流程只消费结论。"""
+    import json as _json
+    prompt = ("这是小红书金融数据卡片,请目检并返回JSON:{\"pass\":bool,\"issues\":[str]}。"
+              "检查:文字无溢出卡片边界、无互相重叠遮挡;表格/文本块完整未截断(尤其底部);"
+              "清晰可读;无明显异常留白;有问题给具体位置。")
+    for img in release["images"]:
+        p = proj / img if not img.startswith("/") else Path(img)
+        ok, detail = False, ""
+        for attempt in (1, 2):
+            proc = subprocess.run(
+                [sys.executable, str(REPO_ROOT / "scripts" / "content_publisher" / "vision.py"),
+                 str(p), "--prompt", prompt],
+                capture_output=True, text=True, cwd=REPO_ROOT, timeout=180)
+            if proc.returncode == 0:
+                try:
+                    verdict = _json.loads(proc.stdout)
+                    ok, detail = bool(verdict.get("pass")), str(verdict.get("issues", []))
+                    break
+                except Exception:
+                    detail = f"vision输出解析失败: {proc.stdout[:120]}"
+            else:
+                detail = proc.stderr.strip()[-120:]
+        if not ok and not detail:
+            print(f"! {topic} vision 两次调用失败({Path(img).name}): {detail}——放行入池,待人工复核")
+            continue
+        if not ok:
+            print(f"✗ {topic} vision 未过 [{Path(img).name}]: {detail}")
+            return False
+        print(f"✓ {topic} vision 通过 [{Path(img).name}]")
+    return True
+
+
 def run_one(kind: str, day: str, do_render: bool, do_enqueue: bool = False,
-            do_push: bool = False) -> bool:
+            do_push: bool = False, do_vision: bool = False) -> bool:
     try:
         proj, topic, report = daily.generate(kind, day, _projects_root(), _ledger_db())
     except daily.DailyDataMissing as e:
@@ -85,6 +122,9 @@ def run_one(kind: str, day: str, do_render: bool, do_enqueue: bool = False,
         return False
     finally:
         conn.close()
+    if do_vision and not _vision_check(proj, topic, release):
+        print(f"✗ {topic} vision 目检未过, 不入池(卡留 rendered, 等人工)——路径 {proj}")
+        return False
     if do_enqueue:
         if not enqueue_one(kind, day, proj, topic, release):
             return False
@@ -151,9 +191,11 @@ def main() -> None:
                     help="渲染成功后入发稿池(固定文案,发布仍留人工)")
     ap.add_argument("--push", action="store_true",
                     help="渲染成功后推红薯运营群(封面图+文案,发布仍留人工)")
+    ap.add_argument("--vision", action="store_true",
+                    help="渲染后逐张 vision 目检,未过不入池(2026-09-18;目检API故障放行+告警)")
     args = ap.parse_args()
     kinds = ["ladder", "lhb"] if args.type == "all" else [args.type]  # thermo 单独跑(19:35 温度数据就绪后)
-    ok = all(run_one(k, args.date, not args.no_render, args.enqueue, args.push) for k in kinds)
+    ok = all(run_one(k, args.date, not args.no_render, args.enqueue, args.push, args.vision) for k in kinds)
     sys.exit(0 if ok else 1)
 
 

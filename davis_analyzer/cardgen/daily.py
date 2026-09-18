@@ -1117,8 +1117,13 @@ def build_screener(day: str, bundle: dict) -> tuple[list[Fact], dict]:
              "foot": foot},
             {"type": "table", "theme": "green", "name": "03_近五次轨迹", "first_left": True,
              "tag_top": "温度轨迹", "tag_color": "#16a34a",
+             # 期数用中文数字(2026-09-18 事故修复: 阿拉伯数字进卡面触发数字闸,
+             # 0916/0917 连续两天 validate 拒绝未渲染——发稿层数字纪律同样适用于卡面标题)
              "title": ("近五次放行数量轨迹" if len(dates_union) >= 5
-                       else f"放行数量轨迹 · 积累中(第{len(dates_union)}期)" if len(dates_union) >= 2
+                       else "放行数量轨迹 · 积累中(第" +
+                       ("一二三四五六七八九十"[len(dates_union) - 1]
+                        if 2 <= len(dates_union) <= 10 else "多") + "期)"
+                       if len(dates_union) >= 2
                        else "放行数量轨迹 · 首期"),
              "subtitle": "伸缩方向比单日读数更有信息量(逐日自动累积,基准日见脚注)",
              "table": {"headers": ["时点", "动量放行", "困境反转"], "rows": track_rows},
