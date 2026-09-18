@@ -1,0 +1,87 @@
+<!DOCTYPE html><html lang='zh-CN'><head><meta charset='UTF-8'><style>  * { margin:0; padding:0; box-sizing:border-box; font-family:'Noto Sans CJK SC','PingFang SC','Microsoft YaHei',sans-serif; }
+  body { background:#e8e8e8; display:flex; flex-direction:column; align-items:center; gap:40px; padding:40px 0; }
+  .card { width:1080px; height:1440px; border-radius:48px; position:relative; overflow:hidden; padding:48px 56px; display:flex; flex-direction:column; }
+  .card1 { background:linear-gradient(160deg,#1a1440 0%,#3b1d6e 45%,#8a2be2 100%); color:#fff; }
+  .card2 { background:#fdf6ec; color:#3a2e20; }
+  .card3 { background:#eef4ff; color:#1e2a44; }
+  .card4 { background:#fff1f0; color:#4a1f1c; }
+  .card5 { background:#f0fbf2; color:#1d3a24; }
+  .card6 { background:#f7f3ff; color:#2e2440; }
+  .tag-top { display:inline-block; background:#ff2442; color:#fff; font-size:30px; font-weight:900; padding:12px 30px; border-radius:999px; letter-spacing:2px; width:fit-content; }
+  .badge { display:inline-block; font-size:26px; font-weight:800; padding:8px 22px; border-radius:999px; margin-right:12px; }
+  .b-purple{background:rgba(138,43,226,.18);color:#6b21a8;} .b-blue{background:rgba(37,99,235,.14);color:#1d4ed8;}
+  .b-red{background:rgba(220,38,38,.12);color:#b91c1c;} .b-green{background:rgba(22,163,74,.14);color:#15803d;}
+  .b-org{background:rgba(234,88,12,.15);color:#c2410c;} .b-gray{background:rgba(0,0,0,.07);color:#555;}
+  h1 { font-size:96px; font-weight:900; line-height:1.18; margin:28px 0 10px; letter-spacing:1px; }
+  .sub { font-size:42px; font-weight:700; opacity:.92; line-height:1.5; }
+  .hl { background:linear-gradient(transparent 62%, rgba(255,210,0,.85) 62%); padding:0 6px; }
+  .hl-r { background:linear-gradient(transparent 62%, rgba(255,77,109,.55) 62%); padding:0 6px; }
+  .big-num { font-size:150px; font-weight:900; line-height:1; letter-spacing:-2px; }
+  h2.title { font-size:56px; font-weight:900; margin-bottom:8px; line-height:1.25; }
+  .subtitle { font-size:30px; font-weight:600; opacity:.65; margin-bottom:24px; }
+  .row { background:#fff; border-radius:28px; padding:20px 28px; margin-bottom:16px; box-shadow:0 6px 24px rgba(0,0,0,.06); }
+  .row .name { font-size:36px; font-weight:900; margin-bottom:8px; display:flex; align-items:center; gap:14px; flex-wrap:wrap;}
+  .row .desc { font-size:26px; line-height:1.48; }
+  .dot { width:24px; height:24px; border-radius:50%; display:inline-block; }
+  table { width:100%; border-collapse:separate; border-spacing:0; background:#fff; border-radius:26px; overflow:hidden; font-size:26px; box-shadow:0 6px 24px rgba(0,0,0,.06); }
+  th { background:#2a2050; color:#fff; font-weight:800; padding:16px 12px; font-size:25px; }
+  td { padding:14px 12px; text-align:center; border-bottom:1px solid #f0ecf5; line-height:1.35; }
+  td.l { text-align:left; font-weight:800; }
+  tr:last-child td { border-bottom:none; }
+  .up{color:#dc2626;font-weight:800;} .down{color:#16a34a;font-weight:800;} .warn{color:#d97706;font-weight:800;}
+  .kbox { background:#fff; border-radius:26px; padding:20px 28px; margin-bottom:14px; box-shadow:0 6px 24px rgba(0,0,0,.06); display:flex; gap:20px; align-items:flex-start; }
+  .kdate { min-width:165px; background:#16a34a; color:#fff; font-weight:900; font-size:27px; border-radius:16px; text-align:center; padding:12px 0; line-height:1.3;}
+  .kdate.red{background:#dc2626;} .kdate.org{background:#ea580c;} .kdate.pu{background:#7c3aed;}
+  .ktext { font-size:26px; line-height:1.48; padding-top:4px;}
+  .ktext b { font-size:27px; }
+  .quote { background:rgba(255,255,255,.14); border-left:8px solid #ffd400; border-radius:0 22px 22px 0; padding:22px 26px; font-size:30px; line-height:1.55; font-weight:600; }
+  .foot { margin-top:auto; font-size:21px; opacity:.6; line-height:1.45; }
+  .tags { font-size:25px; font-weight:700; opacity:.85; margin-top:20px; }
+  .card5 .ktext { font-size:25px; line-height:1.42; }
+  .card5 .kdate { min-width:150px; font-size:25px; }
+  .card5 .kbox { padding:16px 24px; gap:16px; margin-bottom:12px; }
+  .card5 .ktext b { font-size:26px; }
+  .card2 .row .desc { font-size:25px; line-height:1.45; }
+  .card2 .row .name { font-size:34px; }
+  .num-badge { display:flex; gap:26px; margin:34px 0 8px; }
+  .nb { background:rgba(255,255,255,.12); border-radius:26px; padding:24px 30px; flex:1; }
+  .nb .v { font-size:58px; font-weight:900; color:#ffd400; }
+  .nb .k { font-size:25px; opacity:.85; margin-top:6px; }
+</style><style class='cardgen-fill'>.card{justify-content:space-between;}.card>.foot{margin-top:0 !important;}</style></head><body><div class="card card4" id="card1">
+<span class="tag-top" style="background:#ff2442;">板块温度计 · 每日数据复盘</span>
+<h1>今天的板块温度<br>全景一张图</h1>
+<div class="sub" style="margin-top:24px;">大盘温和 · 最热农林牧渔<br>2026-09-17 交易数据整理</div>
+<div class="num-badge"><div class="nb"><div class="v">55</div><div class="k">大盘温度</div></div><div class="nb"><div class="v">100</div><div class="k">最热一级·农林牧渔</div></div></div>
+<div style="margin-top:30px;"></div>
+<div class="tags">#板块温度计 #每日复盘 #市场结构 #资金流向</div><div class="foot">数据来源:交易所公开行情与申万指数(经 thermometer 采集) · 仅供研究参考,不构成投资建议</div></div><div class="card card2" id="card2">
+<span class="tag-top" style="background:#ea580c;">温度全景</span>
+<h2 class="title" style="margin-top:24px;">一级行业温度全景</h2>
+<div class="subtitle">色越红越拥挤(风险提醒) 越蓝越冷清(关注线索) · 按温度降序 · 色块内为温度与较昨日变化</div>
+<table><tr><th></th><th></th><th></th><th></th></tr><tr><td class="">农林牧渔<br><span style="display:block;background:#fecaca;color:#7f1d1d;font-weight:bold;text-align:center;">100 <small style="color:#16a34a;">±0</small></span></td><td class="">煤炭<br><span style="display:block;background:#fecaca;color:#7f1d1d;font-weight:bold;text-align:center;">96.8 <small style="color:#16a34a;">±0</small></span></td><td class="">银行<br><span style="display:block;background:#fecaca;color:#7f1d1d;font-weight:bold;text-align:center;">93.5 <small style="color:#16a34a;">±0</small></span></td><td class="">商贸零售<br><span style="display:block;background:#fecaca;color:#7f1d1d;font-weight:bold;text-align:center;">90.3 <small style="color:#16a34a;">±0</small></span></td></tr><tr><td class="">石油石化<br><span style="display:block;background:#fecaca;color:#7f1d1d;font-weight:bold;text-align:center;">87.1 <small style="color:#16a34a;">±0</small></span></td><td class="">交通运输<br><span style="display:block;background:#ffedd5;color:#c2410c;font-weight:bold;text-align:center;">83.9 <small style="color:#16a34a;">±0</small></span></td><td class="">轻工制造<br><span style="display:block;background:#ffedd5;color:#c2410c;font-weight:bold;text-align:center;">80.6 <small style="color:#16a34a;">±0</small></span></td><td class="">美容护理<br><span style="display:block;background:#ffedd5;color:#c2410c;font-weight:bold;text-align:center;">77.4 <small style="color:#16a34a;">±0</small></span></td></tr><tr><td class="">房地产<br><span style="display:block;background:#ffedd5;color:#c2410c;font-weight:bold;text-align:center;">74.2 <small style="color:#dc2626;">+3.2</small></span></td><td class="">纺织服饰<br><span style="display:block;background:#ffedd5;color:#c2410c;font-weight:bold;text-align:center;">71 <small style="color:#dc2626;">+16.1</small></span></td><td class="">家用电器<br><span style="display:block;background:#ffedd5;color:#c2410c;font-weight:bold;text-align:center;">67.7 <small style="color:#16a34a;">±0</small></span></td><td class="">医药生物<br><span style="display:block;background:#f1f5f9;color:#475569;font-weight:bold;text-align:center;">64.5 <small style="color:#16a34a;">±0</small></span></td></tr><tr><td class="">建筑材料<br><span style="display:block;background:#f1f5f9;color:#475569;font-weight:bold;text-align:center;">61.3 <small style="color:#dc2626;">+9.7</small></span></td><td class="">非银金融<br><span style="display:block;background:#f1f5f9;color:#475569;font-weight:bold;text-align:center;">58.1 <small style="color:#16a34a;">-16.1</small></span></td><td class="">社会服务<br><span style="display:block;background:#f1f5f9;color:#475569;font-weight:bold;text-align:center;">54.8 <small style="color:#dc2626;">+6.5</small></span></td><td class="">食品饮料<br><span style="display:block;background:#f1f5f9;color:#475569;font-weight:bold;text-align:center;">51.6 <small style="color:#16a34a;">-6.5</small></span></td></tr><tr><td class="">汽车<br><span style="display:block;background:#f1f5f9;color:#475569;font-weight:bold;text-align:center;">48.4 <small style="color:#dc2626;">+22.6</small></span></td><td class="">公用事业<br><span style="display:block;background:#f1f5f9;color:#475569;font-weight:bold;text-align:center;">45.2 <small style="color:#16a34a;">-16.1</small></span></td><td class="">传媒<br><span style="display:block;background:#f1f5f9;color:#475569;font-weight:bold;text-align:center;">41.9 <small style="color:#16a34a;">±0</small></span></td><td class="">通信<br><span style="display:block;background:#f1f5f9;color:#475569;font-weight:bold;text-align:center;">38.7 <small style="color:#16a34a;">-6.5</small></span></td></tr><tr><td class="">建筑装饰<br><span style="display:block;background:#f1f5f9;color:#475569;font-weight:bold;text-align:center;">35.5 <small style="color:#dc2626;">+3.2</small></span></td><td class="">钢铁<br><span style="display:block;background:#dbeafe;color:#1d4ed8;font-weight:bold;text-align:center;">32.3 <small style="color:#dc2626;">+3.2</small></span></td><td class="">基础化工<br><span style="display:block;background:#dbeafe;color:#1d4ed8;font-weight:bold;text-align:center;">29 <small style="color:#16a34a;">-6.5</small></span></td><td class="">综合<br><span style="display:block;background:#dbeafe;color:#1d4ed8;font-weight:bold;text-align:center;">25.8 <small style="color:#dc2626;">+3.2</small></span></td></tr><tr><td class="">国防军工<br><span style="display:block;background:#dbeafe;color:#1d4ed8;font-weight:bold;text-align:center;">22.6 <small style="color:#16a34a;">-16.1</small></span></td><td class="">机械设备<br><span style="display:block;background:#dbeafe;color:#1d4ed8;font-weight:bold;text-align:center;">19.4 <small style="color:#dc2626;">+6.5</small></span></td><td class="">电子<br><span style="display:block;background:#dbeafe;color:#1d4ed8;font-weight:bold;text-align:center;">16.1 <small style="color:#16a34a;">±0</small></span></td><td class="">环保<br><span style="display:block;background:#bfdbfe;color:#1e40af;font-weight:bold;text-align:center;">12.9 <small style="color:#dc2626;">+3.2</small></span></td></tr><tr><td class="">有色金属<br><span style="display:block;background:#bfdbfe;color:#1e40af;font-weight:bold;text-align:center;">9.7 <small style="color:#16a34a;">-9.7</small></span></td><td class="">计算机<br><span style="display:block;background:#bfdbfe;color:#1e40af;font-weight:bold;text-align:center;">6.5 <small style="color:#16a34a;">±0</small></span></td><td class="">电力设备<br><span style="display:block;background:#bfdbfe;color:#1e40af;font-weight:bold;text-align:center;">3.2 <small style="color:#16a34a;">±0</small></span></td><td class=""></td></tr></table>
+<div style="margin-top:30px;"></div>
+<div class="foot">数据来源:交易所公开行情与申万指数(经 thermometer 采集) · 仅供研究参考,不构成投资建议</div></div><div class="card card5" id="card3">
+<span class="tag-top" style="background:#16a34a;">低温关注池</span>
+<h2 class="title" style="margin-top:24px;">无人问津处 · 低温板块与成因</h2>
+<div class="subtitle">全市场温度最低方向 · 成因为数据事实标签,判断留给读者</div>
+<table><tr><th style=text-align:left>板块</th><th>温度</th><th>低温成因</th></tr><tr><td class="l">二级·能源金属</td><td class=""><span style="display:block;background:#bfdbfe;color:#1e40af;font-weight:bold;text-align:center;">0.8 <small style="color:#dc2626;">+0</small></span></td><td class="">大单资金持续流出<br>中期跌幅深</td></tr><tr><td class="l">二级·光伏设备</td><td class=""><span style="display:block;background:#bfdbfe;color:#1e40af;font-weight:bold;text-align:center;">1.6 <small style="color:#dc2626;">+0</small></span></td><td class="">大单资金持续流出<br>中期跌幅深</td></tr><tr><td class="l">二级·电池</td><td class=""><span style="display:block;background:#bfdbfe;color:#1e40af;font-weight:bold;text-align:center;">2.4 <small style="color:#16a34a;">-0.8</small></span></td><td class="">大单资金持续流出<br>中期跌幅深<br>温度仍下行</td></tr><tr><td class="l">二级·小金属</td><td class=""><span style="display:block;background:#bfdbfe;color:#1e40af;font-weight:bold;text-align:center;">3.2 <small style="color:#16a34a;">-0.8</small></span></td><td class="">大单资金持续流出<br>中期跌幅深<br>温度仍下行</td></tr><tr><td class="l">一级·电力设备</td><td class=""><span style="display:block;background:#bfdbfe;color:#1e40af;font-weight:bold;text-align:center;">3.2 <small style="color:#dc2626;">+0</small></span></td><td class="">大单资金持续流出<br>中期跌幅深</td></tr></table>
+<div style="margin-top:30px;"></div>
+<div class="foot">数据来源:交易所公开行情与申万指数(经 thermometer 采集) · 仅供研究参考,不构成投资建议</div></div><div class="card card3" id="card4">
+<span class="tag-top" style="background:#2563eb;">轮动脉搏</span>
+<h2 class="title" style="margin-top:24px;">近五日温度轮动</h2>
+<div class="subtitle">档位迁移=左侧补涨与高位退潮 · 按温度变化幅度排序</div>
+<table><tr><th style=text-align:left>板块</th><th>档位迁移</th><th>五日温度变化</th></tr><tr><td class="l">二级·玻璃玻纤</td><td class="">偏冷→偏热</td><td class="up">+55.6</td></tr><tr><td class="l">一级·建筑材料</td><td class="">冰点→中性</td><td class="up">+51.6</td></tr><tr><td class="l">一级·有色金属</td><td class="">中性→冰点</td><td class="down">-45.2</td></tr><tr><td class="l">二级·照明设备Ⅱ</td><td class="">偏冷→偏热</td><td class="up">+36.3</td></tr><tr><td class="l">二级·农化制品</td><td class="">偏热→中性</td><td class="down">-34.7</td></tr><tr><td class="l">二级·数字媒体</td><td class="">中性→过热</td><td class="up">+33.1</td></tr><tr><td class="l">二级·塑料</td><td class="">偏冷→中性</td><td class="up">+28.2</td></tr><tr><td class="l">二级·游戏Ⅱ</td><td class="">中性→偏冷</td><td class="down">-26.6</td></tr></table>
+<div style="margin-top:30px;"></div>
+<div class="foot">数据来源:交易所公开行情与申万指数(经 thermometer 采集) · 仅供研究参考,不构成投资建议</div></div><div class="card card6" id="card5">
+<span class="tag-top" style="background:#7c3aed;">大盘五维</span>
+<h2 class="title" style="margin-top:24px;">大盘温度的五维构成</h2>
+<div class="subtitle">各维为自身历史分位</div>
+<table><tr><th style=text-align:left>维度</th><th>历史分位</th></tr><tr><td class="l">趋势</td><td class="">0.2</td></tr><tr><td class="l">宽度</td><td class=" ">0.4</td></tr><tr><td class="l">量能</td><td class=" ">0.6</td></tr><tr><td class="l">资金</td><td class="up">0.8</td></tr><tr><td class="l">情绪</td><td class="up">0.7</td></tr></table>
+<div style="margin-top:30px;"></div>
+<div class="foot">数据来源:交易所公开行情与申万指数(经 thermometer 采集) · 仅供研究参考,不构成投资建议</div></div><div class="card card6" id="card6">
+<span class="tag-top" style="background:#0f172a;">数据说明</span>
+<h2 class="title" style="margin-top:24px;">温度是结构数据</h2>
+<div class="subtitle">不是操作清单</div>
+<div class="row"><div class="desc"><b>高温</b> → 人声鼎沸处,预期打得过满,是风险提醒</div></div><div class="row"><div class="desc"><b>低温</b> → 无人问津时,关注度低谷,是研究线索</div></div><div class="row"><div class="desc"><b>较昨日</b> → 温度日变化,升温降温都比温度本身更值得盯</div></div>
+<div style="margin-top:14px;"><div class="kbox"><div class="kdate" style="background:#2563eb;">盘后观察</div><div class="ktext">连续高温不是继续升温的理由,而是拥挤度的警报——人声鼎沸处的预期,通常随温度升高而打得更满</div></div></div>
+<div style="margin-top:8px;"></div>
+<div class="tags">#板块温度计 #每日复盘 #市场结构 #资金流向</div><div class="foot">数据来源:交易所公开行情与申万指数(经 thermometer 采集) · 仅供研究参考,不构成投资建议。市场有风险,投资需谨慎。</div></div></body></html>

@@ -1,0 +1,479 @@
+{
+  "group": "每日复盘",
+  "cards": [
+    {
+      "type": "cover",
+      "theme": "red",
+      "name": "01_封面",
+      "tag_top": "板块温度计 · 每日数据复盘",
+      "title": "今天的板块温度<br>全景一张图",
+      "sub": "大盘温和 · 最热农林牧渔<br>2026-09-18 交易数据整理",
+      "stats": [
+        {
+          "v": {
+            "$fact": "mkt_temp"
+          },
+          "k": "大盘温度"
+        },
+        {
+          "v": {
+            "$fact": "hot_temp"
+          },
+          "k": "最热一级·农林牧渔"
+        }
+      ],
+      "tags": "#板块温度计 #每日复盘 #市场结构 #资金流向",
+      "foot": "数据来源:交易所公开行情与申万指数(经 thermometer 采集) · 仅供研究参考,不构成投资建议"
+    },
+    {
+      "type": "table",
+      "theme": "cream",
+      "name": "02_温度全景",
+      "tag_top": "温度全景",
+      "tag_color": "#ea580c",
+      "title": "一级行业温度全景",
+      "subtitle": "色越红越拥挤(风险提醒) 越蓝越冷清(关注线索) · 按温度降序 · 色块内为温度与较昨日变化",
+      "table": {
+        "headers": [
+          "",
+          "",
+          "",
+          ""
+        ],
+        "rows": [
+          {
+            "cells": [
+              "农林牧渔<br><span style=\"display:block;background:#fecaca;color:#7f1d1d;font-weight:bold;text-align:center;\">100 <small style=\"color:#16a34a;\">±0</small></span>",
+              "煤炭<br><span style=\"display:block;background:#fecaca;color:#7f1d1d;font-weight:bold;text-align:center;\">96.8 <small style=\"color:#16a34a;\">±0</small></span>",
+              "银行<br><span style=\"display:block;background:#fecaca;color:#7f1d1d;font-weight:bold;text-align:center;\">93.5 <small style=\"color:#16a34a;\">±0</small></span>",
+              "商贸零售<br><span style=\"display:block;background:#fecaca;color:#7f1d1d;font-weight:bold;text-align:center;\">90.3 <small style=\"color:#16a34a;\">±0</small></span>"
+            ],
+            "cls": [
+              "",
+              "",
+              "",
+              ""
+            ]
+          },
+          {
+            "cells": [
+              "美容护理<br><span style=\"display:block;background:#fecaca;color:#7f1d1d;font-weight:bold;text-align:center;\">87.1 <small style=\"color:#dc2626;\">+9.7</small></span>",
+              "房地产<br><span style=\"display:block;background:#ffedd5;color:#c2410c;font-weight:bold;text-align:center;\">83.9 <small style=\"color:#dc2626;\">+9.7</small></span>",
+              "轻工制造<br><span style=\"display:block;background:#ffedd5;color:#c2410c;font-weight:bold;text-align:center;\">80.6 <small style=\"color:#16a34a;\">±0</small></span>",
+              "交通运输<br><span style=\"display:block;background:#ffedd5;color:#c2410c;font-weight:bold;text-align:center;\">77.4 <small style=\"color:#16a34a;\">-6.5</small></span>"
+            ],
+            "cls": [
+              "",
+              "",
+              "",
+              ""
+            ]
+          },
+          {
+            "cells": [
+              "石油石化<br><span style=\"display:block;background:#ffedd5;color:#c2410c;font-weight:bold;text-align:center;\">74.2 <small style=\"color:#16a34a;\">-12.9</small></span>",
+              "纺织服饰<br><span style=\"display:block;background:#ffedd5;color:#c2410c;font-weight:bold;text-align:center;\">71 <small style=\"color:#16a34a;\">±0</small></span>",
+              "医药生物<br><span style=\"display:block;background:#ffedd5;color:#c2410c;font-weight:bold;text-align:center;\">67.7 <small style=\"color:#dc2626;\">+9.7</small></span>",
+              "非银金融<br><span style=\"display:block;background:#f1f5f9;color:#475569;font-weight:bold;text-align:center;\">64.5 <small style=\"color:#dc2626;\">+3.2</small></span>"
+            ],
+            "cls": [
+              "",
+              "",
+              "",
+              ""
+            ]
+          },
+          {
+            "cells": [
+              "社会服务<br><span style=\"display:block;background:#f1f5f9;color:#475569;font-weight:bold;text-align:center;\">61.3 <small style=\"color:#dc2626;\">+6.5</small></span>",
+              "家用电器<br><span style=\"display:block;background:#f1f5f9;color:#475569;font-weight:bold;text-align:center;\">58.1 <small style=\"color:#16a34a;\">-9.7</small></span>",
+              "通信<br><span style=\"display:block;background:#f1f5f9;color:#475569;font-weight:bold;text-align:center;\">54.8 <small style=\"color:#dc2626;\">+29</small></span>",
+              "传媒<br><span style=\"display:block;background:#f1f5f9;color:#475569;font-weight:bold;text-align:center;\">51.6 <small style=\"color:#dc2626;\">+9.7</small></span>"
+            ],
+            "cls": [
+              "",
+              "",
+              "",
+              ""
+            ]
+          },
+          {
+            "cells": [
+              "食品饮料<br><span style=\"display:block;background:#f1f5f9;color:#475569;font-weight:bold;text-align:center;\">48.4 <small style=\"color:#16a34a;\">-3.2</small></span>",
+              "汽车<br><span style=\"display:block;background:#f1f5f9;color:#475569;font-weight:bold;text-align:center;\">45.2 <small style=\"color:#16a34a;\">-3.2</small></span>",
+              "建筑装饰<br><span style=\"display:block;background:#f1f5f9;color:#475569;font-weight:bold;text-align:center;\">41.9 <small style=\"color:#dc2626;\">+3.2</small></span>",
+              "公用事业<br><span style=\"display:block;background:#f1f5f9;color:#475569;font-weight:bold;text-align:center;\">38.7 <small style=\"color:#16a34a;\">-6.5</small></span>"
+            ],
+            "cls": [
+              "",
+              "",
+              "",
+              ""
+            ]
+          },
+          {
+            "cells": [
+              "综合<br><span style=\"display:block;background:#f1f5f9;color:#475569;font-weight:bold;text-align:center;\">35.5 <small style=\"color:#dc2626;\">+6.5</small></span>",
+              "国防军工<br><span style=\"display:block;background:#dbeafe;color:#1d4ed8;font-weight:bold;text-align:center;\">32.3 <small style=\"color:#dc2626;\">+9.7</small></span>",
+              "建筑材料<br><span style=\"display:block;background:#dbeafe;color:#1d4ed8;font-weight:bold;text-align:center;\">29 <small style=\"color:#16a34a;\">-35.5</small></span>",
+              "钢铁<br><span style=\"display:block;background:#dbeafe;color:#1d4ed8;font-weight:bold;text-align:center;\">25.8 <small style=\"color:#16a34a;\">-9.7</small></span>"
+            ],
+            "cls": [
+              "",
+              "",
+              "",
+              ""
+            ]
+          },
+          {
+            "cells": [
+              "机械设备<br><span style=\"display:block;background:#dbeafe;color:#1d4ed8;font-weight:bold;text-align:center;\">22.6 <small style=\"color:#dc2626;\">+3.2</small></span>",
+              "电子<br><span style=\"display:block;background:#dbeafe;color:#1d4ed8;font-weight:bold;text-align:center;\">19.4 <small style=\"color:#dc2626;\">+6.5</small></span>",
+              "基础化工<br><span style=\"display:block;background:#dbeafe;color:#1d4ed8;font-weight:bold;text-align:center;\">16.1 <small style=\"color:#16a34a;\">-16.1</small></span>",
+              "环保<br><span style=\"display:block;background:#bfdbfe;color:#1e40af;font-weight:bold;text-align:center;\">12.9 <small style=\"color:#16a34a;\">-3.2</small></span>"
+            ],
+            "cls": [
+              "",
+              "",
+              "",
+              ""
+            ]
+          },
+          {
+            "cells": [
+              "有色金属<br><span style=\"display:block;background:#bfdbfe;color:#1e40af;font-weight:bold;text-align:center;\">9.7 <small style=\"color:#16a34a;\">±0</small></span>",
+              "计算机<br><span style=\"display:block;background:#bfdbfe;color:#1e40af;font-weight:bold;text-align:center;\">6.5 <small style=\"color:#16a34a;\">±0</small></span>",
+              "电力设备<br><span style=\"display:block;background:#bfdbfe;color:#1e40af;font-weight:bold;text-align:center;\">3.2 <small style=\"color:#16a34a;\">±0</small></span>",
+              ""
+            ],
+            "cls": [
+              "",
+              "",
+              "",
+              ""
+            ]
+          }
+        ]
+      },
+      "foot": "数据来源:交易所公开行情与申万指数(经 thermometer 采集) · 仅供研究参考,不构成投资建议"
+    },
+    {
+      "type": "table",
+      "theme": "green",
+      "name": "03_低温关注池",
+      "first_left": true,
+      "tag_top": "低温关注池",
+      "tag_color": "#16a34a",
+      "title": "无人问津处 · 低温板块与成因",
+      "subtitle": "全市场温度最低方向 · 成因为数据事实标签,判断留给读者",
+      "table": {
+        "headers": [
+          "板块",
+          "温度",
+          "低温成因"
+        ],
+        "rows": [
+          {
+            "cells": [
+              "二级·能源金属",
+              "<span style=\"display:block;background:#bfdbfe;color:#1e40af;font-weight:bold;text-align:center;\">0.8 <small style=\"color:#dc2626;\">+0</small></span>",
+              "大单资金持续流出<br>中期跌幅深"
+            ],
+            "cls": [
+              "",
+              "",
+              ""
+            ]
+          },
+          {
+            "cells": [
+              "二级·光伏设备",
+              "<span style=\"display:block;background:#bfdbfe;color:#1e40af;font-weight:bold;text-align:center;\">1.6 <small style=\"color:#dc2626;\">+0</small></span>",
+              "资金止流出回暖<br>中期跌幅深"
+            ],
+            "cls": [
+              "",
+              "",
+              ""
+            ]
+          },
+          {
+            "cells": [
+              "二级·小金属",
+              "<span style=\"display:block;background:#bfdbfe;color:#1e40af;font-weight:bold;text-align:center;\">2.4 <small style=\"color:#16a34a;\">-0.8</small></span>",
+              "大单资金持续流出<br>中期跌幅深"
+            ],
+            "cls": [
+              "",
+              "",
+              ""
+            ]
+          },
+          {
+            "cells": [
+              "一级·电力设备",
+              "<span style=\"display:block;background:#bfdbfe;color:#1e40af;font-weight:bold;text-align:center;\">3.2 <small style=\"color:#dc2626;\">+0</small></span>",
+              "大单资金持续流出<br>中期跌幅深"
+            ],
+            "cls": [
+              "",
+              "",
+              ""
+            ]
+          },
+          {
+            "cells": [
+              "二级·电池",
+              "<span style=\"display:block;background:#bfdbfe;color:#1e40af;font-weight:bold;text-align:center;\">3.2 <small style=\"color:#dc2626;\">+0.8</small></span>",
+              "大单资金持续流出<br>中期跌幅深<br>温度仍下行"
+            ],
+            "cls": [
+              "",
+              "",
+              ""
+            ]
+          }
+        ]
+      },
+      "foot": "数据来源:交易所公开行情与申万指数(经 thermometer 采集) · 仅供研究参考,不构成投资建议"
+    },
+    {
+      "type": "table",
+      "theme": "blue",
+      "name": "04_轮动脉搏",
+      "first_left": true,
+      "tag_top": "轮动脉搏",
+      "tag_color": "#2563eb",
+      "title": "近五日温度轮动",
+      "subtitle": "档位迁移=左侧补涨与高位退潮 · 按温度变化幅度排序",
+      "table": {
+        "headers": [
+          "板块",
+          "档位迁移",
+          "五日温度变化"
+        ],
+        "rows": [
+          {
+            "cells": [
+              "二级·照明设备Ⅱ",
+              "偏冷→偏热",
+              {
+                "$fact": "rt1_d5"
+              }
+            ],
+            "cls": [
+              "",
+              "",
+              "up"
+            ]
+          },
+          {
+            "cells": [
+              "一级·美容护理",
+              "中性→过热",
+              {
+                "$fact": "rt2_d5"
+              }
+            ],
+            "cls": [
+              "",
+              "",
+              "up"
+            ]
+          },
+          {
+            "cells": [
+              "二级·游戏Ⅱ",
+              "中性→偏冷",
+              {
+                "$fact": "rt3_d5"
+              }
+            ],
+            "cls": [
+              "",
+              "",
+              "down"
+            ]
+          },
+          {
+            "cells": [
+              "二级·农化制品",
+              "中性→偏冷",
+              {
+                "$fact": "rt4_d5"
+              }
+            ],
+            "cls": [
+              "",
+              "",
+              "down"
+            ]
+          },
+          {
+            "cells": [
+              "一级·通信",
+              "偏冷→中性",
+              {
+                "$fact": "rt5_d5"
+              }
+            ],
+            "cls": [
+              "",
+              "",
+              "up"
+            ]
+          },
+          {
+            "cells": [
+              "一级·房地产",
+              "中性→偏热",
+              {
+                "$fact": "rt6_d5"
+              }
+            ],
+            "cls": [
+              "",
+              "",
+              "up"
+            ]
+          },
+          {
+            "cells": [
+              "一级·公用事业",
+              "偏热→中性",
+              {
+                "$fact": "rt7_d5"
+              }
+            ],
+            "cls": [
+              "",
+              "",
+              "down"
+            ]
+          },
+          {
+            "cells": [
+              "二级·玻璃玻纤",
+              "偏冷→中性",
+              {
+                "$fact": "rt8_d5"
+              }
+            ],
+            "cls": [
+              "",
+              "",
+              "up"
+            ]
+          }
+        ]
+      },
+      "foot": "数据来源:交易所公开行情与申万指数(经 thermometer 采集) · 仅供研究参考,不构成投资建议"
+    },
+    {
+      "type": "table",
+      "theme": "lavender",
+      "name": "05_大盘五维",
+      "first_left": true,
+      "tag_top": "大盘五维",
+      "tag_color": "#7c3aed",
+      "title": "大盘温度的五维构成",
+      "subtitle": "各维为自身历史分位",
+      "table": {
+        "headers": [
+          "维度",
+          "历史分位"
+        ],
+        "rows": [
+          {
+            "cells": [
+              "趋势",
+              {
+                "$fact": "dim_趋势"
+              }
+            ],
+            "cls": [
+              "",
+              ""
+            ]
+          },
+          {
+            "cells": [
+              "宽度",
+              {
+                "$fact": "dim_宽度"
+              }
+            ],
+            "cls": [
+              "",
+              "up"
+            ]
+          },
+          {
+            "cells": [
+              "量能",
+              {
+                "$fact": "dim_量能"
+              }
+            ],
+            "cls": [
+              "",
+              " "
+            ]
+          },
+          {
+            "cells": [
+              "资金",
+              {
+                "$fact": "dim_资金"
+              }
+            ],
+            "cls": [
+              "",
+              "up"
+            ]
+          },
+          {
+            "cells": [
+              "情绪",
+              {
+                "$fact": "dim_情绪"
+              }
+            ],
+            "cls": [
+              "",
+              "up"
+            ]
+          }
+        ]
+      },
+      "foot": "数据来源:交易所公开行情与申万指数(经 thermometer 采集) · 仅供研究参考,不构成投资建议"
+    },
+    {
+      "type": "summary",
+      "theme": "lavender",
+      "name": "06_收束",
+      "tag_top": "数据说明",
+      "tag_color": "#0f172a",
+      "title": "温度是结构数据",
+      "subtitle": "不是操作清单",
+      "rows": [
+        {
+          "desc": "<b>高温</b> → 人声鼎沸处,预期打得过满,是风险提醒"
+        },
+        {
+          "desc": "<b>低温</b> → 无人问津时,关注度低谷,是研究线索"
+        },
+        {
+          "desc": "<b>较昨日</b> → 温度日变化,升温降温都比温度本身更值得盯"
+        }
+      ],
+      "kbox": {
+        "date": "盘后观察",
+        "color": "blue",
+        "html": "连续高温不是继续升温的理由,而是拥挤度的警报——人声鼎沸处的预期,通常随温度升高而打得更满"
+      },
+      "tags": "#板块温度计 #每日复盘 #市场结构 #资金流向",
+      "foot": "数据来源:交易所公开行情与申万指数(经 thermometer 采集) · 仅供研究参考,不构成投资建议。市场有风险,投资需谨慎。"
+    }
+  ]
+}

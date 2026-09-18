@@ -50,9 +50,9 @@
     },
     {
       "id": "l1_top2_delta",
-      "value": "22.6",
+      "value": "6.5",
       "unit": "",
-      "display": "+22.6",
+      "display": "+6.5",
       "as_of": "2026-09-11",
       "source": {
         "kind": "stockhot",
@@ -74,9 +74,9 @@
     },
     {
       "id": "l1_top3_delta",
-      "value": "16.1",
+      "value": "0",
       "unit": "",
-      "display": "+16.1",
+      "display": "+0",
       "as_of": "2026-09-11",
       "source": {
         "kind": "stockhot",
@@ -98,9 +98,9 @@
     },
     {
       "id": "l1_top4_delta",
-      "value": "9.7",
+      "value": "6.5",
       "unit": "",
-      "display": "+9.7",
+      "display": "+6.5",
       "as_of": "2026-09-11",
       "source": {
         "kind": "stockhot",
@@ -122,9 +122,9 @@
     },
     {
       "id": "l1_top5_delta",
-      "value": "29",
+      "value": "9.7",
       "unit": "",
-      "display": "+29",
+      "display": "-9.7",
       "as_of": "2026-09-11",
       "source": {
         "kind": "stockhot",
@@ -146,9 +146,9 @@
     },
     {
       "id": "l2_top1_delta",
-      "value": "2.4",
+      "value": "0",
       "unit": "",
-      "display": "+2.4",
+      "display": "+0",
       "as_of": "2026-09-11",
       "source": {
         "kind": "stockhot",
@@ -170,9 +170,9 @@
     },
     {
       "id": "l2_top2_delta",
-      "value": "12.9",
+      "value": "0.8",
       "unit": "",
-      "display": "+12.9",
+      "display": "+0.8",
       "as_of": "2026-09-11",
       "source": {
         "kind": "stockhot",
@@ -194,9 +194,9 @@
     },
     {
       "id": "l2_top3_delta",
-      "value": "0.8",
+      "value": "1.6",
       "unit": "",
-      "display": "-0.8",
+      "display": "+1.6",
       "as_of": "2026-09-11",
       "source": {
         "kind": "stockhot",
@@ -218,9 +218,9 @@
     },
     {
       "id": "l2_top4_delta",
-      "value": "15.3",
+      "value": "8.9",
       "unit": "",
-      "display": "+15.3",
+      "display": "+8.9",
       "as_of": "2026-09-11",
       "source": {
         "kind": "stockhot",
@@ -242,9 +242,9 @@
     },
     {
       "id": "l2_top5_delta",
-      "value": "91.1",
+      "value": "2.4",
       "unit": "",
-      "display": "+91.1",
+      "display": "-2.4",
       "as_of": "2026-09-11",
       "source": {
         "kind": "stockhot",

@@ -1,0 +1,1048 @@
+{
+  "facts": [
+    {
+      "id": "mkt_temp",
+      "value": "55",
+      "unit": "",
+      "display": "55",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_market@2026-09-17:temperature"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "hot_temp",
+      "value": "100",
+      "unit": "",
+      "display": "100",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801010.SI.temperature"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p1_temp",
+      "value": "100",
+      "unit": "",
+      "display": "100",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801010.SI.temperature"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p1_delta",
+      "value": "0",
+      "unit": "",
+      "display": "+0",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801010.SI:vs_prev"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p2_temp",
+      "value": "96.8",
+      "unit": "",
+      "display": "96.8",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801950.SI.temperature"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p2_delta",
+      "value": "0",
+      "unit": "",
+      "display": "+0",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801950.SI:vs_prev"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p3_temp",
+      "value": "93.5",
+      "unit": "",
+      "display": "93.5",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801780.SI.temperature"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p3_delta",
+      "value": "0",
+      "unit": "",
+      "display": "+0",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801780.SI:vs_prev"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p4_temp",
+      "value": "90.3",
+      "unit": "",
+      "display": "90.3",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801200.SI.temperature"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p4_delta",
+      "value": "0",
+      "unit": "",
+      "display": "+0",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801200.SI:vs_prev"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p5_temp",
+      "value": "87.1",
+      "unit": "",
+      "display": "87.1",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801960.SI.temperature"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p5_delta",
+      "value": "0",
+      "unit": "",
+      "display": "+0",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801960.SI:vs_prev"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p6_temp",
+      "value": "83.9",
+      "unit": "",
+      "display": "83.9",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801170.SI.temperature"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p6_delta",
+      "value": "0",
+      "unit": "",
+      "display": "+0",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801170.SI:vs_prev"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p7_temp",
+      "value": "80.6",
+      "unit": "",
+      "display": "80.6",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801140.SI.temperature"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p7_delta",
+      "value": "0",
+      "unit": "",
+      "display": "+0",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801140.SI:vs_prev"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p8_temp",
+      "value": "77.4",
+      "unit": "",
+      "display": "77.4",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801980.SI.temperature"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p8_delta",
+      "value": "0",
+      "unit": "",
+      "display": "+0",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801980.SI:vs_prev"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p9_temp",
+      "value": "74.2",
+      "unit": "",
+      "display": "74.2",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801180.SI.temperature"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p9_delta",
+      "value": "3.2",
+      "unit": "",
+      "display": "+3.2",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801180.SI:vs_prev"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p10_temp",
+      "value": "71",
+      "unit": "",
+      "display": "71",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801130.SI.temperature"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p10_delta",
+      "value": "16.1",
+      "unit": "",
+      "display": "+16.1",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801130.SI:vs_prev"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p11_temp",
+      "value": "67.7",
+      "unit": "",
+      "display": "67.7",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801110.SI.temperature"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p11_delta",
+      "value": "0",
+      "unit": "",
+      "display": "+0",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801110.SI:vs_prev"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p12_temp",
+      "value": "64.5",
+      "unit": "",
+      "display": "64.5",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801150.SI.temperature"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p12_delta",
+      "value": "0",
+      "unit": "",
+      "display": "+0",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801150.SI:vs_prev"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p13_temp",
+      "value": "61.3",
+      "unit": "",
+      "display": "61.3",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801710.SI.temperature"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p13_delta",
+      "value": "9.7",
+      "unit": "",
+      "display": "+9.7",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801710.SI:vs_prev"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p14_temp",
+      "value": "58.1",
+      "unit": "",
+      "display": "58.1",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801790.SI.temperature"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p14_delta",
+      "value": "16.1",
+      "unit": "",
+      "display": "-16.1",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801790.SI:vs_prev"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p15_temp",
+      "value": "54.8",
+      "unit": "",
+      "display": "54.8",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801210.SI.temperature"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p15_delta",
+      "value": "6.5",
+      "unit": "",
+      "display": "+6.5",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801210.SI:vs_prev"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p16_temp",
+      "value": "51.6",
+      "unit": "",
+      "display": "51.6",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801120.SI.temperature"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p16_delta",
+      "value": "6.5",
+      "unit": "",
+      "display": "-6.5",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801120.SI:vs_prev"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p17_temp",
+      "value": "48.4",
+      "unit": "",
+      "display": "48.4",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801880.SI.temperature"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p17_delta",
+      "value": "22.6",
+      "unit": "",
+      "display": "+22.6",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801880.SI:vs_prev"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p18_temp",
+      "value": "45.2",
+      "unit": "",
+      "display": "45.2",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801160.SI.temperature"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p18_delta",
+      "value": "16.1",
+      "unit": "",
+      "display": "-16.1",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801160.SI:vs_prev"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p19_temp",
+      "value": "41.9",
+      "unit": "",
+      "display": "41.9",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801760.SI.temperature"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p19_delta",
+      "value": "0",
+      "unit": "",
+      "display": "+0",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801760.SI:vs_prev"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p20_temp",
+      "value": "38.7",
+      "unit": "",
+      "display": "38.7",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801770.SI.temperature"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p20_delta",
+      "value": "6.5",
+      "unit": "",
+      "display": "-6.5",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801770.SI:vs_prev"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p21_temp",
+      "value": "35.5",
+      "unit": "",
+      "display": "35.5",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801720.SI.temperature"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p21_delta",
+      "value": "3.2",
+      "unit": "",
+      "display": "+3.2",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801720.SI:vs_prev"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p22_temp",
+      "value": "32.3",
+      "unit": "",
+      "display": "32.3",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801040.SI.temperature"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p22_delta",
+      "value": "3.2",
+      "unit": "",
+      "display": "+3.2",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801040.SI:vs_prev"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p23_temp",
+      "value": "29",
+      "unit": "",
+      "display": "29",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801030.SI.temperature"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p23_delta",
+      "value": "6.5",
+      "unit": "",
+      "display": "-6.5",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801030.SI:vs_prev"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p24_temp",
+      "value": "25.8",
+      "unit": "",
+      "display": "25.8",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801230.SI.temperature"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p24_delta",
+      "value": "3.2",
+      "unit": "",
+      "display": "+3.2",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801230.SI:vs_prev"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p25_temp",
+      "value": "22.6",
+      "unit": "",
+      "display": "22.6",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801740.SI.temperature"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p25_delta",
+      "value": "16.1",
+      "unit": "",
+      "display": "-16.1",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801740.SI:vs_prev"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p26_temp",
+      "value": "19.4",
+      "unit": "",
+      "display": "19.4",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801890.SI.temperature"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p26_delta",
+      "value": "6.5",
+      "unit": "",
+      "display": "+6.5",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801890.SI:vs_prev"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p27_temp",
+      "value": "16.1",
+      "unit": "",
+      "display": "16.1",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801080.SI.temperature"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p27_delta",
+      "value": "0",
+      "unit": "",
+      "display": "+0",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801080.SI:vs_prev"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p28_temp",
+      "value": "12.9",
+      "unit": "",
+      "display": "12.9",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801970.SI.temperature"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p28_delta",
+      "value": "3.2",
+      "unit": "",
+      "display": "+3.2",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801970.SI:vs_prev"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p29_temp",
+      "value": "9.7",
+      "unit": "",
+      "display": "9.7",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801050.SI.temperature"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p29_delta",
+      "value": "9.7",
+      "unit": "",
+      "display": "-9.7",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801050.SI:vs_prev"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p30_temp",
+      "value": "6.5",
+      "unit": "",
+      "display": "6.5",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801750.SI.temperature"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p30_delta",
+      "value": "0",
+      "unit": "",
+      "display": "+0",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801750.SI:vs_prev"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p31_temp",
+      "value": "3.2",
+      "unit": "",
+      "display": "3.2",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801730.SI.temperature"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "p31_delta",
+      "value": "0",
+      "unit": "",
+      "display": "+0",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801730.SI:vs_prev"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "cd1_temp",
+      "value": "0.8",
+      "unit": "",
+      "display": "0.8",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801056.SI.temperature"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "cd1_delta",
+      "value": "0",
+      "unit": "",
+      "display": "+0",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801056.SI:vs_prev"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "cd2_temp",
+      "value": "1.6",
+      "unit": "",
+      "display": "1.6",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801735.SI.temperature"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "cd2_delta",
+      "value": "0",
+      "unit": "",
+      "display": "+0",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801735.SI:vs_prev"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "cd3_temp",
+      "value": "2.4",
+      "unit": "",
+      "display": "2.4",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801737.SI.temperature"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "cd3_delta",
+      "value": "0.8",
+      "unit": "",
+      "display": "-0.8",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801737.SI:vs_prev"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "cd4_temp",
+      "value": "3.2",
+      "unit": "",
+      "display": "3.2",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801054.SI.temperature"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "cd4_delta",
+      "value": "0.8",
+      "unit": "",
+      "display": "-0.8",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801054.SI:vs_prev"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "cd5_temp",
+      "value": "3.2",
+      "unit": "",
+      "display": "3.2",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801730.SI.temperature"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "cd5_delta",
+      "value": "0",
+      "unit": "",
+      "display": "+0",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801730.SI:vs_prev"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "rt1_d5",
+      "value": "55.6",
+      "unit": "",
+      "display": "+55.6",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801712.SI:d5"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "rt2_d5",
+      "value": "51.6",
+      "unit": "",
+      "display": "+51.6",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801710.SI:d5"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "rt3_d5",
+      "value": "45.2",
+      "unit": "",
+      "display": "-45.2",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801050.SI:d5"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "rt4_d5",
+      "value": "36.3",
+      "unit": "",
+      "display": "+36.3",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801115.SI:d5"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "rt5_d5",
+      "value": "34.7",
+      "unit": "",
+      "display": "-34.7",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801038.SI:d5"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "rt6_d5",
+      "value": "33.1",
+      "unit": "",
+      "display": "+33.1",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801767.SI:d5"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "rt7_d5",
+      "value": "28.2",
+      "unit": "",
+      "display": "+28.2",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801036.SI:d5"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "rt8_d5",
+      "value": "26.6",
+      "unit": "",
+      "display": "-26.6",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_sector@2026-09-17:801764.SI:d5"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "dim_趋势",
+      "value": "0.2",
+      "unit": "",
+      "display": "0.2",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_market@2026-09-17:dim_趋势"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "dim_宽度",
+      "value": "0.4",
+      "unit": "",
+      "display": "0.4",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_market@2026-09-17:dim_宽度"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "dim_量能",
+      "value": "0.6",
+      "unit": "",
+      "display": "0.6",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_market@2026-09-17:dim_量能"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "dim_资金",
+      "value": "0.8",
+      "unit": "",
+      "display": "0.8",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_market@2026-09-17:dim_资金"
+      },
+      "expires": "2026-09-17"
+    },
+    {
+      "id": "dim_情绪",
+      "value": "0.7",
+      "unit": "",
+      "display": "0.7",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:thermometer_market@2026-09-17:dim_情绪"
+      },
+      "expires": "2026-09-17"
+    }
+  ]
+}
