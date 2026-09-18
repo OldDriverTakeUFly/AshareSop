@@ -1,0 +1,77 @@
+<!DOCTYPE html><html lang="zh"><head><meta charset="utf-8"><link rel="stylesheet" href="kit.css"><style>
+:root{ --bg:#0b1026; --card:#141b40; --border:#2b3775; --text:#eaf0ff; --dim:#8d97c9;
+  --accent1:#ffb347; --accent2:#ff6b9d; --tagbg:#283566; --tagfg:#9db4ff;
+  --up:#ff6b6b; --down:#4ade80; --pos:#6ee7b7; --neg:#fda4af; --th:#9db4ff;
+  --h1-size:44px; --h1-lh:1.28; --h1-weight:800; --sub-size:22px; --sub-mb:24px;
+  --hook-bg:linear-gradient(135deg,#2a1f3d,#1a1533);
+  --stats-mt:16px; --stat-bg:#1b2452; --stat-border:none; --stat-pad:14px;
+  --v-size:31px; --v-color:#6ee7b7; --h2-size:26px; --h2-color:#ffd166;
+  --td-border:#222c5c; --td-color:#dbe2ff; --td-lh:1.5; --td-wb:normal;
+  --note-mt:10px; --note-lh:1.6; --note-color:#7b85b5;
+  --insight-size:20px; --insight-color:#e6ebff; --insight-bar:#ff8fab; --insight-bg:#241a3f;
+  --rows-mb:8px; --rows-color:#dbe2ff; --b-em:#ffd166;
+  --foot-bg:#10163a; --foot-color:#6b75a5; --vs-bg:#101626; --border-soft:#222c5caa; }
+</style></head><body>
+  <span class="tag">样张 · 产业链系</span>
+  <h1 class="grad">kit 组件全样张<br>渐变标题一行为证</h1>
+  <div class="sub">骨架顺序:tag→h1→sub→hook→编号小节→insight→foot;本页覆盖全部组件。</div>
+
+  <div class="hook">
+    <div class="h">hook 首屏卡(黄金三秒)</div>
+    <div class="stats">
+      <div class="stat"><div class="v">+2.62%</div><div class="k">stat 主强调</div></div>
+      <div class="stat"><div class="v ice">60.5亿</div><div class="k">stat.ice 次强调</div></div>
+      <div class="stat"><div class="v">涨停</div><div class="k">第三枚</div></div>
+    </div>
+    <p style="margin-top:14px">hook 内导语段:反差/背离/最响数字放这里。</p>
+  </div>
+
+  <div class="card">
+    <h2>一、表格(双轨取色)</h2>
+    <div class="st">行情列 up/down 红涨绿跌;定性列 pos/neg</div>
+    <table>
+      <tr><th>公司</th><th>今日涨幅</th><th>距近季峰</th><th>定性</th></tr>
+      <tr><td>样张甲</td><td class="up">+10.03%</td><td class="down">-4.6%</td><td><span class="pos">已收复</span></td></tr>
+      <tr><td>样张乙</td><td class="up">+2.82%</td><td class="down">-26.7%</td><td><span class="neg">仍在坑底</span></td></tr>
+      <tr><td>样张丙</td><td class="down">-1.20%</td><td class="down">-8.0%</td><td><span class="neg">走弱</span></td></tr>
+    </table>
+    <div class="note">note 注脚:口径与色义说明。</div>
+  </div>
+
+  <div class="insight">insight 左边条:每图至少一条的金句位。</div>
+
+  <div class="card">
+    <h2>二、rows 列表</h2>
+    <ul class="rows">
+      <li>要点一,含<b>加粗强调</b>数字</li>
+      <li>要点二</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>三、tier 梯队分层</h2>
+    <div class="tier t1"><b>第一梯队</b> 宽度 100%</div>
+    <div class="tier t2"><b>第二梯队</b> 宽度 84%</div>
+    <div class="tier t3"><b>第三梯队</b> 宽度 68%</div>
+  </div>
+
+  <div class="card">
+    <h2>四、pyr 金字塔</h2>
+    <div class="pyr">
+      <div class="layer l1"><b>第一层</b> 总量共振</div>
+      <div class="layer l2"><b>第二层</b> 等级跃迁</div>
+      <div class="layer l3"><b>第三层</b> 单点垄断</div>
+      <div class="layer l4"><b>第四层</b> 地缘管制</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>五、vs 对峙双栏</h2>
+    <div class="vs">
+      <div class="side a"><h3>正面</h3><p>支持延续的证据占位,两行以上看行距。</p></div>
+      <div class="side b"><h3>反面</h3><p>值得警惕的信号占位,两行以上看行距。</p></div>
+    </div>
+  </div>
+
+  <div class="foot">foot:信源+免责占位,不构成投资建议。</div>
+</body></html>
