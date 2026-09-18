@@ -158,9 +158,37 @@ def cmd_audio(args) -> None:   # Task 8 实现 + Task 10 视觉质检闸
                 print(f"  ✗ {f['file']}: {'; '.join(f['issues'][:3])}")
 
 
-def cmd_post(args) -> None:    # 二期(Task 11)实现
+def cmd_post(args) -> None:    # 二期:ffmpeg 合成 + 成片抽帧视觉质检 + 台账 composed
+    import json as _json
+    import subprocess as _sp
+    from davis_analyzer.recap import db, vision_qc
     from davis_analyzer.recap.post_compose import compose
-    print(f"post: {compose(args.date)}")
+    from davis_analyzer.cardgen.video import audio_duration, ffmpeg
+    out = compose(args.date)
+    # 成片抽帧质检(spec §八:片头/中段/片尾各一帧,过 vision_qc)
+    frames_dir = out.parent / "qc_frames"
+    frames_dir.mkdir(parents=True, exist_ok=True)
+    total = audio_duration(out)
+    for i, t in enumerate((total * 0.15, total * 0.5, total * 0.85)):
+        _sp.run([ffmpeg(), "-y", "-ss", f"{t:.1f}", "-i", str(out),
+                 "-frames:v", "1", str(frames_dir / f"frame_{i:02d}.png")],
+                capture_output=True, text=True)
+    rep = vision_qc.qc_dir(frames_dir)
+    (out.parent / "视觉质检_成片.json").write_text(
+        _json.dumps(rep, ensure_ascii=False, indent=2), encoding="utf-8")
+    conn = _conn()
+    try:
+        db.ensure_tables(conn)
+        db.update_status(conn, args.date, "composed")
+    finally:
+        conn.close()
+    print(f"post: 成片 → {out}({total:.0f}s,{out.stat().st_size / 1048576:.1f}MB)")
+    print(f"成片抽帧质检: {'通过' if rep['pass'] else '发现问题,见 final/视觉质检_成片.json'}")
+    if not rep["pass"]:
+        for f in rep["frames"]:
+            if not f["pass"]:
+                print(f"  ✗ {f['file']}: {'; '.join(f['issues'][:3])}")
+    print("发布永远人工——成片预览满意后再发。")
 
 
 def cmd_status(args) -> None:
