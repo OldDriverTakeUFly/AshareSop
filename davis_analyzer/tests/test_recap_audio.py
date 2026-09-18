@@ -45,6 +45,18 @@ def test_fit_report_flags_short_clip():
     assert ap.fit_report(ep, timings, {"s1": 30.0}) == []
 
 
+def test_fit_report_ignores_non_stock_segments():
+    # match_clips 只对位 stock 段:open/close 无素材属系统语义(数据卡/静态段),不得告警
+    ep = _ep()
+    timings = [
+        {"seg_id": "open", "speaker": "pb", "text": "a", "dur": 2.0, "file": "f"},
+        {"seg_id": "s1", "speaker": "pb", "text": "x", "dur": 9.0, "file": "f"},
+        {"seg_id": "s1", "speaker": "color", "text": "y", "dur": 9.5, "file": "f"},
+        {"seg_id": "close", "speaker": "color", "text": "b", "dur": 2.0, "file": "f"},
+    ]
+    assert ap.fit_report(ep, timings, {"s1": 30.0}) == []
+
+
 def test_make_pack_end_to_end(tmp_path, monkeypatch):
     # episodes/{day}/episode.json + inbox 素材 + mock TTS/时长
     day = "2026-09-18"

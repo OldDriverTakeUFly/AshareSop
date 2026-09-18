@@ -57,8 +57,12 @@ def seg_durations(timings: list[dict]) -> dict[str, float]:
 
 
 def fit_report(ep: Episode, timings: list[dict], clip_dur: dict[str, float]) -> list[str]:
+    """守恒校验只针对素材段(kind=="stock";open/close 走数据卡/静态段,免检)。"""
+    stock_ids = {s.seg_id for s in ep.segments if s.kind == "stock"}
     rep: list[str] = []
     for k, need in seg_durations(timings).items():
+        if k not in stock_ids:
+            continue
         have = clip_dur.get(k)
         if have is None:
             rep.append(f"{k}: 未找到素材文件")
