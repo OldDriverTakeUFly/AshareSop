@@ -58,43 +58,52 @@ def match_clips(day_dash: str, ep: Episode) -> tuple[dict[str, Path], list[str]]
                 logger.warning(f"recap inbox 未识别文件名: {p.name}")
                 continue
             _, ts_code, seq = parsed
+            # 评审修复:两条路径都不得覆盖已对位段落(杂散文件后到会静默顶掉正确素材)
             seg = next((s for s in stock_segs
-                        if s.ts_code == ts_code and s.seg_id == f"s{seq}"), None)
+                        if s.ts_code == ts_code and s.seg_id == f"s{seq}"
+                        and s.seg_id not in matched), None)
             if seg is None:
-                seg = next((s for s in stock_segs if s.ts_code == ts_code), None)
+                seg = next((s for s in stock_segs
+                            if s.ts_code == ts_code and s.seg_id not in matched), None)
             if seg is not None:
                 matched[seg.seg_id] = p
+            else:
+                logger.warning(f"recap inbox 文件无可认领段落,忽略: {p.name}")
     missing = [s.seg_id for s in stock_segs if s.seg_id not in matched]
     return matched, missing
 
 
 def push_sheet(day_dash: str, markdown: str, dry_run: bool = False) -> bool:
-    """推录制单到红薯运营群(纯文本);幂等锁 logs/.recap_sheet/{day}.ok;失败不阻断。"""
+    """推录制单到红薯运营群(纯文本);幂等锁 logs/.recap_sheet/{day}.ok;失败不阻断。
+
+    锁只在推送成功或无 chat id 跳过后落盘;推送异常不落锁,下次运行可重试
+    (对齐 daily_market_cards.push_one 只在 send 成功后写锁的口径)。"""
     lock = _lock_path(day_dash)
     if lock.exists():
         logger.info(f"recap 录制单 {day_dash} 已推过,跳过")
         return True
-    if not dry_run:
-        try:
-            import asyncio
-            from dotenv import load_dotenv
-            load_dotenv(REPO_ROOT / ".env")
-            chat = os.environ.get("FEISHU_XHS_CHAT_ID", "")
-            if chat:
-                from stockhot.notification.feishu_bot import EnterpriseFeishuNotifier
+    if dry_run:
+        return True   # 纯预览:不推送、不落锁
+    try:
+        import asyncio
+        from dotenv import load_dotenv
+        load_dotenv(REPO_ROOT / ".env")
+        chat = os.environ.get("FEISHU_XHS_CHAT_ID", "")
+        if chat:
+            from stockhot.notification.feishu_bot import EnterpriseFeishuNotifier
 
-                async def _send() -> None:
-                    n = EnterpriseFeishuNotifier(os.environ["FEISHU_APP_ID"],
-                                                 os.environ["FEISHU_APP_SECRET"], chat)
-                    # 无 tags 场景;若日后加话题标签,必须保持最后一行
-                    await n.send_text(f"【{day_dash} 复盘视频录制单·照单录,发布人工】\n\n{markdown}")
+            async def _send() -> None:
+                n = EnterpriseFeishuNotifier(os.environ["FEISHU_APP_ID"],
+                                             os.environ["FEISHU_APP_SECRET"], chat)
+                # 无 tags 场景;若日后加话题标签,必须保持最后一行
+                await n.send_text(f"【{day_dash} 复盘视频录制单·照单录,发布人工】\n\n{markdown}")
 
-                asyncio.run(_send())
-            else:
-                logger.info("未配置 FEISHU_XHS_CHAT_ID,跳过录制单推送")
-        except Exception as e:  # noqa: BLE001 —— 推送失败不阻断流程
-            logger.warning(f"录制单推送失败({e!r})")
-        # 修复(brief 笔误):dry_run 不落锁(锁只在真实推送路径写入,测试断言锁定)
-        lock.parent.mkdir(parents=True, exist_ok=True)
-        lock.write_text(datetime.now().isoformat(timespec="seconds"), encoding="utf-8")
+            asyncio.run(_send())
+        else:
+            logger.info("未配置 FEISHU_XHS_CHAT_ID,跳过录制单推送")
+    except Exception as e:  # noqa: BLE001 —— 推送失败不阻断流程,但不落锁(可重试)
+        logger.warning(f"录制单推送失败({e!r}),未落锁,下次运行可重试")
+        return True
+    lock.parent.mkdir(parents=True, exist_ok=True)
+    lock.write_text(datetime.now().isoformat(timespec="seconds"), encoding="utf-8")
     return True

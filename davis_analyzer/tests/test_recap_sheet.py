@@ -61,6 +61,49 @@ def test_match_clips_reports_missing(tmp_path, monkeypatch):
     assert matched == {}
 
 
+def test_match_clips_stray_file_does_not_overwrite(tmp_path, monkeypatch):
+    # 评审修复:同 ts_code 杂散 _02 不得经回退覆盖已精确对位的 s1
+    monkeypatch.setattr(rs, "INBOX_DIR", tmp_path)
+    day_dir = tmp_path / "2026-09-18"
+    day_dir.mkdir()
+    (day_dir / "20260918_605577.SH_01.mp4").write_bytes(b"x")
+    (day_dir / "20260918_605577.SH_02.mp4").write_bytes(b"x")   # 杂散文件
+    ep = Episode.from_dict({
+        "trade_date": "2026-09-18", "title": "杂散测试", "facts": [],
+        "segments": [
+            {"seg_id": "open", "kind": "scoreboard", "ts_code": None, "lines": []},
+            {"seg_id": "s1", "kind": "stock", "ts_code": "605577.SH", "lines": []},
+            {"seg_id": "close", "kind": "outlook", "ts_code": None, "lines": []},
+        ]})
+    matched, missing = rs.match_clips("2026-09-18", ep)
+    assert matched["s1"].name == "20260918_605577.SH_01.mp4"
+    assert missing == []
+
+
+def test_push_sheet_failure_no_lock_but_retryable(tmp_path, monkeypatch):
+    # 评审修复:推送异常不落锁(下次可重试);无 chat id 跳过则视为完成落锁
+    monkeypatch.setattr(rs, "REPO_ROOT", tmp_path)
+    monkeypatch.setenv("FEISHU_XHS_CHAT_ID", "oc_fake")
+    monkeypatch.setenv("FEISHU_APP_ID", "cli_fake")
+    monkeypatch.setenv("FEISHU_APP_SECRET", "sec_fake")
+    import stockhot.notification.feishu_bot as fb
+
+    class _Boom:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def send_text(self, text: str) -> None:
+            raise RuntimeError("boom")
+
+    monkeypatch.setattr(fb, "EnterpriseFeishuNotifier", _Boom)
+    lock = tmp_path / "logs" / ".recap_sheet" / "2026-09-18.ok"
+    assert rs.push_sheet("2026-09-18", "# 单") is True
+    assert not lock.exists()            # 推送失败:不落锁,可重试
+    monkeypatch.delenv("FEISHU_XHS_CHAT_ID", raising=False)
+    assert rs.push_sheet("2026-09-18", "# 单") is True
+    assert lock.exists()                # 无 chat 跳过:视为完成,落锁
+
+
 def test_push_sheet_dry_run_and_lock(tmp_path, monkeypatch):
     monkeypatch.setattr(rs, "REPO_ROOT", tmp_path)
     assert rs.push_sheet("2026-09-18", "# 单", dry_run=True) is True
