@@ -40,30 +40,35 @@ THEMES = {
     },
 }
 
-CSS = """
-  * { margin:0; padding:0; box-sizing:border-box; font-family:"PingFang SC","Noto Sans CJK SC","Microsoft YaHei",sans-serif; }
-  body { width:750px; background:{bg}; color:{text}; padding:36px 30px; }
-  .tag { display:inline-block; background:{tagbg}; color:{tagfg}; border-radius:6px; padding:4px 10px; font-size:20px; }
-  h1 { font-size:42px; margin:16px 0 6px; line-height:1.38; color:{accent1}; font-weight:800; }
-  .sub { color:{dim}; font-size:21px; margin-bottom:22px; line-height:1.55; }
-  .hook { border:2px solid {accent1}; background:{card}; border-radius:16px; padding:22px; margin-bottom:20px; }
-  .stats { display:flex; gap:14px; margin-top:14px; }
-  .stat { flex:1; background:{border}; border-radius:12px; padding:14px 8px; text-align:center; }}
-  .stat .v { font-size:32px; font-weight:800; color:{accent2}; }
-  .stat .k { font-size:16px; color:{dim}; margin-top:4px; }
-  .card { background:{card}; border:1px solid {border}; border-radius:16px; padding:22px; margin-bottom:20px; }
-  .card h2 { font-size:25px; color:{accent2}; margin-bottom:6px; }
-  .card .st { color:{dim}; font-size:18px; margin-bottom:12px; }
-  table { width:100%; border-collapse:collapse; font-size:18px; }
-  th { color:{th}; text-align:left; padding:8px 6px; border-bottom:1px solid {border}; }
-  td { padding:8px 6px; border-bottom:1px solid {border}66; color:{text}; line-height:1.55; word-break:break-all; }
-  td.up { color:{pos}; }} td.down { color:{neg}; }}
-  .note { font-size:16px; color:{dim}; margin-top:8px; line-height:1.6; }
-  .insight { border-left:4px solid {accent2}; background:{border}55; padding:14px 16px; border-radius:0 10px 10px 0; font-size:19px; line-height:1.75; margin-bottom:20px; }
-  .rows li { font-size:19px; line-height:1.8; color:{text}; margin-left:20px; margin-bottom:6px; }
-  .rows b { color:{accent2}; }
-  .foot { font-size:16px; color:{dim}; line-height:1.7; margin-top:8px; padding:16px; background:{card}; border-radius:12px; }
-"""
+KIT_CSS_PATH = CARDS_ROOT / "longpic_kit" / "kit.css"  # 方案B(2026-09-18):骨架组件单一真相源
+
+
+def _kit_css() -> str:
+    if not KIT_CSS_PATH.exists():
+        raise SystemExit(f"kit.css 缺失: {KIT_CSS_PATH}(longpic_kit 是长图渲染的硬依赖)")
+    return KIT_CSS_PATH.read_text(encoding="utf-8")
+
+
+def _root_vars(t: dict) -> str:
+    """日更系 :root 覆盖块——逐值对应换骨前内嵌模板(themes.md §3 文档化,像素回归依据)."""
+    pairs = [f"--{k}:{v}" for k, v in t.items()]
+    pairs += [
+        "--h1-size:42px", "--h1-lh:1.38", "--h1-weight:800",
+        "--sub-size:21px", "--sub-mb:22px",
+        "--hook-bg:" + t["card"],
+        "--stats-mt:14px", "--stat-bg:" + t["border"], "--stat-border:none", "--stat-pad:14px 8px",
+        "--v-size:32px", "--v-color:" + t["accent2"],
+        "--h2-size:25px", "--h2-color:" + t["accent2"],
+        "--td-border:" + t["border"] + "66", "--td-color:" + t["text"], "--td-lh:1.55", "--td-wb:break-all",
+        "--note-mt:8px", "--note-lh:1.6", "--note-color:" + t["dim"],
+        "--insight-size:19px", "--insight-color:" + t["text"], "--insight-bar:" + t["accent2"],
+        "--insight-bg:" + t["border"] + "55",
+        "--rows-mb:6px", "--rows-color:" + t["text"], "--b-em:" + t["accent2"],
+        "--foot-bg:" + t["card"], "--foot-color:" + t["dim"],
+        "--vs-bg:" + t["card"], "--border-soft:" + t["border"] + "55",
+    ]
+    return ":root{" + ";".join(pairs) + "}"
+
 
 SAFE_HTML = re.compile(r"</?(b|br|i|strong)\s*/?>", re.I)
 
@@ -158,9 +163,7 @@ def build_html(kind: str, day_dir: Path, theme: dict, spec: dict | None = None) 
     body = "\n".join(page_html(p, theme) for p in pages)
     foot = pages[0].get("foot") or "数据来源:沪深交易所/东方财富(经 stockhot 采集) · 仅供研究参考,不构成投资建议"
     tags = pages[-1].get("tags") or spec["cards"][0].get("tags", "")
-    css = CSS
-    for k, v in theme.items():
-        css = css.replace("{" + k + "}", v)
+    css = _kit_css() + _root_vars(theme)
     return (f'<!DOCTYPE html><html lang="zh"><head><meta charset="utf-8"><style>{css}</style></head><body>\n'
             f'{body}\n<div class="foot">{esc(foot)}</div>\n</body></html>')
 
@@ -238,17 +241,17 @@ def main() -> None:
 # 输出 750px 单长图;渲染后内建数字闸(unmatched_tokens 对 facts,零未锚定才放行)。
 
 _THERMO_CSS_EXTRA = """
-  .bar-row { display:flex; align-items:center; gap:10px; padding:7px 0; border-bottom:1px solid {border}55; }
-  .bar-row .nm { width:120px; font-size:19px; color:{text}; flex:none; }
-  .bar-row .track { flex:1; background:{border}55; border-radius:8px; height:22px; overflow:hidden; }
+  .bar-row { display:flex; align-items:center; gap:10px; padding:7px 0; border-bottom:1px solid var(--border-soft); }
+  .bar-row .nm { width:120px; font-size:19px; color:var(--text); flex:none; }
+  .bar-row .track { flex:1; background:var(--border-soft); border-radius:8px; height:22px; overflow:hidden; }
   .bar-row .fill { height:100%; border-radius:8px; }
   .bar-row .tv { width:64px; font-size:19px; font-weight:800; text-align:right; flex:none; }
   .bar-row .dv { width:72px; font-size:16px; flex:none; }
-  .dim-row { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid {border}55; }
+  .dim-row { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--border-soft); }
   .dim-row .nm { width:80px; font-size:19px; flex:none; }
-  .dim-row .track { flex:1; background:{border}55; border-radius:8px; height:16px; overflow:hidden; }
-  .dim-row .fill { height:100%; background:{accent2}; }
-  .dim-row .tv { width:56px; font-size:17px; text-align:right; flex:none; color:{dim}; }
+  .dim-row .track { flex:1; background:var(--border-soft); border-radius:8px; height:16px; overflow:hidden; }
+  .dim-row .fill { height:100%; background:var(--accent2); }
+  .dim-row .tv { width:56px; font-size:17px; text-align:right; flex:none; color:var(--dim); }
 """
 
 _THERMO_BANDS = [  # 五档色带(条形填充色;A 风格炭黑底上热红→冷蓝)
@@ -311,9 +314,7 @@ def build_thermo_html(day_dir: Path, theme: dict) -> str:
     day = day_dir.name
     bundle = daily_mod.fetch_thermo_bundle(day)
     t = theme
-    css = CSS + _THERMO_CSS_EXTRA
-    for k, v in t.items():
-        css = css.replace("{" + k + "}", v)
+    css = _kit_css() + _root_vars(t) + _THERMO_CSS_EXTRA
     esc_ = esc
     mkt = bundle["market"]
     top1 = bundle["l1"][0]
