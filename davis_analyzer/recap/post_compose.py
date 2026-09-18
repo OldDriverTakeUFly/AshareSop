@@ -133,8 +133,8 @@ _ASS_HEADER = (
     "OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, "
     "Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, "
     "MarginV, Encoding\n"
-    "Style: Default,Noto Sans CJK SC,17,&H00FFFFFF,&H00FFFFFF,&H90000000,&H00000000,"
-    "0,0,0,0,100,100,0,0,1,1.4,0,2,40,40,64,1\n\n"
+    "Style: Default,Noto Sans CJK SC,24,&H00FFFFFF,&H00FFFFFF,&H90000000,&H00000000,"
+    "0,0,0,0,100,100,0,0,1,2.0,0,2,40,40,64,1\n\n"
     "[Events]\nFormat: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, "
     "Effect, Text\n"
 )
@@ -205,8 +205,8 @@ def _stock_clip(clip: Path, card_png: Path, banner_png: Path, replay_png: Path,
         f"[3:v]scale={W}:-2,fade=t=in:st=0:d=0.3,"
         f"fade=t=out:st={max(0.0, seg_dur - 0.5):.2f}:d=0.4[bn];"
         f"[m2][bn]overlay=0:40[m3];"
-        f"[4:v]scale=320:-2[rb];"
-        f"[m3][rb]overlay={W - 320 - 40}:1080,format=yuv420p[v]"
+        f"[4:v]scale=260:-2[rb];"
+        f"[m3][rb]overlay={W - 260 - 40}:1130,format=yuv420p[v]"
     )
     _run([ffmpeg(), "-y", "-i", str(clip), "-i", str(seg_audio),
           "-i", str(card_png), "-loop", "1", "-t", f"{seg_dur:.2f}", "-i", str(banner_png),
