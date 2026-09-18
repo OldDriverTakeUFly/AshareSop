@@ -15,7 +15,7 @@
     {
       "id": "bd_1_net",
       "value": 179.5,
-      "unit": "亿元",
+      "unit": "亿",
       "display": "179.5亿",
       "as_of": "2026-09-18",
       "source": {
@@ -51,7 +51,7 @@
     {
       "id": "bd_2_net",
       "value": 60.5,
-      "unit": "亿元",
+      "unit": "亿",
       "display": "60.5亿",
       "as_of": "2026-09-18",
       "source": {
@@ -87,7 +87,7 @@
     {
       "id": "bd_3_net",
       "value": 30.9,
-      "unit": "亿元",
+      "unit": "亿",
       "display": "30.9亿",
       "as_of": "2026-09-18",
       "source": {
@@ -123,7 +123,7 @@
     {
       "id": "bd_4_net",
       "value": 28.1,
-      "unit": "亿元",
+      "unit": "亿",
       "display": "28.1亿",
       "as_of": "2026-09-18",
       "source": {
@@ -159,7 +159,7 @@
     {
       "id": "bd_5_net",
       "value": 18.8,
-      "unit": "亿元",
+      "unit": "亿",
       "display": "18.8亿",
       "as_of": "2026-09-18",
       "source": {
@@ -615,7 +615,7 @@
     {
       "id": "temp_dev",
       "value": 46.0,
-      "unit": "℃",
+      "unit": "",
       "display": "46.0℃",
       "as_of": "2026-09-18",
       "source": {
@@ -627,7 +627,7 @@
     {
       "id": "temp_dev_d5",
       "value": 19.4,
-      "unit": "℃",
+      "unit": "",
       "display": "5日+19.4",
       "as_of": "2026-09-18",
       "source": {
@@ -639,7 +639,7 @@
     {
       "id": "temp_l1",
       "value": 54.8,
-      "unit": "℃",
+      "unit": "",
       "display": "54.8℃",
       "as_of": "2026-09-18",
       "source": {
@@ -651,7 +651,7 @@
     {
       "id": "temp_l1_d5",
       "value": 29.0,
-      "unit": "℃",
+      "unit": "",
       "display": "5日+29.0",
       "as_of": "2026-09-18",
       "source": {
@@ -675,7 +675,7 @@
     {
       "id": "temp_dev_prev",
       "value": 29.8,
-      "unit": "℃",
+      "unit": "",
       "display": "29.8℃",
       "as_of": "2026-09-18",
       "source": {
@@ -687,7 +687,7 @@
     {
       "id": "temp_dev_d1",
       "value": 16.2,
-      "unit": "℃",
+      "unit": "",
       "display": "16.2℃",
       "as_of": "2026-09-18",
       "source": {
@@ -801,6 +801,426 @@
       "source": {
         "kind": "web",
         "ref": "华尔街见闻 2026-09-16:Lumentum/Coherent本周涨超9%"
+      },
+      "expires": "2026-09-23"
+    },
+    {
+      "id": "auto_68_0100",
+      "value": 0.0,
+      "unit": "",
+      "display": "0-100",
+      "as_of": "2026-09-18",
+      "source": {
+        "kind": "longpic_audit",
+        "ref": "长图.html 段落锚: …</div>     <div class=\"note\">温度=板块拥挤度(自研温度计,0-100):低温=无人问津,高温=人声鼎沸。通信设备46.…"
+      },
+      "expires": "2026-09-23"
+    },
+    {
+      "id": "auto_68_605",
+      "value": 60.5,
+      "unit": "亿",
+      "display": "60.5亿",
+      "as_of": "2026-09-18",
+      "source": {
+        "kind": "longpic_audit",
+        "ref": "长图.html 段落锚: …板块见顶、双龙头自高点回撤近三成之后,光通信今日集体回弹——钱也回来了:通信设备主力净流入60.5亿,居两市板块榜第二。</div>    <div…"
+      },
+      "expires": "2026-09-23"
+    },
+    {
+      "id": "auto_68_1003",
+      "value": 10.03,
+      "unit": "%",
+      "display": "+10.03%",
+      "as_of": "2026-09-18",
+      "source": {
+        "kind": "longpic_audit",
+        "ref": "长图.html 段落锚: …\"><div class=\"v\">涨停</div><div class=\"k\">共进股份 +10.03%</div></div>     </div>…"
+      },
+      "expires": "2026-09-23"
+    },
+    {
+      "id": "auto_68_800",
+      "value": 800.0,
+      "unit": "",
+      "display": "800",
+      "as_of": "2026-09-18",
+      "source": {
+        "kind": "longpic_audit",
+        "ref": "长图.html 段落锚: …nd-clip:text; color:transparent; font-weight:800; }   .sub { color:#8a96c…"
+      },
+      "expires": "2026-09-23"
+    },
+    {
+      "id": "auto_68_60",
+      "value": 60.0,
+      "unit": "",
+      "display": "60",
+      "as_of": "2026-09-18",
+      "source": {
+        "kind": "longpic_audit",
+        "ref": "长图.html 段落锚: …板块见顶、双龙头自高点回撤近三成之后,光通信今日集体回弹——钱也回来了:通信设备主力净流入60.5亿,居两市板块榜第二。</div>    <d…"
+      },
+      "expires": "2026-09-23"
+    },
+    {
+      "id": "auto_68_774",
+      "value": 7.74,
+      "unit": "%",
+      "display": "+7.74%",
+      "as_of": "2026-09-18",
+      "source": {
+        "kind": "longpic_audit",
+        "ref": "长图.html 段落锚: …></tr>       <tr><td>联特科技</td><td class=\"up\">+7.74%</td><td class=\"down\">-6.…"
+      },
+      "expires": "2026-09-23"
+    },
+    {
+      "id": "auto_68_619",
+      "value": 6.19,
+      "unit": "%",
+      "display": "+6.19%",
+      "as_of": "2026-09-18",
+      "source": {
+        "kind": "longpic_audit",
+        "ref": "长图.html 段落锚: …d></tr>       <tr><td>太辰光</td><td class=\"up\">+6.19%</td><td class=\"down\">-7.…"
+      },
+      "expires": "2026-09-23"
+    },
+    {
+      "id": "auto_68_609",
+      "value": 6.09,
+      "unit": "%",
+      "display": "+6.09%",
+      "as_of": "2026-09-18",
+      "source": {
+        "kind": "longpic_audit",
+        "ref": "长图.html 段落锚: …></tr>       <tr><td>仕佳光子</td><td class=\"up\">+6.09%</td><td class=\"down\">-7.…"
+      },
+      "expires": "2026-09-23"
+    },
+    {
+      "id": "auto_68_487",
+      "value": 4.87,
+      "unit": "%",
+      "display": "+4.87%",
+      "as_of": "2026-09-18",
+      "source": {
+        "kind": "longpic_audit",
+        "ref": "长图.html 段落锚: …d></tr>       <tr><td>新易盛</td><td class=\"up\">+4.87%</td><td class=\"down\">-26…"
+      },
+      "expires": "2026-09-23"
+    },
+    {
+      "id": "auto_68_424",
+      "value": 4.24,
+      "unit": "%",
+      "display": "+4.24%",
+      "as_of": "2026-09-18",
+      "source": {
+        "kind": "longpic_audit",
+        "ref": "长图.html 段落锚: …></tr>       <tr><td>长光华芯</td><td class=\"up\">+4.24%</td><td class=\"down\">-31…"
+      },
+      "expires": "2026-09-23"
+    },
+    {
+      "id": "auto_68_409",
+      "value": 4.09,
+      "unit": "%",
+      "display": "+4.09%",
+      "as_of": "2026-09-18",
+      "source": {
+        "kind": "longpic_audit",
+        "ref": "长图.html 段落锚: …></tr>       <tr><td>剑桥科技</td><td class=\"up\">+4.09%</td><td class=\"down\">-10…"
+      },
+      "expires": "2026-09-23"
+    },
+    {
+      "id": "auto_68_340",
+      "value": 3.4,
+      "unit": "%",
+      "display": "+3.40%",
+      "as_of": "2026-09-18",
+      "source": {
+        "kind": "longpic_audit",
+        "ref": "长图.html 段落锚: …></tr>       <tr><td>中际旭创</td><td class=\"up\">+3.40%</td><td class=\"down\">-27…"
+      },
+      "expires": "2026-09-23"
+    },
+    {
+      "id": "auto_68_282",
+      "value": 2.82,
+      "unit": "%",
+      "display": "+2.82%",
+      "as_of": "2026-09-18",
+      "source": {
+        "kind": "longpic_audit",
+        "ref": "长图.html 段落锚: …></tr>       <tr><td>源杰科技</td><td class=\"up\">+2.82%</td><td class=\"down\">-2.…"
+      },
+      "expires": "2026-09-23"
+    },
+    {
+      "id": "auto_68_269",
+      "value": 2.69,
+      "unit": "%",
+      "display": "+2.69%",
+      "as_of": "2026-09-18",
+      "source": {
+        "kind": "longpic_audit",
+        "ref": "长图.html 段落锚: …d></tr>       <tr><td>德科立</td><td class=\"up\">+2.69%</td><td class=\"down\">-3.…"
+      },
+      "expires": "2026-09-23"
+    },
+    {
+      "id": "auto_68_60",
+      "value": 60.0,
+      "unit": "个",
+      "display": "60个",
+      "as_of": "2026-09-18",
+      "source": {
+        "kind": "longpic_audit",
+        "ref": "长图.html 段落锚: …e\">口径:Tushare日线收盘(前复权口径,与行情库同步刷新);「距近季峰」=现价距近60个交易日最高收盘价的落差;「近60日」=60个交易日…"
+      },
+      "expires": "2026-09-23"
+    },
+    {
+      "id": "auto_68_1795",
+      "value": 179.5,
+      "unit": "亿",
+      "display": "+179.5亿",
+      "as_of": "2026-09-18",
+      "source": {
+        "kind": "longpic_audit",
+        "ref": "长图.html 段落锚: …tr><td>半导体</td><td class=\"up\">+2.95%</td><td>+179.5亿</td></tr>       <tr><td>…"
+      },
+      "expires": "2026-09-23"
+    },
+    {
+      "id": "auto_68_605",
+      "value": 60.5,
+      "unit": "亿",
+      "display": "+60.5亿",
+      "as_of": "2026-09-18",
+      "source": {
+        "kind": "longpic_audit",
+        "ref": "长图.html 段落锚: …r><td>通信设备</td><td class=\"up\">+2.62%</td><td>+60.5亿</td></tr>       <tr><td>…"
+      },
+      "expires": "2026-09-23"
+    },
+    {
+      "id": "auto_68_309",
+      "value": 30.9,
+      "unit": "亿",
+      "display": "+30.9亿",
+      "as_of": "2026-09-18",
+      "source": {
+        "kind": "longpic_audit",
+        "ref": "长图.html 段落锚: …r><td>电气设备</td><td class=\"up\">+1.66%</td><td>+30.9亿</td></tr>       <tr><td>…"
+      },
+      "expires": "2026-09-23"
+    },
+    {
+      "id": "auto_68_281",
+      "value": 28.1,
+      "unit": "亿",
+      "display": "+28.1亿",
+      "as_of": "2026-09-18",
+      "source": {
+        "kind": "longpic_audit",
+        "ref": "长图.html 段落锚: …r><td>专用机械</td><td class=\"up\">+2.13%</td><td>+28.1亿</td></tr>       <tr><td>…"
+      },
+      "expires": "2026-09-23"
+    },
+    {
+      "id": "auto_68_188",
+      "value": 18.8,
+      "unit": "亿",
+      "display": "+18.8亿",
+      "as_of": "2026-09-18",
+      "source": {
+        "kind": "longpic_audit",
+        "ref": "长图.html 段落锚: …r><td>IT设备</td><td class=\"up\">+2.13%</td><td>+18.8亿</td></tr>     </table>…"
+      },
+      "expires": "2026-09-23"
+    },
+    {
+      "id": "auto_68_460",
+      "value": 46.0,
+      "unit": "",
+      "display": "46.0",
+      "as_of": "2026-09-18",
+      "source": {
+        "kind": "longpic_audit",
+        "ref": "长图.html 段落锚: …>       <div class=\"stat\"><div class=\"v ice\">46.0℃</div><div class=\"k\">通信设…"
+      },
+      "expires": "2026-09-23"
+    },
+    {
+      "id": "auto_68_298",
+      "value": 29.8,
+      "unit": "",
+      "display": "29.8",
+      "as_of": "2026-09-18",
+      "source": {
+        "kind": "longpic_audit",
+        "ref": "长图.html 段落锚: …ss=\"v ice\">46.0℃</div><div class=\"k\">通信设备温度(昨29.8℃)</div></div>       <div…"
+      },
+      "expires": "2026-09-23"
+    },
+    {
+      "id": "auto_68_162",
+      "value": 16.2,
+      "unit": "",
+      "display": "+16.2",
+      "as_of": "2026-09-18",
+      "source": {
+        "kind": "longpic_audit",
+        "ref": "长图.html 段落锚: …/div>       <div class=\"stat\"><div class=\"v\">+16.2</div><div class=\"k\">单日升温…"
+      },
+      "expires": "2026-09-23"
+    },
+    {
+      "id": "auto_68_194",
+      "value": 19.4,
+      "unit": "",
+      "display": "+19.4",
+      "as_of": "2026-09-18",
+      "source": {
+        "kind": "longpic_audit",
+        "ref": "长图.html 段落锚: …/div>       <div class=\"stat\"><div class=\"v\">+19.4</div><div class=\"k\">五日升温…"
+      },
+      "expires": "2026-09-23"
+    },
+    {
+      "id": "auto_68_548",
+      "value": 54.8,
+      "unit": "",
+      "display": "54.8",
+      "as_of": "2026-09-18",
+      "source": {
+        "kind": "longpic_audit",
+        "ref": "长图.html 段落锚: …0-100):低温=无人问津,高温=人声鼎沸。通信设备46.0℃仍在中低温区,大类「通信」54.8℃、五日+29.0。单日升温16.2℃只说明注意力…"
+      },
+      "expires": "2026-09-23"
+    },
+    {
+      "id": "auto_68_290",
+      "value": 29.0,
+      "unit": "",
+      "display": "+29.0",
+      "as_of": "2026-09-18",
+      "source": {
+        "kind": "longpic_audit",
+        "ref": "长图.html 段落锚: …温=无人问津,高温=人声鼎沸。通信设备46.0℃仍在中低温区,大类「通信」54.8℃、五日+29.0。单日升温16.2℃只说明注意力在快速回流,不构成…"
+      },
+      "expires": "2026-09-23"
+    },
+    {
+      "id": "auto_68_162",
+      "value": 16.2,
+      "unit": "",
+      "display": "16.2",
+      "as_of": "2026-09-18",
+      "source": {
+        "kind": "longpic_audit",
+        "ref": "长图.html 段落锚: …div>       <div class=\"stat\"><div class=\"v\">+16.2</div><div class=\"k\">单日升温…"
+      },
+      "expires": "2026-09-23"
+    },
+    {
+      "id": "auto_68_144",
+      "value": 1.44,
+      "unit": "亿",
+      "display": "1.44亿",
+      "as_of": "2026-09-18",
+      "source": {
+        "kind": "longpic_audit",
+        "ref": "长图.html 段落锚: …>       <div class=\"stat\"><div class=\"v ice\">1.44亿只</div><div class=\"k\">上修后…"
+      },
+      "expires": "2026-09-23"
+    },
+    {
+      "id": "auto_68_14",
+      "value": 14.0,
+      "unit": "",
+      "display": "14",
+      "as_of": "2026-09-18",
+      "source": {
+        "kind": "longpic_audit",
+        "ref": "长图.html 段落锚: …olor:#dbe4ff; }   .stats { display:flex; gap:14px; margin-top:16px; }…"
+      },
+      "expires": "2026-09-23"
+    },
+    {
+      "id": "auto_68_171",
+      "value": 1.71,
+      "unit": "亿",
+      "display": "1.71亿",
+      "as_of": "2026-09-18",
+      "source": {
+        "kind": "longpic_audit",
+        "ref": "长图.html 段落锚: …后,把800G及以上光模块2027/2028年需求预测上修39%/36%,至1.44亿只/1.71亿只——行业约束已从「需求够不够」转向「产能够不够」…"
+      },
+      "expires": "2026-09-23"
+    },
+    {
+      "id": "auto_68_7",
+      "value": 7.0,
+      "unit": "",
+      "display": "7",
+      "as_of": "2026-09-18",
+      "source": {
+        "kind": "longpic_audit",
+        "ref": "长图.html 段落锚: …icrosoft YaHei\",sans-serif; }   body { width:750px; background:#0a0f1e;…"
+      },
+      "expires": "2026-09-23"
+    },
+    {
+      "id": "auto_68_1485",
+      "value": 1485.0,
+      "unit": "亿",
+      "display": "1485亿",
+      "as_of": "2026-09-18",
+      "source": {
+        "kind": "longpic_audit",
+        "ref": "长图.html 段落锚: …</li>       <li>更早的9月7日,高盛已把2028年全球光模块市场空间上调到1485亿美元(较前值+115%),并预计2026-2028…"
+      },
+      "expires": "2026-09-23"
+    },
+    {
+      "id": "auto_100_0100",
+      "value": 0.0,
+      "unit": "",
+      "display": "0-100",
+      "as_of": "2026-09-18",
+      "source": {
+        "kind": "longpic_audit",
+        "ref": "长图.html 段落锚: …</div>     <div class=\"note\">温度=板块拥挤度(自研温度计,0-100):低温=无人问津,高温=人声鼎沸。通信设备46.…"
+      },
+      "expires": "2026-09-23"
+    },
+    {
+      "id": "auto_101_range0",
+      "value": 0,
+      "unit": "",
+      "display": "0-100",
+      "as_of": "2026-09-18",
+      "source": {
+        "kind": "longpic_audit",
+        "ref": "长图.html 段落锚: 温度=板块拥挤度(自研温度计,0-100)"
+      },
+      "expires": "2026-09-23"
+    },
+    {
+      "id": "auto_102_range100",
+      "value": 100,
+      "unit": "",
+      "display": "0-100",
+      "as_of": "2026-09-18",
+      "source": {
+        "kind": "longpic_audit",
+        "ref": "长图.html 段落锚: 温度=板块拥挤度(自研温度计,0-100)"
       },
       "expires": "2026-09-23"
     }

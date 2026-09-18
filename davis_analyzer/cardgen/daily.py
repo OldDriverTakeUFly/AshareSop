@@ -781,6 +781,10 @@ def build_thermo(day: str, bundle: dict) -> tuple[list[Fact], dict]:
     hot_v = _thermo_num(top1["temperature"])
     facts.append(_fact("hot_temp", hot_v, "", hot_v, day,
                        f"{ref_sec}:{top1['index_code']}.temperature"))
+    # 长图首屏钩子用(六页 spec 不渲染,但 facts 层保持完备供长图数字闸锚定)
+    streak_n = int(top1.get("hot_streak") or 0)
+    facts.append(_fact("hot_streak", streak_n, "", f"{streak_n}天", day,
+                       f"{ref_sec}:{top1['index_code']}.hot_streak"))
 
     def _row(r: dict, prefix: str, with_level: bool) -> tuple[dict, list[Fact]]:
         name = _digit_safe(str(r["name"])) or "-"
@@ -855,6 +859,16 @@ def build_thermo(day: str, bundle: dict) -> tuple[list[Fact], dict]:
     # 轮动脉搏页(有档位迁移才出页)
     rot_rows = []
     rot = bundle.get("rotation") or {}
+    # 轮动计数 facts(长图钩子/文案用;六页 spec 不引用,仅登记保数字闸完备)
+    facts.append(_fact("rot_n", int(rot.get("n_moves") or 0), "个",
+                       f"{int(rot.get('n_moves') or 0)}个", day,
+                       f"market_data.db:thermometer_sector@{day}:rotation:n_moves"))
+    facts.append(_fact("rot_up", int(rot.get("n_up") or 0), "",
+                       str(int(rot.get("n_up") or 0)), day,
+                       f"market_data.db:thermometer_sector@{day}:rotation:n_up"))
+    facts.append(_fact("rot_down", int(rot.get("n_down") or 0), "",
+                       str(int(rot.get("n_down") or 0)), day,
+                       f"market_data.db:thermometer_sector@{day}:rotation:n_down"))
     for i, m in enumerate(rot.get("moves") or [], 1):
         lv_label = "一级" if m["level"] == "L1" else "二级"
         name = _digit_safe(str(m["name"])) or "-"
