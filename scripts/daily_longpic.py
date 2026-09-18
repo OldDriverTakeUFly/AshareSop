@@ -21,17 +21,17 @@ THEMES = {
     "ladder": {
         "bg": "#0f1014", "card": "#191b22", "border": "#343846", "text": "#f2f3f7",
         "dim": "#9aa0b5", "accent1": "#ff4d4f", "accent2": "#ffd166",
-        "tagbg": "#3a1d1f", "tagfg": "#ff9c9c", "pos": "#6ee7b7", "neg": "#ff8f9e", "th": "#ff9c9c",
+        "tagbg": "#3a1d1f", "tagfg": "#ff9c9c", "pos": "#ff6b6b", "neg": "#4ade80", "th": "#ff9c9c",
     },
     "ladder_c": {  # 候选C:与龙虎榜同深蓝底,红强调(家族感方案)
         "bg": "#0b1026", "card": "#141b40", "border": "#2b3775", "text": "#eaf0ff",
         "dim": "#8d97c9", "accent1": "#ff5a52", "accent2": "#ffd166",
-        "tagbg": "#3a1d22", "tagfg": "#ff9c9c", "pos": "#6ee7b7", "neg": "#fda4af", "th": "#ff9c9c",
+        "tagbg": "#3a1d22", "tagfg": "#ff9c9c", "pos": "#ff6b6b", "neg": "#4ade80", "th": "#ff9c9c",
     },
-    "lhb": {
-        "bg": "#0b1026", "card": "#141b40", "border": "#2b3775", "text": "#eaf0ff",
-        "dim": "#8d97c9", "accent1": "#7aa2ff", "accent2": "#ffd166",
-        "tagbg": "#283566", "tagfg": "#9db4ff", "pos": "#6ee7b7", "neg": "#fda4af", "th": "#9db4ff",
+    "lhb": {  # A 风格(2026-09-18 用户拍板):炭黑底+正红+金,与天梯统一;tag 蓝示资金卡区分
+        "bg": "#0f1014", "card": "#191b22", "border": "#343846", "text": "#f2f3f7",
+        "dim": "#9aa0b5", "accent1": "#ff4d4f", "accent2": "#ffd166",
+        "tagbg": "#1d2a4a", "tagfg": "#8fb5ff", "pos": "#ff6b6b", "neg": "#4ade80", "th": "#8fb5ff",
     },
 }
 
