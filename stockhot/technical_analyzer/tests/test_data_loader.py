@@ -58,6 +58,25 @@ def _make_akshare_hist_df(rows: list[dict] | None = None) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+@pytest.fixture(autouse=True)
+def _akshare_only(monkeypatch):
+    """隔离 DAL 与 Tushare 两级,强制 fetch_ohlcv 走 AKShare 路径。
+
+    本文件测试的是 _fetch_via_akshare 的归一化/排序/参数传递行为。fetch_ohlcv 现为
+    DAL→Tushare→AKShare 三级回退,DAL 直连共享库 market_data.db——不隔离的话
+    测试会读到生产缓存的真实行情(000001 在库),mock 断言全部失真。
+    """
+    monkeypatch.setattr(dl, "_fetch_via_dal", lambda *a, **k: pd.DataFrame())
+    monkeypatch.setattr(dl, "_fetch_via_tushare", lambda *a, **k: pd.DataFrame())
+
+    import stockhot.data_layer as dal_pkg
+
+    def _no_repo(*a, **k):
+        raise RuntimeError("测试隔离:DAL 增量拉取不应被触发")
+
+    monkeypatch.setattr(dal_pkg, "get_repository", _no_repo)
+
+
 class TestFetchOhlcv:
     def test_normal_data_loading(self, monkeypatch):
         mock_df = _make_akshare_hist_df()

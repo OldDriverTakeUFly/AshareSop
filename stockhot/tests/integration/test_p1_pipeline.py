@@ -125,6 +125,11 @@ def make_st_df():
 
 class TestLimitUpIntegration:
     def test_full_pipeline_with_mock(self, monkeypatch, tmp_path):
+        # 2026-07-07 起 fetch_*_pool 改为 Tushare 优先;不打桩会打真实 API 拉回
+        # 59 条真数据覆盖 mock(实锤),这里强制走被 mock 的 AKShare 兜底层。
+        monkeypatch.setattr(
+            "stockhot.limit_up._fetch_pool_via_tushare", lambda date, limit_type: None
+        )
         monkeypatch.setattr(
             "stockhot.limit_up.ak.stock_zt_pool_em", lambda date: make_limit_up_df()
         )
@@ -172,6 +177,12 @@ class TestDragonTigerIntegration:
 
 class TestFundFlowIntegration:
     def test_full_pipeline_with_mock(self, monkeypatch):
+        # 2026-07-07 起大盘/板块资金流均为 Tushare 优先;不打桩会拉真实时序,
+        # 最新日期≠20260424 → data_stale(实锤)。强制走被 mock 的 AKShare 层。
+        monkeypatch.setattr("stockhot.fund_flow._fetch_market_fund_flow_tushare", lambda: [])
+        monkeypatch.setattr(
+            "stockhot.fund_flow._fetch_sector_fund_flow_tushare", lambda *a, **kw: []
+        )
         monkeypatch.setattr(
             "stockhot.fund_flow.ak.stock_market_fund_flow", lambda: make_market_fund_flow_df()
         )

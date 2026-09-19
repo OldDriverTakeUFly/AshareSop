@@ -1,4 +1,8 @@
-"""M3 自动发稿:护栏纯函数 + CLI 接线(dry-run/confirm/登录态前置检查),不触真实浏览器。"""
+"""publisher CLI 测试:M3 护栏纯函数 + M4 停用契约(publish/publish-due/login 只留引导,不触浏览器)。
+
+M4(2026-08-30)小红书判定账号自动化后,自动发帖三条命令改为 sys.exit(引导文案):
+退出码 1、stderr 含「自动发帖已停用」与 prep→人工→mark 引导;--confirm 参数已移除。
+"""
 import importlib.util
 import json
 import os
@@ -89,43 +93,46 @@ class TestGuardrails:
 
 
 class TestCli:
-    def test_publish_requires_confirm(self, db: Path):
+    """M4 停用契约:自动发帖三命令一律退出并给 prep 引导;publish 行状态不受影响。"""
+
+    BANNER_KEYWORDS = ("自动发帖已停用", "prep", "mark")
+
+    def _assert_disabled(self, r: subprocess.CompletedProcess) -> None:
+        out = r.stdout + r.stderr
+        assert r.returncode != 0
+        for kw in self.BANNER_KEYWORDS:
+            assert kw in out, f"缺少引导关键词 {kw!r}:{out!r}"
+
+    def test_publish_disabled_with_banner(self, db: Path):
         qid = _seed_due_row(db)
         r = _run(db, "publish", str(qid))
-        assert r.returncode != 0 and "--confirm" in (r.stdout + r.stderr)
+        self._assert_disabled(r)
+        # 行不得被自动发布改动
+        conn = sqlite3.connect(db)
+        status = conn.execute("SELECT status FROM publish_queue WHERE id=?", (qid,)).fetchone()[0]
+        conn.close()
+        assert status == "scheduled"
 
-    def test_publish_no_login_state_fails_clean(self, db: Path, monkeypatch):
-        monkeypatch.setenv("PUBLISHER_PROFILE_DIR", "/tmp/xhs_no_profile_dir")
+    def test_publish_confirm_flag_removed(self, db: Path):
+        # M4 移除 --confirm;传了应吃 argparse usage 错误(rc=2),而非静默接受
         qid = _seed_due_row(db)
         r = _run(db, "publish", str(qid), "--confirm")
-        out = r.stdout + r.stderr
-        assert "login" in out  # 干净失败于登录态检查,不触 playwright
+        assert r.returncode != 0 and "invalid choice" in (r.stderr + r.stdout) or r.returncode == 2
 
-    def test_publish_wrong_status(self, db: Path):
-        r = _run(db, "publish", "999", "--confirm")
-        assert r.returncode != 0 and "scheduled" in (r.stdout + r.stderr)
-
-    def test_publish_due_dry_run_plan(self, db: Path):
+    def test_publish_due_disabled_even_dry_run(self, db: Path):
         _seed_due_row(db, "2099-01-01")
-        _seed_due_row(db, "2020-01-01")  # 过期行应进跳过清单
         r = _run(db, "publish-due", "--dry-run")
-        assert r.returncode == 0
-        assert "将发布 #1" in r.stdout and "将发布 #2" not in r.stdout
-        assert "过期" in r.stdout
+        self._assert_disabled(r)
 
-    def test_publish_due_daily_limit_respected(self, db: Path):
-        pub = _publisher()
-        for _ in range(pub.GUARD_DAILY_LIMIT):  # 打满当日上限
-            qid = _seed_due_row(db)
-            conn = sqlite3.connect(db)
-            conn.execute("UPDATE publish_queue SET status='published', published_at=? WHERE id=?",
-                         (NOW, qid))
-            conn.commit()
-            conn.close()
-        _seed_due_row(db)
-        r = _run(db, "publish-due", "--dry-run")
-        assert "将发布" not in r.stdout and "上限" in r.stdout
+    def test_publish_due_no_side_effect_on_rows(self, db: Path):
+        qid = _seed_due_row(db)
+        _run(db, "publish-due", "--dry-run")
+        conn = sqlite3.connect(db)
+        status, published_at = conn.execute(
+            "SELECT status, published_at FROM publish_queue WHERE id=?", (qid,)).fetchone()
+        conn.close()
+        assert status == "scheduled" and published_at is None
 
-    def test_publish_due_empty(self, db: Path):
-        r = _run(db, "publish-due", "--dry-run")
-        assert "无到点项" in r.stdout
+    def test_login_disabled(self, db: Path):
+        r = _run(db, "login")
+        self._assert_disabled(r)

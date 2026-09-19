@@ -180,6 +180,25 @@ def _make_spot_df(code="000001", price=10.5, change=2.3, volume=999000):
 
 
 class TestFetchRealtimePrice:
+    @pytest.fixture(autouse=True)
+    def _no_dal_no_tushare(self, monkeypatch):
+        """隔离 DAL 与 Tushare 两级,强制走被 mock 的 AKShare spot 兜底层。
+
+        fetch_realtime_price(2026-07-15 统一架构)改为 DAL 缓存优先——不隔离会读到
+        共享库 market_data.db 的真实收盘价,mock 断言失真(实锤:11.7/1257.12 泄漏)。
+        """
+        import stockhot.data_layer as dal_pkg
+
+        def _no_repo(*a, **k):
+            raise RuntimeError("测试隔离:DAL 缓存不应被触发")
+
+        class _EmptyGateway:
+            def call(self, *a, **k):
+                return pd.DataFrame()
+
+        monkeypatch.setattr(dal_pkg, "get_repository", _no_repo)
+        monkeypatch.setattr(dal_pkg, "get_gateway", lambda *a, **k: _EmptyGateway())
+
     def test_extracts_correct_fields(self, monkeypatch):
         mock_df = _make_spot_df(code="000001", price=10.5, change=2.3, volume=999000)
         monkeypatch.setattr(technical, "safe_akshare_call", lambda fn, *a, **kw: mock_df)

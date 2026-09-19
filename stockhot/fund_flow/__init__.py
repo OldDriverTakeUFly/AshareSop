@@ -191,6 +191,10 @@ def fetch_market_fund_flow() -> list[dict]:
             }
         )
     logger.info(f"fetch_market_fund_flow (AKShare fallback): {len(rows)} rows")
+    # akshare 源是最新在前;契约(docstring)要求升序 oldest→newest,不排序则
+    # is_latest 会打到最老一行、日期一致性校验恒判 data_stale
+    # (2026-09-19 实锤,7/07 Tushare 优先重构时丢失排序)。
+    rows.sort(key=lambda r: r["date"])
     return _mark_latest_market_flow(rows)
 
 

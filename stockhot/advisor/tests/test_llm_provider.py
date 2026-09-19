@@ -369,6 +369,9 @@ class TestGetProvider:
         self._patch_openai(monkeypatch)
         monkeypatch.setenv("LLM_PROVIDER", "openai")
         monkeypatch.setenv("LLM_API_KEY", "k")
+        # 套件里 advisor.cli 的 load_dotenv() 会把 .env 的 LLM_MODEL 写进 os.environ,
+        # 断言默认 model 前必须清掉(同 test_default_is_glm 的防御)。
+        monkeypatch.delenv("LLM_MODEL", raising=False)
 
         provider = get_provider()
         assert isinstance(provider, OpenAIProvider)
@@ -378,6 +381,7 @@ class TestGetProvider:
         self._patch_openai(monkeypatch)
         monkeypatch.setenv("LLM_PROVIDER", "deepseek")
         monkeypatch.setenv("LLM_API_KEY", "k")
+        monkeypatch.delenv("LLM_MODEL", raising=False)
 
         provider = get_provider()
         assert isinstance(provider, DeepSeekProvider)
