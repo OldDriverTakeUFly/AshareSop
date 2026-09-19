@@ -10,7 +10,7 @@ comparison table (return / Sharpe / max-drawdown / win-rate / zombie-count).
 This is the empirical validation of docs/方法论/负因子选股方法论_20260806.md.
 
 Usage:
-    PYTHONPATH=. .venv/bin/python scripts/negative_factor_abx.py \
+    PYTHONPATH=. .venv/bin/python scripts/abx/negative_factor_abx.py \
         [--start 20210101] [--end 20260731] [--universe-size 50]
 """
 

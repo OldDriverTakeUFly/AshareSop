@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-# scripts/publish_reconcile.py — 发稿池发布状态对账(2026-09-17)
+# scripts/ops/publish_reconcile.py — 发稿池发布状态对账(2026-09-17)
 # 职责:用小红书账号回流笔记(xhs_metrics.db notes,只读)作为「实际已发布」事实源,
 #       与发稿池(content_publisher.db publish_queue)中 status≠published 的行做标题归一化匹配,
 #       命中即补标 published(published_at=笔记发布时间)并向 publish_log 写审计行;歧义只报告不改。
 # 纪律:不改 scripts/content_publisher 代码,只做数据级 UPDATE(23:40 池子卫生死行归档先例);
 #       发布动作永远人工,本脚本只做簿记对账;不动 images/scan_result 等其他列。
-# 用法: .venv/bin/python scripts/publish_reconcile.py [--dry]
+# 用法: .venv/bin/python scripts/ops/publish_reconcile.py [--dry]
 from __future__ import annotations
 
 import argparse

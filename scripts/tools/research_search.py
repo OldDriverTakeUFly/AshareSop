@@ -1,4 +1,4 @@
-# scripts/research_search.py
+# scripts/tools/research_search.py
 """自建研究搜索工具(2026-08-31:MCP搜索配额受限期间的自有替代,免Key)。
 
 通道:
@@ -6,9 +6,9 @@
   cninfo  巨潮公告检索(定向权威源,第一手公告)
 
 用法:
-  python scripts/research_search.py ddg "晶华新材 涨停 原因" [-n 8]
-  python scripts/research_search.py ddg "晶华新材" --site eastmoney.com
-  python scripts/research_search.py cninfo 603683 [--kw 减持] [-n 10]
+  python scripts/tools/research_search.py ddg "晶华新材 涨停 原因" [-n 8]
+  python scripts/tools/research_search.py ddg "晶华新材" --site eastmoney.com
+  python scripts/tools/research_search.py cninfo 603683 [--kw 减持] [-n 10]
 
 输出 JSON 行:{"title","url","snippet"} / 巨潮含 {"date","title"}。产物是 URL 清单,
 精读交给 WebFetch(读全文)——本工具只负责"找到",不负责"读懂"。

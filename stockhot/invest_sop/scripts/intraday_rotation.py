@@ -52,7 +52,7 @@ ROTATION_ACCOUNTS = ["live_factor_test", "mini_100k"]
 # 今日＝盘后导出的 T-1 名单，且 ≤4 天），缺名单回退 top20（预注册回退口径）。
 # live_factor_test / mini_100k 的名单路径与打分完全不变——账户存在性即开关，
 # 删除 g2_shadow 账户即整体下线。19:00 inject 的 INJECT_ACCOUNTS 不含 g2_shadow，
-# 影子账户无盘后兜底（14:40 失败当日顺延，可接受）。名单由 scripts/g2_signal_export.py
+# 影子账户无盘后兜底（14:40 失败当日顺延，可接受）。名单由 scripts/ops/g2_signal_export.py
 # 生产（crontab 18:30 槽，见该脚本 docstring）。
 G2_SHADOW_ACCOUNT = "g2_shadow"
 G2_SIGNAL_DIR = PROJECT_ROOT / "logs" / "g2_signals"
@@ -60,7 +60,7 @@ G2_LIST_MAX_AGE_DAYS = 4
 
 # ── D 影子:戴维斯困境反转(2026-09-13 用户批准开工)──
 # 消费架构与 G2 影子完全同构: 账户存在性即开关, 名单文件存在即用(空名单=只卖
-# 不买), 无有效文件回退 top20。名单由 scripts/distress_signal_export.py 生产
+# 不买), 无有效文件回退 top20。名单由 scripts/ops/distress_signal_export.py 生产
 # (crontab 18:40 槽): 深回撤≤-40% × PE/PB 3年分位<30% × ΔG>0/上升拐点。
 DISTRESS_SHADOW_ACCOUNT = "distress_shadow"
 DISTRESS_SIGNAL_DIR = PROJECT_ROOT / "logs" / "distress_signals"

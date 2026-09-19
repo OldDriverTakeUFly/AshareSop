@@ -10,7 +10,7 @@
    - 已续涨/已破位 → 报结局;无锚 → 纯 MA 支撑提醒;
 5. 输出 markdown 报告(console + studies/output/washout/holdings_check_<date>.md)。
 
-用法:.venv/bin/python scripts/washout_research/holdings_check.py
+用法:.venv/bin/python scripts/research/washout_research/holdings_check.py
 """
 from __future__ import annotations
 

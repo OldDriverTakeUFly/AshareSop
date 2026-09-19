@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-# scripts/pool_digest.py — 发稿池待办摘要推送(2026-09-13)
+# scripts/ops/pool_digest.py — 发稿池待办摘要推送(2026-09-13)
 # 职责:只读 content_publisher.db,把「待排期(draft/reviewed)」清单推到运维群(飞书 XHS 专用群),
 #       与 prep_push(已备料项的图文推送)互补:本脚本管"入池可见",prep_push 管"发布前备料"。
 # 纪律:只读池库,不改 content_publisher 任何代码;推送≠发布,发布永远人工。
-# 用法: .venv/bin/python scripts/pool_digest.py [--dry]
+# 用法: .venv/bin/python scripts/ops/pool_digest.py [--dry]
 from __future__ import annotations
 
 import argparse

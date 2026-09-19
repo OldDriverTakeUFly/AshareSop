@@ -7,8 +7,8 @@
 #
 # 用法：
 #   cd /home/leo/Projects/CodeAgentDashboard
-#   bash scripts/run_5yr_backtest.sh          # 默认 200 只
-#   UNIVERSE_SIZE=50 bash scripts/run_5yr_backtest.sh  # 快速验证
+#   bash scripts/abx/run_5yr_backtest.sh          # 默认 200 只
+#   UNIVERSE_SIZE=50 bash scripts/abx/run_5yr_backtest.sh  # 快速验证
 
 set -e
 cd "$(dirname "$0")/.."

@@ -2,7 +2,7 @@
 # daily_longpic.py —— 每日复盘卡(连板天梯/龙虎榜)长图渲染器(2026-09-18)
 # 消费当日工程 cards.spec.json + facts.json(物化 $fact) → 750px html → playwright 2x 长图
 # 与 cardgen 短卡管线并行,不改 daily.py/daily_market_cards/card_factory;数字同源 facts(stockhot 指纹)。
-# 用法: .venv/bin/python scripts/daily_longpic.py --kind {ladder,lhb} [--day YYYYMMDD]
+# 用法: .venv/bin/python scripts/ops/daily_longpic.py --kind {ladder,lhb} [--day YYYYMMDD]
 from __future__ import annotations
 
 import argparse

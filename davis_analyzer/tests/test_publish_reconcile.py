@@ -10,7 +10,7 @@ import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 _SPEC = importlib.util.spec_from_file_location(
-    "publish_reconcile", REPO_ROOT / "scripts" / "publish_reconcile.py")
+    "publish_reconcile", REPO_ROOT / "scripts" / "ops" / "publish_reconcile.py")
 pr = importlib.util.module_from_spec(_SPEC)
 _SPEC.loader.exec_module(pr)
 

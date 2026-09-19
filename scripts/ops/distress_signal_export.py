@@ -12,7 +12,7 @@
 输出: logs/distress_signals/distress_list_<T-1>.json(composite=100-名次, 与 G2
 名单同消费口径); 空名单=常态(防守语义, 消费端只卖不买)。
 调度: crontab 18:40(G2 导出 18:30 后, 19:20 refresh 前——估值窗口止于 T-1)。
-用法: .venv/bin/python scripts/distress_signal_export.py [--as-of YYYYMMDD]
+用法: .venv/bin/python scripts/ops/distress_signal_export.py [--as-of YYYYMMDD]
 """
 import os, sys, json, time, sqlite3
 from datetime import datetime, timedelta

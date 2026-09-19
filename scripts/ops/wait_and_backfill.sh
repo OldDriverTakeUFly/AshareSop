@@ -3,7 +3,7 @@
 #
 # 用法：
 #   cd /home/leo/Projects/CodeAgentDashboard
-#   nohup bash scripts/wait_and_backfill.sh > logs/wait_and_backfill.log 2>&1 &
+#   nohup bash scripts/ops/wait_and_backfill.sh > logs/wait_and_backfill.log 2>&1 &
 
 set -e
 cd /home/leo/Projects/CodeAgentDashboard

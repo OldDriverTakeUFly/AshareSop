@@ -11,10 +11,10 @@
   - 执行器涨停可成交性 haircut 会滤掉 T-1 涨停股——名单语义 = 「T-1 口径可成交
     放行集」, 14:40 实时另有涨停拒买兜底, 口径一致.
 
-用法: .venv/bin/python scripts/g2_signal_export.py [--as-of YYYYMMDD](重放指定日)
+用法: .venv/bin/python scripts/ops/g2_signal_export.py [--as-of YYYYMMDD](重放指定日)
 输出: logs/g2_signals/g2_list_<T-1>.json
 调度(crontab 19:25 槽, 2026-09-17 重定时——须在 19:20 行情刷新后):
-  25 19 * * 1-5 cd /home/leo/Projects/CodeAgentDashboard && .venv/bin/python scripts/g2_signal_export.py >> logs/g2_signals/export.log 2>&1
+  25 19 * * 1-5 cd /home/leo/Projects/CodeAgentDashboard && .venv/bin/python scripts/ops/g2_signal_export.py >> logs/g2_signals/export.log 2>&1
 """
 import os, sys, json, sqlite3, time
 from datetime import datetime

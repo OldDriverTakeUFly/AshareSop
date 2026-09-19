@@ -1,7 +1,7 @@
-# scripts/daily_market_cards.py
+# scripts/ops/daily_market_cards.py
 """每日盘面复盘卡管线(2026-09-01):stockhot.db → 连板天梯/龙虎榜 两卡 → validate → render → [入池]。
 
-用法: .venv/bin/python scripts/daily_market_cards.py --type all [--date 2026-09-02] [--no-render] [--enqueue]
+用法: .venv/bin/python scripts/ops/daily_market_cards.py --type all [--date 2026-09-02] [--no-render] [--enqueue]
 纪律:渲染后停在已出图;--enqueue 只入发稿池(content_publisher queue,带固定文案),发布永远人工。
 缺数据(节假日/扫描未跑)非零退出并说明,不硬造。
 """
@@ -14,7 +14,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT))
 
 from davis_analyzer.systems.cardgen import daily, ledger            # noqa: E402

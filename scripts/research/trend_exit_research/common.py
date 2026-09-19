@@ -1,6 +1,6 @@
 """数据加载:market_data.db → 前复权数组(实验0008)。
 
-改编自 scripts/washout_research/detect_washout.py 的 build_arrays(不跨目录 import,
+改编自 scripts/research/washout_research/detect_washout.py 的 build_arrays(不跨目录 import,
 其模块级 os.chdir 有副作用);数据坑沉淀见该文件注释:adj_factor 缺失按股 ffill/bfill、
 日历用全市场 daily_price 日期并集、universe 剔除现名含 ST/退 与北交所。
 """

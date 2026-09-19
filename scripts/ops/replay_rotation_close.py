@@ -5,7 +5,7 @@
 以 daily_price 当日**收盘价**补跑全部轮动账户(与 inject 成交语义一致: 盘后按收盘价),
 幂等(已执行账户自动跳过), pct_map 取当日 pct_chg(跌停顺延判断用)。
 
-用法: .venv/bin/python scripts/replay_rotation_close.py [--date YYYYMMDD]
+用法: .venv/bin/python scripts/ops/replay_rotation_close.py [--date YYYYMMDD]
 挂载: systemd 一次性/常态 timer(19:25, 刷新后)——常态挂载亦无害: 正常日 14:40 已
 成功, 本工具全账户跳过空转退出。
 """

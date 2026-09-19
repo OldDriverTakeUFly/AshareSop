@@ -11,7 +11,7 @@ T+1 开盘卖(电平型, 一字跌停顺延重试)。
 判定纪律(预注册): ≥20 个交易日; 主看月度回撤分布而非均值; 判定时必须带
 2026-05(-31.2%)归因对照。台账: logs/chase_shadow/daily_ledger.json。
 
-用法: .venv/bin/python scripts/chase_shadow_daily.py [--as-of YYYYMMDD] [--account NAME]
+用法: .venv/bin/python scripts/ops/chase_shadow_daily.py [--as-of YYYYMMDD] [--account NAME]
 调度: crontab 19:40 T 晚(limitup daily_refresh 19:20 供候选后, paper-push 19:50 前)。
 """
 import os, sys, json, sqlite3, time

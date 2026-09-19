@@ -9,7 +9,7 @@ import pandas as pd
 import pytest
 
 sys.path.insert(0, os.path.join(
-    "/home/leo/Projects/CodeAgentDashboard", "scripts", "trend_exit_research"))
+    "/home/leo/Projects/CodeAgentDashboard", "scripts", "research", "trend_exit_research"))
 
 from trend_machine import Episode, TrendParams, find_episodes  # noqa: E402
 from pullback import LabelerParams, find_pullbacks  # noqa: E402

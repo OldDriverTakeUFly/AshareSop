@@ -1,4 +1,4 @@
-# scripts/daily_bulletin.py
+# scripts/ops/daily_bulletin.py
 """公告日报管线(2026-09-01):巨潮当日公告 → 分类清单 markdown,供「公告+解读」卡片选题。
 2026-09-01 晚新增:全市场大事件雷达模式(默认开启)——同 API 按 seDate 拉全市场当日公告,
 品类过滤 + (公司×品类)去重 + 标题信号打分,输出 Top N。定位:研报层扩品选题入口,不做卡。
@@ -6,7 +6,7 @@
 stockhot/notification/feishu_bot;幂等锁 logs/.radar_feishu_push/{date}.ok;零公告日静默跳过)。
 systemd user timer radar-feishu.timer 每日 21:35 触发(与盘后 18:30 飞书推送平行)。
 
-用法: .venv/bin/python scripts/daily_bulletin.py [--date 20260901] [--out docs/小红书卡片/未发布/公告日报]
+用法: .venv/bin/python scripts/ops/daily_bulletin.py [--date 20260901] [--out docs/小红书卡片/未发布/公告日报]
                 [--no-radar] [--radar-top 15] [--feishu [--force] | --dry]
 品类边界(合规闸裁定):回购/定增/收购=可做卡;增持/减持类=敏感词命中,只列清单不做卡。
 watchlist 可维护:重点池 + 已覆盖标的(研报/卡片工程)。
@@ -24,7 +24,7 @@ import urllib.request
 from datetime import datetime
 from pathlib import Path
 
-REPO = Path(__file__).resolve().parents[1]
+REPO = Path(__file__).resolve().parents[2]
 UA = {"User-Agent": "Mozilla/5.0"}
 QUERY_URL = "http://www.cninfo.com.cn/new/hisAnnouncement/query"
 PAGE_SIZE = 30  # API 硬顶,实测 100/300/500 均被压回 30
