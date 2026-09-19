@@ -22,12 +22,13 @@ between independent runs in tests.
 from __future__ import annotations
 
 from datetime import date
-
-from davis_analyzer.core.pipeline import run_screening_pipeline
-from davis_analyzer.core.types import PipelineResult
+from typing import TYPE_CHECKING
 
 from stockhot.advisor.data_sources.technical import _compute_data_age
 from stockhot.advisor.types import UnifiedSignal
+
+if TYPE_CHECKING:  # 拆分后(2026-09-19)davis 为可选增强,运行时不强依赖
+    from davis_analyzer.core.types import PipelineResult
 
 _NO_DATA = {
     "final_score": 50.0,
@@ -40,13 +41,16 @@ _NO_DATA = {
 # Process-level cache for the full-market pipeline result. ``None`` means
 # "not yet computed"; an empty PipelineResult is also cached so a failing
 # first call does not trigger a re-scan on every subsequent per-stock lookup.
+run_screening_pipeline = None  # 惰性解析自 davis 包;测试可直接 monkeypatch 本名
 _pipeline_cache: PipelineResult | None = None
+_davis_unavailable = False  # davis 包未安装(独立仓拆分后)时置 True,不再重试
 
 
 def clear_pipeline_cache() -> None:
     """Reset the pipeline cache. Intended for tests only."""
-    global _pipeline_cache
+    global _pipeline_cache, _davis_unavailable
     _pipeline_cache = None
+    _davis_unavailable = False
 
 
 def _get_pipeline_result() -> PipelineResult | None:
@@ -56,7 +60,17 @@ def _get_pipeline_result() -> PipelineResult | None:
     ``_NO_DATA`` in that case. An *empty* result (no scores) is still cached
     and returned, so a dry_run with no Tushare data does not re-scan.
     """
-    global _pipeline_cache
+    global _pipeline_cache, _davis_unavailable, run_screening_pipeline
+    if _davis_unavailable:
+        return None
+    if run_screening_pipeline is None:
+        try:
+            from davis_analyzer.core import pipeline as _davis_pipeline
+
+            run_screening_pipeline = _davis_pipeline.run_screening_pipeline
+        except ImportError:
+            _davis_unavailable = True
+            return None
     if _pipeline_cache is not None:
         return _pipeline_cache
     try:

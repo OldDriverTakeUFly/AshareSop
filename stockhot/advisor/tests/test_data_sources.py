@@ -13,6 +13,13 @@ import pytest
 
 import stockhot.advisor.data_sources.fundamental as fundamental
 import stockhot.advisor.data_sources.technical as technical
+try:  # 2026-09-19 双仓拆分:davis 为可选增强,未安装则相关用例跳过
+    import importlib.util as _ilu
+
+    _DAVIS_AVAILABLE = _ilu.find_spec("davis_analyzer") is not None
+except Exception:  # pragma: no cover
+    _DAVIS_AVAILABLE = False
+
 from stockhot.advisor.data_sources.fundamental import (
     clear_pipeline_cache,
     fetch_davis_signal,
@@ -291,6 +298,7 @@ def _make_pipeline_result_with_stock(
     )
 
 
+@pytest.mark.skipif(not _DAVIS_AVAILABLE, reason='davis-analyzer 未安装(双仓拆分后 stockhot venv 不含)')
 class TestGetCurrentDavisScore:
     def test_returns_score_for_stock(self, monkeypatch):
         mock_result = _make_pipeline_result_with_stock(
@@ -334,6 +342,7 @@ class TestGetCurrentDavisScore:
         assert result["data_date"] is None
         assert result["error"] == "no_data"
 
+    @pytest.mark.skipif(not _DAVIS_AVAILABLE, reason='davis-analyzer 未安装(双仓拆分后 stockhot venv 不含)')
     def test_empty_scores_returns_no_data(self, monkeypatch):
         from davis_analyzer.core.types import PipelineResult
 
@@ -382,6 +391,7 @@ class TestGetCurrentDavisScore:
 # ── fetch_davis_signal ─────────────────────────────────────────────
 
 
+@pytest.mark.skipif(not _DAVIS_AVAILABLE, reason='davis-analyzer 未安装(双仓拆分后 stockhot venv 不含)')
 class TestFetchDavisSignal:
     def test_returns_unified_signal(self, monkeypatch):
         monkeypatch.setattr(
