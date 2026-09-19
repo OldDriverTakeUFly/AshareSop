@@ -99,3 +99,13 @@ def test_assemble_rejects_unknown_segment():
         assemble_episode("2026-09-18", [_cand()], _bundle(),
                          {"title": "t", "segments": [
                              {"seg_id": "x", "kind": "wild", "ts_code": None, "lines": []}]})
+
+
+def test_assemble_rejects_bare_string_line():
+    """v4 实锤:LLM 会把 lines 写成裸字符串数组——必须抛 ScriptGenError 进自纠错,而非 AttributeError。"""
+    import pytest as _pytest
+    from davis_analyzer.recap.scriptwriter import ScriptGenError, assemble_episode
+    bad = {"title": "t", "segments": [
+        {"seg_id": "open", "kind": "scoreboard", "ts_code": None, "lines": ["裸字符串"]}]}
+    with _pytest.raises(ScriptGenError):
+        assemble_episode("2026-09-18", [_cand()], _bundle(), bad)

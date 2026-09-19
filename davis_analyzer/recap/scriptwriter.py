@@ -127,11 +127,16 @@ def assemble_episode(trade_date: str, cands: list[Candidate], bundle: dict, data
     for s in data["segments"]:
         if s.get("kind") not in allowed_kinds:
             raise ScriptGenError(f"非法 segment kind={s.get('kind')!r}")
+        lines: list[DialogueLine] = []
+        for l in s.get("lines", []):
+            # 结构异常抛 ScriptGenError 进自纠错循环(2026-09-18 v4 实锤:LLM 会输出裸字符串)
+            if not isinstance(l, dict) or "speaker" not in l or not l.get("text"):
+                raise ScriptGenError(f"{s.get('seg_id')} lines 元素格式错误"
+                                     f"(须为 {{speaker,text}} 对象): {str(l)[:40]!r}")
+            lines.append(DialogueLine(speaker=l["speaker"], text=str(l["text"]).strip()))
         segs.append(EpisodeSegment(
             seg_id=str(s.get("seg_id", "")), kind=s["kind"],
-            ts_code=s.get("ts_code"),
-            lines=[DialogueLine(speaker=l["speaker"], text=str(l["text"]).strip())
-                   for l in s.get("lines", []) if l.get("text")]))
+            ts_code=s.get("ts_code"), lines=lines))
     facts = scoreboard_facts(bundle, trade_date) + [f for c in cands for f in c.facts]
     return Episode(trade_date=trade_date, title=str(data["title"]), segments=segs, facts=facts)
 
