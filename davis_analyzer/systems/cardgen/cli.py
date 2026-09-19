@@ -22,7 +22,7 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 
 def _projects_root() -> Path:
     """工程根目录;测试经 CARDGEN_PROJECT_ROOT 重定向,避免污染 docs/。"""
-    return Path(os.environ.get("CARDGEN_PROJECT_ROOT", REPO_ROOT / "docs" / "小红书卡片"))
+    return Path(os.environ.get("CARDGEN_PROJECT_ROOT", REPO_ROOT / "docs" / "发布" / "小红书"))
 
 
 def _project(topic: str) -> Path:

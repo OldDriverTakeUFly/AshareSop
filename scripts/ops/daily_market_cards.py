@@ -22,7 +22,7 @@ from davis_analyzer.systems.cardgen.builder import render           # noqa: E402
 
 
 def _projects_root() -> Path:
-    return Path(os.environ.get("CARDGEN_PROJECT_ROOT", REPO_ROOT / "docs" / "小红书卡片"))
+    return Path(os.environ.get("CARDGEN_PROJECT_ROOT", REPO_ROOT / "docs" / "发布" / "小红书"))
 
 def _ledger_db() -> Path | None:
     env = os.environ.get("CARDGEN_LEDGER_DB")

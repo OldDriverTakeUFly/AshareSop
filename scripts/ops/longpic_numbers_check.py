@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path("/home/leo/Projects/CodeAgentDashboard")
-BASE = ROOT / "docs/小红书卡片/未发布"
+BASE = ROOT / "docs/发布/小红书/未发布"
 sys.path.insert(0, str(ROOT))
 
 from scripts.daily_longpic import numbers_gate  # noqa: E402

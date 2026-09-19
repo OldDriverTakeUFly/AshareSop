@@ -28,7 +28,7 @@ PUBLISHER_DB = Path(os.environ.get(
 PENDING_DIR = "未发布"
 PUBLISHED_DIR = "已发布"
 RECYCLED_DIR = "废稿"  # 过期未发工程的终态归档,手工挪入;sync 不触碰
-_MARKER = "小红书卡片"  # publish_queue.source 形如 docs/小红书卡片/<topic>
+_MARKERS = ("小红书", "小红书卡片")  # publish_queue.source 根名两代:现行=docs/发布/小红书/<topic>,历史=docs/小红书卡片/<topic>
 
 
 def _published_topics(db: Path = PUBLISHER_DB) -> set[str]:
@@ -46,8 +46,9 @@ def _published_topics(db: Path = PUBLISHER_DB) -> set[str]:
     topics = set()
     for (source,) in rows:
         parts = Path(str(source)).parts
-        if _MARKER in parts:
-            tail = parts[parts.index(_MARKER) + 1:]
+        marker = next((m for m in _MARKERS if m in parts), None)
+        if marker is not None:
+            tail = parts[parts.index(marker) + 1:]
             # 剥掉归档层级(兼容 source 记录了 已发布/<topic> 的情况)
             tail = tuple(p for p in tail if p not in (PENDING_DIR, PUBLISHED_DIR))
             if tail:

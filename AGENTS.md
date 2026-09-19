@@ -138,7 +138,7 @@ Ultraworked with [Sisyphus](https://github.com/code-yeongyu/oh-my-openagent)
 Co-authored-by: Sisyphus <clio-agent@sisyphuslabs.ai>
 ```
 
-Report naming: use **Chinese filenames** (e.g. `docs/ai算力全景研报.md`, `docs/固态电池产业链报告.md`). Do NOT use English filenames for research reports.
+Report naming: use **Chinese filenames** (e.g. `docs/研报/个股/ai算力全景研报.md`, `docs/研报/产业链/固态电池产业链报告.md`). Do NOT use English filenames for research reports.
 
 Remote: `origin` → `git@github.com:OldDriverTakeUFly/AshareSop.git`
 
@@ -300,7 +300,7 @@ The requirements below are a non-exhaustive summary. They do not replace `.agent
 Agents working on 景气度投资 tasks must:
 
 1. inspect the target before classifying —— 先获取至少 4 个季度的财务数据，确认 ΔG 可计算
-2. reuse davis_analyzer engines —— 复用 `prosperity.py`、`prosperity_inflection.py`、`prosperity_sector.py` 的函数，不重写评分逻辑
+2. reuse davis_analyzer engines —— 复用 `davis_analyzer/factors/prosperity.py`、`prosperity_inflection.py`、`prosperity_sector.py` 的函数，不重写评分逻辑
 3. tag every indicator reading with a named source —— 六维指标的每个读数必须标注数据来源（厂商法说会、分销商报告、行业调研）
 4. classify cycle position honestly —— 如实分类周期位置，不因"行业景气"就强行说个股在加速期
 5. apply the G+ΔG framework —— G 和 ΔG 必须同时给出，ΔG 符号决定山峰位置（左山坡/右山坡/山后）
@@ -312,7 +312,7 @@ This skill is guidance for 景气度投资 work only.
 
 Agents must not:
 
-- 修改 `davis_analyzer` 景气度引擎（`prosperity.py`、`prosperity_inflection.py`、`prosperity_sector.py`）的源码 —— 复用而非修改
+- 修改 `davis_analyzer` 景气度引擎（`davis_analyzer/factors/prosperity.py`、`prosperity_inflection.py`、`prosperity_sector.py`）的源码 —— 复用而非修改
 - 复制 prosperity.py 代码到 skill 文件 —— 只描述映射关系，不复制实现
 - 自动抓取六维指标数据 —— skill 定义框架和计算逻辑，数据需手动收集
 - 在 ΔG 数据不足 2 个季度时强行给出周期定位 —— 必须标注"ΔG 不可靠"
@@ -369,7 +369,7 @@ This skill is guidance for 多因子选股 work only.
 
 Agents must not:
 
-- 修改 davis_analyzer 源码 —— 复用 `scoring.py`、`pipeline.py` 等模块，不修改其实现
+- 修改 davis_analyzer 源码 —— 复用 `davis_analyzer/core/scoring.py`、`core/pipeline.py` 等模块，不修改其实现
 - 将权重设为可配置参数 —— 30/20/25/25 默认权重和四域覆盖权重均为硬编码常量
 - 做回测或 IC 分析 —— 本 skill 只做当日截面排名，回测属于独立流程
 - 跳过硬过滤层直接打分 —— 硬过滤是底线，不可为"特殊标的"破例
@@ -567,7 +567,7 @@ Companion materials:
 
 - `.agents/skills/after-hours-review/README.zh-CN.md`
 
-Output location: `docs/盘后总结/{YYYY-MM-DD}_盘后总结.md`
+Output location: `docs/复盘/盘后/{YYYY-MM-DD}_盘后总结.md`
 
 ## When This Applies
 
@@ -661,7 +661,7 @@ Agents must not:
 
 ## Source of Truth
 
-If this section and the skill differ in detail, treat `.agents/skills/research-report/SKILL.md` as the source of truth for research-report authoring workflow. The methodology details defer to `docs/方法论/` (9 篇方法论文档) and the `davis_analyzer` engine for all quantitative computations.
+If this section and the skill differ in detail, treat `.agents/skills/research-report/SKILL.md` as the source of truth for research-report authoring workflow. The methodology details defer to `docs/研报/方法论/` (9 篇方法论文档) and the `davis_analyzer` engine for all quantitative computations.
 
 ## 公司中枢 · 项目管理协议（davis-analyzer 试点）
 

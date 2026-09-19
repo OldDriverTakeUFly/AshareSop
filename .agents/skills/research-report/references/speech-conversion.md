@@ -1,6 +1,6 @@
 # 语音化转换规则（speech-conversion）
 
-研报是给「看」设计的——密集表格、对照矩阵、ASCII 框图、百分位数字——直接朗读（TTS）时无法听懂。本文档定义把 md 研报转为「适合耳朵听」的口语化文本的完整规则，由 `scripts/report_to_speech_text.py` 实现。
+研报是给「看」设计的——密集表格、对照矩阵、ASCII 框图、百分位数字——直接朗读（TTS）时无法听懂。本文档定义把 md 研报转为「适合耳朵听」的口语化文本的完整规则，由 `scripts/tools/report_to_speech_text.py` 实现。
 
 > 本文档是 `SKILL.md` 步骤 24「语音化」的参考细则。**写作研报时不必遵循本文档**，只需保证 md 报告质量；语音化是写作完成后的独立转换步骤。
 
@@ -23,7 +23,7 @@
 
 ## 2. 三层架构
 
-`scripts/report_to_speech_text.py` 采用**规则层 + LLM 层 + 降级**的三层架构。规则层处理所有确定性工作（免费、可重复），LLM 层只处理需要语义理解的"硬骨头"，LLM 不可用时自动降级到规则层。
+`scripts/tools/report_to_speech_text.py` 采用**规则层 + LLM 层 + 降级**的三层架构。规则层处理所有确定性工作（免费、可重复），LLM 层只处理需要语义理解的"硬骨头"，LLM 不可用时自动降级到规则层。
 
 ```
 输入 md
@@ -64,7 +64,7 @@
 
 这些段对「看」有价值（溯源、合规），但对「听」是噪音。
 
-> **如需新增跳过段**：编辑 `scripts/report_to_speech_text.py` 顶部的 `SKIP_SECTIONS` 集合。
+> **如需新增跳过段**：编辑 `scripts/tools/report_to_speech_text.py` 顶部的 `SKIP_SECTIONS` 集合。
 
 ---
 
@@ -119,7 +119,7 @@ LLM 偶尔会改写数字（如把 `13.97` 误写成 `13.79`）。脚本对每�
 - 提取源文本和输出文本中的所有数字（按**绝对值**比较——口语化常把 `-15.56%` 说成"下降 15.56%"，去掉负号是合理转换，不应判为编造）
 - 输出中出现源文本没有的数字 → 判定疑似编造 → **降级为规则叙述**
 
-校验在 `scripts/report_to_speech_text.py` 的 `_verify_numbers()` 实现。
+校验在 `scripts/tools/report_to_speech_text.py` 的 `_verify_numbers()` 实现。
 
 > **已知局限**：该校验只防"凭空编造数字"，不防"数字正确但张冠李戴"（如把营收值安到净利上）。LLM prompt 已强约束用表头语义，但极端情况下仍可能出错——关键数字建议人工复核。
 
@@ -144,13 +144,13 @@ LLM_API_KEY=<你的智谱 API key>
 
 ```bash
 # 默认（LLM 叙述化，镜像输出到 docs_speech/）
-.venv/bin/python scripts/report_to_speech_text.py "docs/盘后总结/2026-06-26_盘后总结.md"
+.venv/bin/python scripts/tools/report_to_speech_text.py "docs/复盘/盘后/2026-06-26_盘后总结.md"
 
 # 关闭 LLM，纯规则降级（离线/省成本）
-.venv/bin/python scripts/report_to_speech_text.py report.md --no-llm
+.venv/bin/python scripts/tools/report_to_speech_text.py report.md --no-llm
 
 # 指定输出路径
-.venv/bin/python scripts/report_to_speech_text.py report.md --output /tmp/x.txt
+.venv/bin/python scripts/tools/report_to_speech_text.py report.md --output /tmp/x.txt
 ```
 
 ### 6.3 产物

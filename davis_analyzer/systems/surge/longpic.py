@@ -26,7 +26,7 @@ from loguru import logger
 from davis_analyzer.core.config import SURGE_REPORTS_DIR
 
 _KIT_CSS = (Path(__file__).resolve().parents[3]
-            / "docs" / "小红书卡片" / "未发布" / "longpic_kit" / "kit.css")
+            / "docs" / "发布" / "小红书" / "未发布" / "longpic_kit" / "kit.css")
 
 _ROOT_CSS = """
 :root {

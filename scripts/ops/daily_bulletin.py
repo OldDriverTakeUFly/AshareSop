@@ -6,7 +6,7 @@
 stockhot/notification/feishu_bot;幂等锁 logs/.radar_feishu_push/{date}.ok;零公告日静默跳过)。
 systemd user timer radar-feishu.timer 每日 21:35 触发(与盘后 18:30 飞书推送平行)。
 
-用法: .venv/bin/python scripts/ops/daily_bulletin.py [--date 20260901] [--out docs/小红书卡片/未发布/公告日报]
+用法: .venv/bin/python scripts/ops/daily_bulletin.py [--date 20260901] [--out docs/发布/小红书/未发布/公告日报]
                 [--no-radar] [--radar-top 15] [--feishu [--force] | --dry]
 品类边界(合规闸裁定):回购/定增/收购=可做卡;增持/减持类=敏感词命中,只列清单不做卡。
 watchlist 可维护:重点池 + 已覆盖标的(研报/卡片工程)。
@@ -287,7 +287,7 @@ def push_bulletin_xhs(day: str, lines: list[str], n_do: int, n_skip: int, *, for
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--date", default=datetime.now().strftime("%Y%m%d"))
-    ap.add_argument("--out", default=str(REPO / "docs/小红书卡片/未发布/公告日报"))
+    ap.add_argument("--out", default=str(REPO / "docs/发布/小红书/未发布/公告日报"))
     ap.add_argument("--no-radar", action="store_true", help="只跑 watchlist,不跑全市场雷达")
     ap.add_argument("--radar-top", type=int, default=15, help="雷达 Top N,默认 15")
     ap.add_argument("--feishu", action="store_true", help="生成后推送飞书群(stockhot 通道,按日幂等)")

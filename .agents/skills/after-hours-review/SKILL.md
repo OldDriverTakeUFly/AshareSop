@@ -97,7 +97,7 @@ data = get_daily_data(date)
 
 ### Step 4：生成总结报告
 
-输出到 `docs/盘后总结/{YYYY-MM-DD}_盘后总结.md`，使用下方模板。
+输出到 `docs/复盘/盘后/{YYYY-MM-DD}_盘后总结.md`，使用下方模板。
 
 ### Step 5：情绪温度计（日历效应校准）
 
@@ -112,7 +112,7 @@ data = get_daily_data(date)
 
 ### Step 5b：波动率温度（中国版 VIX 校准）
 
-在写"市场概览"时，**读取 `get_daily_data(date)['volatility']`**，输出波动率层面的恐慌温度。与方法论研报（`docs/方法论/A股波动率观察框架方法论深度研报.md`）的"五层观察体系"对应。
+在写"市场概览"时，**读取 `get_daily_data(date)['volatility']`**，输出波动率层面的恐慌温度。与方法论研报（`docs/研报/方法论/A股波动率观察框架方法论深度研报.md`）的"五层观察体系"对应。
 
 判定逻辑：
 - 读 5 大指数的 RV20 历史分位（rv20_pct）与恐慌等级（panic_level）
@@ -400,7 +400,7 @@ macro_md = format_macro_section(snap)  # 直接插入报告
 
 ## 6. 输出位置
 
-- 报告目录：`docs/盘后总结/`
+- 报告目录：`docs/复盘/盘后/`
 - 文件名：`{YYYY-MM-DD}_盘后总结.md`
 - 不更新 `docs/README.md` 索引（盘后总结是每日产物，非研报）
 

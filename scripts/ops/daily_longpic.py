@@ -14,7 +14,7 @@ from datetime import date
 from pathlib import Path
 
 ROOT = Path("/home/leo/Projects/CodeAgentDashboard")
-CARDS_ROOT = ROOT / "docs/小红书卡片/未发布"
+CARDS_ROOT = ROOT / "docs/发布/小红书/未发布"
 KIND_MAP = {"ladder": "连板天梯", "lhb": "龙虎榜", "thermo": "板块温度"}
 
 THEMES = {

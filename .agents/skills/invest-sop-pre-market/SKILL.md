@@ -244,7 +244,7 @@ This runs after the evening data collection scripts finish. It produces the main
 
 3.6. **大盘技术面预期（自动注入）**——`generate_premarket_report.py` 会自动读取前一交易日的 `index_technical` 数据（由 daily-market-scan Wave 2 采集），并据此填充 §1.4 综合判断（市场情绪/信心度/建议总仓位）+ 生成 §1.5 大盘技术面预期表。技术面基于 6 阶段趋势识别（主升/上涨中回调/高位震荡筑顶/主跌/下跌中反弹/低位筑底），每阶段对应盘前预期行为（如主跌浪→空仓观望，严禁抢反弹）。agent 无需手动填写 §1.4/§1.5，但应在 §3 持仓决策时参考技术面信号——若技术面"高位震荡筑顶/主跌浪"，应克制加仓冲动；若"主升浪/低位筑底"，可适度积极。**技术面是"避免梭哈"的硬约束**。
 
-3.7. **波动率温度（风控维度，自动注入）**——`generate_premarket_report.py` 会自动读取前一交易日的 `volatility` 数据（由 daily-market-scan Wave 2 采集，中国版 VIX 五层体系），填充 §6 风控检查表的"市场波动率状态"行。读 `get_daily_data(date)['volatility']`，提取 5 大指数 RV20 分位与 iVIX/V/R 比率。**风控判定规则**（方法论研报 §8.2）：若 ≥3 个指数 rv20_pct ≥ 90（系统性恐慌），§6 标注"⚠️ 系统性恐慌区，全局降仓一档"；若仅成长股（创业板/科创）P90+ 而\uff0c蓝筹正常，标注"结构性恐慌，关注风格切换但无需全局降仓"；V/R > 1.3 标注"期权极贵，过度恐慌"。agent 无需手动填写 §6 波动率行，但应在 §3 决策时将系统性恐慌作为"避免逆势加仓"的硬约束。详见 `docs/方法论/A股波动率观察框架方法论深度研报.md` §8.2 四档行动框架。
+3.7. **波动率温度（风控维度，自动注入）**——`generate_premarket_report.py` 会自动读取前一交易日的 `volatility` 数据（由 daily-market-scan Wave 2 采集，中国版 VIX 五层体系），填充 §6 风控检查表的"市场波动率状态"行。读 `get_daily_data(date)['volatility']`，提取 5 大指数 RV20 分位与 iVIX/V/R 比率。**风控判定规则**（方法论研报 §8.2）：若 ≥3 个指数 rv20_pct ≥ 90（系统性恐慌），§6 标注"⚠️ 系统性恐慌区，全局降仓一档"；若仅成长股（创业板/科创）P90+ 而\uff0c蓝筹正常，标注"结构性恐慌，关注风格切换但无需全局降仓"；V/R > 1.3 标注"期权极贵，过度恐慌"。agent 无需手动填写 §6 波动率行，但应在 §3 决策时将系统性恐慌作为"避免逆势加仓"的硬约束。详见 `docs/研报/方法论/A股波动率观察框架方法论深度研报.md` §8.2 四档行动框架。
 
 4. **Evaluate each holding** using the four-dimension framework from SOP §5:
    - **Logic status** (✅完好 / ⚠️动摇 / ❌破坏): Has the original investment thesis changed? Check supply chain data and domestic events for the holding's sector.

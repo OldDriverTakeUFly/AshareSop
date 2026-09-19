@@ -121,7 +121,7 @@ This skill wraps four modules. Each module has a `run_*_analysis(date)` entry po
 
 **Entry point:** `stockhot.volatility.run_volatility_analysis(date)`
 
-**What it does:** "中国版 VIX 五层观察体系"代码实现（方法论见 `docs/方法论/A股波动率观察框架方法论深度研报.md`）。对 5 大指数（上证/深证/沪深300/创业板/科创50）计算已实现波动率 RV20/RV60 及 5 年滚动历史分位（P0-P100），用 AKShare `index_option_50etf_qvix` 取 iVIX 隐含波动率时序算 V/R 比率（期权昂贵度），输出 6 档恐慌等级（极度自满→极度恐慌）。
+**What it does:** "中国版 VIX 五层观察体系"代码实现（方法论见 `docs/研报/方法论/A股波动率观察框架方法论深度研报.md`）。对 5 大指数（上证/深证/沪深300/创业板/科创50）计算已实现波动率 RV20/RV60 及 5 年滚动历史分位（P0-P100），用 AKShare `index_option_50etf_qvix` 取 iVIX 隐含波动率时序算 V/R 比率（期权昂贵度），输出 6 档恐慌等级（极度自满→极度恐慌）。
 
 **Output keys:** `volatility`（单一 JSON blob，含 `indices`/`market`/`summary`）
 
@@ -157,7 +157,7 @@ Wave 1          Wave 2 (parallel)                          Wave 3
 
 > **index_technical 说明**：第 5 个模块，2026-07-06 新增。对上证/深证/创业板/科创50 做技术面分析（MA/MACD/RSI/KDJ/布林 + 6 阶段趋势识别：主升/上涨中回调/高位震荡筑顶/主跌/下跌中反弹/低位筑底），输出每阶段的盘前预期行为（避免梭哈）。与 fund_flow 平级，独立无依赖，失败不影响其他模块。详见 `stockhot/index_technical/`。
 
-> **volatility 说明**：第 6 个模块，2026-07-06 新增。"中国版 VIX 五层观察体系"的代码实现（方法论见 `docs/方法论/A股波动率观察框架方法论深度研报.md`）。对 5 大指数（上证/深证/沪深300/创业板/科创50）计算已实现波动率 RV20/RV60 及 5 年滚动历史分位（P0-P100），另用 AKShare `index_option_50etf_qvix` 取 iVIX 隐含波动率时序，算 V/R 比率（期权昂贵度）。输出 6 档恐慌等级（极度自满→极度恐慌）。与 index_technical 平级，独立无依赖，失败不影响其他模块。详见 `stockhot/volatility/`。
+> **volatility 说明**：第 6 个模块，2026-07-06 新增。"中国版 VIX 五层观察体系"的代码实现（方法论见 `docs/研报/方法论/A股波动率观察框架方法论深度研报.md`）。对 5 大指数（上证/深证/沪深300/创业板/科创50）计算已实现波动率 RV20/RV60 及 5 年滚动历史分位（P0-P100），另用 AKShare `index_option_50etf_qvix` 取 iVIX 隐含波动率时序，算 V/R 比率（期权昂贵度）。输出 6 档恐慌等级（极度自满→极度恐慌）。与 index_technical 平级，独立无依赖，失败不影响其他模块。详见 `stockhot/volatility/`。
 
 ### Orchestration code pattern
 
