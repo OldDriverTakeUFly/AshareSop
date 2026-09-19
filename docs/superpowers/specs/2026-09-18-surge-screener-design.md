@@ -357,3 +357,12 @@ resist_support 0.10 | hype 0.20 | risk 0.15
 - **验证方式**(thermometer calibrate 先例): 截面 Rank IC / ICIR / 五分位分组前向收益(5/10/20 日) / walk-forward 硬验收;验证对象为各单因子与 composite。
 - **历史样本获取**: `backfill --replay N` 逐日回放生成历史 snapshot(cyq_perf 按日期回补,每历史日 1 次调用;巨潮默认不回放),因子验证不必等待实时沉淀。
 - **规则层重放**: MAJOR_EVENT_RULES 迭代后由 cninfo_announcement 原始层重建 major_events 并重放受影响日期的 snapshot,规则实验与数据获取解耦。
+
+## 11. 工作长图与两道数字闸(2026-09-19 用户拍板)
+
+**工作长图**(随 run 自动生成,`--no-longpic` 可跳): 两张 750px 竖版,`longpic_kit` 骨架+板块热点肤(:root 深蓝黑/琥珀金/冰蓝;kit.css 渲染时内联——跨目录中文路径 file:// 有险,闸的 style mask+色值豁免本就覆盖)。全量图=hook 统计概览+综合分 Top20 表+Top12 深析卡+insight(全量 190+ 行数据留 md/台账,长图是消费视图);副本图=命中标的全量观察卡(两路径)。>6000px 自动拆上下两段。产物: 长图_{全量|副本}_{day}.png+.html 落 reports/。
+
+**两道数字闸体系**(用户定义,系统级纪律):
+
+1. **源头闸(取用分级)**: API 来源(Tushare cyq_perf 等)直接置信;本地库唯一消费源;巨潮=官方披露平台 API 化拉取,归 API 级(原始层全量落库可回溯)。**互联网搜索来源须多源头验证**——surge 当前无此类数据源;未来引入 web 搜索数据(叙事深挖等)时必须落地多源交叉验证,此纪律先行记录。
+2. **出口闸(产物对账,`longpic.py gate_longpic`)**: 长图全部数字 token 对**台账自动锚**(`snapshot_facts`:surge_snapshot 逐字段+surge_pattern_hits 参数+聚合统计+版式常量,呈现精度一致生成)零未锚定才放行——引擎复用 cardgen.numbers.unmatched_tokens((|value|,unit) 严格相等,日期/代码/色值自动豁免)。锚由库机器生成而非手工 facts,与库天然一致;**模板层手拼/抄错数字即被拦**(首跑实测抓到未锚定 215/排序 bug 由 vision 复验抓到)。聚合统计双锚(带单位+裸数)容忍 hook 呈现风格,错数值仍必拦。闸失败=长图不落盘,md 报告照常。
