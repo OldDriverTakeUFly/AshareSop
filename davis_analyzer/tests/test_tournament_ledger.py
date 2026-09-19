@@ -7,7 +7,7 @@ from datetime import date, timedelta
 
 import pytest
 
-from davis_analyzer.tournament.ledger import (
+from davis_analyzer.systems.tournament.ledger import (
     LedgerRecord,
     append_record,
     count_campaigns,

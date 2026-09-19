@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-from davis_analyzer.surge import report
+from davis_analyzer.systems.surge import report
 
 
 def _out(snap: pd.DataFrame, pat=None, tags=None):

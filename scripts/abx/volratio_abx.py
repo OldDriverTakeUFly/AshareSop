@@ -24,9 +24,9 @@ mr._MA120_BEAR_THRESHOLD = -999.0
 
 from stockhot.data_layer.market_db import get_connection as get_market_conn
 from stockhot.storage.database import init_database, DB_PATH
-from davis_analyzer.paper_trading.account import PaperAccount
-from davis_analyzer.paper_trading.strategy import FactorThresholdStrategy
-from davis_analyzer.paper_trading.executor import run_backfill_auto, DailyExecutor
+from davis_analyzer.systems.paper_trading.account import PaperAccount
+from davis_analyzer.systems.paper_trading.strategy import FactorThresholdStrategy
+from davis_analyzer.systems.paper_trading.executor import run_backfill_auto, DailyExecutor
 init_database()
 
 START = "20210104"
@@ -58,7 +58,7 @@ def build_universe(top_n):
 
 
 def reset_account(name):
-    from davis_analyzer.paper_trading.runlock import delete_account_if_idle
+    from davis_analyzer.systems.paper_trading.runlock import delete_account_if_idle
 
     delete_account_if_idle(name)
     return PaperAccount.create(name=name, strategy_name="factor_threshold",
@@ -132,7 +132,7 @@ def run_variant(label, enable_volratio, universe):
     # 更干净的方式：patch run_day 里的 effective_max 计算
     # 但 run_day 内部逻辑复杂。最简单的方式：
     # patch _effective_max_positions，让它读一个全局变量
-    import davis_analyzer.paper_trading.strategy as strat_mod
+    import davis_analyzer.systems.paper_trading.strategy as strat_mod
 
     if enable_volratio:
         orig_eff = FactorThresholdStrategy._effective_max_positions

@@ -8,7 +8,7 @@ import sys
 import pandas as pd
 import pytest
 
-from davis_analyzer.limitup import backfill, cli
+from davis_analyzer.systems.limitup import backfill, cli
 
 
 def _raw_df() -> pd.DataFrame:
@@ -107,7 +107,7 @@ def test_trades_csv_name_has_window_segment() -> None:
 def test_cli_backfill_without_start_errors(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str],
 ) -> None:
-    monkeypatch.setattr(sys, "argv", ["davis_analyzer.limitup", "backfill"])
+    monkeypatch.setattr(sys, "argv", ["davis_analyzer.systems.limitup", "backfill"])
     with pytest.raises(SystemExit) as exc:
         cli.main()
     assert exc.value.code == 2

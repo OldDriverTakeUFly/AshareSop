@@ -10,9 +10,9 @@ import davis_analyzer.factors.market_regime as mr
 mr._MA120_BEAR_THRESHOLD = -999.0
 
 from stockhot.storage.database import init_database, DB_PATH
-from davis_analyzer.paper_trading.account import PaperAccount
-from davis_analyzer.paper_trading.strategy import FactorThresholdStrategy
-from davis_analyzer.paper_trading.executor import run_backfill_auto, _compute_index_above_ma200
+from davis_analyzer.systems.paper_trading.account import PaperAccount
+from davis_analyzer.systems.paper_trading.strategy import FactorThresholdStrategy
+from davis_analyzer.systems.paper_trading.executor import run_backfill_auto, _compute_index_above_ma200
 init_database()
 
 START, END = "20250501", "20250731"
@@ -54,7 +54,7 @@ print(f"\n[universe] {len(universe)} stocks, 窗口 {START}→{END}")
 
 
 def run(label, extra):
-    from davis_analyzer.paper_trading.runlock import delete_account_if_idle
+    from davis_analyzer.systems.paper_trading.runlock import delete_account_if_idle
 
     delete_account_if_idle(f"smk_{label}")
     acct = PaperAccount.create(name=f"smk_{label}", strategy_name="factor_threshold",

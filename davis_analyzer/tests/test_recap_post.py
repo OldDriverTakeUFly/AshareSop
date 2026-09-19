@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from davis_analyzer.recap import post_compose as pc
+from davis_analyzer.systems.recap import post_compose as pc
 
 
 def test_setpts_speed_formula():
@@ -83,7 +83,7 @@ def test_compose_smoke(tmp_path, monkeypatch):
     _ff_make(["-f", "lavfi", "-i", "color=c=gray:s=1080x1920:d=1",
               "-c:v", "libx264", "-preset", "ultrafast", "-t", "1"],
              inbox / "20260918_601091.SH_01.mp4")
-    from davis_analyzer.recap import recorder_sheet as rs
+    from davis_analyzer.systems.recap import recorder_sheet as rs
     monkeypatch.setattr(rs, "INBOX_DIR", tmp_path / "inbox")  # match_clips 读自己的 INBOX_DIR
     monkeypatch.setattr(pc, "EPISODES_DIR", tmp_path / "episodes")
     monkeypatch.setattr(pc, "audio_duration", lambda p: 1.0)
@@ -108,7 +108,7 @@ def test_compose_missing_clip_exits(tmp_path, monkeypatch):
     (ep_dir / "原料包").mkdir(parents=True)
     (ep_dir / "原料包" / "durations.json").write_text(
         json.dumps({"lines": [], "segments": {"s1": 1.0, "close": 1.0}}), "utf-8")
-    from davis_analyzer.recap import recorder_sheet as rs
+    from davis_analyzer.systems.recap import recorder_sheet as rs
     monkeypatch.setattr(rs, "INBOX_DIR", tmp_path / "empty_inbox")
     monkeypatch.setattr(pc, "EPISODES_DIR", tmp_path / "episodes")
     with pytest.raises(SystemExit) as ei:

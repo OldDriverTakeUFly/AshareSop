@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import json
 
-from davis_analyzer.recap import recorder_sheet as rs
-from davis_analyzer.recap.types import Candidate, Episode
+from davis_analyzer.systems.recap import recorder_sheet as rs
+from davis_analyzer.systems.recap.types import Candidate, Episode
 
 
 def _ep():

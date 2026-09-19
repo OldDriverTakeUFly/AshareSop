@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from davis_analyzer.cardgen import publish_sync
+from davis_analyzer.systems.cardgen import publish_sync
 
 
 @pytest.fixture()

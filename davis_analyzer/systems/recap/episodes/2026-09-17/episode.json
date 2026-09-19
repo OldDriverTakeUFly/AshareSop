@@ -1,0 +1,341 @@
+{
+  "trade_date": "2026-09-17",
+  "title": "今日涨停扣篮王 5连板惊艳亮相",
+  "segments": [
+    {
+      "seg_id": "open",
+      "kind": "scoreboard",
+      "ts_code": null,
+      "lines": [
+        {
+          "speaker": "pb",
+          "text": "今日股市风云再起，三大指数小幅下挫，涨跌家数近1比1，涨停大军中，澳弘电子强势扣篮，锁定今日涨停榜冠军。"
+        }
+      ]
+    },
+    {
+      "seg_id": "s1",
+      "kind": "stock",
+      "ts_code": "605058.SH",
+      "lines": [
+        {
+          "speaker": "pb",
+          "text": "澳弘电子，一开场便展现实力，一度炸板，却在最后一刻扣篮得手，连板至五次，这球扣的真帅！"
+        },
+        {
+          "speaker": "color",
+          "text": "元件板块午后崛起，资金关注明显，澳弘电子成为板块翘楚，这板扣的真硬气！"
+        },
+        {
+          "speaker": "pb",
+          "text": "看数据，开盘至午后，澳弘电子振幅不大，炸板高达23次，可它愣是回来了，五连板的气势！"
+        },
+        {
+          "speaker": "color",
+          "text": "龙虎榜上的明星席位也对它青睐有加，板块资金的热情不减，看来澳弘电子要成新一代球星了。"
+        },
+        {
+          "speaker": "pb",
+          "text": "镜头切换至联域股份，可惜，它的表现像是被帽戏码，炸板次数多达17次，收场时依旧未能封板，有点可惜。"
+        }
+      ]
+    },
+    {
+      "seg_id": "s2",
+      "kind": "stock",
+      "ts_code": "003001.SZ",
+      "lines": [
+        {
+          "speaker": "pb",
+          "text": "中岩大地也来一记高难度的后仰投篮，尽管被帽了11次，但还是精准命中，回封两板。"
+        },
+        {
+          "speaker": "color",
+          "text": "专业工程板块，今日同样表现亮眼，中岩大地的涨停，是对板块热度的最好印证。"
+        },
+        {
+          "speaker": "pb",
+          "text": "另一侧，万向德农则是连着三度扣篮，最后以大长腿姿势涨停，振幅达18.5%，这力度够劲！"
+        },
+        {
+          "speaker": "color",
+          "text": "种植业板块的涨停，显示了资金对这些公司的看好，市场热情高涨。"
+        }
+      ]
+    },
+    {
+      "seg_id": "close",
+      "kind": "outlook",
+      "ts_code": null,
+      "lines": [
+        {
+          "speaker": "pb",
+          "text": "今日的市场，热点频出，但投资有风险，买卖需谨慎。"
+        },
+        {
+          "speaker": "color",
+          "text": "我们在此提供的分析和点评，"
+        },
+        {
+          "speaker": "pb",
+          "text": "不构成投资建议，投资有风险，入市需谨慎。"
+        }
+      ]
+    }
+  ],
+  "facts": [
+    {
+      "id": "idx_sh_close",
+      "value": "3876",
+      "unit": "点",
+      "display": "上证指数3876点",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:index_daily@2026-09-17:000001.SH:close"
+      }
+    },
+    {
+      "id": "idx_sh_chg",
+      "value": "0.41",
+      "unit": "%",
+      "display": "上证指数-0.41%",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:index_daily@2026-09-17:000001.SH:pct_chg"
+      }
+    },
+    {
+      "id": "idx_sz_close",
+      "value": "13410",
+      "unit": "点",
+      "display": "深证成指13410点",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:index_daily@2026-09-17:399001.SZ:close"
+      }
+    },
+    {
+      "id": "idx_sz_chg",
+      "value": "0.33",
+      "unit": "%",
+      "display": "深证成指-0.33%",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:index_daily@2026-09-17:399001.SZ:pct_chg"
+      }
+    },
+    {
+      "id": "idx_cyb_close",
+      "value": "3298",
+      "unit": "点",
+      "display": "创业板指3298点",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:index_daily@2026-09-17:399006.SZ:close"
+      }
+    },
+    {
+      "id": "idx_cyb_chg",
+      "value": "0.4",
+      "unit": "%",
+      "display": "创业板指-0.40%",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:index_daily@2026-09-17:399006.SZ:pct_chg"
+      }
+    },
+    {
+      "id": "breadth_up",
+      "value": "2576",
+      "unit": "家",
+      "display": "上涨2576家",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:daily_price@2026-09-17:pct_chg>0"
+      }
+    },
+    {
+      "id": "breadth_down",
+      "value": "2820",
+      "unit": "家",
+      "display": "下跌2820家",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:daily_price@2026-09-17:pct_chg<0"
+      }
+    },
+    {
+      "id": "limit_up_count",
+      "value": "47",
+      "unit": "家",
+      "display": "涨停47家",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "stockhot.db:limit_up_pool@2026-09-17:count"
+      }
+    },
+    {
+      "id": "605058.SH_chg",
+      "value": "9.99",
+      "unit": "%",
+      "display": "+9.99%",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "stockhot.db:limit_up_pool@2026-09-17:605058.SH"
+      }
+    },
+    {
+      "id": "605058.SH_broken",
+      "value": "23",
+      "unit": "次",
+      "display": "23次炸板",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "stockhot.db:limit_up_pool@2026-09-17:605058.SH"
+      }
+    },
+    {
+      "id": "605058.SH_boards",
+      "value": "5",
+      "unit": "板",
+      "display": "5连板",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "stockhot.db:limit_up_pool@2026-09-17:605058.SH"
+      }
+    },
+    {
+      "id": "001326.SZ_brkclose",
+      "value": "17",
+      "unit": "次",
+      "display": "收盘仍炸板(17次)",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "stockhot.db:broken_pool@2026-09-17:001326.SZ"
+      }
+    },
+    {
+      "id": "003001.SZ_chg",
+      "value": "10.02",
+      "unit": "%",
+      "display": "+10.02%",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "stockhot.db:limit_up_pool@2026-09-17:003001.SZ"
+      }
+    },
+    {
+      "id": "003001.SZ_broken",
+      "value": "11",
+      "unit": "次",
+      "display": "11次炸板",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "stockhot.db:limit_up_pool@2026-09-17:003001.SZ"
+      }
+    },
+    {
+      "id": "003001.SZ_boards",
+      "value": "2",
+      "unit": "板",
+      "display": "2连板",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "stockhot.db:limit_up_pool@2026-09-17:003001.SZ"
+      }
+    },
+    {
+      "id": "600371.SH_chg",
+      "value": "9.99",
+      "unit": "%",
+      "display": "+9.99%",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "stockhot.db:limit_up_pool@2026-09-17:600371.SH"
+      }
+    },
+    {
+      "id": "600371.SH_broken",
+      "value": "6",
+      "unit": "次",
+      "display": "6次炸板",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "stockhot.db:limit_up_pool@2026-09-17:600371.SH"
+      }
+    },
+    {
+      "id": "600371.SH_boards",
+      "value": "2",
+      "unit": "板",
+      "display": "2连板",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "stockhot.db:limit_up_pool@2026-09-17:600371.SH"
+      }
+    },
+    {
+      "id": "600371.SH_amp",
+      "value": "18.5",
+      "unit": "%",
+      "display": "振幅18.5%",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "stockhot.db:limit_up_pool@2026-09-17:600371.SH"
+      }
+    },
+    {
+      "id": "000980.SZ_chg",
+      "value": "10.23",
+      "unit": "%",
+      "display": "+10.23%",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "stockhot.db:limit_up_pool@2026-09-17:000980.SZ"
+      }
+    },
+    {
+      "id": "000980.SZ_broken",
+      "value": "3",
+      "unit": "次",
+      "display": "3次炸板",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "stockhot.db:limit_up_pool@2026-09-17:000980.SZ"
+      }
+    },
+    {
+      "id": "000980.SZ_boards",
+      "value": "1",
+      "unit": "板",
+      "display": "1连板",
+      "as_of": "2026-09-17",
+      "source": {
+        "kind": "stockhot",
+        "ref": "stockhot.db:limit_up_pool@2026-09-17:000980.SZ"
+      }
+    }
+  ]
+}

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import sqlite3
 
-from davis_analyzer.recap import db
+from davis_analyzer.systems.recap import db
 
 
 def _conn() -> sqlite3.Connection:

@@ -12,7 +12,7 @@ def fake_conn() -> MagicMock:
 
 
 def test_run_orchestration_order(fake_conn, tmp_path):
-    from davis_analyzer.thermometer import cli
+    from davis_analyzer.systems.thermometer import cli
 
     called: list[str] = []
 
@@ -25,7 +25,7 @@ def test_run_orchestration_order(fake_conn, tmp_path):
     gw = MagicMock()
     with patch.object(cli, "_conn", return_value=fake_conn), \
          patch.object(cli, "_gw", return_value=gw), \
-         patch("davis_analyzer.limitup.db.latest_trade_date", return_value="20260911"), \
+         patch("davis_analyzer.systems.limitup.db.latest_trade_date", return_value="20260911"), \
          patch.object(cli.data, "refresh_recent",
                       side_effect=_rec("sw_incr")), \
          patch.object(cli.moneyflow_agg, "aggregate_sector_moneyflow",
@@ -50,12 +50,12 @@ def argparse_ns(**kw):
 
 
 def test_run_no_card_flag(fake_conn, tmp_path):
-    from davis_analyzer.thermometer import cli
+    from davis_analyzer.systems.thermometer import cli
 
     gw = MagicMock()
     with patch.object(cli, "_conn", return_value=fake_conn), \
          patch.object(cli, "_gw", return_value=gw), \
-         patch("davis_analyzer.limitup.db.latest_trade_date", return_value="20260911"), \
+         patch("davis_analyzer.systems.limitup.db.latest_trade_date", return_value="20260911"), \
          patch.object(cli.data, "refresh_recent"), \
          patch.object(cli.moneyflow_agg, "aggregate_sector_moneyflow"), \
          patch.object(cli.scoring, "score_history"), \
@@ -67,7 +67,7 @@ def test_run_no_card_flag(fake_conn, tmp_path):
 
 
 def test_backfill_universe_only(fake_conn):
-    from davis_analyzer.thermometer import cli, universe
+    from davis_analyzer.systems.thermometer import cli, universe
 
     gw = MagicMock()
     with patch.object(cli, "_conn", return_value=fake_conn), \

@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from davis_analyzer.cardgen import ledger
-from davis_analyzer.cardgen.types import Failure
+from davis_analyzer.systems.cardgen import ledger
+from davis_analyzer.systems.cardgen.types import Failure
 
 
 @pytest.fixture

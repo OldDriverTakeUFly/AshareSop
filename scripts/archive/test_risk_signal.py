@@ -6,9 +6,9 @@ os.chdir(PROJECT_ROOT)
 from loguru import logger; logger.remove(); logger.add(sys.stderr, level="WARNING")
 
 from datetime import date
-from davis_analyzer.paper_trading.account import Position
-from davis_analyzer.paper_trading.strategy import Signal
-from davis_analyzer.paper_trading.executor import DailyExecutor, _compute_volume_signals
+from davis_analyzer.systems.paper_trading.account import Position
+from davis_analyzer.systems.paper_trading.strategy import Signal
+from davis_analyzer.systems.paper_trading.executor import DailyExecutor, _compute_volume_signals
 
 # Build a minimal executor without an account (we test _check_risk_signals directly)
 class DummyAccount:

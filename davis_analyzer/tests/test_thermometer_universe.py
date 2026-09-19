@@ -46,7 +46,7 @@ def _conn(tmp_path):
 
 
 def test_refresh_and_load(tmp_path):
-    from davis_analyzer.thermometer import universe
+    from davis_analyzer.systems.thermometer import universe
 
     conn = _conn(tmp_path)
     try:
@@ -65,7 +65,7 @@ def test_refresh_and_load(tmp_path):
 
 
 def test_load_members_latest_snapshot(tmp_path):
-    from davis_analyzer.thermometer import universe
+    from davis_analyzer.systems.thermometer import universe
 
     conn = _conn(tmp_path)
     try:
@@ -81,7 +81,7 @@ def test_load_members_latest_snapshot(tmp_path):
 
 
 def test_refresh_ths(tmp_path):
-    from davis_analyzer.thermometer import universe
+    from davis_analyzer.systems.thermometer import universe
 
     conn = _conn(tmp_path)
     try:

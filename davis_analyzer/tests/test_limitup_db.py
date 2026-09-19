@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import sqlite3
 
-from davis_analyzer.limitup import db
+from davis_analyzer.systems.limitup import db
 
 
 def test_normalize_date_roundtrip() -> None:

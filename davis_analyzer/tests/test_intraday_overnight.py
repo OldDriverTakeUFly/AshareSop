@@ -5,14 +5,14 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
-from davis_analyzer.intraday.engine import IntradayConfig, run_backtest
-from davis_analyzer.intraday.overnight_study import (
+from davis_analyzer.systems.intraday.engine import IntradayConfig, run_backtest
+from davis_analyzer.systems.intraday.overnight_study import (
     build_day_structures,
     lot_net_bps,
     resolve_exit,
     scan_entries,
 )
-from davis_analyzer.intraday.strategies import GapDownSmart
+from davis_analyzer.systems.intraday.strategies import GapDownSmart
 
 CFG = IntradayConfig(per_stock_notional=100_000, trade_fraction=0.3)
 CODE = "600000.SH"

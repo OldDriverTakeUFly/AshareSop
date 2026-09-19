@@ -5,9 +5,9 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
-from davis_analyzer.intraday.amplitude_study import build_amplitude_table
-from davis_analyzer.intraday.engine import IntradayConfig, run_backtest
-from davis_analyzer.intraday.strategies import GapDownSmart
+from davis_analyzer.systems.intraday.amplitude_study import build_amplitude_table
+from davis_analyzer.systems.intraday.engine import IntradayConfig, run_backtest
+from davis_analyzer.systems.intraday.strategies import GapDownSmart
 
 CFG = IntradayConfig(per_stock_notional=100_000, trade_fraction=0.3)
 

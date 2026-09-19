@@ -58,7 +58,7 @@ def _read_thermo(conn) -> pd.DataFrame:
 
 
 def test_temperature_bounded_and_monotonic(tmp_path):
-    from davis_analyzer.thermometer import scoring
+    from davis_analyzer.systems.thermometer import scoring
 
     conn = _conn(tmp_path)
     try:
@@ -79,7 +79,7 @@ def test_temperature_bounded_and_monotonic(tmp_path):
 
 
 def test_hot_streak_and_delta(tmp_path):
-    from davis_analyzer.thermometer import scoring
+    from davis_analyzer.systems.thermometer import scoring
 
     conn = _conn(tmp_path)
     try:
@@ -97,7 +97,7 @@ def test_hot_streak_and_delta(tmp_path):
 
 
 def test_idempotent_rescore(tmp_path):
-    from davis_analyzer.thermometer import scoring
+    from davis_analyzer.systems.thermometer import scoring
 
     conn = _conn(tmp_path)
     try:

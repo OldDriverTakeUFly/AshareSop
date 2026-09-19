@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from davis_analyzer.limitup import paper_push
+from davis_analyzer.systems.limitup import paper_push
 
 
 @pytest.fixture
@@ -96,14 +96,14 @@ def test_summary_includes_queue_line(paper_db, monkeypatch) -> None:
     """日报并入排队模拟摘要行（mock 真模块函数 + 内存库，不触真实 DB）。"""
     import sqlite3
 
-    from davis_analyzer.limitup import paper_push as pp
-    from davis_analyzer.limitup import queue_sim as qs
+    from davis_analyzer.systems.limitup import paper_push as pp
+    from davis_analyzer.systems.limitup import queue_sim as qs
 
     monkeypatch.setattr(
         qs, "queue_summary",
         lambda conn, day: f"排队模拟[{day}]: 候选1 上板1 成交1")
     monkeypatch.setattr(
-        "davis_analyzer.limitup.db.connect", lambda: sqlite3.connect(":memory:"))
+        "davis_analyzer.systems.limitup.db.connect", lambda: sqlite3.connect(":memory:"))
     text = pp.build_arms_summary("20260813")
     assert "排队模拟[20260813]: 候选1 上板1 成交1" in text
 
@@ -112,14 +112,14 @@ def test_summary_degrades_when_queue_fails(paper_db, monkeypatch) -> None:
     """排队摘要异常时降级文案，不影响主报告。"""
     import sqlite3
 
-    from davis_analyzer.limitup import paper_push as pp
-    from davis_analyzer.limitup import queue_sim as qs
+    from davis_analyzer.systems.limitup import paper_push as pp
+    from davis_analyzer.systems.limitup import queue_sim as qs
 
     def boom(conn, day):
         raise RuntimeError("db down")
 
     monkeypatch.setattr(qs, "queue_summary", boom)
     monkeypatch.setattr(
-        "davis_analyzer.limitup.db.connect", lambda: sqlite3.connect(":memory:"))
+        "davis_analyzer.systems.limitup.db.connect", lambda: sqlite3.connect(":memory:"))
     text = pp.build_arms_summary("20260813")
     assert "摘要不可用" in text and "fb_base" in text

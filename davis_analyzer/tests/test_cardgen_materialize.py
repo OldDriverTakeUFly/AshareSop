@@ -4,8 +4,8 @@ import hashlib
 import json
 from decimal import Decimal
 
-from davis_analyzer.cardgen.materialize import materialize_spec, spec_digest
-from davis_analyzer.cardgen.types import Fact
+from davis_analyzer.systems.cardgen.materialize import materialize_spec, spec_digest
+from davis_analyzer.systems.cardgen.types import Fact
 
 
 def _f(fid: str, display: str) -> Fact:

@@ -111,9 +111,9 @@ def main() -> int:
     parser.add_argument("--scoring-freq", type=int, default=5)
     args = parser.parse_args()
 
-    from davis_analyzer.paper_trading.account import PaperAccount
-    from davis_analyzer.paper_trading.strategy import FactorThresholdStrategy
-    from davis_analyzer.paper_trading.executor import run_backfill_auto
+    from davis_analyzer.systems.paper_trading.account import PaperAccount
+    from davis_analyzer.systems.paper_trading.strategy import FactorThresholdStrategy
+    from davis_analyzer.systems.paper_trading.executor import run_backfill_auto
 
     # Shared strategy config — only enable_negative_factors differs.
     base_cfg = dict(

@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from davis_analyzer.backtest.backtest_report import PerformanceStats
-from davis_analyzer.tournament.scorecard import (
+from davis_analyzer.systems.tournament.scorecard import (
     composite,
     regime_match_score,
     score_participant,
@@ -51,7 +51,7 @@ def test_composite_weights() -> None:
 
 def test_score_participant_end_to_end() -> None:
     from datetime import date, timedelta
-    from davis_analyzer.tournament.judge import WindowReport
+    from davis_analyzer.systems.tournament.judge import WindowReport
     reports = [
         WindowReport("p", date(2024, 1, 1) + timedelta(days=63 * i),
                      date(2024, 3, 1) + timedelta(days=63 * i),

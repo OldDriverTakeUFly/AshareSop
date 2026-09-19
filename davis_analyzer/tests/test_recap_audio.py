@@ -7,8 +7,8 @@ from pathlib import Path
 
 import pytest
 
-from davis_analyzer.recap import audio_pack as ap
-from davis_analyzer.recap.types import Episode
+from davis_analyzer.systems.recap import audio_pack as ap
+from davis_analyzer.systems.recap.types import Episode
 
 
 def _ep() -> Episode:
@@ -66,7 +66,7 @@ def test_make_pack_end_to_end(tmp_path, monkeypatch):
     inbox = tmp_path / "inbox" / day
     inbox.mkdir(parents=True)
     (inbox / "20260918_605577.SH_01.mp4").write_bytes(b"fake")
-    from davis_analyzer.recap import recorder_sheet as rs
+    from davis_analyzer.systems.recap import recorder_sheet as rs
     monkeypatch.setattr(rs, "INBOX_DIR", tmp_path / "inbox")  # match_clips 在 recorder_sheet 内读自己的 INBOX_DIR
 
     def fake_communicate(text, voice):   # 真实 edge_tts:同步构造 + async save,mock 同口径
@@ -103,7 +103,7 @@ def test_make_pack_purges_stale_audio(tmp_path, monkeypatch):
     inbox = tmp_path / "inbox" / day
     inbox.mkdir(parents=True)
     (inbox / "20260918_605577.SH_01.mp4").write_bytes(b"x")
-    from davis_analyzer.recap import recorder_sheet as rs
+    from davis_analyzer.systems.recap import recorder_sheet as rs
     monkeypatch.setattr(rs, "INBOX_DIR", tmp_path / "inbox")
 
     def fake_communicate(text, voice):

@@ -11,9 +11,9 @@ os.chdir(PROJECT_ROOT)
 from loguru import logger; logger.remove(); logger.add(sys.stderr, level="ERROR")
 from stockhot.data_layer.market_db import get_connection as get_market_conn
 from stockhot.storage.database import init_database, DB_PATH
-from davis_analyzer.paper_trading.account import PaperAccount
-from davis_analyzer.paper_trading.strategy import FactorThresholdStrategy
-from davis_analyzer.paper_trading.executor import run_backfill_auto
+from davis_analyzer.systems.paper_trading.account import PaperAccount
+from davis_analyzer.systems.paper_trading.strategy import FactorThresholdStrategy
+from davis_analyzer.systems.paper_trading.executor import run_backfill_auto
 init_database()
 START = "20260105"; END = "20260721"; INITIAL_CAPITAL = 1_000_000; UNIVERSE_SIZE = 200; SCORING_FREQUENCY = 3
 BASE = dict(max_positions=5, risk_stop_multiplier=0.70, sell_momentum=30,
@@ -36,7 +36,7 @@ def build_universe(top_n):
         rows = c.execute("SELECT a.ts_code FROM daily_price a JOIN daily_price b ON a.ts_code=b.ts_code AND b.trade_date = (SELECT MAX(trade_date) FROM daily_price WHERE ts_code=a.ts_code AND trade_date <= '20251001') WHERE a.trade_date = ? AND a.close > 0 AND b.close > 0 AND a.vol > 0 ORDER BY (a.close / b.close - 1) DESC LIMIT ?", (ref_end, top_n)).fetchall()
     return [r[0] for r in rows]
 def reset_account(name, config):
-    from davis_analyzer.paper_trading.runlock import delete_account_if_idle
+    from davis_analyzer.systems.paper_trading.runlock import delete_account_if_idle
 
     delete_account_if_idle(name)
     return PaperAccount.create(name=name, strategy_name="factor_threshold", initial_capital=INITIAL_CAPITAL, config=config)
@@ -70,7 +70,7 @@ def main():
     universe = build_universe(UNIVERSE_SIZE)
     print(f"  Universe: {len(universe)} stocks\n")
     results = []
-    from davis_analyzer.paper_trading.account import account_nav_complete
+    from davis_analyzer.systems.paper_trading.account import account_nav_complete
 
     # Reuse Q0 from production_amp08
     try:

@@ -6,7 +6,7 @@ import math
 
 import pandas as pd
 
-from davis_analyzer.surge.pattern import detect_pattern
+from davis_analyzer.systems.surge.pattern import detect_pattern
 
 _NAN = float("nan")
 
@@ -93,7 +93,7 @@ def test_no_boom_anchor_rejected():
 
 # ── 16 标签库 ──
 
-from davis_analyzer.surge.pattern import detect_tags  # noqa: E402
+from davis_analyzer.systems.surge.pattern import detect_tags  # noqa: E402
 
 
 def test_tags_bottom_volume_crowd_near_resist():

@@ -6,7 +6,7 @@ import sqlite3
 
 import pandas as pd
 
-from davis_analyzer.limitup import daily_refresh
+from davis_analyzer.systems.limitup import daily_refresh
 
 
 def _seed_calendar(conn: sqlite3.Connection, *dates: str) -> None:
@@ -116,7 +116,7 @@ def test_refresh_corp_events(limitup_db: sqlite3.Connection) -> None:
 
 
 def test_refresh_limit_pool_ext_aware(limitup_db: sqlite3.Connection) -> None:
-    from davis_analyzer.limitup import backfill
+    from davis_analyzer.systems.limitup import backfill
 
     _seed_calendar(limitup_db, "20260812", "20260813")
     # 0812：daily_scan 已写过 limit_pool 但 ext 无 float_mv → 需重拉
@@ -191,7 +191,7 @@ def test_repair_daily_price_gaps(limitup_db: sqlite3.Connection) -> None:
 
     import pytest
 
-    from davis_analyzer.limitup import daily_refresh as dr
+    from davis_analyzer.systems.limitup import daily_refresh as dr
 
     with pytest.MonkeyPatch.context() as mp:
         mp.setattr(dr, "_PLACEHOLDER_ADJ_THRESHOLD", 100)
@@ -210,7 +210,7 @@ def test_repair_daily_price_gaps(limitup_db: sqlite3.Connection) -> None:
 
 def test_ensure_daily_price_full_skips_complete(limitup_db) -> None:
     """行数已达阈值 → 直接跳过不拉取（Boom 客户端触发即失败）。"""
-    from davis_analyzer.limitup import daily_refresh as dr
+    from davis_analyzer.systems.limitup import daily_refresh as dr
 
     class Boom:
         def _call(self, *a, **k):
@@ -229,7 +229,7 @@ def test_ensure_daily_price_full_upserts(limitup_db) -> None:
     """行数不足 → 全市场拉取 + adj 映射 upsert。"""
     from types import SimpleNamespace
 
-    from davis_analyzer.limitup import daily_refresh as dr
+    from davis_analyzer.systems.limitup import daily_refresh as dr
 
     class FakeClient:
         _pro = SimpleNamespace(

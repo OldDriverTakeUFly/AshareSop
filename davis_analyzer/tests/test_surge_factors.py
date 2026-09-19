@@ -7,7 +7,7 @@ import math
 import numpy as np
 import pandas as pd
 
-from davis_analyzer.surge.factors import compute_position
+from davis_analyzer.systems.surge.factors import compute_position
 
 
 def _px(closes: list[float], highs=None, lows=None, vol=1000.0, adj=None):
@@ -49,7 +49,7 @@ def test_position_uses_adjusted():
 
 # ── 5.3 资金组 ──
 
-from davis_analyzer.surge.factors import compute_moneyflow  # noqa: E402
+from davis_analyzer.systems.surge.factors import compute_moneyflow  # noqa: E402
 
 
 def _mf(elg_nets: list[float], net_mf=None):
@@ -89,7 +89,7 @@ def test_moneyflow_missing_net_mf():
 
 # ── 5.6/5.7 压力支撑 ──
 
-from davis_analyzer.surge.factors import compute_resistance_support  # noqa: E402
+from davis_analyzer.systems.surge.factors import compute_resistance_support  # noqa: E402
 
 
 def test_resistance_picks_nearest_above():

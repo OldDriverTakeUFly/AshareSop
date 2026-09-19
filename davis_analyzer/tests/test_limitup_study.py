@@ -5,7 +5,7 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from davis_analyzer.limitup import report, study
+from davis_analyzer.systems.limitup import report, study
 
 
 def _ev(n: int = 40) -> pd.DataFrame:

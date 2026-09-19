@@ -2,7 +2,7 @@
 """recap 三道闸:数字全命中 facts / 敏感词 / 完整性+免责。"""
 from __future__ import annotations
 
-from davis_analyzer.recap.types import DialogueLine, Episode, EpisodeSegment
+from davis_analyzer.systems.recap.types import DialogueLine, Episode, EpisodeSegment
 
 
 def _fact(fid, value, unit, display):
@@ -28,33 +28,33 @@ def _ep(lines_open=None, lines_close=None, facts=None, segments=None):
 
 
 def test_clean_episode_passes():
-    from davis_analyzer.recap.validator import validate_episode
+    from davis_analyzer.systems.recap.validator import validate_episode
     assert validate_episode(_ep(), min_seconds=5.0) == []
 
 
 def test_number_not_in_facts_fails():
-    from davis_analyzer.recap.validator import validate_episode
+    from davis_analyzer.systems.recap.validator import validate_episode
     ep = _ep(lines_open=[DialogueLine("pb", "上证大涨百分之2。")])
     fails = validate_episode(ep)
     assert any("数字" in f for f in fails)
 
 
 def test_sensitive_word_fails():
-    from davis_analyzer.recap.validator import validate_episode
+    from davis_analyzer.systems.recap.validator import validate_episode
     ep = _ep(lines_open=[DialogueLine("pb", "这位置可以上车,上证收3875点。")])
     fails = validate_episode(ep)
     assert any("敏感" in f for f in fails)
 
 
 def test_missing_disclaimer_fails():
-    from davis_analyzer.recap.validator import validate_episode
+    from davis_analyzer.systems.recap.validator import validate_episode
     ep = _ep(lines_close=[DialogueLine("pb", "明天见。")])
     fails = validate_episode(ep)
     assert any("不构成投资建议" in f for f in fails)
 
 
 def test_bad_speaker_and_length_fails():
-    from davis_analyzer.recap.validator import validate_episode
+    from davis_analyzer.systems.recap.validator import validate_episode
     segs = [EpisodeSegment("open", "scoreboard", None, [DialogueLine("narrator", "开场")]),
             EpisodeSegment("close", "outlook", None,
                            [DialogueLine("pb", "本内容仅为盘面复盘记录,不构成投资建议。" * 60)])]
@@ -65,8 +65,8 @@ def test_bad_speaker_and_length_fails():
 
 def test_allowed_stock_codes_gate():
     """2026-09-18 首跑实锤:LLM 会擅自增段/写候选外的票——stock 段必须与候选一一对应。"""
-    from davis_analyzer.recap.types import Episode, EpisodeSegment
-    from davis_analyzer.recap.validator import validate_episode
+    from davis_analyzer.systems.recap.types import Episode, EpisodeSegment
+    from davis_analyzer.systems.recap.validator import validate_episode
     facts = [_fact("idx_sh_close", "3875", "点", "上证收3875点")]
     base = {
         "trade_date": "2026-09-18", "title": "t", "facts": facts,

@@ -105,7 +105,7 @@ def _collect_holdings() -> list[dict]:
 
     # 1. 模拟账户持仓（paper_positions）
     try:
-        from davis_analyzer.paper_trading.account import PaperAccount
+        from davis_analyzer.systems.paper_trading.account import PaperAccount
         from stockhot.core.config import DB_PATH
         import sqlite3
 

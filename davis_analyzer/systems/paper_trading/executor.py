@@ -1,0 +1,3263 @@
+"""Daily execution engine for the paper-trading system.
+
+The executor runs one "trading day" at a time:
+
+1. Fetch close prices for held + candidate stocks (via DAL repository).
+2. Generate factor signals (run scoring pipeline or read cached factors).
+3. Evaluate the strategy → produce buy/sell signals.
+4. Execute virtual trades (sells first, then buys).
+5. Record NAV snapshot.
+
+For backfill mode, this loops over historical dates using cached prices.
+For live mode, it runs once for the latest trading day.
+"""
+
+from __future__ import annotations
+
+import sqlite3
+import os
+import time
+from datetime import date, datetime, timedelta
+from typing import Any
+
+import pandas as pd
+from loguru import logger
+
+from stockhot.core.config import DB_PATH
+from stockhot.data_layer import get_repository
+from stockhot.storage.database import get_connection
+
+from davis_analyzer.systems.paper_trading.account import PaperAccount, Position, min_buy_lots
+from davis_analyzer.systems.paper_trading.runlock import account_run_lock
+from davis_analyzer.systems.paper_trading.strategy import (
+    DavisDoubleStrategy,
+    FactorThresholdStrategy,
+    MarketSnapshot,
+    Signal,
+    Strategy,
+    create_strategy,
+)
+
+# Use market_data.db for trading calendar derivation
+from stockhot.data_layer.market_db import get_connection as get_market_conn
+
+
+def _get_trading_days(start: str, end: str) -> list[str]:
+    """Get sorted list of trading days (YYYYMMDD) from the daily_price table.
+
+    Derives the calendar from the union of all cached stock trade dates
+    (more robust than relying on a single anchor stock which may not be cached).
+    """
+    with get_market_conn() as conn:
+        rows = conn.execute(
+            "SELECT DISTINCT trade_date FROM daily_price "
+            "WHERE trade_date >= ? AND trade_date <= ? "
+            "ORDER BY trade_date",
+            (start, end),
+        ).fetchall()
+    return [r[0] for r in rows]
+
+
+def _get_close_prices(ts_codes: list[str], trade_date: str) -> dict[str, float]:
+    """Fetch close prices for multiple stocks on a given date (YYYYMMDD).
+
+    If a stock has no price on *trade_date* (suspended, not yet listed, or
+    data gap), falls back to the most recent prior trading day's close.
+    This prevents NAV from collapsing to zero when one holding's price is
+    temporarily missing.
+    """
+    if not ts_codes:
+        return {}
+    repo = get_repository()
+    # Look back up to 10 calendar days to find a fallback price
+    lookback_start = (
+        datetime.strptime(trade_date, "%Y%m%d") - timedelta(days=10)
+    ).strftime("%Y%m%d")
+    prices = {}
+    for code in ts_codes:
+        try:
+            df = repo.get_daily_prices(code, lookback_start, trade_date)
+            if df is not None and not df.empty:
+                df = df.sort_values("trade_date")
+                close = pd.to_numeric(df["close"], errors="coerce").dropna()
+                if len(close) > 0:
+                    prices[code] = float(close.iloc[-1])
+        except Exception:
+            logger.debug(f"price fetch failed for {code} on {trade_date}")
+    return prices
+
+
+def _get_stock_name(ts_code: str) -> str:
+    """Get stock name from market_data.db."""
+    with get_market_conn() as conn:
+        row = conn.execute(
+            "SELECT name FROM stock_basic WHERE ts_code=?", (ts_code,)
+        ).fetchone()
+    return row[0] if row else ts_code
+
+
+# sell_at_open 卖出滑点（bps）——与 limitup 回测引擎 slippage_bps 同口径
+_OPEN_SELL_SLIPPAGE_BPS: float = 10.0
+
+
+def _get_open_prices(ts_codes: list[str], trade_date: str) -> dict[str, dict[str, float]]:
+    """Fetch same-day open/low/pre_close rows from daily_price (read-only).
+
+    与 _get_close_prices 同源（market_data.db 的 daily_price 表），但**只取
+    当日行、不做回看回退**——open 缺失（停牌/数据缺口）必须显式暴露给调用
+    方走顺延，而不是拿旧价补。纯 SQL 读缓存，不触发 Tushare API。
+
+    Returns ``{ts_code: {"open": o, "low": l, "pre_close": pc}}``，只含当日
+    有行且 open 有效（非 NULL、>0）的标的。
+    """
+    if not ts_codes:
+        return {}
+    placeholders = ",".join("?" * len(ts_codes))
+    try:
+        with get_market_conn() as conn:
+            rows = conn.execute(
+                f"SELECT ts_code, open, low, pre_close FROM daily_price "
+                f"WHERE trade_date = ? AND ts_code IN ({placeholders})",
+                (trade_date, *ts_codes),
+            ).fetchall()
+    except Exception:
+        logger.warning(f"open price fetch failed on {trade_date}")
+        return {}
+    out: dict[str, dict[str, float]] = {}
+    for code, open_px, low, pre_close in rows:
+        try:
+            o, lo, pc = float(open_px), float(low), float(pre_close)
+        except (TypeError, ValueError):
+            continue
+        if o > 0:
+            out[code] = {"open": o, "low": lo, "pre_close": pc}
+    return out
+
+
+def _limit_down_locked(ts_code: str, open_px: float, low: float, pre_close: float) -> bool:
+    """一字跌停判定（与 limitup 回测引擎 engine._limit_down_locked 同口径）.
+
+    跌停价 = round(pre_close × (1 − 幅度), 2)（创业板/科创板 20cm，主板 10cm）；
+    open = low = 跌停价（容差 0.005）→ 全天锁死无法卖出 → 顺延。
+    """
+    from davis_analyzer.systems.limitup.events import limit_ratio_for
+
+    if pre_close <= 0:
+        return False
+    ratio = limit_ratio_for(ts_code)
+    limit_down = round(pre_close * (1 - ratio) + 1e-9, 2)
+    return abs(open_px - limit_down) <= 0.005 and abs(low - limit_down) <= 0.005
+
+
+def _get_davis_scores(trade_date: str) -> dict[str, dict]:
+    """Get Davis Double scores for the universe.
+
+    For now, this reads from a pre-computed scoring run. In production, it
+    would call run_screening_pipeline(). For backfill, scores should be
+    point-in-time (as-of the signal date).
+    """
+    # Placeholder: in live mode, run the pipeline. In backfill, scores are
+    # computed by the caller and passed in. For now return empty — strategies
+    # that depend on davis_scores will produce no buy signals until this is
+    # wired to a real scoring source.
+    return {}
+
+
+def _get_factor_scores(trade_date: str, ts_codes: list[str]) -> dict[str, dict]:
+    """Get supplementary factor scores for given stocks.
+
+    Calls the individual factor engines. This is the live-mode path.
+    For backfill, factor computation should be point-in-time.
+    """
+    from davis_analyzer.core.tushare_client import TushareClient
+    from davis_analyzer.factors.momentum import analyze_momentum
+    from davis_analyzer.factors.holder_concentration import analyze_holder_concentration
+    from davis_analyzer.factors.dividend import analyze_dividend
+    from davis_analyzer.factors.forecast import analyze_forecast
+
+    client = TushareClient()
+    as_of = datetime.strptime(trade_date, "%Y%m%d").date()
+    scores: dict[str, dict] = {}
+
+    for code in ts_codes:
+        try:
+            entry: dict[str, Any] = {}
+            mom = analyze_momentum(client, code, today=as_of)
+            if mom:
+                entry["momentum"] = mom.momentum_score
+            hc = analyze_holder_concentration(client, code, today=as_of)
+            if hc:
+                entry["holder"] = hc.concentration_score
+                entry["holder_trend"] = hc.trend
+            div = analyze_dividend(client, code, today=as_of)
+            if div:
+                entry["dividend"] = div.dividend_score
+            fc = analyze_forecast(client, code, today=as_of)
+            if fc:
+                entry["forecast_leading"] = fc.leading_score
+            scores[code] = entry
+        except Exception:
+            pass
+
+    return scores
+
+
+_BEARISH_STAGES = {"主跌浪", "下跌中反弹", "高位震荡筑顶"}
+_BULLISH_STAGES = {"主升浪", "上涨中回调", "低位筑底"}
+
+
+# ── Limit-up fill probability model ────────────────────────────────────
+
+def _get_daily_pct_chg(ts_code: str, trade_date: str) -> float | None:
+    """Get the daily pct change for a stock on trade_date from daily_price."""
+    with get_market_conn() as conn:
+        row = conn.execute(
+            "SELECT pct_chg FROM daily_price WHERE ts_code=? AND trade_date=?",
+            (ts_code, trade_date),
+        ).fetchone()
+    if row and row[0] is not None:
+        return float(row[0])
+    return None
+
+
+def _limit_up_fill_probability(pct_chg: float | None) -> float:
+    """Estimate the probability of successfully buying at close on a given day.
+
+    A-share limit-up rules: 10% for main board, 20% for STAR/ChiNext, 30% for BSE.
+    When a stock closes at limit-up, it means it was locked at the ceiling price
+    all day (or opened at ceiling = 一字板), and buying is nearly impossible.
+
+    Model:
+      pct < 5%       → 100% (normal, definitely fillable)
+      5% ≤ pct < 8%  → 95% (strong but not ceiling)
+      8% ≤ pct < 9.5%→ 80% (near limit, partial fills common)
+      9.5% ≤ pct < 19% → 20% (main board limit-up, mostly locked)
+      19% ≤ pct < 29% → 20% (STAR/ChiNext limit-up)
+      pct ≥ 29%      → 15% (BSE 30cm limit-up)
+      None           → 100% (unknown, assume normal)
+    """
+    if pct_chg is None:
+        return 1.0
+    if pct_chg < 5.0:
+        return 1.0
+    if pct_chg < 8.0:
+        return 0.95
+    if pct_chg < 9.5:
+        return 0.80
+    if pct_chg < 19.0:
+        return 0.20
+    if pct_chg < 29.0:
+        return 0.20
+    return 0.15
+
+
+def _get_market_regime(trade_date: str) -> str:
+    """Determine market regime using HMM + MA confirmation + overseas overlay.
+
+    Delegates to ``davis_analyzer.factors.market_regime.get_market_regime_with_overseas``
+    which layers an international resonance overlay on the base HMM+MA regime.
+    The overlay can only *downgrade* (bull→neutral on elevated overseas risk,
+    →bear on extreme risk), never upgrade — so foreign turmoil forces caution.
+
+    Returns "bull", "bear", or "neutral".
+    Falls back to the old rule-based logic if HMM is unavailable.
+    """
+    try:
+        from davis_analyzer.factors.market_regime import (
+            get_market_regime_with_overseas as regime_fn,
+        )
+        return regime_fn(trade_date)
+    except Exception:
+        logger.debug(f"HMM regime failed for {trade_date}, fallback to rule-based")
+        return _get_market_regime_rulebased(trade_date)
+
+
+def _get_overseas_risk(trade_date: str) -> float:
+    """Fetch the international resonance risk score (0-100) for a trade date.
+
+    Returns 0.0 when overseas data is unavailable (fail-safe: missing
+    international data never blocks trading). Used to populate
+    MarketSnapshot.overseas_risk for display and future fine-grained use.
+    """
+    try:
+        from davis_analyzer.factors.international_overlay import get_international_risk
+
+        risk = get_international_risk(trade_date)
+        return risk.composite_score if risk.data_sufficient else 0.0
+    except Exception:
+        return 0.0
+
+
+def _get_market_vol_regime(trade_date: str) -> tuple[str, float]:
+    """Compute market volatility regime (independent of bull/bear).
+
+    Uses 上证 20-day realized volatility (RV20) percentile over trailing
+    250 trading days. High volatility → wider stops + smaller positions.
+
+    Returns (vol_regime, vol_multiplier) where:
+    - vol_regime: "low_vol" / "normal_vol" / "high_vol" / "extreme_vol"
+    - vol_multiplier: position size multiplier (1.1 / 1.0 / 0.8 / 0.5)
+
+    Based on research finding: high vol = wide stop + LIGHT position
+    (not heavy position), because momentum stocks are inherently high-vol.
+    """
+    import numpy as np
+
+    with get_market_conn() as conn:
+        rows = conn.execute(
+            "SELECT close FROM index_daily WHERE ts_code='000001.SH' "
+            "AND trade_date<=? AND close IS NOT NULL AND close > 0 "
+            "ORDER BY trade_date DESC LIMIT 270",
+            (trade_date,),
+        ).fetchall()
+    if len(rows) < 250:
+        return ("normal_vol", 1.0)
+
+    closes = np.array([float(r[0]) for r in rows])[::-1]  # chronological
+    returns = np.diff(np.log(closes))
+
+    # RV20 = std of last 20 daily log returns × sqrt(250)
+    if len(returns) < 20:
+        return ("normal_vol", 1.0)
+    rv20 = float(returns[-20:].std() * np.sqrt(250) * 100)  # annualized %
+
+    # Percentile over trailing 250 days
+    rolling_rv = []
+    for i in range(20, len(returns)):
+        rv = returns[i-20:i].std() * np.sqrt(250) * 100
+        rolling_rv.append(rv)
+    if len(rolling_rv) < 50:
+        return ("normal_vol", 1.0)
+
+    pctile = float(sum(1 for rv in rolling_rv if rv < rv20) / len(rolling_rv) * 100)
+
+    if pctile > 90:
+        return ("extreme_vol", 0.5)
+    elif pctile > 75:
+        return ("high_vol", 0.8)
+    elif pctile < 25:
+        return ("low_vol", 1.1)
+    return ("normal_vol", 1.0)
+
+
+def _get_market_regime_rulebased(trade_date: str) -> str:
+    """Legacy rule-based market regime (fallback when HMM unavailable).
+
+    Multi-timeframe approach:
+    - **Short-term (5-day return)**: catches trend reversal quickly.
+    - **Medium-term (20-day return)**: confirms the broader trend.
+    - **MA5 vs MA20**: structural trend confirmation.
+    - **iVIX percentile**: panic overlay.
+
+    Args:
+        trade_date: YYYYMMDD format (no dashes).
+    """
+    import pandas as pd
+
+    repo = get_repository()
+    lookback_start = (
+        datetime.strptime(trade_date, "%Y%m%d") - timedelta(days=60)
+    ).strftime("%Y%m%d")
+
+    index_data = []
+    for index_code in ("000001.SH", "399006.SZ"):
+        try:
+            df = repo.get_index_daily(index_code, lookback_start, trade_date)
+            if df is None or df.empty:
+                continue
+            df = df.sort_values("trade_date")
+            close = pd.to_numeric(df["close"], errors="coerce").dropna()
+            if len(close) < 5:
+                continue
+
+            ret_5d = (close.iloc[-1] / close.iloc[-1 - min(5, len(close) - 1)] - 1) * 100
+            window_20 = min(20, len(close) - 1)
+            ret_20d = (close.iloc[-1] / close.iloc[-1 - window_20] - 1) * 100
+
+            ma5 = close.rolling(5).mean().iloc[-1] if len(close) >= 5 else None
+            ma20 = close.rolling(20).mean().iloc[-1] if len(close) >= 20 else None
+            ma_below = ma5 is not None and ma20 is not None and ma5 < ma20
+
+            index_data.append({
+                "code": index_code,
+                "ret_5d": ret_5d,
+                "ret_20d": ret_20d,
+                "ma_below": ma_below,
+            })
+        except Exception:
+            continue
+
+    if not index_data:
+        return "mixed"
+
+    # ── Fast signal: any index with 5-day return < -5% → bear immediately ──
+    if any(d["ret_5d"] < -5.0 for d in index_data):
+        return "bear"
+
+    # ── Confirmed bull: both indices positive on both timeframes ──
+    if all(d["ret_5d"] > 0 and d["ret_20d"] > 0 for d in index_data):
+        base_regime = "bull"
+    # ── Confirmed bear: both indices negative on 20-day ──
+    elif all(d["ret_20d"] < 0 for d in index_data):
+        base_regime = "bear"
+    # ── MA confirmation: both indices MA5 < MA20 → bear ──
+    elif all(d["ma_below"] for d in index_data):
+        base_regime = "bear"
+    else:
+        base_regime = "mixed"
+
+    # ── iVIX panic overlay ──
+    # When iVIX is historically elevated, downgrade regime to reflect risk
+    ivix_pct = _get_ivix_percentile(trade_date)
+    if ivix_pct is not None:
+        if ivix_pct >= 75:
+            # Extreme panic: force bear regardless of price trends
+            return "bear"
+        elif ivix_pct >= 60 and base_regime == "bull":
+            # Elevated panic: downgrade bull → mixed
+            return "mixed"
+
+    return base_regime
+
+
+def _get_ivix_percentile(trade_date: str) -> float | None:
+    """Get iVIX historical percentile for *trade_date* (0-100).
+
+    Returns the % of historical iVIX values below the current reading.
+    High percentile = market is in a state of elevated fear/panic.
+    Uses point-in-time data only (trade_date and before).
+    """
+    with get_market_conn() as conn:
+        # Current iVIX on or before trade_date
+        row = conn.execute(
+            "SELECT close FROM ivix_history WHERE trade_date <= ? ORDER BY trade_date DESC LIMIT 1",
+            (trade_date,),
+        ).fetchone()
+        if not row or row[0] is None:
+            return None
+        current_ivix = float(row[0])
+
+        # Historical distribution (all data up to trade_date)
+        rows = conn.execute(
+            "SELECT close FROM ivix_history WHERE trade_date <= ? AND close IS NOT NULL",
+            (trade_date,),
+        ).fetchall()
+        if len(rows) < 30:  # need enough history
+            return None
+
+        all_values = [float(r[0]) for r in rows if r[0] is not None]
+        pct = sum(1 for v in all_values if v < current_ivix) / len(all_values) * 100
+        return round(pct, 1)
+
+
+def _compute_rv_decay_ratio(trade_date: str) -> float | None:
+    """Compute RV5/RV20 ratio for 上证指数 (oversold bounce trigger).
+
+    Returns ratio < 0.8 when short-term vol has decayed, > 1.0 when surging.
+    None when insufficient data. Only computed when oversold bounce is enabled
+    (caller checks strategy.enable_oversold_bounce before calling).
+    """
+    import numpy as np
+    try:
+        with get_market_conn() as conn:
+            rows = conn.execute(
+                "SELECT close FROM index_daily WHERE ts_code='000001.SH' "
+                "AND trade_date <= ? AND close > 0 ORDER BY trade_date DESC LIMIT 25",
+                (trade_date,),
+            ).fetchall()
+        if len(rows) < 21:
+            logger.debug(f"rv_decay: only {len(rows)} rows for {trade_date}")
+            return None
+        closes = np.array([float(r[0]) for r in rows])[::-1]  # chronological
+        log_ret = np.diff(np.log(closes))
+        if len(log_ret) < 20:
+            logger.debug(f"rv_decay: only {len(log_ret)} log_returns")
+            return None
+        rv5 = float(np.std(log_ret[-5:]) * np.sqrt(242) * 100)
+        rv20 = float(np.std(log_ret[-20:]) * np.sqrt(242) * 100)
+        if rv20 <= 0:
+            return None
+        return round(rv5 / rv20, 3)
+    except Exception as e:
+        logger.debug(f"rv_decay_ratio failed for {trade_date}: {e}")
+        return None
+    except Exception:
+        return None
+
+
+def _compute_index_20d_drop(trade_date: str) -> float | None:
+    """Compute 上证指数 20-day return (%) for oversold trigger."""
+    try:
+        with get_market_conn() as conn:
+            rows = conn.execute(
+                "SELECT close FROM index_daily WHERE ts_code='000001.SH' "
+                "AND trade_date <= ? AND close > 0 ORDER BY trade_date DESC LIMIT 21",
+                (trade_date,),
+            ).fetchall()
+        if len(rows) < 21:
+            return None
+        curr = float(rows[0][0])
+        past = float(rows[20][0])
+        if past <= 0:
+            return None
+        return round((curr / past - 1) * 100, 2)
+    except Exception:
+        return None
+
+
+_MA200_CACHE: dict[str, bool | None] = {}
+
+
+def _compute_index_above_ma200(trade_date: str) -> bool | None:
+    """上证收盘是否站上 MA200 (牛市确认用). None = 历史不足200天.
+
+    每日被快照/风控/T+交易三处调用, 按日期 memoize.
+    """
+    if trade_date in _MA200_CACHE:
+        return _MA200_CACHE[trade_date]
+    result: bool | None = None
+    try:
+        with get_market_conn() as conn:
+            rows = conn.execute(
+                "SELECT close FROM index_daily WHERE ts_code='000001.SH' "
+                "AND trade_date <= ? AND close > 0 ORDER BY trade_date DESC LIMIT 200",
+                (trade_date,),
+            ).fetchall()
+        if len(rows) < 200:
+            result = None
+        else:
+            curr = float(rows[0][0])
+            ma200 = sum(float(r[0]) for r in rows) / len(rows)
+            result = curr > ma200
+    except Exception:
+        result = None
+    _MA200_CACHE[trade_date] = result
+    return result
+
+
+# ── 回调结构门控 (实验0009, 2026-08-28) ──
+# 0008: 趋势股收盘守 MA10(+69%续涨)/MA60 = 良性回调, 此处止盈卖出大概率卖飞.
+# 按 (日期, 代码集) memoize; 用不复权 close(与执行器价格源一致)——除权日会
+# 假破线 → 返回 False → 不豁免 → 回到基线行为, 失效方向安全.
+_PB_STRUCT_CACHE: dict[tuple[str, tuple], dict[str, bool]] = {}
+
+
+def _holdings_structure_ok(ts_codes: list[str], trade_date: str) -> dict[str, bool]:
+    """每股收盘是否同时站上 MA10 与 MA60 (回调结构完好, 0008 判别层+触发层).
+
+    数据不足 60 根收盘的股票返回 False (不豁免, 与基线行为一致).
+    """
+    key = (trade_date, tuple(sorted(ts_codes)))
+    if key in _PB_STRUCT_CACHE:
+        return _PB_STRUCT_CACHE[key]
+    lookback_start = (
+        datetime.strptime(trade_date, "%Y%m%d") - timedelta(days=150)
+    ).strftime("%Y%m%d")
+    repo = get_repository()
+    out: dict[str, bool] = {}
+    for code in ts_codes:
+        ok = False
+        try:
+            df = repo.get_daily_prices(code, lookback_start, trade_date)
+            if df is not None and not df.empty:
+                close = (pd.to_numeric(df.sort_values("trade_date")["close"],
+                                       errors="coerce").dropna())
+                if len(close) >= 60:
+                    curr = float(close.iloc[-1])
+                    ma10 = float(close.iloc[-10:].mean())
+                    ma60 = float(close.iloc[-60:].mean())
+                    ok = curr > ma10 and curr > ma60
+        except Exception:
+            logger.debug(f"pb-struct fetch failed for {code} on {trade_date}")
+        out[code] = ok
+    _PB_STRUCT_CACHE[key] = out
+    return out
+
+
+def _compute_stock_20d_drops(ts_codes: list[str], trade_date: str) -> dict[str, float]:
+    """Compute 20-day return (%) for each stock (for oversold bounce selection).
+
+    Only called when oversold bounce is enabled. Returns {ts_code: return_pct}.
+    """
+    result: dict[str, float] = {}
+    if not ts_codes:
+        return result
+    try:
+        with get_market_conn() as conn:
+            # Batch query: get close prices 20 trading days ago and today
+            # for all stocks in one go (much faster than per-stock queries)
+            placeholders = ",".join("?" * len(ts_codes))
+            # 最新交易日: 纯索引 MAX 两步取(0012 修复)。原标量子查询带 vol>0
+            # 在 TEMP VIEW 遮蔽下退化为全历史扫描(实测 ~10s/次, 超跌触发日多次
+            # 调用); vol>0 只会排除"全市场当日零成交"的日期, 实践中不存在,
+            # 外层 close>0 已对个股行做约束。
+            latest = conn.execute(
+                "SELECT MAX(trade_date) FROM daily_price WHERE trade_date <= ?",
+                (trade_date,),
+            ).fetchone()[0]
+            if not latest:
+                return result
+            curr_rows = conn.execute(
+                f"""SELECT ts_code, close FROM daily_price
+                    WHERE trade_date = ? AND ts_code IN ({placeholders})
+                    AND close > 0""",
+                [latest] + ts_codes,
+            ).fetchall()
+            # Price ~20 trading days ago
+            past_date_row = conn.execute(
+                """SELECT DISTINCT trade_date FROM daily_price
+                   WHERE trade_date <= ? ORDER BY trade_date DESC LIMIT 21""",
+                (trade_date,),
+            ).fetchall()
+            if len(past_date_row) < 21:
+                return result
+            past_date = past_date_row[20][0]
+            past_rows = conn.execute(
+                f"""SELECT ts_code, close FROM daily_price
+                    WHERE trade_date = ? AND ts_code IN ({placeholders})
+                    AND close > 0""",
+                [past_date] + ts_codes,
+            ).fetchall()
+
+        curr_map = {r[0]: float(r[1]) for r in curr_rows}
+        past_map = {r[0]: float(r[1]) for r in past_rows}
+        for code in ts_codes:
+            if code in curr_map and code in past_map and past_map[code] > 0:
+                result[code] = round((curr_map[code] / past_map[code] - 1) * 100, 2)
+    except Exception:
+        pass
+    return result
+
+
+def _build_fallen_pool(trade_date: str, size: int = 100) -> list[str]:
+    """Build the market-wide deepest-fallen stock pool (排除ST/停牌).
+
+    Ranks all tradeable stocks by 20-day return ascending (most negative
+    first) on the latest trade date on/before *trade_date*, excluding ST
+    stocks. These are the golden-zone bounce candidates (<-20% drops
+    average +10.5% / 20d with 78% win rate in the 5-yr study).
+
+    Returns up to *size* ts_codes.
+    """
+    try:
+        with get_market_conn() as conn:
+            # Latest trade date with data (point-in-time safe)
+            d_row = conn.execute(
+                "SELECT MAX(trade_date) FROM daily_price WHERE trade_date <= ? AND vol > 0",
+                (trade_date,),
+            ).fetchone()
+            if not d_row or not d_row[0]:
+                return []
+            latest = d_row[0]
+
+            # ~20 trading days ago for the 20d return
+            past_row = conn.execute(
+                "SELECT DISTINCT trade_date FROM daily_price "
+                "WHERE trade_date <= ? AND vol > 0 ORDER BY trade_date DESC LIMIT 21",
+                (trade_date,),
+            ).fetchall()
+            if len(past_row) < 21:
+                return []
+            past_date = past_row[20][0]
+
+            rows = conn.execute(
+                """
+                SELECT a.ts_code
+                FROM daily_price a
+                JOIN daily_price b ON a.ts_code = b.ts_code
+                LEFT JOIN stock_basic sb ON a.ts_code = sb.ts_code
+                WHERE a.trade_date = ? AND a.close > 0 AND a.vol > 0
+                  AND b.trade_date = ? AND b.close > 0
+                  AND (sb.name IS NULL OR sb.name NOT LIKE '%ST%')
+                ORDER BY (a.close / b.close - 1) ASC
+                LIMIT ?
+                """,
+                (latest, past_date, size),
+            ).fetchall()
+        return [r[0] for r in rows]
+    except Exception:
+        return []
+
+
+def _compute_vol_ratio_250(trade_date: str) -> float | None:
+    """全市场近20日均量 / 近250日均量（量能比防御信号）.
+
+    Returns ratio > 1.0 when volume is above 250d average (放量),
+    < 1.0 when below (缩量). None when insufficient data.
+    IC=-0.214 for predicting next-month strategy return.
+
+    实现注意(0011): 两步取数——先按索引取目标交易日, 再按日期列表聚合。
+    原单条 "GROUP BY 全历史 + ORDER BY DESC + LIMIT" 在 TEMP VIEW 遮蔽下
+    LIMIT/GROUP BY 无法下推, 会全表物化(实测 5.5s→37.8s/次), 是 0011
+    三腿 9 倍减速的根因; 下界取 420 自然日(≥250 交易日, 覆盖节假日)。
+    """
+    try:
+        lower = (
+            datetime.strptime(trade_date, "%Y%m%d") - timedelta(days=420)
+        ).strftime("%Y%m%d")
+        with get_market_conn() as conn:
+            # step1 纯索引取交易日列表(不带 amount>0, 避免逐行取列)
+            dates = [r[0] for r in conn.execute(
+                "SELECT DISTINCT trade_date FROM daily_price "
+                "WHERE trade_date <= ? AND trade_date >= ? "
+                "ORDER BY trade_date DESC LIMIT 250",
+                (trade_date, lower),
+            ).fetchall()]
+            if len(dates) < 250:
+                return None
+            ph = ",".join("?" * len(dates))
+            rows = conn.execute(
+                f"SELECT trade_date, SUM(amount) FROM daily_price "
+                f"WHERE trade_date IN ({ph}) AND amount > 0 "
+                "GROUP BY trade_date",
+                dates,
+            ).fetchall()
+        sums = {r[0]: float(r[1]) for r in rows}
+        dates = [d for d in dates if d in sums]  # 与原口径一致: 剔除无 amount>0 行的日期
+        if len(dates) < 250:
+            return None
+        vols = [sums[d] for d in dates]  # dates 已按日期降序
+        avg_20 = sum(vols[:20]) / 20
+        avg_250 = sum(vols) / len(vols)
+        if avg_250 <= 0:
+            return None
+        return round(avg_20 / avg_250, 3)
+    except Exception:
+        return None
+
+
+def _get_industries(ts_codes: list[str]) -> dict[str, str]:
+    """Build ts_code → industry lookup from stock_basic table."""
+    if not ts_codes:
+        return {}
+    placeholders = ",".join("?" * len(ts_codes))
+    with get_market_conn() as conn:
+        rows = conn.execute(
+            f"SELECT ts_code, industry FROM stock_basic WHERE ts_code IN ({placeholders})",
+            ts_codes,
+        ).fetchall()
+    return {r[0]: r[1] for r in rows if r[1]}
+
+
+def _compute_short_momentum(ts_codes: list[str], trade_date: str) -> dict[str, float]:
+    """Compute 5-day return % for each stock. Positive = still rising recently."""
+    if not ts_codes:
+        return {}
+    with get_market_conn() as conn:
+        dates_row = conn.execute(
+            "SELECT DISTINCT trade_date FROM daily_price WHERE trade_date <= ? ORDER BY trade_date DESC LIMIT 6",
+            (trade_date,),
+        ).fetchall()
+    dates = [r[0] for r in dates_row]
+    if len(dates) < 2:
+        return {}
+    today_str, past_str = dates[0], dates[-1]
+
+    result: dict[str, float] = {}
+    with get_market_conn() as conn:
+        curr = {r[0]: float(r[1]) for r in conn.execute(
+            "SELECT ts_code, close FROM daily_price WHERE trade_date=? AND close IS NOT NULL", (today_str,)
+        ).fetchall()}
+        past = {r[0]: float(r[1]) for r in conn.execute(
+            "SELECT ts_code, close FROM daily_price WHERE trade_date=? AND close IS NOT NULL", (past_str,)
+        ).fetchall()}
+    for code in ts_codes:
+        c = curr.get(code)
+        p = past.get(code)
+        if c and p and p > 0:
+            result[code] = round((c / p - 1) * 100, 2)
+    return result
+
+
+def _compute_mom60(ts_codes: list[str], trade_date: str) -> dict[str, float]:
+    """Compute 60-day return % for each stock (妖股检测用).
+
+    Anti-factor study (31k samples): mom60 IC=-0.074 — extreme 60d winners
+    mean-revert over the next 20d (top quintile averages -0.56%). Used by
+    the strategy to reject buying stocks that already more than doubled.
+    """
+    if not ts_codes:
+        return {}
+    with get_market_conn() as conn:
+        dates_row = conn.execute(
+            "SELECT DISTINCT trade_date FROM daily_price WHERE trade_date <= ? ORDER BY trade_date DESC LIMIT 61",
+            (trade_date,),
+        ).fetchall()
+    dates = [r[0] for r in dates_row]
+    if len(dates) < 61:
+        return {}
+    today_str, past_str = dates[0], dates[60]
+
+    result: dict[str, float] = {}
+    with get_market_conn() as conn:
+        curr = {r[0]: float(r[1]) for r in conn.execute(
+            "SELECT ts_code, close FROM daily_price WHERE trade_date=? AND close IS NOT NULL", (today_str,)
+        ).fetchall()}
+        past = {r[0]: float(r[1]) for r in conn.execute(
+            "SELECT ts_code, close FROM daily_price WHERE trade_date=? AND close IS NOT NULL", (past_str,)
+        ).fetchall()}
+    for code in ts_codes:
+        c = curr.get(code)
+        p = past.get(code)
+        if c and p and p > 0:
+            result[code] = round((c / p - 1) * 100, 2)
+    return result
+
+
+def _compute_pe_percentiles(ts_codes: list[str], trade_date: str) -> dict[str, float]:
+    """Compute PE historical percentile (0-100) for each stock on trade_date.
+
+    Directly queries daily_basic (market_data.db) for 3-year PE history
+    and computes percentile. This is a pure SQL+Python operation (~0.02ms
+    per stock, ~5ms for 200 stocks) — fast enough for daily use.
+
+    No separate cache table needed because daily_basic IS the cache.
+    The bottleneck is having enough historical PE data in daily_basic;
+    if data is sparse, results may be less accurate but won't error.
+
+    Args:
+        ts_codes: stocks to compute PE percentile for.
+        trade_date: YYYYMMDD — percentile is computed against all PE values
+            up to and including this date (point-in-time correct).
+
+    Returns:
+        {ts_code: percentile} where percentile is 0-100 (higher = more expensive).
+    """
+    if not ts_codes:
+        return {}
+
+    from datetime import datetime as _dt, timedelta as _td
+    lookback = (_dt.strptime(trade_date, "%Y%m%d") - _td(days=1095)).strftime("%Y%m%d")
+    result: dict[str, float] = {}
+
+    with get_market_conn() as conn:
+        for code in ts_codes:
+            rows = conn.execute(
+                "SELECT pe_ttm FROM daily_basic "
+                "WHERE ts_code=? AND trade_date>=? AND trade_date<=? AND pe_ttm > 0 "
+                "ORDER BY trade_date",
+                (code, lookback, trade_date),
+            ).fetchall()
+            if len(rows) < 10:
+                continue
+            values = [float(r[0]) for r in rows]
+            current = values[-1]  # latest PE on or before trade_date
+            pct = sum(1 for v in values if v < current) / len(values) * 100
+            result[code] = round(pct, 1)
+
+    return result
+
+
+def _ensure_daily_basic_history(client, ts_codes: list[str], trade_date: str) -> int:
+    """Ensure daily_basic has 3-year PE history for all ts_codes.
+
+    Fetches missing PE data via TushareClient and inserts into daily_basic.
+    Called once during pool refresh to guarantee _compute_pe_percentiles
+    has enough data to work with.
+
+    Returns number of stocks with ≥10 PE data points after fetch.
+    """
+    from datetime import datetime as _dt, timedelta as _td
+    import pandas as pd
+
+    lookback = (_dt.strptime(trade_date, "%Y%m%d") - _td(days=1095)).strftime("%Y%m%d")
+    sufficient = 0
+
+    for code in ts_codes:
+        try:
+            # Check current data coverage
+            with get_market_conn() as conn:
+                cnt = conn.execute(
+                    "SELECT COUNT(*) FROM daily_basic WHERE ts_code=? AND pe_ttm > 0",
+                    (code,),
+                ).fetchone()[0]
+
+            if cnt >= 100:
+                sufficient += 1
+                continue  # already has enough history
+
+            # Fetch 3-year PE history
+            raw = client._call(
+                "daily_basic",
+                client._pro.daily_basic,
+                {
+                    "ts_code": code,
+                    "start_date": lookback,
+                    "end_date": trade_date,
+                    "fields": "ts_code,trade_date,pe_ttm,pb,ps,total_mv",
+                },
+            )
+            if raw is not None and not raw.empty:
+                client._daily_basic_insert(code, raw)
+                sufficient += 1
+        except Exception:
+            pass
+
+    return sufficient
+
+
+def _compute_volatilities(ts_codes: list[str], trade_date: str) -> dict[str, float]:
+    """Compute 20-day annualized volatility (%) for each stock.
+
+    vol = std(daily_returns) * sqrt(250) * 100
+    """
+    if not ts_codes:
+        return {}
+    import pandas as pd
+    with get_market_conn() as conn:
+        dates_row = conn.execute(
+            "SELECT DISTINCT trade_date FROM daily_price WHERE trade_date <= ? ORDER BY trade_date DESC LIMIT 21",
+            (trade_date,),
+        ).fetchall()
+    dates = [r[0] for r in dates_row]
+    if len(dates) < 5:
+        return {}
+    start_str = dates[-1]
+
+    result: dict[str, float] = {}
+    with get_market_conn() as conn:
+        for code in ts_codes:
+            rows = conn.execute(
+                "SELECT close FROM daily_price WHERE ts_code=? AND trade_date>=? AND trade_date<=? AND close IS NOT NULL ORDER BY trade_date",
+                (code, start_str, trade_date),
+            ).fetchall()
+            if len(rows) < 5:
+                continue
+            closes = pd.Series([float(r[0]) for r in rows])
+            rets = closes.pct_change().dropna()
+            if len(rets) < 3:
+                continue
+            vol = float(rets.std() * (250 ** 0.5) * 100)
+            result[code] = round(vol, 1)
+    return result
+
+
+# ── Volume-price signal computation ────────────────────────────────────
+#
+# Implements three classic Chinese-quant volume-price signals based on the
+# 国盛证券《量价淘金》framework plus practitioner thresholds:
+#
+#   1. 平台突破 (platform breakout) — BUY
+#      20-day box amplitude < 15% AND close > box_high * 1.01 AND vol > MA20 * 1.5
+#
+#   2. 低位放量 (low-position high-volume) — BUY
+#      120-day price percentile ≤ 20% AND (vol > MA20 * 2 OR 120d vol percentile ≥ 80%)
+#
+#   3. 高位放量 (high-position high-volume) — SELL/REDUCE
+#      120-day price percentile ≥ 80% AND (vol > MA20 * 2 OR 120d vol percentile ≥ 90%)
+#
+# Returns ``{ts_code: {score, signal_type, vol_ratio, position_pct, box_amplitude}}``.
+# Score is 0-100: platform/low-position signals score 70-90, high-position 25-35,
+# neutral cases 50-60. The strategy uses ``score`` as a composite-rating input
+# (default weight 10%); the risk layer keys off ``signal_type == "high_vol"``.
+#
+# Reads only from ``daily_price`` (vol/amount are 100% covered there); does NOT
+# depend on ``daily_basic.turnover_rate`` to avoid cross-table JOIN complexity.
+
+_VOL_LOOKBACK_DAYS = 130        # pull 130 trading days to compute 120d percentile + 20d box
+_VOL_MA_WINDOW = 20             # short-term volume baseline
+_VOL_MIN_HISTORY = 60           # below this many days → return neutral
+_BOX_WINDOW = 20                # platform consolidation window
+_BOX_MAX_AMPLITUDE = 0.15       # max (high-low)/low for a valid platform
+_BOX_BREAKOUT_BUFFER = 1.01     # close must exceed box_high by 1%
+_PLATFORM_VOL_RATIO = 1.5       # vol/MA20 threshold for platform breakout
+_EXTREME_VOL_RATIO = 2.0        # vol/MA20 threshold for low/high-position signals
+_LOW_POS_PCT = 20.0             # 120d price percentile ≤ 20% → low position
+_HIGH_POS_PCT = 80.0            # 120d price percentile ≥ 80% → high position
+_LOW_VOL_PCTILE = 80.0          # 120d volume percentile ≥ 80% → qualifies low-position
+_HIGH_VOL_PCTILE = 90.0         # 120d volume percentile ≥ 90% → qualifies high-position
+
+
+# ── Amihud non-liquidity factor ────────────────────────────────────────
+#
+# ILLIQ_i = mean( |daily_return| / daily_amount ) over last 20 trading days.
+# Low ILLIQ = high liquidity → positive. Score = 100 × (1 - cross-sectional pct_rank).
+# Academic (2025 A-share): IC 5.72%, long-short annual 20.63%, Sharpe 2.16.
+
+_AMIHUD_LOOKBACK = 25
+_AMIHUD_MIN_DAYS = 10
+
+
+def _compute_amihud(ts_codes: list[str], trade_date: str) -> dict[str, float]:
+    """Compute Amihud illiquidity score (0-100, higher = more liquid)."""
+    if not ts_codes:
+        return {}
+    with get_market_conn() as conn:
+        date_rows = conn.execute(
+            "SELECT DISTINCT trade_date FROM daily_price "
+            "WHERE trade_date <= ? ORDER BY trade_date DESC LIMIT ?",
+            (trade_date, _AMIHUD_LOOKBACK + 1),
+        ).fetchall()
+    dates = [r[0] for r in date_rows]
+    if len(dates) < _AMIHUD_MIN_DAYS:
+        return {}
+    start_str = dates[-1]
+
+    raw: dict[str, list[tuple]] = {}
+    with get_market_conn() as conn:
+        rows = conn.execute(
+            "SELECT ts_code, close, amount FROM daily_price "
+            "WHERE trade_date >= ? AND trade_date <= ? AND close > 0 AND amount > 0 "
+            "ORDER BY ts_code, trade_date",
+            (start_str, trade_date),
+        ).fetchall()
+    for r in rows:
+        raw.setdefault(r[0], []).append((float(r[1]), float(r[2])))
+
+    illiq_map: dict[str, float] = {}
+    for code in ts_codes:
+        data = raw.get(code)
+        if not data or len(data) < _AMIHUD_MIN_DAYS:
+            continue
+        closes = [d[0] for d in data]
+        amounts = [d[1] for d in data]
+        illiq_vals = []
+        for i in range(1, len(closes)):
+            ret = abs(closes[i] / closes[i - 1] - 1)
+            illiq_vals.append(ret / (amounts[i] * 1000))
+        if illiq_vals:
+            illiq_map[code] = sum(illiq_vals) / len(illiq_vals)
+
+    if not illiq_map:
+        return {}
+
+    sorted_illiq = sorted(illiq_map.values())
+    n = len(sorted_illiq)
+    result: dict[str, float] = {}
+    for code, illiq in illiq_map.items():
+        rank = sum(1 for v in sorted_illiq if v < illiq)
+        pct = rank / n * 100
+        result[code] = round(100 - pct, 1)
+    return result
+
+
+def _compute_dragon_tiger_signal(ts_codes: list[str], trade_date: str) -> dict[str, float]:
+    """Compute dragon-tiger (龙虎榜) institutional net-buy score (0-100).
+
+    Looks back 30 calendar days for dragon_tiger entries. A stock that appeared
+    on the dragon-tiger list with positive net_buy = institutional accumulation
+    = bullish signal.
+
+    Score mapping:
+    - Net buy > 0 and appeared recently → 70-90 (strong institutional interest)
+    - Net buy < 0 → 20-35 (institutional distribution)
+    - Not on dragon-tiger → 50 (neutral, most stocks)
+
+    Returns ``{ts_code: score}``.
+    """
+    if not ts_codes:
+        return {}
+    from datetime import datetime, timedelta
+
+    td = datetime.strptime(trade_date, "%Y%m%d")
+    lookback_start = (td - timedelta(days=30)).strftime("%Y%m%d")
+    # dragon_tiger uses YYYY-MM-DD format, convert
+    lookback_start_fmt = f"{lookback_start[:4]}-{lookback_start[4:6]}-{lookback_start[6:]}"
+    trade_date_fmt = f"{trade_date[:4]}-{trade_date[4:6]}-{trade_date[6:]}"
+
+    # Batch query dragon_tiger for all stocks in lookback window
+    with get_market_conn() as conn:
+        rows = conn.execute(
+            "SELECT ts_code, net_buy, trade_date FROM dragon_tiger "
+            "WHERE trade_date >= ? AND trade_date <= ?",
+            (lookback_start_fmt, trade_date_fmt),
+        ).fetchall()
+
+    if not rows:
+        return {}
+
+    # Aggregate per stock
+    dt_map: dict[str, list] = {}
+    for r in rows:
+        code = r[0]
+        net_buy = float(r[1]) if r[1] else 0
+        dt_date = r[2]
+        dt_map.setdefault(code, []).append({"net_buy": net_buy, "date": dt_date})
+
+    # Score each stock
+    result: dict[str, float] = {}
+    for code in ts_codes:
+        entries = dt_map.get(code)
+        if not entries:
+            result[code] = 50.0  # neutral (not on dragon-tiger)
+            continue
+
+        total_net = sum(e["net_buy"] for e in entries)
+        n_entries = len(entries)
+        latest_date = max(e["date"] for e in entries)
+
+        # Recency weighting: more recent = stronger signal
+        # dragon_tiger dates may be YYYY-MM-DD or YYYYMMDD
+        try:
+            if "-" in latest_date:
+                latest_td = datetime.strptime(latest_date, "%Y-%m-%d")
+            else:
+                latest_td = datetime.strptime(latest_date, "%Y%m%d")
+            days_since = (td - latest_td).days
+        except (ValueError, TypeError):
+            days_since = 30
+        recency_mult = max(0.3, 1.0 - days_since / 30.0)  # 30d → 0.3, 0d → 1.0
+
+        # Net buy magnitude in 亿元
+        net_yi = total_net / 1e8
+
+        if net_yi > 0:
+            # Institutional accumulation: base 60 + bonus by magnitude
+            score = 60.0 + min(net_yi * 5 * recency_mult, 30.0)  # cap at 90
+        elif net_yi < 0:
+            # Institutional distribution: base 40 - penalty by magnitude
+            score = 40.0 - min(abs(net_yi) * 3 * recency_mult, 20.0)  # floor at 20
+        else:
+            score = 50.0
+
+        # Multiple appearances bonus (repeated interest)
+        if n_entries > 1 and net_yi > 0:
+            score += min(n_entries * 3, 10)
+
+        result[code] = round(max(10, min(100, score)), 1)
+
+    return result
+
+
+def _compute_repurchase_signal(ts_codes: list[str], trade_date: str) -> dict[str, float]:
+    """Compute repurchase (回购) positive signal (0-100).
+
+    Looks back 90 calendar days for repurchase announcements from corp_event.
+    A stock with recent large repurchase = management confidence = bullish.
+
+    Score mapping:
+    - Large repurchase (>5亿) recently → 80-95
+    - Medium repurchase (1-5亿) → 65-80
+    - Small repurchase (<1亿) → 55-65
+    - No repurchase → 50 (neutral)
+
+    Returns ``{ts_code: score}``.
+    """
+    if not ts_codes:
+        return {}
+    from datetime import datetime, timedelta
+
+    td = datetime.strptime(trade_date, "%Y%m%d")
+    lookback_start = (td - timedelta(days=90)).strftime("%Y%m%d")
+
+    with get_market_conn() as conn:
+        rows = conn.execute(
+            "SELECT ts_code, magnitude, ann_date FROM corp_event "
+            "WHERE event_type='repurchase' AND direction='positive' "
+            "AND magnitude IS NOT NULL AND magnitude > 0 "
+            "AND ann_date >= ? AND ann_date <= ?",
+            (lookback_start, trade_date),
+        ).fetchall()
+
+    if not rows:
+        return {}
+
+    # Aggregate per stock (sum amounts, track latest date)
+    rep_map: dict[str, dict] = {}
+    for r in rows:
+        code = r[0]
+        amount = float(r[1]) if r[1] else 0  # in 元
+        ann_date = r[2]
+        if code not in rep_map:
+            rep_map[code] = {"total": 0, "n": 0, "latest": ann_date}
+        rep_map[code]["total"] += amount
+        rep_map[code]["n"] += 1
+        if ann_date > rep_map[code]["latest"]:
+            rep_map[code]["latest"] = ann_date
+
+    result: dict[str, float] = {}
+    for code in ts_codes:
+        info = rep_map.get(code)
+        if not info:
+            result[code] = 50.0
+            continue
+
+        total_yi = info["total"] / 1e8  # convert to 亿元
+        days_since = (td - datetime.strptime(info["latest"], "%Y%m%d")).days
+        recency_mult = max(0.4, 1.0 - days_since / 90.0)
+
+        # Score by magnitude
+        if total_yi > 10:
+            score = 80.0 + min((total_yi - 10) * 0.5, 15.0) * recency_mult
+        elif total_yi > 5:
+            score = 70.0 + (total_yi - 5) * 2.0 * recency_mult
+        elif total_yi > 1:
+            score = 60.0 + (total_yi - 1) * 2.5 * recency_mult
+        else:
+            score = 55.0 + total_yi * 5.0 * recency_mult
+
+        # Multiple repurchases bonus
+        if info["n"] > 1:
+            score += min(info["n"] * 2, 8)
+
+        result[code] = round(max(10, min(100, score)), 1)
+
+    return result
+
+
+def _compute_volume_signals(ts_codes: list[str], trade_date: str) -> dict[str, dict]:
+    """Compute volume-price signals for each stock.
+
+    Returns ``{ts_code: {score, signal_type, vol_ratio, position_pct,
+    box_amplitude}}``. See module-level docstring above for signal definitions.
+    """
+    if not ts_codes:
+        return {}
+    import pandas as pd
+
+    # Resolve the lookback window using actual trading days.
+    with get_market_conn() as conn:
+        date_rows = conn.execute(
+            "SELECT DISTINCT trade_date FROM daily_price "
+            "WHERE trade_date <= ? ORDER BY trade_date DESC LIMIT ?",
+            (trade_date, _VOL_LOOKBACK_DAYS),
+        ).fetchall()
+    dates = [r[0] for r in date_rows]
+    if len(dates) < _VOL_MIN_HISTORY:
+        return {}
+    start_str = dates[-1]
+
+    result: dict[str, dict] = {}
+    with get_market_conn() as conn:
+        for code in ts_codes:
+            rows = conn.execute(
+                "SELECT trade_date, high, low, close, vol FROM daily_price "
+                "WHERE ts_code=? AND trade_date>=? AND trade_date<=? "
+                "AND close IS NOT NULL ORDER BY trade_date",
+                (code, start_str, trade_date),
+            ).fetchall()
+            if len(rows) < _VOL_MIN_HISTORY:
+                # Not enough history → return neutral so we don't bias the score.
+                result[code] = {
+                    "score": 50.0,
+                    "signal_type": "neutral",
+                    "vol_ratio": 0.0,
+                    "position_pct": 50.0,
+                    "box_amplitude": 0.0,
+                }
+                continue
+
+            df = pd.DataFrame(
+                rows, columns=["trade_date", "high", "low", "close", "vol"]
+            )
+            df["high"] = df["high"].astype(float)
+            df["low"] = df["low"].astype(float)
+            df["close"] = df["close"].astype(float)
+            df["vol"] = df["vol"].astype(float)
+
+            today_close = float(df["close"].iloc[-1])
+            today_vol = float(df["vol"].iloc[-1])
+
+            # 120-day price percentile (using all available rows up to 130)
+            position_pct = float(
+                (df["close"] <= today_close).sum() / len(df) * 100
+            )
+
+            # 20-day volume MA (use the last _VOL_MA_WINDOW rows; exclude today to
+            # avoid biasing the baseline with the very spike we are measuring).
+            if len(df) > _VOL_MA_WINDOW:
+                vol_ma = float(df["vol"].iloc[-_VOL_MA_WINDOW - 1 : -1].mean())
+            else:
+                vol_ma = float(df["vol"].iloc[:-1].mean()) if len(df) > 1 else today_vol
+            vol_ratio = float(today_vol / vol_ma) if vol_ma > 0 else 0.0
+
+            # 120-day volume percentile
+            vol_pctile = float((df["vol"] <= today_vol).sum() / len(df) * 100)
+
+            # 20-day box (platform) geometry
+            if len(df) >= _BOX_WINDOW:
+                box = df.iloc[-_BOX_WINDOW:]
+                box_high = float(box["high"].max())
+                box_low = float(box["low"].min())
+                box_amplitude = (
+                    float((box_high - box_low) / box_low) if box_low > 0 else 0.0
+                )
+            else:
+                box_high = today_close
+                box_low = today_close
+                box_amplitude = 0.0
+
+            # ── Classify signal ──
+            signal_type = "neutral"
+            score = 50.0  # neutral baseline
+
+            # 1. Platform breakout — needs tight box + breakout + volume confirm
+            is_platform = (
+                box_amplitude <= _BOX_MAX_AMPLITUDE
+                and len(df) >= _BOX_WINDOW
+            )
+            is_breakout = today_close >= box_high * _BOX_BREAKOUT_BUFFER
+            if is_platform and is_breakout and vol_ratio >= _PLATFORM_VOL_RATIO:
+                signal_type = "platform_breakout"
+                # 70-90 range: base 70 + bonus for stronger volume (cap at 90)
+                score = 70.0 + min((vol_ratio - _PLATFORM_VOL_RATIO) * 8, 20.0)
+
+            # 2. Low-position high-volume (accumulation)
+            # Position ≤ 20% AND (vol ratio ≥ 2 OR vol percentile ≥ 80%)
+            elif (
+                position_pct <= _LOW_POS_PCT
+                and (vol_ratio >= _EXTREME_VOL_RATIO or vol_pctile >= _LOW_VOL_PCTILE)
+            ):
+                signal_type = "low_vol"
+                # 60-85: base 60 + bonus for lower position + higher volume
+                pos_bonus = (_LOW_POS_PCT - position_pct) * 0.5  # 0-10
+                vol_bonus = min(max(vol_ratio - 1.0, 0.0) * 10, 15.0)  # 0-15
+                score = 60.0 + pos_bonus + vol_bonus
+
+            # 3. High-position high-volume (distribution)
+            # Position ≥ 80% AND (vol ratio ≥ 2 OR vol percentile ≥ 90%)
+            elif (
+                position_pct >= _HIGH_POS_PCT
+                and (vol_ratio >= _EXTREME_VOL_RATIO or vol_pctile >= _HIGH_VOL_PCTILE)
+            ):
+                signal_type = "high_vol"
+                # 25-35: lower score → drags down composite rating
+                pos_penalty = (position_pct - _HIGH_POS_PCT) * 0.2  # 0-2
+                vol_penalty = min(max(vol_ratio - 1.0, 0.0) * 5, 8.0)
+                score = 35.0 - pos_penalty - vol_penalty
+
+            # 4. Neutral — slight tilt toward 50 + mild volume strength
+            else:
+                if vol_ratio >= 1.2:
+                    # mild volume pick-up, neither extreme
+                    score = 55.0 + min((vol_ratio - 1.2) * 5, 5.0)
+                else:
+                    score = 50.0
+
+            result[code] = {
+                "score": round(score, 1),
+                "signal_type": signal_type,
+                "vol_ratio": round(vol_ratio, 2),
+                "position_pct": round(position_pct, 1),
+                "box_amplitude": round(box_amplitude * 100, 1),  # as %
+            }
+    return result
+
+
+# ── Event signal computation (实证驱动) ─────────────────────────────────
+#
+# Implements hard-gate filters based on the event CAR study
+# (docs/方法论/A股事件因子实证研究方法论.md). Two empirically validated
+# signals are included:
+#
+#   1. 股东减持 (holder reduction)
+#      Empirical: 公告前 20 天 +2.58% (t=+14), 公告后 60 天 -1.76% (t=-7).
+#      Rule: skip if last 60 days has a >1% reduction announcement.
+#
+#   2. 限售解禁 (lockup release)
+#      Empirical: 解禁前 20 天 -2.79% (t=-2.87).
+#      Rule: skip if next 20 calendar days has a >=5% unlock.
+#
+# Returns ``{ts_code: {"blocked": bool, "reason": str, "events": [...]}}``.
+# Strategy uses ``blocked`` to filter; ``reason`` is included in signal_reason
+# for traceability.
+
+# Lookback/forward windows (calibrated to our 2025-2026 sample CAR study)
+_REDUCTION_LOOKBACK_DAYS = 60       # 减持公告后 60 天负面影响期
+_REDUCTION_MIN_RATIO = 1.0         # 减持比例 ≥1% 才考虑（实证：>1% 组冲击显著）
+_UNLOCK_FORWARD_DAYS = 30          # 解禁前 30 天开始走弱（用 30 保守，实证是 20）
+_UNLOCK_MIN_RATIO = 5.0            # 解禁规模 ≥5%（"大非"标准）
+
+
+def _compute_event_signals(ts_codes: list[str], trade_date: str) -> dict[str, dict]:
+    """Compute event-based hard-gate flags for each stock.
+
+    Returns ``{ts_code: {"blocked": bool, "reason": str}}``.
+    ``blocked=True`` means the stock should be excluded from buy candidates.
+    """
+    if not ts_codes:
+        return {}
+
+    # Date arithmetic (YYYYMMDD strings)
+    from datetime import datetime, timedelta
+    td = datetime.strptime(trade_date, "%Y%m%d")
+    reduction_start = (td - timedelta(days=_REDUCTION_LOOKBACK_DAYS)).strftime("%Y%m%d")
+    unlock_end = (td + timedelta(days=_UNLOCK_FORWARD_DAYS)).strftime("%Y%m%d")
+
+    result: dict[str, dict] = {}
+
+    with get_market_conn() as conn:
+        # Bulk query 1: holder reductions in [reduction_start, trade_date]
+        # Filter by direction=negative (减持) and magnitude (change_ratio) ≥ threshold
+        reduction_rows = conn.execute(
+            "SELECT ts_code, ann_date, magnitude, details_json "
+            "FROM corp_event "
+            "WHERE event_type='holder_trade' AND direction='negative' "
+            "AND magnitude IS NOT NULL AND magnitude >= ? "
+            "AND ann_date >= ? AND ann_date <= ?",
+            (_REDUCTION_MIN_RATIO, reduction_start, trade_date),
+        ).fetchall()
+        reductions_by_code: dict[str, list] = {}
+        for r in reduction_rows:
+            reductions_by_code.setdefault(r[0], []).append({
+                "ann_date": r[1], "ratio": r[2],
+            })
+
+        # Bulk query 2: upcoming unlocks in [trade_date, unlock_end]
+        # NOTE: corp_event.share_float uses ann_date as the unlock announcement date.
+        # We treat "upcoming" as ann_date in the next N days. If the company has
+        # ALREADY announced (ann_date <= trade_date) an unlock dated in the future,
+        # that's also captured because we look at ann_date range.
+        unlock_rows = conn.execute(
+            "SELECT ts_code, ann_date, magnitude, details_json "
+            "FROM corp_event "
+            "WHERE event_type='share_float' "
+            "AND magnitude IS NOT NULL AND magnitude >= ? "
+            "AND ann_date >= ? AND ann_date <= ?",
+            (_UNLOCK_MIN_RATIO, trade_date, unlock_end),
+        ).fetchall()
+        unlocks_by_code: dict[str, list] = {}
+        for r in unlock_rows:
+            unlocks_by_code.setdefault(r[0], []).append({
+                "ann_date": r[1], "ratio": r[2],
+            })
+
+    for code in ts_codes:
+        reasons = []
+        penalty = 0.0  # 0-30 penalty for soft-gate use
+
+        reductions = reductions_by_code.get(code, [])
+        if reductions:
+            max_ratio = max(r["ratio"] for r in reductions)
+            most_recent = max(r["ann_date"] for r in reductions)
+            n_red = len(reductions)
+            reasons.append(
+                f"减持(ratio={max_ratio:.1f}%,{n_red}次,最近{most_recent})"
+            )
+            # 减持软门槛：基础分按 max_ratio 映射
+            #   1% → 3 分；3% → 9 分；5% → 15 分；10%+ → 20 分（封顶）
+            reduction_penalty = min(max_ratio * 3.0, 20.0)
+            # 多次减持加成：每次额外 +1，封顶 +5
+            reduction_penalty += min(n_red - 1, 5)
+            penalty += reduction_penalty
+
+        unlocks = unlocks_by_code.get(code, [])
+        if unlocks:
+            max_ratio = max(u["ratio"] for u in unlocks)
+            nearest = min(u["ann_date"] for u in unlocks)
+            n_unl = len(unlocks)
+            reasons.append(
+                f"解禁(ratio={max_ratio:.1f}%,{n_unl}次,最近{nearest})"
+            )
+            # 解禁软门槛：按 max_ratio 映射（解禁通常更大，所以系数小一些）
+            #   5% → 3 分；10% → 6 分；20% → 12 分；50%+ → 20 分（封顶）
+            unlock_penalty = min(max_ratio * 0.6, 20.0)
+            penalty += unlock_penalty
+
+        # Cap total penalty at 30 (so a strong stock can still rank, just lower)
+        penalty = min(penalty, 30.0)
+
+        result[code] = {
+            "blocked": bool(reasons),
+            "penalty": round(penalty, 1),
+            "reason": "；".join(reasons) if reasons else "",
+        }
+
+    return result
+
+
+def _load_tech_scores(ts_codes: list[str], trade_date: str) -> dict[str, float]:
+    """Load tech_score from tech_factor table (computed offline by tech_research).
+
+    The tech_factor table is keyed by (ts_code, trade_date). We look up each
+    stock's score on the exact trade_date; if missing, return nothing (the
+    strategy defaults to 50.0 in the composite formula).
+    """
+    if not ts_codes:
+        return {}
+    result: dict[str, float] = {}
+    # Batch query in chunks of 500 (SQLite parameter limit safety)
+    with get_market_conn() as conn:
+        for i in range(0, len(ts_codes), 500):
+            chunk = ts_codes[i : i + 500]
+            placeholders = ",".join("?" * len(chunk))
+            rows = conn.execute(
+                f"SELECT ts_code, tech_score FROM tech_factor "
+                f"WHERE trade_date=? AND ts_code IN ({placeholders}) "
+                f"AND tech_score IS NOT NULL",
+                (trade_date, *chunk),
+            ).fetchall()
+            for r in rows:
+                result[r[0]] = float(r[1])
+    return result
+
+
+def _load_intraday_amplitude(ts_codes: list[str], trade_date: str) -> dict[str, float]:
+    """Load intraday amplitude from intraday_feature table.
+
+    Returns ``{ts_code: amplitude}`` where amplitude = (high-low)/pre_close.
+    """
+    if not ts_codes:
+        return {}
+    result: dict[str, float] = {}
+    with get_market_conn() as conn:
+        for i in range(0, len(ts_codes), 500):
+            chunk = ts_codes[i : i + 500]
+            placeholders = ",".join("?" * len(chunk))
+            rows = conn.execute(
+                f"SELECT ts_code, amplitude FROM intraday_feature "
+                f"WHERE trade_date=? AND ts_code IN ({placeholders}) "
+                f"AND amplitude IS NOT NULL",
+                (trade_date, *chunk),
+            ).fetchall()
+            for r in rows:
+                result[r[0]] = float(r[1])
+    return result
+
+
+def _load_intraday_gap(ts_codes: list[str], trade_date: str) -> dict[str, float]:
+    """Load intraday gap (open/pre_close - 1) from intraday_feature table.
+
+    Returns ``{ts_code: gap_pct}`` where gap > 0 = gap up (bullish).
+    """
+    if not ts_codes:
+        return {}
+    result: dict[str, float] = {}
+    with get_market_conn() as conn:
+        for i in range(0, len(ts_codes), 500):
+            chunk = ts_codes[i : i + 500]
+            placeholders = ",".join("?" * len(chunk))
+            rows = conn.execute(
+                f"SELECT ts_code, gap FROM intraday_feature "
+                f"WHERE trade_date=? AND ts_code IN ({placeholders}) "
+                f"AND gap IS NOT NULL",
+                (trade_date, *chunk),
+            ).fetchall()
+            for r in rows:
+                result[r[0]] = float(r[1]) * 100  # convert to %
+    return result
+
+
+# ── Per-day cache for full-market sector trends ────────────────────────
+# Computing this requires scanning ~4000 stocks × 60 days of close prices,
+# which is the single biggest backtest bottleneck (~6s/day).
+# Within a single day, the result never changes, so we memoize by trade_date.
+_sector_trends_cache: dict[str, dict[str, str]] = {}
+
+
+def _full_market_sector_trends(trade_date: str) -> dict[str, str]:
+    """Compute per-industry trend using dual-confirmation: 20d return + MA alignment.
+
+    For each industry, two signals are computed:
+    1. **20-day average return**:成分股 20 日均涨幅（> +3% = 强, < -3% = 弱）
+    2. **MA alignment ratio**:成分股中 MA5>MA20>MA60 的占比（>60% = 强, <30% = 弱）
+
+    Dual-confirmation rule:
+    - Both strong → "up"
+    - Both weak → "down"
+    - Otherwise → "flat"
+
+    This replaces the old 5-day ±2% method which was too sensitive to
+    single-day reversals (e.g., 半导体 collective +20% on one day but
+    5-day still negative → falsely classified as "down").
+    """
+    # Memoize: within one backtest run, sector trends for a given day are fixed.
+    # This single cache line turned backtest from ~13s/day to ~3s/day.
+    if trade_date in _sector_trends_cache:
+        return _sector_trends_cache[trade_date]
+
+    # ── Rolling 5-day cache ──
+    # Sector trends only change ~13% of industries per day (measured). Reusing
+    # the most recent result within 5 trading days cuts _full_market_sector_trends
+    # calls by ~80% with negligible precision loss. This is the single biggest
+    # backtest speedup (5s/call × 1351 days → 5s × 270 calls).
+    if _sector_trends_cache:
+        cached_dates = sorted(_sector_trends_cache.keys(), reverse=True)
+        for cd in cached_dates:
+            if cd <= trade_date:
+                # Check if within 5 trading days (approx 7 calendar days)
+                from datetime import datetime as _dt
+                diff = (_dt.strptime(trade_date, "%Y%m%d") - _dt.strptime(cd, "%Y%m%d")).days
+                if diff <= 7:
+                    return _sector_trends_cache[cd]
+                break
+
+    import pandas as pd
+    import numpy as np
+
+    # Get trading dates: need 60 for MA60 + 20 for 20d return
+    with get_market_conn() as conn:
+        date_rows = conn.execute(
+            "SELECT DISTINCT trade_date FROM daily_price "
+            "WHERE trade_date <= ? ORDER BY trade_date DESC LIMIT 65",
+            (trade_date,),
+        ).fetchall()
+    dates = [r[0] for r in date_rows]
+    if len(dates) < 25:
+        # Fallback to old 5-day method if not enough data
+        return _full_market_sector_trends_5d(trade_date)
+
+    today_str = dates[0]
+    past_20d_str = dates[min(20, len(dates) - 1)]
+
+    # Industry mapping (use sub-industry if available)
+    try:
+        from davis_analyzer.factors.sub_industry import get_sub_industry
+        use_sub_industry = True
+    except Exception:
+        use_sub_industry = False
+
+    with get_market_conn() as conn:
+        conn.row_factory = __import__("sqlite3").Row
+
+        # Current + 20d-ago close (for 20-day return)
+        curr = conn.execute(
+            "SELECT ts_code, close FROM daily_price WHERE trade_date = ?",
+            (today_str,),
+        ).fetchall()
+        curr_map = {r["ts_code"]: float(r["close"]) for r in curr if r["close"]}
+
+        past_20d = conn.execute(
+            "SELECT ts_code, close FROM daily_price WHERE trade_date = ?",
+            (past_20d_str,),
+        ).fetchall()
+        past_20d_map = {r["ts_code"]: float(r["close"]) for r in past_20d if r["close"]}
+
+        # Industry mapping
+        ind_rows = conn.execute(
+            "SELECT ts_code, name, industry FROM stock_basic WHERE industry IS NOT NULL AND industry != ''"
+        ).fetchall()
+        if use_sub_industry:
+            code2ind = {
+                r["ts_code"]: get_sub_industry(r["ts_code"], r["name"] or "", r["industry"] or "")
+                for r in ind_rows
+            }
+        else:
+            code2ind = {r["ts_code"]: r["industry"] for r in ind_rows}
+
+    # ── Signal 1: 20-day return by industry ──
+    industry_20d: dict[str, list[float]] = {}
+    for code, curr_close in curr_map.items():
+        past_close = past_20d_map.get(code)
+        industry = code2ind.get(code)
+        if past_close and past_close > 0 and industry:
+            ret = (curr_close / past_close - 1) * 100
+            industry_20d.setdefault(industry, []).append(ret)
+
+    # ── Signal 2: MA alignment ratio by industry ──
+    # For each stock, check if MA5 > MA20 > MA60 (needs 60 days of close)
+    # Batch query: get last 60 closes for all stocks
+    ma_start = dates[-1] if len(dates) >= 60 else dates[-1]
+    with get_market_conn() as conn:
+        # Get all closes from ma_start to today
+        ma_rows = conn.execute(
+            "SELECT ts_code, trade_date, close FROM daily_price "
+            "WHERE trade_date >= ? AND trade_date <= ? AND close IS NOT NULL AND close > 0 "
+            "ORDER BY ts_code, trade_date",
+            (ma_start, today_str),
+        ).fetchall()
+
+    # Group by stock
+    stock_closes: dict[str, list[float]] = {}
+    for r in ma_rows:
+        stock_closes.setdefault(r[0], []).append(float(r[2]))
+
+    # Compute MA alignment per stock
+    stock_ma_bull: dict[str, bool] = {}
+    for code, closes in stock_closes.items():
+        if len(closes) >= 60:
+            ma5 = np.mean(closes[-5:])
+            ma20 = np.mean(closes[-20:])
+            ma60 = np.mean(closes[-60:])
+            stock_ma_bull[code] = ma5 > ma20 > ma60
+        elif len(closes) >= 20:
+            ma5 = np.mean(closes[-5:])
+            ma20 = np.mean(closes[-20:])
+            stock_ma_bull[code] = ma5 > ma20
+
+    # Aggregate MA alignment ratio by industry
+    industry_ma: dict[str, list[bool]] = {}
+    for code, is_bull in stock_ma_bull.items():
+        industry = code2ind.get(code)
+        if industry:
+            industry_ma.setdefault(industry, []).append(is_bull)
+
+    # ── Sector reversal detection ──
+    # When a sector was crashing (5d < -5%) but TODAY surges (+8%+),
+    # it may be starting a reversal. We don't flip "down" → "up" (too
+    # aggressive), but soften "down" → "flat" to let the strategy
+    # consider candidates from this sector.
+    #
+    # This requires 1-day returns. Compute from daily_price.
+    industry_1d: dict[str, list[float]] = {}
+    with get_market_conn() as conn:
+        # Get yesterday's close for 1-day return
+        if len(dates) >= 2:
+            prev_str = dates[1]  # yesterday
+            prev_closes = conn.execute(
+                "SELECT ts_code, close FROM daily_price WHERE trade_date=? AND close > 0",
+                (prev_str,)
+            ).fetchall()
+            prev_map = {r[0]: float(r[1]) for r in prev_closes}
+
+            for code, curr_close in curr_map.items():
+                prev_close = prev_map.get(code)
+                industry = code2ind.get(code)
+                if prev_close and prev_close > 0 and industry:
+                    ret_1d = (curr_close / prev_close - 1) * 100
+                    industry_1d.setdefault(industry, []).append(ret_1d)
+
+    # ── Dual confirmation scoring + reversal override ──
+    trends: dict[str, str] = {}
+    all_industries = set(industry_20d.keys()) | set(industry_ma.keys())
+    for industry in all_industries:
+        rets = industry_20d.get(industry, [])
+        mas = industry_ma.get(industry, [])
+        n = max(len(rets), len(mas))
+        if n < 5:
+            trends[industry] = "flat"
+            continue
+
+        # Signal 1: 20-day return
+        avg_ret = sum(rets) / len(rets) if rets else 0
+        ret_strong = avg_ret > 3.0
+        ret_weak = avg_ret < -3.0
+
+        # Signal 2: MA alignment ratio
+        ma_ratio = sum(mas) / len(mas) if mas else 0.5
+        ma_strong = ma_ratio > 0.60
+        ma_weak = ma_ratio < 0.30
+
+        # Dual confirmation
+        if (ret_strong or ma_strong) and not (ret_weak and ma_weak):
+            if ret_strong and ma_strong:
+                trends[industry] = "up"
+            elif ret_strong or ma_strong:
+                trends[industry] = "up"
+            else:
+                trends[industry] = "flat"
+        elif ret_weak and ma_weak:
+            trends[industry] = "down"
+        elif ret_weak or ma_weak:
+            trends[industry] = "flat"
+        else:
+            trends[industry] = "flat"
+
+        # ── Reversal override ──
+        # If sector was "down" but today's avg 1-day return is extreme (+8%+),
+        # soften to "flat" (potential reversal in progress).
+        # Rationale: collective limit-up day after a crash often marks a
+        # bottom. We don't flip to "up" (needs 3-day confirmation), but
+        # removing the "down" block lets the strategy evaluate candidates.
+        if trends[industry] == "down":
+            rets_1d = industry_1d.get(industry, [])
+            if rets_1d:
+                avg_1d = sum(rets_1d) / len(rets_1d)
+                if avg_1d > 8.0:  # sector avg > +8% today
+                    trends[industry] = "flat"  # potential reversal
+
+    _sector_trends_cache[trade_date] = trends
+    return trends
+
+
+def _full_market_sector_trends_5d(trade_date: str) -> dict[str, str]:
+    """Legacy 5-day return method (fallback when <25 days of data)."""
+    import pandas as pd
+
+    with get_market_conn() as conn:
+        rows = conn.execute(
+            "SELECT DISTINCT trade_date FROM daily_price "
+            "WHERE trade_date <= ? ORDER BY trade_date DESC LIMIT 6",
+            (trade_date,),
+        ).fetchall()
+    dates = [r[0] for r in rows]
+    if len(dates) < 2:
+        return {}
+    today_str = dates[0]
+    past_str = dates[-1]
+
+    with get_market_conn() as conn:
+        conn.row_factory = __import__("sqlite3").Row
+        curr = conn.execute(
+            "SELECT ts_code, close FROM daily_price WHERE trade_date = ?",
+            (today_str,),
+        ).fetchall()
+        curr_map = {r["ts_code"]: float(r["close"]) for r in curr if r["close"]}
+
+        past = conn.execute(
+            "SELECT ts_code, close FROM daily_price WHERE trade_date = ?",
+            (past_str,),
+        ).fetchall()
+        past_map = {r["ts_code"]: float(r["close"]) for r in past if r["close"]}
+
+        ind_rows = conn.execute(
+            "SELECT ts_code, industry FROM stock_basic WHERE industry IS NOT NULL AND industry != ''"
+        ).fetchall()
+        code2ind = {r["ts_code"]: r["industry"] for r in ind_rows}
+
+    industry_returns: dict[str, list[float]] = {}
+    for code, curr_close in curr_map.items():
+        past_close = past_map.get(code)
+        industry = code2ind.get(code)
+        if past_close and past_close > 0 and industry:
+            ret = (curr_close / past_close - 1) * 100
+            industry_returns.setdefault(industry, []).append(ret)
+
+    trends: dict[str, str] = {}
+    for industry, rets in industry_returns.items():
+        if len(rets) < 5:
+            trends[industry] = "flat"
+            continue
+        avg_ret = sum(rets) / len(rets)
+        if avg_ret > 2.0:
+            trends[industry] = "up"
+        elif avg_ret < -2.0:
+            trends[industry] = "down"
+        else:
+            trends[industry] = "flat"
+
+    return trends
+
+
+def _infer_industry_trends(
+    factor_data: dict[str, dict], industries: dict[str, str],
+    trade_date: str | None = None,
+) -> dict[str, str]:
+    """Determine per-industry price trend using full-market sector scoring.
+
+    When *trade_date* is provided, computes each industry's average 5-day
+    return across ALL stocks in that industry (from daily_price + stock_basic),
+    not just the small candidate pool. This gives an accurate sector-level
+    signal: if 半导体 as a whole (195 stocks) is up 5% in 5 days, that's a
+    strong sector uptrend regardless of what our 8-stock portfolio shows.
+
+    Falls back to the old momentum-based inference if trade_date is None or
+    the full-market query fails.
+
+    Args:
+        factor_data: per-stock factor scores (fallback path).
+        industries: ts_code → industry mapping.
+        trade_date: YYYYMMDD — if given, uses full-market sector calc.
+
+    Returns:
+        industry → "up" / "down" / "flat"
+    """
+    # ── Full-market sector scoring (preferred) ──
+    if trade_date:
+        try:
+            return _full_market_sector_trends(trade_date)
+        except Exception:
+            logger.debug(f"full-market sector trends failed for {trade_date}, fallback")
+
+    # ── Fallback: infer from candidate pool momentum ──
+    industry_momentums: dict[str, list[float]] = {}
+    for code, factors in factor_data.items():
+        mom = factors.get("momentum")
+        industry = industries.get(code, "")
+        if mom is not None and industry:
+            industry_momentums.setdefault(industry, []).append(mom)
+
+    trends: dict[str, str] = {}
+    for industry, moms in industry_momentums.items():
+        if len(moms) < 2:
+            trends[industry] = "flat"
+            continue
+        avg = sum(moms) / len(moms)
+        if avg > 55:
+            trends[industry] = "up"
+        elif avg < 45:
+            trends[industry] = "down"
+        else:
+            trends[industry] = "flat"
+    return trends
+
+
+class DailyExecutor:
+    """Execute one trading day for a paper-trading account."""
+
+    # ── Dynamic stop-loss / take-profit rule table ──
+    # (market_regime, sector_trend) → (hard_stop_pct, take_profit_pct)
+    # take_profit_pct of 0.0 means "no take-profit, only stop-loss"
+    _RISK_RULES: dict[tuple[str, str], tuple[float, float]] = {
+        ("bear", "down"):  (0.07, 0.0),   # 熊市弱赛道：快速止损，不止盈
+        ("bear", "up"):    (0.10, 0.15),  # 熊市强赛道：保守
+        ("bear", "flat"):  (0.08, 0.10),  # 熊市中性：偏紧
+        ("bull", "up"):    (0.12, 0.30),  # 牛市强赛道：给足空间
+        ("bull", "down"):  (0.08, 0.15),  # 牛市弱赛道：收紧
+        ("bull", "flat"):  (0.10, 0.20),  # 牛市中性：标准
+        ("mixed", "up"):   (0.10, 0.20),  # 分化强赛道：标准
+        ("mixed", "down"): (0.08, 0.12),  # 分化弱赛道：偏紧
+        ("mixed", "flat"): (0.10, 0.20),  # 分化中性：标准
+    }
+    _DEFAULT_RISK = (0.10, 0.20)
+
+    @staticmethod
+    def _normalize_regime(regime: str) -> str:
+        """Map HMM's 'neutral' onto the risk-table's legacy 'mixed' name.
+
+        _RISK_RULES predates the HMM integration and uses 'mixed'; the HMM
+        + overseas overlay return 'neutral'. Without this, neutral regimes
+        silently fall through to _DEFAULT_RISK instead of the tighter
+        mixed-market thresholds.
+        """
+        return "mixed" if regime == "neutral" else regime
+
+    def __init__(self, account: PaperAccount, strategy: Strategy) -> None:
+        self.account = account
+        self.strategy = strategy
+        self.commission_bps = 2.5
+        self.stamp_tax_bps = 10.0
+        # T-trading config
+        self.enable_t_trading = True
+        self.t_trim_threshold = 0.08   # trim 1/3 when up 8%+
+        self.t_add_threshold = -0.05   # add 1/4 when down 5%+ (buy the dip)
+        self.t_trim_ratio = 1.0 / 3    # sell 1/3 of position
+        self.t_add_ratio = 1.0 / 4     # buy 25% of current position
+
+    def _get_risk_thresholds(
+        self, market_regime: str, sector_trend: str,
+        volatility: float | None = None,
+        market_vol_regime: str = "normal_vol",
+    ) -> tuple[float, float]:
+        """Look up dynamic stop-loss / take-profit, optionally vol-adjusted.
+
+        When *volatility* (annualized %) is provided, the stop-loss is
+        widened proportionally: a stock with 2x average volatility gets
+        ~1.5x wider stop (not fully 2x to avoid excessive risk).
+        Base stop is from _RISK_RULES, then scaled by vol multiplier.
+
+        Also applies strategy.risk_stop_multiplier (global scaling for sweep).
+
+        **Market vol regime adaptation**: in low-vol periods (RV20 P<25),
+        stops are tightened by 15% — small losses accumulate in choppy
+        markets, so cutting early reduces drag on Sharpe. In high-vol
+        periods, stops are widened to avoid getting whipsawed out of
+        momentum positions during normal pullbacks.
+        """
+        base_stop, base_tp = self._RISK_RULES.get(
+            (self._normalize_regime(market_regime), sector_trend), self._DEFAULT_RISK
+        )
+
+        # Global multiplier from strategy (for parameter sweep)
+        multiplier = getattr(self.strategy, "risk_stop_multiplier", 1.0)
+        base_stop *= multiplier
+        base_tp *= multiplier
+
+        # ── Market vol regime adaptation (reduces Sharpe drag in chop) ──
+        # Verified 2026-08-08 (5yr A/B): V1 vs V0 = +85.4% vs +77.3%,
+        # Sharpe +0.804 vs +0.754, MDD -2.1pp. Biggest win in 2023 chop (+7.8pp).
+        if market_vol_regime == "low_vol":
+            base_stop *= 0.85   # tighten stop 15% in calm markets
+            base_tp *= 0.90     # tighten take-profit 10%
+        elif market_vol_regime == "high_vol":
+            base_stop *= 1.15   # widen stop 15% in volatile markets
+        elif market_vol_regime == "extreme_vol":
+            base_stop *= 1.30   # widen stop 30% in extreme volatility
+
+        if volatility is not None and volatility > 0:
+            # Average A-share annualized vol ~35%. Scale linearly but clamp.
+            # vol_mult = clamp(volatility / 35, 0.8, 2.0)
+            vol_mult = max(0.8, min(2.0, volatility / 35.0))
+            # Apply sqrt scaling (not linear) to avoid over-widening
+            adj_stop = base_stop * (vol_mult ** 0.5)
+            adj_tp = base_tp * (vol_mult ** 0.5)
+            # Cap at reasonable bounds
+            adj_stop = min(adj_stop, 0.20)   # never wider than 20%
+            adj_tp = min(adj_tp, 0.50)       # never wider than 50%
+            return (adj_stop, adj_tp)
+
+        return (base_stop, base_tp)
+
+    def _check_risk_signals(
+        self,
+        positions: list[Position],
+        prices: dict[str, float],
+        trade_date: str,
+        market_regime: str = "mixed",
+        industries: dict[str, str] | None = None,
+        industry_trend: dict[str, str] | None = None,
+        volatilities: dict[str, float] | None = None,
+        volume_signals: dict[str, dict] | None = None,
+        market_vol_regime: str = "normal_vol",
+    ) -> list[Signal]:
+        """Check stop-loss / take-profit with DYNAMIC + VOL-ADJUSTED thresholds.
+
+        Also includes the **高位放量 (high-position high-volume)** risk sell:
+        when a position is already profitable AND the volume-price engine flags
+        ``signal_type == "high_vol"``, we treat it as a distribution event and
+        emit a SELL. This catches "riding a winner into a top" scenarios where
+        price is at 120d-high and turnover is spiking.
+        """
+        industries = industries or {}
+        industry_trend = industry_trend or {}
+        volatilities = volatilities or {}
+        volume_signals = volume_signals or {}
+        signals: list[Signal] = []
+
+        # 板-chasing 策略自管风控：跳过传统止盈/减仓/高位放量
+        # （T+1 日内策略的「快进快出」与波段止盈止损正面冲突——2026-08-19 回放实测）
+        if getattr(self.strategy, "disable_default_risk", False):
+            return signals
+
+        for pos in positions:
+            px = prices.get(pos.ts_code)
+            if px is None or px <= 0:
+                continue
+            pnl_pct = (px / pos.avg_cost - 1) if pos.avg_cost > 0 else 0
+
+            industry = industries.get(pos.ts_code, "")
+            sector_trend = industry_trend.get(industry, "flat")
+            vol = volatilities.get(pos.ts_code)
+            hard_stop, take_profit = self._get_risk_thresholds(
+                market_regime, sector_trend, volatility=vol,
+                market_vol_regime=market_vol_regime,
+            )
+
+            # ── Quick stop for new positions ──
+            # If position dropped >quick_stop_pct within quick_stop_days of
+            # purchase, exit immediately. Don't wait for full hard_stop.
+            quick_stop_pct = getattr(self.strategy, "quick_stop_pct", 0.0)
+            if quick_stop_pct > 0 and pnl_pct <= -quick_stop_pct:
+                from datetime import datetime as _dt
+                hold_days = (_dt.strptime(trade_date, "%Y%m%d") -
+                            _dt.strptime(pos.entry_date[:8] if pos.entry_date else trade_date, "%Y%m%d")).days
+                quick_days = getattr(self.strategy, "quick_stop_days", 5)
+                if hold_days <= quick_days:
+                    signals.append(Signal(
+                        ts_code=pos.ts_code, name=pos.name, action="SELL",
+                        signal_reason=f"快速止损 P&L={pnl_pct*100:.1f}% (买入{hold_days}天跌>{quick_stop_pct*100:.0f}%)",
+                    ))
+                    continue
+
+            # ── Minimum hold period ──
+            # Don't sell (except hard stop / quick stop) within min_hold_days
+            min_hold = getattr(self.strategy, "min_hold_days", 0)
+            is_within_min_hold = False
+            if min_hold > 0 and pos.entry_date:
+                from datetime import datetime as _dt2
+                hold_days = (_dt2.strptime(trade_date, "%Y%m%d") -
+                            _dt2.strptime(pos.entry_date[:8], "%Y%m%d")).days
+                if hold_days < min_hold:
+                    is_within_min_hold = True
+
+            # ── Trailing stop (replaces fixed take_profit when activated) ──
+            trailing_db = getattr(self.strategy, "trailing_drawback", 0.0)
+            trailing_act = getattr(self.strategy, "trailing_activate", 0.10)
+            if trailing_db > 0 and pnl_pct >= trailing_act:
+                # Compute highest price since entry
+                with get_market_conn() as conn:
+                    high_row = conn.execute(
+                        "SELECT MAX(high) FROM daily_price WHERE ts_code=? "
+                        "AND trade_date >= ? AND trade_date <= ? AND high > 0",
+                        (pos.ts_code, pos.entry_date[:8] if pos.entry_date else trade_date, trade_date),
+                    ).fetchone()
+                highest = float(high_row[0]) if high_row and high_row[0] else px
+                if highest > pos.avg_cost:
+                    drawback_pct = (highest - px) / highest
+                    if drawback_pct >= trailing_db:
+                        # Skip if within min_hold (unless it's a big drop)
+                        if is_within_min_hold and pnl_pct > 0:
+                            continue
+                        signals.append(Signal(
+                            ts_code=pos.ts_code, name=pos.name, action="SELL",
+                            signal_reason=f"跟踪止损 P&L=+{pnl_pct*100:.1f}% (最高{highest:.2f}回撤{drawback_pct*100:.1f}%)",
+                        ))
+                        continue
+                # Trailing active but hasn't hit drawback → skip fixed take_profit
+                if is_within_min_hold:
+                    continue
+                continue  # trailing is active, don't check fixed take_profit
+
+            # Skip other exits if within min_hold (only hard stop passes through)
+            if is_within_min_hold:
+                continue
+
+            # ── Cyclical super-cycle stop widening (周期股超级周期保护) ──
+            # Cyclical positions with P&L > 15% get a wider stop (×2) — these
+            # are potential super-cycle runners (avg +41.5% when held 60d+).
+            # A normal 7-9% pullback stop would kill them mid-trend.
+            if getattr(self.strategy, "enable_cyclical_rules", False):
+                try:
+                    from davis_analyzer.factors.cyclical import is_cyclical_by_code
+                    super_pnl = getattr(self.strategy, "cyclical_super_cycle_pnl", 0.15)
+                    if pnl_pct >= super_pnl and is_cyclical_by_code(pos.ts_code):
+                        hard_stop = min(hard_stop * 2.0, 0.25)  # widen ×2, cap 25%
+                except Exception:
+                    pass
+
+            # ── Low-volume (吸筹) stop-loss exemption ──
+            # Rationale: low-position high-volume signals accumulation (主力吸筹),
+            # which often involves shake-outs (洗盘) before the real move.
+            # Widening the stop for these positions avoids being stopped out
+            # during normal accumulation dips. Empirical basis: the volume_signal
+            # is computed fresh each day from the latest 130-day window.
+            low_vol_exemption = getattr(self.strategy, "low_vol_stop_exemption", 0.0)
+            if low_vol_exemption > 0:
+                vol_sig = volume_signals.get(pos.ts_code, {})
+                if vol_sig.get("signal_type") == "low_vol":
+                    hard_stop = hard_stop * (1.0 + low_vol_exemption)
+
+            if pnl_pct <= -hard_stop:
+                # Include exemption note in reason if applied
+                extra = ""
+                if low_vol_exemption > 0:
+                    vol_sig = volume_signals.get(pos.ts_code, {})
+                    if vol_sig.get("signal_type") == "low_vol":
+                        extra = " [低位放量豁免]"
+                signals.append(
+                    Signal(
+                        ts_code=pos.ts_code,
+                        name=pos.name,
+                        action="SELL",
+                        signal_reason=f"硬止损 P&L={pnl_pct*100:.1f}% (止损线{hard_stop*100:.0f}% {market_regime}/{sector_trend}){extra}",
+                    )
+                )
+            elif take_profit > 0 and pnl_pct >= take_profit:
+                signals.append(
+                    Signal(
+                        ts_code=pos.ts_code,
+                        name=pos.name,
+                        action="SELL",
+                        signal_reason=f"止盈 P&L=+{pnl_pct*100:.1f}% (止盈线{take_profit*100:.0f}% {market_regime}/{sector_trend})",
+                    )
+                )
+            else:
+                # 高位放量 (high-position high-volume) — distribution risk.
+                # Only trigger when already profitable AND volume-price engine
+                # explicitly flags "high_vol" signal type. This is a take-profit
+                # variant that fires earlier than the static take_profit line
+                # when the volume-price pattern suggests distribution.
+                # Skip entirely if strategy disabled the volume-risk path.
+                if not getattr(self.strategy, "enable_volume_risk", True):
+                    continue
+                # 实验0004: 牛市确认状态(bull + 指数>MA200)豁免——脉冲主升段
+                # 的放量是需求特征而非出货信号, 此时高位放量卖出会砍在主升起点.
+                if (
+                    getattr(self.strategy, "bull_highvol_sell_exempt", False)
+                    and market_regime == "bull"
+                    and _compute_index_above_ma200(trade_date)
+                ):
+                    continue
+                # 实验0009: 个股回调结构完好(收盘>MA10且>MA60)时豁免——0008:
+                # 守MA10的良性回调 69%+ 续涨且回调放量=有承接, 此时高位放量
+                # 卖出=卖飞(代价中位+14~24%). 结构破了则照常卖出.
+                if (
+                    getattr(self.strategy, "pb_struct_highvol_exempt", False)
+                    and _holdings_structure_ok([pos.ts_code], trade_date)[pos.ts_code]
+                ):
+                    continue
+                vol_sig = volume_signals.get(pos.ts_code)
+                if (
+                    vol_sig is not None
+                    and vol_sig.get("signal_type") == "high_vol"
+                    and pnl_pct >= 0.10  # only reduce winners (≥10% gain)
+                ):
+                    signals.append(
+                        Signal(
+                            ts_code=pos.ts_code,
+                            name=pos.name,
+                            action="SELL",
+                            signal_reason=(
+                                f"高位放量 P&L=+{pnl_pct*100:.1f}% "
+                                f"量比={vol_sig.get('vol_ratio', 0):.1f} "
+                                f"价格分位={vol_sig.get('position_pct', 0):.0f}%"
+                            ),
+                        )
+                    )
+        return signals
+
+    def _execute_t_trades(
+        self,
+        positions: list[Position],
+        prices: dict[str, float],
+        trade_date: str,
+        market_regime: str = "mixed",
+        industries: dict[str, str] | None = None,
+        industry_trend: dict[str, str] | None = None,
+        factor_data: dict[str, dict] | None = None,
+    ) -> list:
+        """Execute T-trades: trim profits and add on dips.
+
+        T-trading is position management within the holding period:
+        - **Trim** (partial sell): when a position is up ≥8%, sell 1/3 to
+          lock in partial profit while keeping the core position. This
+          reduces average cost and de-risks without fully exiting.
+        - **Add** (partial buy): when a position is down 5-8% AND prosperity
+          stage is still 加速期/上升拐点 (fundamentals still healthy),
+          buy 25% more to lower average cost. This is "buying the dip" for
+          quality holdings whose growth thesis hasn't broken.
+        - **No T-add** when:
+          - market is bear (don't add in downtrend)
+          - sector is declining
+          - prosperity stage is 下降拐点/减速期 (fundamentals deteriorating)
+          - already added once for this position (frequency limit)
+
+        Returns list of TradeRecord from T-trades.
+        """
+        from davis_analyzer.systems.paper_trading.account import TradeRecord
+
+        industries = industries or {}
+        industry_trend = industry_trend or {}
+        factor_data = factor_data or {}
+        t_trades: list[TradeRecord] = []
+        # Track which positions we've already added to today (freq limit)
+        added_today: set[str] = set()
+
+        for pos in positions:
+            px = prices.get(pos.ts_code)
+            if px is None or px <= 0 or pos.avg_cost <= 0:
+                continue
+
+            pnl_pct = (px / pos.avg_cost - 1)
+            industry = industries.get(pos.ts_code, "")
+            sector_trend = industry_trend.get(industry, "flat")
+
+            # ── Trim: partial take-profit ──
+            if pnl_pct >= self.t_trim_threshold:
+                # 实验0004: 牛市确认状态豁免 T+减仓——脉冲段让利润奔跑
+                # (0003 T13: 924 首周 +8~+17% 即被减仓, 错过主升).
+                bull_exempt = (
+                    getattr(self.strategy, "bull_tplus_trim_exempt", False)
+                    and market_regime == "bull"
+                    and _compute_index_above_ma200(trade_date)
+                )
+                # 实验0009: 结构完好豁免 T+减仓(同高位放量门控, 0008 纪律)
+                pb_struct_exempt = (
+                    getattr(self.strategy, "pb_struct_tplus_exempt", False)
+                    and _holdings_structure_ok([pos.ts_code], trade_date)[pos.ts_code]
+                )
+                trim_shares = 0 if (bull_exempt or pb_struct_exempt) else int(pos.shares * self.t_trim_ratio // 100) * 100
+                if trim_shares >= 100:
+                    trade = self.account.sell(
+                        ts_code=pos.ts_code,
+                        name=pos.name,
+                        shares=trim_shares,
+                        price=px,
+                        trade_date=trade_date,
+                        signal_reason=f"T+减仓{self.t_trim_ratio:.0%} P&L=+{pnl_pct*100:.1f}%",
+                    )
+                    if trade:
+                        t_trades.append(trade)
+
+            # ── Add: buy the dip (with prosperity confirmation + freq limit) ──
+            elif (self.t_add_threshold <= pnl_pct < 0
+                  and market_regime != "bear"
+                  and sector_trend != "down"
+                  and pos.ts_code not in added_today):
+                # Prosperity gate: only add if fundamentals still healthy
+                factors = factor_data.get(pos.ts_code, {})
+                stage = factors.get("stage", "")
+                prosperity = factors.get("prosperity")
+
+                # Must be in 加速期 or 上升拐点 (growth thesis intact)
+                if stage not in ("加速期", "上升拐点"):
+                    continue
+                # Prosperity score must still be decent
+                if prosperity is not None and prosperity < 40:
+                    continue
+                # Panic gate: don't add when iVIX is elevated (market fearful)
+                ivix_pct = _get_ivix_percentile(trade_date)
+                if ivix_pct is not None and ivix_pct >= 60:
+                    continue
+
+                add_shares = int(pos.shares * self.t_add_ratio // 100) * 100
+                if add_shares >= 100:
+                    cost_estimate = add_shares * px * (1 + self.commission_bps / 1e4)
+                    if self.account.cash >= cost_estimate:
+                        trade = self.account.buy(
+                            ts_code=pos.ts_code,
+                            name=pos.name,
+                            shares=add_shares,
+                            price=px,
+                            trade_date=trade_date,
+                            signal_reason=f"T+加仓{self.t_add_ratio:.0%} P&L={pnl_pct*100:.1f}% 景气{stage} 逢低买入",
+                        )
+                        if trade:
+                            t_trades.append(trade)
+                            added_today.add(pos.ts_code)
+
+        return t_trades
+
+    def run_day(self, trade_date: str, factor_scores: dict | None = None) -> dict:
+        """Execute one trading day. Returns a summary dict.
+
+        Takes the account-level run lock first: a second process running the
+        same account gets ``{"status": "busy"}`` instead of double-executing
+        the day (the old ``has_run_on`` guard alone had a race window spanning
+        the whole factor-computation phase).
+
+        Args:
+            trade_date: YYYYMMDD format.
+            factor_scores: pre-computed factor scores (for backfill mode).
+                If None, factors are computed live (slow but real-time).
+        """
+        with account_run_lock(self.account.account_id) as acquired:
+            if not acquired:
+                logger.warning(
+                    f"[{self.account.name}] {trade_date} run skipped — "
+                    "another process holds this account's run lock"
+                )
+                return {"status": "busy", "trade_date": trade_date}
+            return self._run_day_locked(trade_date, factor_scores)
+
+    def _run_day_locked(self, trade_date: str, factor_scores: dict | None = None) -> dict:
+        """Execute one trading day (caller must hold the account run lock)."""
+        if self.account.has_run_on(trade_date):
+            logger.info(f"[{self.account.name}] {trade_date} already executed, skipping")
+            return {"status": "skipped", "trade_date": trade_date}
+
+        positions = self.account.get_positions()
+        held_codes = [p.ts_code for p in positions]
+
+        # ── 1. Fetch prices ──
+        # We need prices for held stocks + any candidates the strategy wants.
+        # For factor strategy, we compute factors on a broader set.
+        codes_to_price = held_codes[:]
+
+        # ── 2. Get factor/davis scores ──
+        if factor_scores is None:
+            # Live/run mode: auto-compute factor scores for a candidate universe.
+            # This enables `paper_trading run` to work with FactorThresholdStrategy
+            # without external injection (inject_screen_to_paper was a workaround
+            # for this gap). We compute factors for held stocks + top-200 by
+            # turnover to give the strategy a realistic candidate pool.
+            try:
+                from davis_analyzer.systems.paper_trading.executor import (
+                    _compute_factor_scores_at,
+                    _compute_davis_scores_at,
+                )
+                from davis_analyzer.core.tushare_client import TushareClient
+                client = TushareClient()
+                # Build a universe: held stocks + top turnover stocks
+                with get_market_conn() as conn:
+                    top_rows = conn.execute(
+                        "SELECT ts_code FROM daily_price WHERE trade_date = ? "
+                        "AND close > 0 AND vol > 0 ORDER BY amount DESC LIMIT 200",
+                        (trade_date,),
+                    ).fetchall()
+                universe_codes = list(set(held_codes + [r[0] for r in top_rows]))
+                as_of_date = datetime.strptime(trade_date, "%Y%m%d").date()
+                stock_infos = {}
+                factor_data = _compute_factor_scores_at(client, as_of_date, universe_codes)
+                davis_scores = _compute_davis_scores_at(client, as_of_date, universe_codes, stock_infos)
+                factor_scores = {
+                    "_davis_scores": davis_scores,
+                    "_factor_scores": factor_data,
+                }
+            except Exception:
+                logger.exception(f"[{self.account.name}] Factor computation failed for {trade_date}")
+                factor_scores = {}
+
+        davis_scores = factor_scores.get("_davis_scores", {})
+        factor_data = factor_scores.get("_factor_scores", {})
+
+        # Add candidate codes from scores to price list
+        for code in list(davis_scores.keys())[:20] + list(factor_data.keys())[:20]:
+            if code not in codes_to_price:
+                codes_to_price.append(code)
+
+        # 策略申报的额外定价宇宙（如打板候选在「成交额前 200」之外，
+        # 不申报则 BUY 因无价被静默跳过）
+        _declare_extra = getattr(self.strategy, "required_codes", None)
+        if callable(_declare_extra):
+            for code in _declare_extra(trade_date):
+                if code not in codes_to_price:
+                    codes_to_price.append(code)
+
+        # ── 2a. Bounce pool expansion (反弹专用全市场暴跌池) ──
+        # On oversold-bounce trigger days (上证跌>5% + RV未衰减), expand the
+        # candidate pool with the market-wide deepest-fallen stocks. The main
+        # pool (top turnover) rarely contains true panic drops; the golden
+        # zone (<-20% drop → +10.5%/20d, 78% win) lives in the full market.
+        # Controlled by strategy.oversold_fallen_pool_size (0 = off).
+        fallen_pool_size = getattr(self.strategy, "oversold_fallen_pool_size", 0)
+        if fallen_pool_size > 0 and getattr(self.strategy, "enable_oversold_bounce", False):
+            try:
+                idx_drop = _compute_index_20d_drop(trade_date)
+                rv_ratio = _compute_rv_decay_ratio(trade_date)
+                if (idx_drop is not None and rv_ratio is not None
+                        and idx_drop < getattr(self.strategy, "oversold_market_drop", -5.0)
+                        and rv_ratio >= getattr(self.strategy, "oversold_rv_ratio_min", 0.8)):
+                    fallen = _build_fallen_pool(trade_date, fallen_pool_size)
+                    added = 0
+                    for code in fallen:
+                        if code not in codes_to_price:
+                            codes_to_price.append(code)
+                            added += 1
+                    if added:
+                        logger.info(f"[{self.account.name}] {trade_date}: bounce pool +{added} fallen stocks")
+            except Exception:
+                pass  # best-effort expansion
+
+        prices = _get_close_prices(codes_to_price, trade_date)
+        if codes_to_price and not prices:
+            # 定价宇宙非空却拿不到价格才是异常；空宇宙（无持仓+策略无候选）
+            # 应正常走完当日流程并记录现金 NAV
+            logger.warning(f"[{self.account.name}] {trade_date}: no prices available")
+            return {"status": "no_prices", "trade_date": trade_date}
+
+        # ── 2b. Market regime + industry context ──
+        market_regime = _get_market_regime(trade_date)
+        # International resonance risk (0-100). _get_market_regime already
+        # applied any downgrade via the overlay; this score is for display
+        # and future fine-grained use. 0.0 when overseas data is absent.
+        overseas_risk = _get_overseas_risk(trade_date)
+        # iVIX (中国 VIX) for panic-pause filter. 0.0 when no data.
+        ivix_val = 0.0
+        try:
+            with get_market_conn() as conn:
+                row = conn.execute(
+                    "SELECT close FROM ivix_history WHERE trade_date <= ? ORDER BY trade_date DESC LIMIT 1",
+                    (trade_date,),
+                ).fetchone()
+                if row and row[0] is not None:
+                    ivix_val = float(row[0])
+        except Exception:
+            pass
+        # Market volatility regime (independent of bull/bear) — used for
+        # position sizing: high vol = light position + wide stop.
+        vol_regime, vol_mult = _get_market_vol_regime(trade_date)
+        industries = _get_industries(codes_to_price)
+        industry_trend = _infer_industry_trends(factor_data, industries, trade_date=trade_date)
+
+        # ── 2c. Quality data: short momentum, PE percentile, volatility ──
+        short_momentum = _compute_short_momentum(codes_to_price, trade_date)
+        mom60 = _compute_mom60(codes_to_price, trade_date)
+        pe_percentiles = _compute_pe_percentiles(codes_to_price, trade_date)
+        volatilities = _compute_volatilities(codes_to_price, trade_date)
+        # Volume-price signal — used both by the strategy (composite rating)
+        # and by the risk layer (high-position high-volume SELL).
+        volume_signals = _compute_volume_signals(codes_to_price, trade_date)
+        # Event signals (减持/解禁) — computed when hard filter OR soft penalty is on.
+        if getattr(self.strategy, "enable_event_filter", False) or \
+           getattr(self.strategy, "event_penalty_weight", 0) > 0:
+            event_signals = _compute_event_signals(codes_to_price, trade_date)
+        else:
+            event_signals = {}
+        # Technical factor (tech_score) — only loaded when tech_weight > 0.
+        if getattr(self.strategy, "tech_weight", 0) > 0:
+            tech_scores = _load_tech_scores(codes_to_price, trade_date)
+        else:
+            tech_scores = {}
+        # Amihud liquidity factor — only computed when amihud_weight > 0.
+        if getattr(self.strategy, "amihud_weight", 0) > 0:
+            amihud_scores = _compute_amihud(codes_to_price, trade_date)
+        else:
+            amihud_scores = {}
+        # Dragon-tiger institutional net-buy — only when dragon_tiger_weight > 0.
+        if getattr(self.strategy, "dragon_tiger_weight", 0) > 0:
+            dt_scores = _compute_dragon_tiger_signal(codes_to_price, trade_date)
+        else:
+            dt_scores = {}
+        # Repurchase positive signal — only when repurchase_weight > 0.
+        if getattr(self.strategy, "repurchase_weight", 0) > 0:
+            rep_scores = _compute_repurchase_signal(codes_to_price, trade_date)
+        else:
+            rep_scores = {}
+        # Intraday amplitude — only loaded when max_intraday_amplitude > 0.
+        if getattr(self.strategy, "max_intraday_amplitude", 0) > 0:
+            intraday_amp = _load_intraday_amplitude(codes_to_price, trade_date)
+        else:
+            intraday_amp = {}
+        # Intraday gap — only loaded when gap_weight > 0.
+        if getattr(self.strategy, "gap_weight", 0) > 0:
+            intraday_gap = _load_intraday_gap(codes_to_price, trade_date)
+        else:
+            intraday_gap = {}
+
+        # ── 3a. Risk management: dynamic + vol-adjusted stop-loss/take-profit ──
+        risk_signals = self._check_risk_signals(
+            positions, prices, trade_date,
+            market_regime=market_regime,
+            industries=industries,
+            industry_trend=industry_trend,
+            volatilities=volatilities,
+            volume_signals=volume_signals,
+            market_vol_regime=vol_regime,
+        )
+        if risk_signals:
+            overseas_tag = f", 国际风险={overseas_risk:.0f}" if overseas_risk >= 30 else ""
+            logger.info(
+                f"[{self.account.name}] {trade_date}: {len(risk_signals)} risk signals "
+                f"(market={market_regime}{overseas_tag})"
+            )
+
+        # ── 3b. Build snapshot with smart context ──
+        stock_names = {c: _get_stock_name(c) for c in codes_to_price}
+        total_equity = self.account.market_value(prices)
+
+        snapshot = MarketSnapshot(
+            trade_date=trade_date,
+            prices=prices,
+            davis_scores=davis_scores,
+            factor_scores=factor_data,
+            stock_names=stock_names,
+            market_regime=market_regime,
+            vol_mult=vol_mult,
+            overseas_risk=overseas_risk,
+            ivix=ivix_val,
+            rv_decay_ratio=_compute_rv_decay_ratio(trade_date),
+            index_20d_drop=_compute_index_20d_drop(trade_date),
+            stock_20d_drops=_compute_stock_20d_drops(codes_to_price, trade_date),
+            vol_ratio_250=_compute_vol_ratio_250(trade_date),
+            index_above_ma200=_compute_index_above_ma200(trade_date),
+            industries=industries,
+            industry_trend=industry_trend,
+            short_momentum=short_momentum,
+            mom60=mom60,
+            pe_percentile=pe_percentiles,
+            volatility=volatilities,
+            volume_signal=volume_signals,
+            event_signal=event_signals,
+            tech_score=tech_scores,
+            amihud=amihud_scores,
+            dragon_tiger=dt_scores,
+            repurchase=rep_scores,
+            intraday_amplitude=intraday_amp,
+            intraday_gap=intraday_gap,
+        )
+
+        # ── 4. Evaluate strategy ──
+        strategy_signals = self.strategy.evaluate(positions, snapshot, total_equity)
+
+        # Merge: risk signals take priority (a stock flagged for stop-loss
+        # is sold regardless of what the strategy says)
+        risk_codes = {s.ts_code for s in risk_signals if s.action == "SELL"}
+        # Filter out strategy HOLD signals for stocks being risk-sold
+        signals = risk_signals + [
+            s for s in strategy_signals if s.ts_code not in risk_codes
+        ]
+        logger.info(
+            f"[{self.account.name}] {trade_date}: {len(signals)} signals "
+            f"({sum(1 for s in signals if s.action == 'BUY')} buy, "
+            f"{sum(1 for s in signals if s.action == 'SELL')} sell)"
+        )
+
+        # ── 5a. T-trade: trim profits / add on dips (before full SELL/BUY) ──
+        # For each held position, check if we should trim (sell partial) or
+        # add (buy partial) based on short-term P&L.
+        trades = []
+        if self.enable_t_trading:
+            t_trades = self._execute_t_trades(
+                positions, prices, trade_date,
+                market_regime=market_regime,
+                industries=industries,
+                industry_trend=industry_trend,
+                factor_data=factor_data,
+            )
+            trades.extend(t_trades)
+            # Refresh positions after T-trades
+            positions = self.account.get_positions()
+
+        # ── 5b. Execute main signals (sells first) ──
+        # Sells — sell_at_open=True 的信号以当日开盘价×(1−10bps) 成交；
+        # open 缺失（停牌/数据缺口）或一字跌停 → 顺延：当日不卖、保留持仓，
+        # 下一 run_day 策略重发 SELL 自然重试（与 limitup 回测引擎语义一致）。
+        open_sell_codes = [
+            s.ts_code for s in signals
+            if s.action == "SELL" and s.sell_at_open
+        ]
+        open_rows = _get_open_prices(open_sell_codes, trade_date) if open_sell_codes else {}
+        for sig in signals:
+            if sig.action == "SELL":
+                fill_price = prices.get(sig.ts_code, 0)
+                if sig.sell_at_open:
+                    row = open_rows.get(sig.ts_code)
+                    if row is None or _limit_down_locked(
+                        sig.ts_code, row["open"], row["low"], row["pre_close"]
+                    ):
+                        reason = "一字跌停" if row is not None else "开盘价缺失（停牌/数据缺口）"
+                        logger.info(
+                            f"[{self.account.name}] {trade_date}: {sig.ts_code} {sig.name} "
+                            f"sell_at_open 顺延（{reason}），持仓保留待次日重试"
+                        )
+                        continue
+                    fill_price = row["open"] * (1 - _OPEN_SELL_SLIPPAGE_BPS / 1e4)
+                trade = self.account.sell_all(
+                    ts_code=sig.ts_code,
+                    name=sig.name,
+                    price=fill_price,
+                    trade_date=trade_date,
+                    signal_reason=sig.signal_reason,
+                )
+                if trade:
+                    trades.append(trade)
+
+        # Recalculate equity after sells
+        total_equity = self.account.market_value(prices)
+
+        # Buys — with limit-up probability adjustment
+        for sig in signals:
+            if sig.action == "BUY":
+                px = prices.get(sig.ts_code)
+                if px is None or px <= 0:
+                    continue
+                # Check if today is a limit-up day → adjust buy probability
+                buy_pct = _get_daily_pct_chg(sig.ts_code, trade_date)
+                fill_prob = _limit_up_fill_probability(buy_pct)
+                if fill_prob <= 0:
+                    logger.info(f"[{self.account.name}] {trade_date}: skip {sig.name} — "
+                                f"limit-up {buy_pct:+.1f}% fill_prob=0")
+                    continue
+                target_amount = total_equity * sig.target_weight
+                target_shares = int(target_amount / px)
+                # Apply probability haircut to share count
+                if fill_prob < 1.0:
+                    target_shares = int(target_shares * fill_prob)
+                    logger.info(f"[{self.account.name}] {trade_date}: {sig.name} "
+                                f"pct={buy_pct:+.1f}% fill_prob={fill_prob:.0%} "
+                                f"shares {int(target_amount/px)}→{target_shares}")
+                if target_shares < min_buy_lots(sig.ts_code):
+                    continue  # below board minimum lot after haircut
+                trade = self.account.buy(
+                    ts_code=sig.ts_code,
+                    name=sig.name,
+                    shares=target_shares,
+                    price=px,
+                    trade_date=trade_date,
+                    signal_reason=sig.signal_reason + (f" | 涨停概率{fill_prob:.0%}" if fill_prob < 1.0 else ""),
+                )
+                if trade:
+                    trades.append(trade)
+
+        # ── 5c. Shadow tracking: record rotation swaps ──
+        # When a stock is sold via "轮动换仓" and another is bought on the
+        # same day, record the pair for shadow tracking.
+        rotation_sells = [s for s in signals if s.action == "SELL" and "轮动" in (s.signal_reason or "")]
+        rotation_buys = [s for s in signals if s.action == "BUY" and s not in rotation_sells]
+        for sell_sig in rotation_sells:
+            # Find the matching buy (from the signal_reason which contains the target name)
+            for buy_sig in rotation_buys:
+                if buy_sig.ts_code in [sell_sig.ts_code]:
+                    continue
+                # Record shadow trade
+                sold_price = prices.get(sell_sig.ts_code, 0)
+                bought_price = prices.get(buy_sig.ts_code, 0)
+                if sold_price > 0 and bought_price > 0:
+                    # Extract score diff from reason if possible
+                    score_diff = 0.0
+                    import re
+                    m = re.search(r'差值([\d.]+)', sell_sig.signal_reason or "")
+                    if m:
+                        score_diff = float(m.group(1))
+                    _record_shadow_trade(
+                        self.account.account_id, trade_date,
+                        sell_sig.ts_code, sell_sig.name, sold_price,
+                        buy_sig.ts_code, buy_sig.name, bought_price,
+                        score_diff,
+                    )
+                    rotation_buys.remove(buy_sig)
+                    break
+
+        # ── 5d. Update shadow tracking for existing records ──
+        _update_shadow_tracking(trade_date, prices)
+
+        # ── 6. Record NAV ──
+        # Re-fetch prices for all held stocks (may have changed after buys)
+        final_positions = self.account.get_positions()
+        final_prices = _get_close_prices([p.ts_code for p in final_positions], trade_date)
+        nav = self.account.record_nav(trade_date, final_prices)
+
+        return {
+            "status": "ok",
+            "trade_date": trade_date,
+            "signals": len(signals),
+            "trades": len(trades),
+            "nav": nav.total_equity,
+            "daily_return": nav.daily_return,
+            # 买入/卖出详情（供 inject_screen_to_paper 推飞书通知用）
+            "buy_trades": [
+                {
+                    "ts_code": t.ts_code, "name": t.name, "price": t.price,
+                    "shares": t.shares, "signal_reason": t.signal_reason,
+                }
+                for t in trades if t.action == "BUY"
+            ],
+            "sell_trades": [
+                {
+                    "ts_code": t.ts_code, "name": t.name, "price": t.price,
+                    "shares": t.shares, "signal_reason": t.signal_reason,
+                }
+                for t in trades if t.action == "SELL"
+            ],
+            # 账户净值详情（供调仓报告展示整体仓位+盈亏）
+            "account_summary": {
+                "initial_capital": self.account.initial_capital,
+                "total_equity": nav.total_equity,
+                "cash": nav.cash,
+                "positions_value": nav.positions_value,
+                "position_count": len(final_positions),
+                "daily_return": nav.daily_return,
+            },
+        }
+
+
+def run_backfill(
+    account: PaperAccount,
+    strategy: Strategy,
+    start_date: str,
+    end_date: str | None = None,
+    davis_scores_by_date: dict[str, dict] | None = None,
+    factor_scores_by_date: dict[str, dict] | None = None,
+) -> list[dict]:
+    """Backfill: run the executor over a historical date range.
+
+    Args:
+        start_date / end_date: YYYYMMDD format.
+        davis_scores_by_date: {date_str: {ts_code: {final_score, rank, name}}}
+            Pre-computed point-in-time scores. If None and auto_score=True,
+            scores are computed live via score_universe_at + factor engines.
+        factor_scores_by_date: {date_str: {ts_code: {momentum, holder, ...}}}
+            Pre-computed point-in-time factor scores.
+    """
+    end_date = end_date or datetime.now().strftime("%Y%m%d")
+    trading_days = _get_trading_days(start_date, end_date)
+
+    if not trading_days:
+        logger.warning(f"No trading days found between {start_date} and {end_date}")
+        return []
+
+    logger.info(
+        f"[{account.name}] Backfill {len(trading_days)} days "
+        f"({trading_days[0]} → {trading_days[-1]})"
+    )
+
+    executor = DailyExecutor(account, strategy)
+    results = []
+
+    for i, day in enumerate(trading_days):
+        scores = {}
+        if davis_scores_by_date and day in davis_scores_by_date:
+            scores["_davis_scores"] = davis_scores_by_date[day]
+        if factor_scores_by_date and day in factor_scores_by_date:
+            scores["_factor_scores"] = factor_scores_by_date[day]
+
+        result = executor.run_day(day, factor_scores=scores if scores else None)
+        results.append(result)
+
+        if (i + 1) % 20 == 0:
+            logger.info(f"  progress: {i+1}/{len(trading_days)} days")
+
+    return results
+
+
+# ─── Auto-scoring helpers ───────────────────────────────────────────────
+
+
+def _compute_davis_scores_at(
+    client,
+    as_of: date,
+    universe: list[str],
+    stock_infos: dict,
+) -> dict[str, dict]:
+    """Compute Davis Double composite scores for *universe* at *as_of* date.
+
+    Uses ``score_universe_at`` from backtest_factors (point-in-time correct).
+    Returns ``{ts_code: {"final_score": float, "name": str}}``.
+    """
+    from davis_analyzer.backtest.backtest_factors import score_universe_at
+
+    # Filter stock_infos to the requested universe
+    filtered = {c: stock_infos[c] for c in universe if c in stock_infos}
+    if not filtered:
+        return {}
+
+    raw_scores = score_universe_at(client, as_of, filtered)
+    # Rank and format
+    ranked = sorted(raw_scores.items(), key=lambda x: x[1], reverse=True)
+    result: dict[str, dict] = {}
+    for rank, (code, score) in enumerate(ranked, 1):
+        name = stock_infos.get(code)
+        name_str = name.name if hasattr(name, "name") else str(code)
+        result[code] = {"final_score": round(score, 2), "rank": rank, "name": name_str}
+    return result
+
+
+def _compute_factor_scores_at(
+    client,
+    as_of: date,
+    universe: list[str],
+) -> dict[str, dict]:
+    """Compute supplementary factor scores (momentum/holder/dividend/forecast/prosperity) at *as_of*.
+
+    Returns ``{ts_code: {"momentum": float, "holder": float, "holder_trend": str, ...}}``.
+
+    When the environment variable ``DAVIS_PARALLEL=1`` is set, the per-stock
+    scoring loop is parallelized across CPU cores via ProcessPoolExecutor.
+    This gives ~4-6x speedup on 8-core machines (200 stocks / 8 workers).
+    Each worker creates its own TushareClient (SQLite connections cannot be
+    shared across processes). Default is sequential for safety/debugging.
+    """
+    if os.environ.get("DAVIS_PARALLEL") == "1" and len(universe) >= 20:
+        return _compute_factor_scores_parallel(as_of, universe)
+
+    from davis_analyzer.factors.momentum import analyze_momentum
+    from davis_analyzer.factors.holder_concentration import analyze_holder_concentration
+    from davis_analyzer.factors.dividend import analyze_dividend
+    from davis_analyzer.factors.forecast import analyze_forecast
+    from davis_analyzer.core.financial_fetcher import fetch_financial_data
+    from davis_analyzer.factors.prosperity import calculate_prosperity_score
+    from davis_analyzer.factors.prosperity_sector import classify_stock_stage
+    from davis_analyzer.factors.quality_factor import analyze_quality
+
+    scores: dict[str, dict] = {}
+    for code in universe:
+        try:
+            entry: dict[str, Any] = {}
+            mom = analyze_momentum(client, code, today=as_of)
+            if mom:
+                entry["momentum"] = mom.momentum_score
+            hc = analyze_holder_concentration(client, code, today=as_of)
+            if hc:
+                entry["holder"] = hc.concentration_score
+                entry["holder_trend"] = hc.trend
+            div = analyze_dividend(client, code, today=as_of)
+            if div:
+                entry["dividend"] = div.dividend_score
+            fc = analyze_forecast(client, code, today=as_of)
+            if fc:
+                entry["forecast_leading"] = fc.leading_score
+            # Prosperity (景气度 G+ΔG)
+            # Pass as_of for point-in-time correctness — without it, the fetcher
+            # anchors the look-back window to today(), causing both look-ahead
+            # bias (using not-yet-disclosed reports) and perpetual API re-fetches
+            # (since max_end < today() forever). Backtests were 13s/day due to
+            # this; after the fix, the window respects as_of so cached data is
+            # reused and historical days never call the API.
+            fin = fetch_financial_data(client, code, periods=12, as_of=as_of)
+            if fin and len(fin) >= 2:
+                pscore = calculate_prosperity_score(fin)
+                entry["prosperity"] = pscore.composite_score
+                entry["delta_g"] = pscore.delta_g
+                entry["stage"] = classify_stock_stage(pscore)
+            if div:
+                entry["dividend"] = div.dividend_score
+            # Quality factor — reuse financial data already fetched for prosperity
+            if fin and len(fin) >= 2:
+                from davis_analyzer.factors.quality_factor import compute_quality_from_fin
+                qscore = compute_quality_from_fin(code, fin)
+                if qscore:
+                    entry["quality"] = qscore
+            if entry:
+                scores[code] = entry
+        except Exception:
+            pass
+    return scores
+
+
+def _score_one_stock(args: tuple) -> tuple[str, dict]:
+    """Worker function for parallel scoring. Each worker creates its own client.
+
+    Args: (ts_code, as_of_date) — as_of_date is a date object (picklable).
+    Returns: (ts_code, entry_dict)
+    """
+    code, as_of = args
+    try:
+        from davis_analyzer.core.tushare_client import TushareClient
+        from davis_analyzer.factors.momentum import analyze_momentum
+        from davis_analyzer.factors.holder_concentration import analyze_holder_concentration
+        from davis_analyzer.factors.dividend import analyze_dividend
+        from davis_analyzer.factors.forecast import analyze_forecast
+        from davis_analyzer.core.financial_fetcher import fetch_financial_data
+        from davis_analyzer.factors.prosperity import calculate_prosperity_score
+        from davis_analyzer.factors.prosperity_sector import classify_stock_stage
+        from davis_analyzer.factors.quality_factor import compute_quality_from_fin
+
+        # Thread-local client (one per worker process)
+        if not hasattr(_score_one_stock, "_client"):
+            _score_one_stock._client = TushareClient()
+        client = _score_one_stock._client
+
+        entry: dict[str, Any] = {}
+        mom = analyze_momentum(client, code, today=as_of)
+        if mom:
+            entry["momentum"] = mom.momentum_score
+        hc = analyze_holder_concentration(client, code, today=as_of)
+        if hc:
+            entry["holder"] = hc.concentration_score
+            entry["holder_trend"] = hc.trend
+        div = analyze_dividend(client, code, today=as_of)
+        if div:
+            entry["dividend"] = div.dividend_score
+        fc = analyze_forecast(client, code, today=as_of)
+        if fc:
+            entry["forecast_leading"] = fc.leading_score
+        fin = fetch_financial_data(client, code, periods=12, as_of=as_of)
+        if fin and len(fin) >= 2:
+            pscore = calculate_prosperity_score(fin)
+            entry["prosperity"] = pscore.composite_score
+            entry["delta_g"] = pscore.delta_g
+            entry["stage"] = classify_stock_stage(pscore)
+            qscore = compute_quality_from_fin(code, fin)
+            if qscore:
+                entry["quality"] = qscore
+        return (code, entry)
+    except Exception:
+        return (code, {})
+
+
+def _compute_factor_scores_parallel(as_of: date, universe: list[str]) -> dict[str, dict]:
+    """Parallel implementation of _compute_factor_scores_at using ThreadPoolExecutor.
+
+    Uses threads (not processes) because:
+    1. SQLite and pandas release the GIL during I/O and C-level operations,
+       so threads achieve real parallelism for this workload.
+    2. ProcessPoolExecutor requires pickling args/results per task — the
+       QualityScore dataclass and FinancialData objects are expensive to
+       serialize, eating any parallelism gain.
+    3. Threads share the same TushareClient/SQLite connection (with
+       check_same_thread=False), avoiding per-worker initialization.
+
+    The shared client's _cache_conn is thread-safe for reads in WAL mode.
+    """
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    import multiprocessing
+
+    from davis_analyzer.core.tushare_client import TushareClient
+    from davis_analyzer.factors.momentum import analyze_momentum
+    from davis_analyzer.factors.holder_concentration import analyze_holder_concentration
+    from davis_analyzer.factors.dividend import analyze_dividend
+    from davis_analyzer.factors.forecast import analyze_forecast
+    from davis_analyzer.core.financial_fetcher import fetch_financial_data
+    from davis_analyzer.factors.prosperity import calculate_prosperity_score
+    from davis_analyzer.factors.prosperity_sector import classify_stock_stage
+    from davis_analyzer.factors.quality_factor import compute_quality_from_fin
+
+    # One shared client for all threads (WAL mode allows concurrent reads)
+    client = TushareClient()
+    n_workers = min(multiprocessing.cpu_count(), 8)
+
+    def _score(code: str) -> tuple[str, dict]:
+        try:
+            entry: dict[str, Any] = {}
+            mom = analyze_momentum(client, code, today=as_of)
+            if mom:
+                entry["momentum"] = mom.momentum_score
+            hc = analyze_holder_concentration(client, code, today=as_of)
+            if hc:
+                entry["holder"] = hc.concentration_score
+                entry["holder_trend"] = hc.trend
+            div = analyze_dividend(client, code, today=as_of)
+            if div:
+                entry["dividend"] = div.dividend_score
+            fc = analyze_forecast(client, code, today=as_of)
+            if fc:
+                entry["forecast_leading"] = fc.leading_score
+            fin = fetch_financial_data(client, code, periods=12, as_of=as_of)
+            if fin and len(fin) >= 2:
+                pscore = calculate_prosperity_score(fin)
+                entry["prosperity"] = pscore.composite_score
+                entry["delta_g"] = pscore.delta_g
+                entry["stage"] = classify_stock_stage(pscore)
+                qscore = compute_quality_from_fin(code, fin)
+                if qscore:
+                    entry["quality"] = qscore
+            return (code, entry)
+        except Exception:
+            return (code, {})
+
+    scores: dict[str, dict] = {}
+    try:
+        with ThreadPoolExecutor(max_workers=n_workers) as pool:
+            futures = {pool.submit(_score, code): code for code in universe}
+            for future in as_completed(futures):
+                code, entry = future.result()
+                if entry:
+                    scores[code] = entry
+    except Exception as e:
+        logger.warning(f"Parallel scoring failed ({e}), falling back to sequential")
+        client2 = TushareClient()
+        return _compute_factor_scores_at_sequential(client2, as_of, universe)
+
+    return scores
+
+
+def _compute_factor_scores_at_sequential(client, as_of, universe):
+    """Sequential fallback (same logic as the original loop)."""
+    from davis_analyzer.factors.momentum import analyze_momentum
+    from davis_analyzer.factors.holder_concentration import analyze_holder_concentration
+    from davis_analyzer.factors.dividend import analyze_dividend
+    from davis_analyzer.factors.forecast import analyze_forecast
+    from davis_analyzer.core.financial_fetcher import fetch_financial_data
+    from davis_analyzer.factors.prosperity import calculate_prosperity_score
+    from davis_analyzer.factors.prosperity_sector import classify_stock_stage
+    from davis_analyzer.factors.quality_factor import compute_quality_from_fin
+
+    scores: dict[str, dict] = {}
+    for code in universe:
+        try:
+            entry: dict[str, Any] = {}
+            mom = analyze_momentum(client, code, today=as_of)
+            if mom:
+                entry["momentum"] = mom.momentum_score
+            hc = analyze_holder_concentration(client, code, today=as_of)
+            if hc:
+                entry["holder"] = hc.concentration_score
+                entry["holder_trend"] = hc.trend
+            div = analyze_dividend(client, code, today=as_of)
+            if div:
+                entry["dividend"] = div.dividend_score
+            fc = analyze_forecast(client, code, today=as_of)
+            if fc:
+                entry["forecast_leading"] = fc.leading_score
+            fin = fetch_financial_data(client, code, periods=12, as_of=as_of)
+            if fin and len(fin) >= 2:
+                pscore = calculate_prosperity_score(fin)
+                entry["prosperity"] = pscore.composite_score
+                entry["delta_g"] = pscore.delta_g
+                entry["stage"] = classify_stock_stage(pscore)
+                qscore = compute_quality_from_fin(code, fin)
+                if qscore:
+                    entry["quality"] = qscore
+            if entry:
+                scores[code] = entry
+        except Exception:
+            pass
+    return scores
+
+
+def _force_exit_terminated_holdings(account: "PaperAccount", trade_date: str) -> int:
+    """退市强平: 已确认退市(list_status='D')且当日无行情的持仓, 按最后收盘价出清.
+
+    实验0010 幸存者剪枝修复配套: _get_close_prices 仅回看 10 自然日, 退市股
+    行情终止后持仓将无法估值(NAV 冻结在末价上失真)。仅 stock_basic 确认 D
+    状态的代码触发——长期停牌(L 状态)的价格缺口维持原有回看行为。
+    生产库对退市股行情覆盖不完整(剪枝), 查不到末价时仅告警不强平, 生产进程
+    行为不变; 完整退市行情仅在研究上下文(MARKET_DB_ATTACH_DELISTED=1)可见.
+    """
+    positions = account.get_positions()
+    if not positions:
+        return 0
+    exits = 0
+    try:
+        with get_market_conn() as conn:
+            candidates = []
+            for p in positions:
+                status = conn.execute(
+                    "SELECT list_status FROM stock_basic WHERE ts_code=?",
+                    (p.ts_code,),
+                ).fetchone()
+                if not status or status[0] != "D":
+                    continue
+                has_today = conn.execute(
+                    "SELECT 1 FROM daily_price WHERE ts_code=? AND trade_date=?",
+                    (p.ts_code, trade_date),
+                ).fetchone()
+                if has_today:
+                    continue  # 仍有行情(如退市整理期), 交由正常流程处理
+                last = conn.execute(
+                    "SELECT trade_date, close FROM daily_price WHERE ts_code=? "
+                    "AND trade_date<? AND close>0 ORDER BY trade_date DESC LIMIT 1",
+                    (p.ts_code, trade_date),
+                ).fetchone()
+                if last:
+                    candidates.append((p, float(last[1]), last[0]))
+                else:
+                    logger.warning(
+                        f"[{account.name}] {trade_date}: {p.ts_code} 已退市但无最后价"
+                        "(生产库剪枝?), 跳过强平"
+                    )
+        for p, last_close, last_date in candidates:
+            trade = account.sell(
+                ts_code=p.ts_code,
+                name=p.name,
+                shares=p.shares,
+                price=last_close,
+                trade_date=trade_date,
+                signal_reason=f"退市强平(末交易日{last_date})",
+            )
+            if trade:
+                exits += 1
+                logger.info(
+                    f"[{account.name}] {trade_date}: 退市强平 {p.ts_code} "
+                    f"@{last_close} (末交易日 {last_date})"
+                )
+    except Exception:
+        logger.exception(f"[{account.name}] 退市强平检查失败 @{trade_date}")
+    return exits
+
+
+def run_backfill_auto(
+    account: PaperAccount,
+    strategy: Strategy,
+    start_date: str,
+    end_date: str | None = None,
+    universe_codes: list[str] | None = None,
+    scoring_frequency: int = 1,
+) -> list[dict]:
+    """Full-auto backfill: automatically compute factor scores each scoring day.
+
+    This is the one-command backfill — no pre-computed scores needed. It:
+    1. Builds a stock universe (from ``universe_codes`` or the full stock list).
+    2. Every ``scoring_frequency`` trading days, computes Davis scores + factor
+       scores for the universe (point-in-time correct via ``as_of=`` params).
+    3. Passes scores to ``run_day`` for strategy evaluation + trade execution.
+
+    Args:
+        start_date / end_date: YYYYMMDD.
+        universe_codes: explicit stock list to score. If None, uses the top-50
+            by cached market cap (avoid full-universe for speed).
+        scoring_frequency: re-score every N trading days (default 1 = daily).
+    """
+    from davis_analyzer.core.tushare_client import TushareClient
+
+    end_date = end_date or datetime.now().strftime("%Y%m%d")
+    trading_days = _get_trading_days(start_date, end_date)
+    if not trading_days:
+        logger.warning(f"No trading days found between {start_date} and {end_date}")
+        return []
+
+    client = TushareClient()
+
+    # Build universe
+    if universe_codes is None:
+        # Default: use the stock list from market_data.db, take a reasonable set
+        repo = get_repository()
+        stock_df = repo.get_stock_list()
+        if stock_df is not None and not stock_df.empty:
+            universe_codes = stock_df["ts_code"].tolist()[:50]  # top 50 for speed
+        else:
+            universe_codes = []
+
+    # Build stock_infos dict for score_universe_at
+    stock_infos: dict = {}
+    with get_market_conn() as conn:
+        conn.row_factory = sqlite3.Row  # enable name-based access
+        for code in universe_codes:
+            row = conn.execute(
+                "SELECT ts_code, name, industry FROM stock_basic WHERE ts_code=?", (code,)
+            ).fetchone()
+            if row:
+                from davis_analyzer.core.types import StockInfo
+
+                stock_infos[code] = StockInfo(
+                    ts_code=row["ts_code"],
+                    name=row["name"],
+                    industry=row["industry"] or "",
+                    list_status="L",
+                    is_cyclical=False,
+                )
+
+    logger.info(
+        f"[{account.name}] Auto-backfill {len(trading_days)} days, "
+        f"universe={len(universe_codes)} stocks, "
+        f"scoring every {scoring_frequency} days"
+    )
+
+    # Hold the account run lock for the WHOLE range: per-day reentrancy is
+    # handled inside run_day, and a concurrent reset_account / live run on
+    # the same account is refused or skipped instead of interleaving.
+    with account_run_lock(account.account_id) as acquired:
+        if not acquired:
+            logger.warning(
+                f"[{account.name}] backfill {start_date}→{end_date} aborted — "
+                "another process holds this account's run lock"
+            )
+            return [{"status": "busy", "trade_date": start_date}]
+
+        executor = DailyExecutor(account, strategy)
+        results: list[dict] = []
+        cached_davis: dict[str, dict] = {}
+        cached_factors: dict[str, dict] = {}
+
+        for i, day in enumerate(trading_days):
+            as_of = datetime.strptime(day, "%Y%m%d").date()
+
+            # Re-score periodically
+            if i % scoring_frequency == 0:
+                logger.info(f"  [{day}] Scoring universe ({len(universe_codes)} stocks)...")
+                try:
+                    cached_davis = _compute_davis_scores_at(client, as_of, universe_codes, stock_infos)
+                    cached_factors = _compute_factor_scores_at(client, as_of, universe_codes)
+                    logger.info(
+                        f"  [{day}] Scored: {len(cached_davis)} davis, {len(cached_factors)} factor"
+                    )
+                except Exception:
+                    logger.exception(f"  [{day}] Scoring failed")
+                    cached_davis = {}
+                    cached_factors = {}
+
+            scores = {
+                "_davis_scores": cached_davis,
+                "_factor_scores": cached_factors,
+            }
+            _force_exit_terminated_holdings(account, day)
+            result = executor.run_day(day, factor_scores=scores)
+            results.append(result)
+
+            if (i + 1) % 10 == 0:
+                nav = result.get("nav", 0)
+                logger.info(f"  progress: {i+1}/{len(trading_days)} days, NAV={nav:,.0f}")
+
+        return results
+
+
+# ── Shadow tracking helpers ────────────────────────────────────────────
+
+_SHADOW_CONFIRM_DAYS = 20  # trading days to judge a rotation swap
+
+
+def _record_shadow_trade(
+    account_id: int,
+    trade_date: str,
+    sold_code: str, sold_name: str, sold_price: float,
+    bought_code: str, bought_name: str, bought_price: float,
+    score_diff: float,
+) -> None:
+    """Record a rotation swap for shadow tracking."""
+    with get_connection() as c:
+        c.execute(
+            "INSERT INTO paper_shadow_trades "
+            "(account_id, rotate_date, sold_ts_code, sold_name, sold_price, "
+            "bought_ts_code, bought_name, bought_price, score_diff, status) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'tracking')",
+            (account_id, trade_date, sold_code, sold_name, sold_price,
+             bought_code, bought_name, bought_price, score_diff),
+        )
+        c.commit()
+
+
+def _update_shadow_tracking(trade_date: str, prices: dict[str, float]) -> None:
+    """Update shadow trade P&L and confirm those past the threshold.
+
+    For each 'tracking' shadow trade:
+    1. Compute sold_return and bought_return from rotate_date prices.
+    2. Compute excess_return = bought_return - sold_return.
+    3. If ≥20 trading days since rotate_date, mark as confirmed with verdict.
+    """
+    with get_connection() as c:
+        rows = c.execute(
+            "SELECT id, rotate_date, sold_ts_code, sold_price, "
+            "bought_ts_code, bought_price FROM paper_shadow_trades "
+            "WHERE status = 'tracking'"
+        ).fetchall()
+        if not rows:
+            return
+
+        all_dates = _get_trading_days("20260101", trade_date)
+
+        for r in rows:
+            rotate_date = r["rotate_date"]
+            sold_price = r["sold_price"]
+            bought_price = r["bought_price"]
+
+            sold_px = prices.get(r["sold_ts_code"])
+            bought_px = prices.get(r["bought_ts_code"])
+
+            sold_ret = ((sold_px / sold_price - 1) * 100) if (sold_px and sold_price > 0) else None
+            bought_ret = ((bought_px / bought_price - 1) * 100) if (bought_px and bought_price > 0) else None
+            excess = (bought_ret - sold_ret) if (sold_ret is not None and bought_ret is not None) else None
+
+            try:
+                idx_rotate = all_dates.index(rotate_date)
+                idx_now = all_dates.index(trade_date)
+                days_passed = idx_now - idx_rotate
+            except (ValueError, IndexError):
+                days_passed = 0
+
+            if days_passed >= _SHADOW_CONFIRM_DAYS and excess is not None:
+                verdict = "正确" if excess > 0 else "错误"
+                c.execute(
+                    "UPDATE paper_shadow_trades SET "
+                    "status='confirmed', confirm_date=?, "
+                    "sold_return=?, bought_return=?, excess_return=?, verdict=? "
+                    "WHERE id=?",
+                    (trade_date, sold_ret, bought_ret, excess, verdict, r["id"]),
+                )
+            elif excess is not None:
+                c.execute(
+                    "UPDATE paper_shadow_trades SET "
+                    "sold_return=?, bought_return=?, excess_return=? WHERE id=?",
+                    (sold_ret, bought_ret, excess, r["id"]),
+                )
+        c.commit()

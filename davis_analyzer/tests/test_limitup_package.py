@@ -8,7 +8,7 @@ from davis_analyzer.core import config
 
 
 def test_package_importable() -> None:
-    import davis_analyzer.limitup  # noqa: F401
+    import davis_analyzer.systems.limitup  # noqa: F401
 
 
 def test_reports_dir_created() -> None:

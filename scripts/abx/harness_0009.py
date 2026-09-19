@@ -38,9 +38,9 @@ mr._MA120_BEAR_THRESHOLD = -999.0
 
 from stockhot.data_layer.market_db import get_connection as get_market_conn
 from stockhot.storage.database import init_database, DB_PATH
-from davis_analyzer.paper_trading.account import PaperAccount
-from davis_analyzer.paper_trading.strategy import FactorThresholdStrategy
-from davis_analyzer.paper_trading.executor import run_backfill_auto
+from davis_analyzer.systems.paper_trading.account import PaperAccount
+from davis_analyzer.systems.paper_trading.strategy import FactorThresholdStrategy
+from davis_analyzer.systems.paper_trading.executor import run_backfill_auto
 init_database()
 
 INITIAL_CAPITAL = 1_000_000

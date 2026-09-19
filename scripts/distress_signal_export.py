@@ -84,7 +84,7 @@ def main():
         return
 
     # ③ 景气拐点(因子分管道; 瞬时 API 故障重试一次——首跑曾因 stk_holdernumber 抖动中断)
-    from davis_analyzer.paper_trading.executor import _compute_factor_scores_at
+    from davis_analyzer.systems.paper_trading.executor import _compute_factor_scores_at
     fs = {}
     for attempt in (1, 2):
         try:

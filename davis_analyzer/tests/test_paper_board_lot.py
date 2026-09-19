@@ -37,13 +37,13 @@ def temp_db():
 
 class TestMinBuyLots:
     def test_star_market_200_shares(self):
-        from davis_analyzer.paper_trading.account import min_buy_lots
+        from davis_analyzer.systems.paper_trading.account import min_buy_lots
 
         assert min_buy_lots("688002.SH") == 200
         assert min_buy_lots("689009.SH") == 200
 
     def test_other_boards_100_shares(self):
-        from davis_analyzer.paper_trading.account import min_buy_lots
+        from davis_analyzer.systems.paper_trading.account import min_buy_lots
 
         assert min_buy_lots("600519.SH") == 100
         assert min_buy_lots("603893.SH") == 100
@@ -52,7 +52,7 @@ class TestMinBuyLots:
         assert min_buy_lots("920107.BJ") == 100
 
     def test_empty_code(self):
-        from davis_analyzer.paper_trading.account import min_buy_lots
+        from davis_analyzer.systems.paper_trading.account import min_buy_lots
 
         assert min_buy_lots("") == 100
         assert min_buy_lots(None) == 100
@@ -63,14 +63,14 @@ class TestMinBuyLots:
 
 class TestBuyBoardMinimum:
     def test_star_buy_below_200_rejected(self, temp_db):
-        from davis_analyzer.paper_trading.account import PaperAccount
+        from davis_analyzer.systems.paper_trading.account import PaperAccount
 
         account = PaperAccount.create("lot_star_reject", "davis_double", 1_000_000)
         # 150 股整手取整为 100 < 科创板 200 下限 → 拒单
         assert account.buy("688002.SH", "睿创微纳", 150, 150.0, "20260101") is None
 
     def test_star_buy_250_rounds_to_200(self, temp_db):
-        from davis_analyzer.paper_trading.account import PaperAccount
+        from davis_analyzer.systems.paper_trading.account import PaperAccount
 
         account = PaperAccount.create("lot_star_round", "davis_double", 1_000_000)
         trade = account.buy("688002.SH", "睿创微纳", 250, 150.0, "20260101")
@@ -78,7 +78,7 @@ class TestBuyBoardMinimum:
         assert trade.shares == 200
 
     def test_main_board_100_lot_still_works(self, temp_db):
-        from davis_analyzer.paper_trading.account import PaperAccount
+        from davis_analyzer.systems.paper_trading.account import PaperAccount
 
         account = PaperAccount.create("lot_main", "davis_double", 1_000_000)
         trade = account.buy("000001.SZ", "平安银行", 100, 10.0, "20260101")
@@ -86,14 +86,14 @@ class TestBuyBoardMinimum:
         assert trade.shares == 100
 
     def test_star_cash_trim_below_200_rejected(self, temp_db):
-        from davis_analyzer.paper_trading.account import PaperAccount
+        from davis_analyzer.systems.paper_trading.account import PaperAccount
 
         # 现金 1.8 万, 科创板 @95 元: 整手取整后 100 股 < 200 → 拒单
         account = PaperAccount.create("lot_star_trim", "davis_double", 18_000)
         assert account.buy("688125.SH", "安恒信息", 1000, 95.0, "20260101") is None
 
     def test_main_board_cash_trim_to_affordable(self, temp_db):
-        from davis_analyzer.paper_trading.account import PaperAccount
+        from davis_analyzer.systems.paper_trading.account import PaperAccount
 
         # 现金 1.8 万, 主板 @85 元: 目标 1000 股买不起 → 缩减到 200 股
         account = PaperAccount.create("lot_trim_ok", "davis_double", 18_000)
@@ -106,7 +106,7 @@ class TestBuyBoardMinimum:
 
 
 def _make_snapshot(prices: dict, davis_scores: dict) -> object:
-    from davis_analyzer.paper_trading.strategy import MarketSnapshot
+    from davis_analyzer.systems.paper_trading.strategy import MarketSnapshot
 
     return MarketSnapshot(
         trade_date="20260819",
@@ -118,7 +118,7 @@ def _make_snapshot(prices: dict, davis_scores: dict) -> object:
 
 class TestDavisDoubleAffordability:
     def _strategy(self):
-        from davis_analyzer.paper_trading.strategy import DavisDoubleStrategy
+        from davis_analyzer.systems.paper_trading.strategy import DavisDoubleStrategy
 
         return DavisDoubleStrategy(top_n=5, frequency=1, min_score=60.0)
 

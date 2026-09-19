@@ -83,9 +83,9 @@ def inject(as_of: str, account_name: str, dry_run: bool = False) -> dict:
         return {"status": "dry_run", "candidates": len(davis_scores)}
 
     # 加载账户 + 创建策略 + 实例化 executor
-    from davis_analyzer.paper_trading.account import PaperAccount
-    from davis_analyzer.paper_trading.executor import DailyExecutor
-    from davis_analyzer.paper_trading.strategy import create_strategy
+    from davis_analyzer.systems.paper_trading.account import PaperAccount
+    from davis_analyzer.systems.paper_trading.executor import DailyExecutor
+    from davis_analyzer.systems.paper_trading.strategy import create_strategy
 
     account = PaperAccount.load(account_name)
     strategy = create_strategy(account.strategy_name, account.config)

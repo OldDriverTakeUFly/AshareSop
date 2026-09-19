@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from davis_analyzer.recap import card_renderer as cr
+from davis_analyzer.systems.recap import card_renderer as cr
 
 
 def _ep_dir(tmp_path):
@@ -69,7 +69,7 @@ def test_render_cards_smoke(tmp_path, monkeypatch):
 
 def test_countdown_banner_and_badge():
     """五佳横幅:多候选 TOP N 倒数;单候选「本场最佳」;REPLAY 角标。"""
-    from davis_analyzer.recap import card_renderer as cr
+    from davis_analyzer.systems.recap import card_renderer as cr
     h3 = cr.countdown_banner_html(3, "金健米业", "600127.SH")
     assert "TOP 3" in h3 and "今晚第3佳" in h3 and "金健米业" in h3
     hs = cr.countdown_banner_html(None, "沈鼓", "601091.SH")
@@ -79,7 +79,7 @@ def test_countdown_banner_and_badge():
 
 def test_rank_intro_html():
     """段首冲击卡:多候选巨号 TOP N;单候选「本场最佳」。"""
-    from davis_analyzer.recap import card_renderer as cr
+    from davis_analyzer.systems.recap import card_renderer as cr
     h2 = cr.rank_intro_html(2, "金健米业")
     assert ">2<" in h2 and "金健米业" in h2 and "五佳时刻" in h2
     hs = cr.rank_intro_html(None, "沈鼓")

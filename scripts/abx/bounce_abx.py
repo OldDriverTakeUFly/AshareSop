@@ -18,9 +18,9 @@ from loguru import logger; logger.remove(); logger.add(sys.stderr, level="ERROR"
 
 from stockhot.data_layer.market_db import get_connection as get_market_conn
 from stockhot.storage.database import init_database, DB_PATH
-from davis_analyzer.paper_trading.account import PaperAccount
-from davis_analyzer.paper_trading.strategy import FactorThresholdStrategy
-from davis_analyzer.paper_trading.executor import run_backfill_auto
+from davis_analyzer.systems.paper_trading.account import PaperAccount
+from davis_analyzer.systems.paper_trading.strategy import FactorThresholdStrategy
+from davis_analyzer.systems.paper_trading.executor import run_backfill_auto
 init_database()
 
 START = "20210104"
@@ -55,7 +55,7 @@ def build_universe(top_n):
 
 
 def reset_account(name):
-    from davis_analyzer.paper_trading.runlock import delete_account_if_idle
+    from davis_analyzer.systems.paper_trading.runlock import delete_account_if_idle
 
     delete_account_if_idle(name)
     return PaperAccount.create(name=name, strategy_name="factor_threshold",

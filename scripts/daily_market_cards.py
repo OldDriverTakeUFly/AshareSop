@@ -17,8 +17,8 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT))
 
-from davis_analyzer.cardgen import daily, ledger            # noqa: E402
-from davis_analyzer.cardgen.builder import render           # noqa: E402
+from davis_analyzer.systems.cardgen import daily, ledger            # noqa: E402
+from davis_analyzer.systems.cardgen.builder import render           # noqa: E402
 
 
 def _projects_root() -> Path:

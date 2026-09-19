@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from davis_analyzer.recap import data
+from davis_analyzer.systems.recap import data
 
 
 def _mk_stockhot_db(path: Path) -> None:

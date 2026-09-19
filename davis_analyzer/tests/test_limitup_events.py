@@ -7,7 +7,7 @@ import sqlite3
 import numpy as np
 import pandas as pd
 
-from davis_analyzer.limitup import events
+from davis_analyzer.systems.limitup import events
 
 
 def _seed_base(conn: sqlite3.Connection) -> None:

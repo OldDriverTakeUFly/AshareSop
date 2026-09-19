@@ -8,7 +8,7 @@ import time
 import pandas as pd
 import pytest
 
-from davis_analyzer.surge import db, longpic
+from davis_analyzer.systems.surge import db, longpic
 
 
 @pytest.fixture()

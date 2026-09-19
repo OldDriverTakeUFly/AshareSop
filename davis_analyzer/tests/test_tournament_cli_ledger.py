@@ -15,16 +15,16 @@ from unittest.mock import MagicMock
 import pytest
 
 import davis_analyzer.factors.market_regime as market_regime_mod
-import davis_analyzer.tournament.adapters as adapters_mod
-import davis_analyzer.tournament.judge as judge_mod
-import davis_analyzer.tournament.ledger as ledger_mod
-import davis_analyzer.tournament.report as report_mod
+import davis_analyzer.systems.tournament.adapters as adapters_mod
+import davis_analyzer.systems.tournament.judge as judge_mod
+import davis_analyzer.systems.tournament.ledger as ledger_mod
+import davis_analyzer.systems.tournament.report as report_mod
 import davis_analyzer.core.tushare_client as tushare_client_mod
 from davis_analyzer.backtest.backtest_report import PerformanceStats
-from davis_analyzer.tournament.champions import incumbents
-from davis_analyzer.tournament.cli import main
-from davis_analyzer.tournament.judge import WindowReport
-from davis_analyzer.tournament.ledger import LedgerRecord, append_record
+from davis_analyzer.systems.tournament.champions import incumbents
+from davis_analyzer.systems.tournament.cli import main
+from davis_analyzer.systems.tournament.judge import WindowReport
+from davis_analyzer.systems.tournament.ledger import LedgerRecord, append_record
 
 _RUN_ARGS = ["run", "--start", "20230102", "--end", "20250821"]
 _REPLAY_ARGS = ["replay", "--start", "20230102", "--end", "20250821"]

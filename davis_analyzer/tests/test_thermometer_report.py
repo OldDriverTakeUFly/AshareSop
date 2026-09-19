@@ -29,7 +29,7 @@ def _seed(conn) -> str:
 
 
 def test_write_daily_report(tmp_path, monkeypatch):
-    from davis_analyzer.thermometer import report
+    from davis_analyzer.systems.thermometer import report
 
     conn = _conn(tmp_path)
     try:
@@ -48,7 +48,7 @@ def test_write_daily_report(tmp_path, monkeypatch):
 
 def test_report_empty_market(tmp_path, monkeypatch):
     """缺大盘温度行时日报仍可生成(该节缺省说明)."""
-    from davis_analyzer.thermometer import report
+    from davis_analyzer.systems.thermometer import report
 
     conn = _conn(tmp_path)
     try:

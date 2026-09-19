@@ -220,7 +220,7 @@ def main() -> None:
     if args.rebuild:
         import sys as _sys
         _sys.path.insert(0, str(ROOT))
-        from davis_analyzer.cardgen import daily as daily_mod
+        from davis_analyzer.systems.cardgen import daily as daily_mod
         con = daily_mod._ro_conn(daily_mod.stockhot_db_path())
         bundle = daily_mod.fetch_day_bundle(daily_mod.stockhot_db_path(), args.day)
         builder = daily_mod.build_ladder if base_kind == "ladder" else daily_mod.build_lhb
@@ -278,8 +278,8 @@ def numbers_gate(html_text: str, facts_path: Path) -> list[str]:
     """长图数字闸:mask style 属性(条宽/色值)后扫 token,对工程 facts 零未锚定."""
     import sys as _sys
     _sys.path.insert(0, str(ROOT))
-    from davis_analyzer.cardgen.numbers import unmatched_tokens
-    from davis_analyzer.cardgen.types import Fact
+    from davis_analyzer.systems.cardgen.numbers import unmatched_tokens
+    from davis_analyzer.systems.cardgen.types import Fact
 
     raw = json.loads(facts_path.read_text(encoding="utf-8"))
     flist = raw.get("facts") if isinstance(raw, dict) else raw
@@ -309,7 +309,7 @@ def build_thermo_html(day_dir: Path, theme: dict) -> str:
     """板块温度计长图:钩子两 stats + 温度条形榜 + 轮动 + 低温池 + 大盘五维 + insight."""
     import sys as _sys
     _sys.path.insert(0, str(ROOT))
-    from davis_analyzer.cardgen import daily as daily_mod
+    from davis_analyzer.systems.cardgen import daily as daily_mod
 
     day = day_dir.name
     bundle = daily_mod.fetch_thermo_bundle(day)
@@ -415,7 +415,7 @@ def push_thermo(day_dir: Path, do_enqueue: bool) -> None:
     from datetime import datetime as _dt
     from dotenv import load_dotenv
     load_dotenv(ROOT / ".env")
-    from davis_analyzer.cardgen import daily as daily_mod
+    from davis_analyzer.systems.cardgen import daily as daily_mod
 
     day = day_dir.name
     png = day_dir / "长图.png"

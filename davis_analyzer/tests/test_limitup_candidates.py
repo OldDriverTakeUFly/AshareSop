@@ -8,7 +8,7 @@ from typing import Any
 import pandas as pd
 from loguru import logger
 
-from davis_analyzer.limitup import candidates
+from davis_analyzer.systems.limitup import candidates
 
 EVENT_DAY = "20240415"  # 周一；前置 60 个 bdate 横盘窗口
 
@@ -316,7 +316,7 @@ def test_empty_candidates_message() -> None:
 # ── --date 默认逻辑（daily_price 最新交易日）──
 
 def test_latest_trade_date(limitup_db: sqlite3.Connection) -> None:
-    from davis_analyzer.limitup import db
+    from davis_analyzer.systems.limitup import db
 
     assert db.latest_trade_date(limitup_db) is None  # 空库 → None（CLI 退出路径）
     limitup_db.execute(
@@ -332,7 +332,7 @@ def test_latest_trade_date(limitup_db: sqlite3.Connection) -> None:
 
 
 def test_cli_parser_candidates_defaults() -> None:
-    from davis_analyzer.limitup import cli as limitup_cli
+    from davis_analyzer.systems.limitup import cli as limitup_cli
 
     args = limitup_cli._build_parser().parse_args(["candidates"])
     assert args.date is None  # 默认留给运行期查 daily_price MAX(trade_date)
@@ -368,7 +368,7 @@ def test_volume_band_annotation() -> None:
     """量档（锁仓因子标注）：缩量/温和/放量/爆量四档 + NaN→渲染为"—"."""
     import pandas as pd
 
-    from davis_analyzer.limitup import candidates as C
+    from davis_analyzer.systems.limitup import candidates as C
 
     assert "量档" in C.CANDIDATE_COLUMNS
     row = {"vol_ratio_20": 0.6}

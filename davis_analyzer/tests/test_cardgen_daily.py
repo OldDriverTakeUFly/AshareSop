@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from davis_analyzer.cardgen import daily, ledger
+from davis_analyzer.systems.cardgen import daily, ledger
 
 DAY = "2026-09-01"
 PREV = "2026-08-31"
@@ -246,7 +246,7 @@ class TestRealdataEdgecases:
         v, disp = daily._pct_signed(57.30)
         assert v == "57.3" and disp == "+57.3%"
         # display 必须以数字边界包含 facts 序列化后的 value 形态(57.3,而非 57.30)
-        from davis_analyzer.cardgen.facts import check_facts
+        from davis_analyzer.systems.cardgen.facts import check_facts
         f = daily._fact("p", v, "%", disp, DAY, "r")
         assert check_facts([f]) == []
         v2, disp2 = daily._pct_signed(-2.5)
@@ -271,7 +271,7 @@ class TestRealdataEdgecases:
     def test_publish_copy_compliance_clean(self):
         """发稿文案:敏感词全表+诱导句式零命中,含免责,正文无阿拉伯数字(数字留给卡片)。"""
         import re as _re
-        from davis_analyzer.cardgen.compliance import INDUCEMENT_PATTERNS, load_words
+        from davis_analyzer.systems.cardgen.compliance import INDUCEMENT_PATTERNS, load_words
         words = load_words()
         for kind in ("ladder", "lhb", "screener"):
             c = daily.publish_copy(kind, DAY)
@@ -287,7 +287,7 @@ class TestRealdataEdgecases:
     def test_insight_library_compliance_clean(self):
         """洞察库全量:零数字、敏感词全表与诱导句式零命中(入库预审由测试强制)。"""
         import re as _re
-        from davis_analyzer.cardgen.compliance import INDUCEMENT_PATTERNS, load_words
+        from davis_analyzer.systems.cardgen.compliance import INDUCEMENT_PATTERNS, load_words
         words = load_words()
         lib = [daily._LADDER_DEFAULT_INSIGHT, daily._LHB_DEFAULT_INSIGHT]
         # 连同选择器产出的全部可能句子:构造各形态 bundle 抽取
@@ -426,7 +426,7 @@ class TestThermoCard:
 
     def test_thermo_insights_zero_digit_and_compliance(self):
         import re as _re
-        from davis_analyzer.cardgen.compliance import INDUCEMENT_PATTERNS, load_words
+        from davis_analyzer.systems.cardgen.compliance import INDUCEMENT_PATTERNS, load_words
         words = load_words()
         lib = [daily._THERMO_DEFAULT_INSIGHT]
         lib += daily.thermo_insights(self._bundle())
@@ -445,7 +445,7 @@ class TestThermoCard:
 
     def test_publish_copy_thermo_clean(self):
         import re as _re
-        from davis_analyzer.cardgen.compliance import INDUCEMENT_PATTERNS, load_words
+        from davis_analyzer.systems.cardgen.compliance import INDUCEMENT_PATTERNS, load_words
         words = load_words()
         c = daily.publish_copy("thermo", self.DAY)
         blob = c["title"] + c["body"] + c["tags"]

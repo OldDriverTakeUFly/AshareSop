@@ -72,7 +72,7 @@ def _patch_run_day_env(monkeypatch, closes: dict, open_rows: dict | None = None)
 
     Pure in-memory — no real DB, no Tushare API.
     """
-    from davis_analyzer.paper_trading import executor as ex
+    from davis_analyzer.systems.paper_trading import executor as ex
 
     monkeypatch.setattr(ex, "_get_close_prices", lambda codes, d: dict(closes))
     monkeypatch.setattr(ex, "_get_open_prices", lambda codes, d: dict(open_rows or {}))
@@ -102,8 +102,8 @@ def _patch_run_day_env(monkeypatch, closes: dict, open_rows: dict | None = None)
 
 
 def _make_executor(name: str, signals: list):
-    from davis_analyzer.paper_trading.account import PaperAccount
-    from davis_analyzer.paper_trading.executor import DailyExecutor
+    from davis_analyzer.systems.paper_trading.account import PaperAccount
+    from davis_analyzer.systems.paper_trading.executor import DailyExecutor
 
     account = PaperAccount.create(name, "stub", 1_000_000)
     executor = DailyExecutor(account, _StubStrategy(signals))
@@ -116,7 +116,7 @@ def _make_executor(name: str, signals: list):
 
 def test_signal_sell_at_open_defaults_false():
     """新字段带默认值——既有策略构造 Signal 零影响."""
-    from davis_analyzer.paper_trading.strategy import Signal
+    from davis_analyzer.systems.paper_trading.strategy import Signal
 
     sig = Signal(ts_code="000001.SZ", name="平安银行", action="SELL")
     assert sig.sell_at_open is False
@@ -127,7 +127,7 @@ def test_signal_sell_at_open_defaults_false():
 
 def test_get_open_prices_reads_same_day_rows_only(monkeypatch):
     """只取当日行（无回看回退）；open 为 NULL 的行剔除."""
-    from davis_analyzer.paper_trading import executor as ex
+    from davis_analyzer.systems.paper_trading import executor as ex
 
     conn = sqlite3.connect(":memory:")
     conn.execute(
@@ -159,7 +159,7 @@ def test_get_open_prices_reads_same_day_rows_only(monkeypatch):
 
 
 def test_get_open_prices_empty_input(monkeypatch):
-    from davis_analyzer.paper_trading import executor as ex
+    from davis_analyzer.systems.paper_trading import executor as ex
 
     called = []
 
@@ -177,28 +177,28 @@ def test_get_open_prices_empty_input(monkeypatch):
 
 def test_limit_down_locked_main_board_one_word():
     """主板 10cm：pre_close=10 → 跌停价 9.00，open=low=9.00 → 锁死."""
-    from davis_analyzer.paper_trading.executor import _limit_down_locked
+    from davis_analyzer.systems.paper_trading.executor import _limit_down_locked
 
     assert _limit_down_locked("000010.SZ", open_px=9.00, low=9.00, pre_close=10.00)
 
 
 def test_limit_down_not_locked_when_open_above_limit():
     """低开但未一字（open=9.50 > 跌停价）→ 可卖."""
-    from davis_analyzer.paper_trading.executor import _limit_down_locked
+    from davis_analyzer.systems.paper_trading.executor import _limit_down_locked
 
     assert not _limit_down_locked("000010.SZ", open_px=9.50, low=9.00, pre_close=10.00)
 
 
 def test_limit_down_not_locked_when_low_below_limit():
     """open=跌停价但 low 更低（机械判定不满足 open=low）→ 不视为一字."""
-    from davis_analyzer.paper_trading.executor import _limit_down_locked
+    from davis_analyzer.systems.paper_trading.executor import _limit_down_locked
 
     assert not _limit_down_locked("000010.SZ", open_px=9.00, low=8.95, pre_close=10.00)
 
 
 def test_limit_down_locked_gem_20cm():
     """创业板 30 开头 20cm：pre_close=10 → 跌停价 8.00."""
-    from davis_analyzer.paper_trading.executor import _limit_down_locked
+    from davis_analyzer.systems.paper_trading.executor import _limit_down_locked
 
     assert _limit_down_locked("300750.SZ", open_px=8.00, low=8.00, pre_close=10.00)
     # 10cm 口径下 8.00 不是主板 000010 的跌停价 → 不锁死
@@ -207,13 +207,13 @@ def test_limit_down_locked_gem_20cm():
 
 def test_limit_down_locked_star_20cm():
     """科创板 68 开头 20cm."""
-    from davis_analyzer.paper_trading.executor import _limit_down_locked
+    from davis_analyzer.systems.paper_trading.executor import _limit_down_locked
 
     assert _limit_down_locked("688981.SH", open_px=8.00, low=8.00, pre_close=10.00)
 
 
 def test_limit_down_no_valid_pre_close():
-    from davis_analyzer.paper_trading.executor import _limit_down_locked
+    from davis_analyzer.systems.paper_trading.executor import _limit_down_locked
 
     assert not _limit_down_locked("000010.SZ", open_px=9.00, low=9.00, pre_close=0.0)
 
@@ -224,7 +224,7 @@ def test_limit_down_no_valid_pre_close():
 class TestSellAtOpenExecution:
     def test_fills_at_open_with_10bps_slippage(self, temp_db, monkeypatch):
         """① sell_at_open=True → 以 open×(1−1e-3) 成交，而非收盘价."""
-        from davis_analyzer.paper_trading.strategy import Signal
+        from davis_analyzer.systems.paper_trading.strategy import Signal
 
         executor = _make_executor(
             "sao_fill",
@@ -251,8 +251,8 @@ class TestSellAtOpenExecution:
 
     def test_deferred_when_open_missing_then_refills_next_day(self, temp_db, monkeypatch):
         """② open 缺失（停牌/数据缺口）→ 顺延；次日 open 恢复 → 自然重试成交."""
-        from davis_analyzer.paper_trading import executor as ex
-        from davis_analyzer.paper_trading.strategy import Signal
+        from davis_analyzer.systems.paper_trading import executor as ex
+        from davis_analyzer.systems.paper_trading.strategy import Signal
 
         executor = _make_executor(
             "sao_defer",
@@ -284,7 +284,7 @@ class TestSellAtOpenExecution:
 
     def test_deferred_on_one_word_limit_down(self, temp_db, monkeypatch):
         """③ 一字跌停（open=low=跌停价）→ 顺延不卖、持仓保留."""
-        from davis_analyzer.paper_trading.strategy import Signal
+        from davis_analyzer.systems.paper_trading.strategy import Signal
 
         executor = _make_executor(
             "sao_lock",
@@ -311,8 +311,8 @@ class TestSellAtOpenExecution:
 
     def test_sell_without_flag_uses_close_price_regression(self, temp_db, monkeypatch):
         """④ sell_at_open=False（默认）→ 原收盘价路径，且不触发 open 查询."""
-        from davis_analyzer.paper_trading import executor as ex
-        from davis_analyzer.paper_trading.strategy import Signal
+        from davis_analyzer.systems.paper_trading import executor as ex
+        from davis_analyzer.systems.paper_trading.strategy import Signal
 
         executor = _make_executor(
             "sao_legacy",

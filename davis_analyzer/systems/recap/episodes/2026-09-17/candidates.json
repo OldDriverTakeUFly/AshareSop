@@ -1,0 +1,351 @@
+[
+  {
+    "ts_code": "605058.SH",
+    "name": "澳弘电子",
+    "sector": "元件",
+    "drama_score": 249.0,
+    "events": [
+      {
+        "kind": "limit_up",
+        "label": "涨停收盘(+9.99%)",
+        "score": 20.0,
+        "detail": {
+          "change_pct": 9.99
+        }
+      },
+      {
+        "kind": "reseal",
+        "label": "23 度炸板后回封",
+        "score": 184.0,
+        "detail": {
+          "broken_count": 23
+        }
+      },
+      {
+        "kind": "ladder",
+        "label": "积分榜最高板(5板)",
+        "score": 45.0,
+        "detail": {
+          "boards": 5
+        }
+      }
+    ],
+    "replay_start": "09:30:00",
+    "replay_end": "13:27:00",
+    "notes": [
+      "涨停收盘(+9.99%)",
+      "23 度炸板后回封",
+      "积分榜最高板(5板)"
+    ],
+    "educational": false,
+    "facts": [
+      {
+        "id": "605058.SH_chg",
+        "value": "9.99",
+        "unit": "%",
+        "display": "+9.99%",
+        "as_of": "2026-09-17",
+        "source": {
+          "kind": "stockhot",
+          "ref": "stockhot.db:limit_up_pool@2026-09-17:605058.SH"
+        }
+      },
+      {
+        "id": "605058.SH_broken",
+        "value": "23",
+        "unit": "次",
+        "display": "23次炸板",
+        "as_of": "2026-09-17",
+        "source": {
+          "kind": "stockhot",
+          "ref": "stockhot.db:limit_up_pool@2026-09-17:605058.SH"
+        }
+      },
+      {
+        "id": "605058.SH_boards",
+        "value": "5",
+        "unit": "板",
+        "display": "5连板",
+        "as_of": "2026-09-17",
+        "source": {
+          "kind": "stockhot",
+          "ref": "stockhot.db:limit_up_pool@2026-09-17:605058.SH"
+        }
+      }
+    ]
+  },
+  {
+    "ts_code": "001326.SZ",
+    "name": "联域股份",
+    "sector": "照明设备",
+    "drama_score": 143.0,
+    "events": [
+      {
+        "kind": "broken",
+        "label": "收盘炸板(17次炸开)",
+        "score": 143.0,
+        "detail": {
+          "broken_count": 17
+        }
+      }
+    ],
+    "replay_start": "09:30",
+    "replay_end": "15:00",
+    "notes": [
+      "收盘炸板(被帽戏码)"
+    ],
+    "educational": false,
+    "facts": [
+      {
+        "id": "001326.SZ_brkclose",
+        "value": "17",
+        "unit": "次",
+        "display": "收盘仍炸板(17次)",
+        "as_of": "2026-09-17",
+        "source": {
+          "kind": "stockhot",
+          "ref": "stockhot.db:broken_pool@2026-09-17:001326.SZ"
+        }
+      }
+    ]
+  },
+  {
+    "ts_code": "003001.SZ",
+    "name": "中岩大地",
+    "sector": "专业工程",
+    "drama_score": 123.0,
+    "events": [
+      {
+        "kind": "limit_up",
+        "label": "涨停收盘(+10.02%)",
+        "score": 20.0,
+        "detail": {
+          "change_pct": 10.02
+        }
+      },
+      {
+        "kind": "reseal",
+        "label": "11 度炸板后回封",
+        "score": 88.0,
+        "detail": {
+          "broken_count": 11
+        }
+      },
+      {
+        "kind": "lhb",
+        "label": "龙虎榜球星对位",
+        "score": 15.0,
+        "detail": {}
+      }
+    ],
+    "replay_start": "09:30:00",
+    "replay_end": "13:49:00",
+    "notes": [
+      "涨停收盘(+10.02%)",
+      "11 度炸板后回封",
+      "龙虎榜球星对位"
+    ],
+    "educational": false,
+    "facts": [
+      {
+        "id": "003001.SZ_chg",
+        "value": "10.02",
+        "unit": "%",
+        "display": "+10.02%",
+        "as_of": "2026-09-17",
+        "source": {
+          "kind": "stockhot",
+          "ref": "stockhot.db:limit_up_pool@2026-09-17:003001.SZ"
+        }
+      },
+      {
+        "id": "003001.SZ_broken",
+        "value": "11",
+        "unit": "次",
+        "display": "11次炸板",
+        "as_of": "2026-09-17",
+        "source": {
+          "kind": "stockhot",
+          "ref": "stockhot.db:limit_up_pool@2026-09-17:003001.SZ"
+        }
+      },
+      {
+        "id": "003001.SZ_boards",
+        "value": "2",
+        "unit": "板",
+        "display": "2连板",
+        "as_of": "2026-09-17",
+        "source": {
+          "kind": "stockhot",
+          "ref": "stockhot.db:limit_up_pool@2026-09-17:003001.SZ"
+        }
+      }
+    ]
+  },
+  {
+    "ts_code": "600371.SH",
+    "name": "万向德农",
+    "sector": "种植业",
+    "drama_score": 93.0,
+    "events": [
+      {
+        "kind": "limit_up",
+        "label": "涨停收盘(+9.99%)",
+        "score": 20.0,
+        "detail": {
+          "change_pct": 9.99
+        }
+      },
+      {
+        "kind": "reseal",
+        "label": "6 度炸板后回封",
+        "score": 48.0,
+        "detail": {
+          "broken_count": 6
+        }
+      },
+      {
+        "kind": "long_leg",
+        "label": "大长腿(振幅18.5%)",
+        "score": 10.0,
+        "detail": {
+          "amplitude_pct": 18.5
+        }
+      },
+      {
+        "kind": "lhb",
+        "label": "龙虎榜球星对位",
+        "score": 15.0,
+        "detail": {}
+      }
+    ],
+    "replay_start": "12:42:00",
+    "replay_end": "13:14:00",
+    "notes": [
+      "涨停收盘(+9.99%)",
+      "6 度炸板后回封",
+      "大长腿(振幅18.5%)",
+      "龙虎榜球星对位"
+    ],
+    "educational": false,
+    "facts": [
+      {
+        "id": "600371.SH_chg",
+        "value": "9.99",
+        "unit": "%",
+        "display": "+9.99%",
+        "as_of": "2026-09-17",
+        "source": {
+          "kind": "stockhot",
+          "ref": "stockhot.db:limit_up_pool@2026-09-17:600371.SH"
+        }
+      },
+      {
+        "id": "600371.SH_broken",
+        "value": "6",
+        "unit": "次",
+        "display": "6次炸板",
+        "as_of": "2026-09-17",
+        "source": {
+          "kind": "stockhot",
+          "ref": "stockhot.db:limit_up_pool@2026-09-17:600371.SH"
+        }
+      },
+      {
+        "id": "600371.SH_boards",
+        "value": "2",
+        "unit": "板",
+        "display": "2连板",
+        "as_of": "2026-09-17",
+        "source": {
+          "kind": "stockhot",
+          "ref": "stockhot.db:limit_up_pool@2026-09-17:600371.SH"
+        }
+      },
+      {
+        "id": "600371.SH_amp",
+        "value": "18.5",
+        "unit": "%",
+        "display": "振幅18.5%",
+        "as_of": "2026-09-17",
+        "source": {
+          "kind": "stockhot",
+          "ref": "stockhot.db:limit_up_pool@2026-09-17:600371.SH"
+        }
+      }
+    ]
+  },
+  {
+    "ts_code": "000980.SZ",
+    "name": "众泰汽车",
+    "sector": "汽车零部件",
+    "drama_score": 59.0,
+    "events": [
+      {
+        "kind": "limit_up",
+        "label": "涨停收盘(+10.23%)",
+        "score": 20.0,
+        "detail": {
+          "change_pct": 10.23
+        }
+      },
+      {
+        "kind": "reseal",
+        "label": "3 度炸板后回封",
+        "score": 24.0,
+        "detail": {
+          "broken_count": 3
+        }
+      },
+      {
+        "kind": "lhb",
+        "label": "龙虎榜球星对位",
+        "score": 15.0,
+        "detail": {}
+      }
+    ],
+    "replay_start": "10:31:00",
+    "replay_end": "11:03:00",
+    "notes": [
+      "涨停收盘(+10.23%)",
+      "3 度炸板后回封",
+      "龙虎榜球星对位"
+    ],
+    "educational": true,
+    "facts": [
+      {
+        "id": "000980.SZ_chg",
+        "value": "10.23",
+        "unit": "%",
+        "display": "+10.23%",
+        "as_of": "2026-09-17",
+        "source": {
+          "kind": "stockhot",
+          "ref": "stockhot.db:limit_up_pool@2026-09-17:000980.SZ"
+        }
+      },
+      {
+        "id": "000980.SZ_broken",
+        "value": "3",
+        "unit": "次",
+        "display": "3次炸板",
+        "as_of": "2026-09-17",
+        "source": {
+          "kind": "stockhot",
+          "ref": "stockhot.db:limit_up_pool@2026-09-17:000980.SZ"
+        }
+      },
+      {
+        "id": "000980.SZ_boards",
+        "value": "1",
+        "unit": "板",
+        "display": "1连板",
+        "as_of": "2026-09-17",
+        "source": {
+          "kind": "stockhot",
+          "ref": "stockhot.db:limit_up_pool@2026-09-17:000980.SZ"
+        }
+      }
+    ]
+  }
+]

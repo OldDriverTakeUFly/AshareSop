@@ -6,7 +6,7 @@ import sqlite3
 
 import pandas as pd
 
-from davis_analyzer.limitup import sentiment
+from davis_analyzer.systems.limitup import sentiment
 
 
 def test_classify_regime_priority() -> None:

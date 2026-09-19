@@ -32,7 +32,7 @@ def _seed_calendar(conn) -> None:
 
 
 def test_backfill_sw_daily_idempotent(tmp_path):
-    from davis_analyzer.thermometer import data
+    from davis_analyzer.systems.thermometer import data
 
     conn = _conn(tmp_path)
     try:
@@ -50,7 +50,7 @@ def test_backfill_sw_daily_idempotent(tmp_path):
 
 
 def test_update_incremental(tmp_path):
-    from davis_analyzer.thermometer import data
+    from davis_analyzer.systems.thermometer import data
 
     conn = _conn(tmp_path)
     try:
@@ -67,7 +67,7 @@ def test_update_incremental(tmp_path):
 
 def test_backfill_daily_basic_circ_mv(tmp_path):
     """circ_mv 回补:UPSERT 不覆盖已有列;幂等."""
-    from davis_analyzer.thermometer import data
+    from davis_analyzer.systems.thermometer import data
 
     conn = _conn(tmp_path)
     try:
@@ -96,7 +96,7 @@ def test_backfill_daily_basic_circ_mv(tmp_path):
 
 
 def test_backfill_ths_daily_by_code(tmp_path):
-    from davis_analyzer.thermometer import data
+    from davis_analyzer.systems.thermometer import data
 
     conn = _conn(tmp_path)
     try:
@@ -121,7 +121,7 @@ def test_backfill_ths_daily_by_code(tmp_path):
 
 def test_refresh_recent_self_healing(tmp_path):
     """盘后自举:缺最近的 daily_price/moneyflow 日自动直连补齐."""
-    from davis_analyzer.thermometer import data
+    from davis_analyzer.systems.thermometer import data
 
     conn = _conn(tmp_path)
     try:

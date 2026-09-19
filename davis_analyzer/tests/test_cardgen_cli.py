@@ -14,10 +14,10 @@ from pathlib import Path
 
 import pytest
 
-from davis_analyzer.cardgen import ledger
-from davis_analyzer.cardgen.cli import main
-from davis_analyzer.cardgen.ingest import fetch_daily_basic
-from davis_analyzer.cardgen.types import Fact
+from davis_analyzer.systems.cardgen import ledger
+from davis_analyzer.systems.cardgen.cli import main
+from davis_analyzer.systems.cardgen.ingest import fetch_daily_basic
+from davis_analyzer.systems.cardgen.types import Fact
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -57,7 +57,7 @@ class TestIngest:
 
 def _run_cli(*args: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
-        [sys.executable, "-m", "davis_analyzer.cardgen", *args],
+        [sys.executable, "-m", "davis_analyzer.systems.cardgen", *args],
         capture_output=True, text=True, cwd=REPO_ROOT)
 
 
@@ -128,7 +128,7 @@ class TestCliIngestCommand:
         fake = Fact(id="", value=Decimal("168.11"), unit="x", display="168.11x",
                     as_of="2026-08-27", source_kind="tushare",
                     source_ref="daily_basic:688802.SH@20260827:ps")
-        monkeypatch.setattr("davis_analyzer.cardgen.cli.fetch_daily_basic",
+        monkeypatch.setattr("davis_analyzer.systems.cardgen.cli.fetch_daily_basic",
                             lambda code, metric: fake)
         main(["init", "--topic", "烟测"])
         main(["ingest", "--topic", "烟测", "--code", "688802.SH", "--metric", "ps"])
@@ -147,7 +147,7 @@ class TestCliIngestCommand:
             return Fact(id="", value=Decimal(v[:-1]), unit="x", display=v,
                         as_of="2026-08-27", source_kind="tushare", source_ref="r")
 
-        monkeypatch.setattr("davis_analyzer.cardgen.cli.fetch_daily_basic", fake)
+        monkeypatch.setattr("davis_analyzer.systems.cardgen.cli.fetch_daily_basic", fake)
         main(["init", "--topic", "烟测"])
         main(["ingest", "--topic", "烟测", "--code", "688802.SH", "--metric", "ps"])
         main(["ingest", "--topic", "烟测", "--code", "688802.SH", "--metric", "ps",
@@ -171,7 +171,7 @@ class TestPublishSync:
         return db
 
     def test_sync_moves_published_and_pending(self, tmp_path: Path, redirected: Path):
-        from davis_analyzer.cardgen import publish_sync
+        from davis_analyzer.systems.cardgen import publish_sync
         db = self._fake_publisher_db(tmp_path, {"已上线卡", "存量已发"})
         (redirected / "已上线卡").mkdir(parents=True)
         (redirected / "存量未发").mkdir()
@@ -186,7 +186,7 @@ class TestPublishSync:
         assert (redirected / "已发布" / "已上线卡").exists()
 
     def test_sync_dry_run_no_move(self, tmp_path: Path, redirected: Path):
-        from davis_analyzer.cardgen import publish_sync
+        from davis_analyzer.systems.cardgen import publish_sync
         db = self._fake_publisher_db(tmp_path, {"已上线卡"})
         (redirected / "已上线卡").mkdir(parents=True)
         actions = publish_sync.sync(redirected, db=db, dry_run=True)
@@ -194,14 +194,14 @@ class TestPublishSync:
         assert not (redirected / "已发布" / "已上线卡").exists()
 
     def test_build_bump_demotes_published_project(self, tmp_path: Path, redirected: Path):
-        from davis_analyzer.cardgen import publish_sync
+        from davis_analyzer.systems.cardgen import publish_sync
         proj = redirected / "已发布" / "老卡"
         proj.mkdir(parents=True)
         new = publish_sync.demote_to_pending(redirected, proj)
         assert new == redirected / "未发布" / "老卡" and new.exists()
 
     def test_resolve_project_search_order(self, tmp_path: Path, redirected: Path):
-        from davis_analyzer.cardgen import publish_sync
+        from davis_analyzer.systems.cardgen import publish_sync
         (redirected / "未发布" / "A").mkdir(parents=True)
         (redirected / "A").mkdir()
         (redirected / "已发布" / "A").mkdir(parents=True)

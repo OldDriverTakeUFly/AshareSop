@@ -9,8 +9,8 @@ from __future__ import annotations
 
 from types import SimpleNamespace
 
-from davis_analyzer.paper_trading.account import Position
-from davis_analyzer.paper_trading.negative_factors import (
+from davis_analyzer.systems.paper_trading.account import Position
+from davis_analyzer.systems.paper_trading.negative_factors import (
     check_buy,
     check_holding,
     compute_concentration,

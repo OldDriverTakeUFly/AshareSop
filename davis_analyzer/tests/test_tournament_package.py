@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 from davis_analyzer.core import config, constants
-from davis_analyzer.tournament.cli import main
+from davis_analyzer.systems.tournament.cli import main
 
 
 def test_package_importable() -> None:
-    import davis_analyzer.tournament  # noqa: F401
+    import davis_analyzer.systems.tournament  # noqa: F401
 
 
 def test_reports_dir_created() -> None:

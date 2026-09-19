@@ -5,7 +5,7 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
-from davis_analyzer.limitup.strategies import PRESETS, ExitRule, apply_preset
+from davis_analyzer.systems.limitup.strategies import PRESETS, ExitRule, apply_preset
 
 
 def _ev() -> pd.DataFrame:

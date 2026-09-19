@@ -5,8 +5,8 @@ from __future__ import annotations
 from datetime import date, timedelta
 
 from davis_analyzer.backtest.backtest_report import PerformanceStats
-from davis_analyzer.tournament.judge import WindowReport
-from davis_analyzer.tournament.replay import _window_return, export_replay, replay
+from davis_analyzer.systems.tournament.judge import WindowReport
+from davis_analyzer.systems.tournament.replay import _window_return, export_replay, replay
 
 
 def _stats(sharpe: float) -> PerformanceStats:

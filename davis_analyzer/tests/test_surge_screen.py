@@ -7,7 +7,7 @@ import sqlite3
 import pandas as pd
 import pytest
 
-from davis_analyzer.surge import db, screen
+from davis_analyzer.systems.surge import db, screen
 from davis_analyzer.tests.test_surge_pattern import _base_series, _mk
 
 _DATES = [f"2026{m:02d}{d:02d}"

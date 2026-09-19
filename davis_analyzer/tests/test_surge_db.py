@@ -6,7 +6,7 @@ import sqlite3
 
 import pytest
 
-from davis_analyzer.surge import db
+from davis_analyzer.systems.surge import db
 
 
 @pytest.fixture()

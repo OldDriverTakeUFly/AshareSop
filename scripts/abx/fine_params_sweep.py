@@ -18,9 +18,9 @@ from loguru import logger; logger.remove(); logger.add(sys.stderr, level="ERROR"
 
 from stockhot.data_layer.market_db import get_connection as get_market_conn
 from stockhot.storage.database import init_database, DB_PATH
-from davis_analyzer.paper_trading.account import PaperAccount
-from davis_analyzer.paper_trading.strategy import FactorThresholdStrategy
-from davis_analyzer.paper_trading.executor import run_backfill_auto
+from davis_analyzer.systems.paper_trading.account import PaperAccount
+from davis_analyzer.systems.paper_trading.strategy import FactorThresholdStrategy
+from davis_analyzer.systems.paper_trading.executor import run_backfill_auto
 
 init_database()
 
@@ -88,7 +88,7 @@ def build_universe(top_n: int) -> list[str]:
 
 
 def reset_account(name: str, config: dict) -> PaperAccount:
-    from davis_analyzer.paper_trading.runlock import delete_account_if_idle
+    from davis_analyzer.systems.paper_trading.runlock import delete_account_if_idle
 
     delete_account_if_idle(name)
     return PaperAccount.create(
@@ -154,7 +154,7 @@ def main():
     # Reuse S1 from stage2 if available
     results = []
     try:
-        from davis_analyzer.paper_trading.account import account_nav_complete
+        from davis_analyzer.systems.paper_trading.account import account_nav_complete
 
         with sqlite3.connect(DB_PATH) as c:
             if account_nav_complete("s2_S1_pe_exempt", START, END):

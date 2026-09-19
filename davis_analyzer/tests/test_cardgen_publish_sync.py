@@ -1,8 +1,8 @@
 """嵌套日期 topic(连板天梯/2026-09-01)的 sync/归档/降级与 builder PNG 前缀。"""
 import sqlite3
 
-from davis_analyzer.cardgen import publish_sync
-from davis_analyzer.cardgen.builder import _png_prefix
+from davis_analyzer.systems.cardgen import publish_sync
+from davis_analyzer.systems.cardgen.builder import _png_prefix
 
 
 def _mk_proj(base, topic: str) -> None:

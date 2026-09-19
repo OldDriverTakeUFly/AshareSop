@@ -2,8 +2,8 @@
 """数值 token 提取、豁免掩码与事实命中判定。"""
 from decimal import Decimal
 
-from davis_analyzer.cardgen.numbers import extract_tokens, mask_exemptions, unmatched_tokens
-from davis_analyzer.cardgen.types import Fact
+from davis_analyzer.systems.cardgen.numbers import extract_tokens, mask_exemptions, unmatched_tokens
+from davis_analyzer.systems.cardgen.types import Fact
 
 
 def _f(fid: str, value: str, unit: str, display: str) -> Fact:

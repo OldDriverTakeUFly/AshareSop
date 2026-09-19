@@ -7,8 +7,8 @@ paper_trades 表(单一真相源)以最新 trade_date 为"今天"重建。
 
 from __future__ import annotations
 
-from davis_analyzer.paper_trading.account import TradeRecord
-from davis_analyzer.paper_trading.strategy import create_strategy
+from davis_analyzer.systems.paper_trading.account import TradeRecord
+from davis_analyzer.systems.paper_trading.strategy import create_strategy
 
 
 def _sell(code: str, d: str) -> TradeRecord:

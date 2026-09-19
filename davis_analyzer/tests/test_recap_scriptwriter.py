@@ -6,10 +6,10 @@ import json
 
 import pytest
 
-from davis_analyzer.recap.scriptwriter import (
+from davis_analyzer.systems.recap.scriptwriter import (
     ScriptGenError, assemble_episode, build_user_prompt, generate_episode, parse_episode_json,
 )
-from davis_analyzer.recap.types import Candidate
+from davis_analyzer.systems.recap.types import Candidate
 
 
 def _cand():
@@ -104,7 +104,7 @@ def test_assemble_rejects_unknown_segment():
 def test_assemble_rejects_bare_string_line():
     """v4 实锤:LLM 会把 lines 写成裸字符串数组——必须抛 ScriptGenError 进自纠错,而非 AttributeError。"""
     import pytest as _pytest
-    from davis_analyzer.recap.scriptwriter import ScriptGenError, assemble_episode
+    from davis_analyzer.systems.recap.scriptwriter import ScriptGenError, assemble_episode
     bad = {"title": "t", "segments": [
         {"seg_id": "open", "kind": "scoreboard", "ts_code": None, "lines": ["裸字符串"]}]}
     with _pytest.raises(ScriptGenError):

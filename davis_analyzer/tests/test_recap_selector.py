@@ -2,7 +2,7 @@
 """recap 选片:戏剧性评分/多样性/教育性/冰点降级/facts 装配。"""
 from __future__ import annotations
 
-from davis_analyzer.recap.selector import score_day, select_candidates
+from davis_analyzer.systems.recap.selector import score_day, select_candidates
 
 
 def _bundle(**over):

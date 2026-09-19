@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import date
 
-from davis_analyzer.tournament.champions import (
+from davis_analyzer.systems.tournament.champions import (
     ChampionRecord,
     incumbents,
     promote_champion,
@@ -58,8 +58,8 @@ def test_verify_sync_numeric_normalization(tournament_db) -> None:
 
 
 def test_promote_from_ledger(tournament_db) -> None:
-    from davis_analyzer.tournament.champions import promote_from_ledger
-    from davis_analyzer.tournament.ledger import LedgerRecord, append_record
+    from davis_analyzer.systems.tournament.champions import promote_from_ledger
+    from davis_analyzer.systems.tournament.ledger import LedgerRecord, append_record
 
     append_record(tournament_db, LedgerRecord(
         op_type="evolve", run_date=date(2025, 1, 1),
@@ -78,8 +78,8 @@ def test_promote_generation_uses_max_not_count(tournament_db) -> None:
     # M6：代数取 MAX(generation)+1——历史冠军被满槽淘汰后 COUNT 会饱和复用代数
     from dataclasses import replace
 
-    from davis_analyzer.tournament.champions import promote_from_ledger
-    from davis_analyzer.tournament.ledger import LedgerRecord, append_record
+    from davis_analyzer.systems.tournament.champions import promote_from_ledger
+    from davis_analyzer.systems.tournament.ledger import LedgerRecord, append_record
 
     promote_champion(tournament_db, replace(_rec(7), regime="all"))  # promote 的 regime 恒为 all
     append_record(tournament_db, LedgerRecord(

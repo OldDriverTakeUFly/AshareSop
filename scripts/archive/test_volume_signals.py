@@ -5,7 +5,7 @@ os.environ["PROJECT_ROOT"] = PROJECT_ROOT
 os.chdir(PROJECT_ROOT)
 from loguru import logger; logger.remove(); logger.add(sys.stderr, level="WARNING")
 
-from davis_analyzer.paper_trading.executor import _compute_volume_signals
+from davis_analyzer.systems.paper_trading.executor import _compute_volume_signals
 
 # Test on a mix of well-known A-share stocks across different sectors
 TEST_CODES = [

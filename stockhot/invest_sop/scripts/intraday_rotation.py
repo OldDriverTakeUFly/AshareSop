@@ -37,8 +37,8 @@ PROJECT_ROOT = Path(__file__).resolve().parents[3]  # scripts → invest_sop →
 sys.path.insert(0, str(PROJECT_ROOT))
 sys.path.insert(0, str(PROJECT_ROOT / "studies"))
 
-from davis_analyzer.paper_trading.account import PaperAccount, min_buy_lots
-from davis_analyzer.paper_trading.strategy import (
+from davis_analyzer.systems.paper_trading.account import PaperAccount, min_buy_lots
+from davis_analyzer.systems.paper_trading.strategy import (
     DavisDoubleStrategy,
     MarketSnapshot,
 )

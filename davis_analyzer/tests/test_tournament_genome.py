@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from davis_analyzer.tournament.genome import DAVIS_GENOME, Genome, ParamSpec
+from davis_analyzer.systems.tournament.genome import DAVIS_GENOME, Genome, ParamSpec
 
 
 def _g() -> Genome:

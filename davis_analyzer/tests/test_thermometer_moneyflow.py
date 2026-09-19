@@ -34,7 +34,7 @@ def _seed(conn) -> None:
 
 
 def test_aggregate_sector_moneyflow(tmp_path):
-    from davis_analyzer.thermometer import moneyflow_agg
+    from davis_analyzer.systems.thermometer import moneyflow_agg
 
     conn = _conn(tmp_path)
     try:
@@ -55,7 +55,7 @@ def test_aggregate_sector_moneyflow(tmp_path):
 
 
 def test_market_flow_series(tmp_path):
-    from davis_analyzer.thermometer import moneyflow_agg
+    from davis_analyzer.systems.thermometer import moneyflow_agg
 
     conn = _conn(tmp_path)
     try:
@@ -70,7 +70,7 @@ def test_market_flow_series(tmp_path):
 
 def test_market_flow_from_sectors(tmp_path):
     """大盘资金历史口径:L1 聚合求和,不依赖 daily_basic."""
-    from davis_analyzer.thermometer import moneyflow_agg
+    from davis_analyzer.systems.thermometer import moneyflow_agg
 
     conn = _conn(tmp_path)
     try:

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-from davis_analyzer.limitup import robustness
+from davis_analyzer.systems.limitup import robustness
 
 
 def test_split_is_oos_no_overlap_ordered() -> None:

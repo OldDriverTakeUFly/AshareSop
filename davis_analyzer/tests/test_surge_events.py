@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-from davis_analyzer.surge.factors import classify_hype_risk
+from davis_analyzer.systems.surge.factors import classify_hype_risk
 
 
 def _args(**over):
@@ -101,7 +101,7 @@ def test_industry_none_no_labels():
     assert "行业动量强" not in hype and "行业下行" not in risk
 
 
-from davis_analyzer.surge.factors import check_consecutive_loss  # noqa: E402
+from davis_analyzer.systems.surge.factors import check_consecutive_loss  # noqa: E402
 
 
 def test_consecutive_loss_true():

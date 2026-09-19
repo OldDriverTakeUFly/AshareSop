@@ -55,7 +55,7 @@ class TestRunWindow:
 
 class TestTradeDict:
     def test_trade_record_to_dict(self):
-        from davis_analyzer.paper_trading.account import TradeRecord
+        from davis_analyzer.systems.paper_trading.account import TradeRecord
 
         trade = TradeRecord(
             trade_date="20260820",

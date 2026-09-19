@@ -5,10 +5,10 @@ from __future__ import annotations
 import pandas as pd
 import pytest
 
-from davis_analyzer.intraday.engine import (
+from davis_analyzer.systems.intraday.engine import (
     Bar, DayCtx, IntradayConfig, Order, run_backtest, simulate_day,
 )
-from davis_analyzer.intraday.strategies import GapDownSmart
+from davis_analyzer.systems.intraday.strategies import GapDownSmart
 
 
 def make_ctx(base: int = 1000, trade: int = 300, pre_close: float = 100.0,

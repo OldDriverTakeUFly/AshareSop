@@ -13,9 +13,9 @@ from datetime import date, timedelta
 import pandas as pd
 import pytest
 
-from davis_analyzer.tournament.adapters import SixVeinAdapter, default_participants
-from davis_analyzer.tournament.genome import SIX_VEIN_GENOME
-from davis_analyzer.tournament.six_vein import (
+from davis_analyzer.systems.tournament.adapters import SixVeinAdapter, default_participants
+from davis_analyzer.systems.tournament.genome import SIX_VEIN_GENOME
+from davis_analyzer.systems.tournament.six_vein import (
     SixVeinConfig,
     compute_signals,
     run_six_vein,

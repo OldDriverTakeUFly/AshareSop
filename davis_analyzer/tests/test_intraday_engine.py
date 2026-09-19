@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import pytest
 
-from davis_analyzer.intraday.engine import (
+from davis_analyzer.systems.intraday.engine import (
     Bar, DayCtx, IntradayConfig, Order, simulate_day,
 )
-from davis_analyzer.intraday.strategies import (
+from davis_analyzer.systems.intraday.strategies import (
     AmplitudeGrid, GapDownLongT, SpikeFadeShortT,
 )
 
@@ -29,7 +29,7 @@ CFG = IntradayConfig(per_stock_notional=100_000, trade_fraction=0.3)
 # ── T+1 语义：当日买入不可卖 ──
 
 def test_t1_same_day_buy_not_sellable():
-    from davis_analyzer.intraday.engine import DayRunner
+    from davis_analyzer.systems.intraday.engine import DayRunner
 
     ctx = make_ctx(base=1000)
     r = DayRunner(ctx, CFG)
@@ -44,7 +44,7 @@ def test_t1_same_day_buy_not_sellable():
 
 
 def test_t1_sell_beyond_base_clamped():
-    from davis_analyzer.intraday.engine import DayRunner
+    from davis_analyzer.systems.intraday.engine import DayRunner
 
     ctx = make_ctx(base=1000)
     r = DayRunner(ctx, CFG)
@@ -58,7 +58,7 @@ def test_t1_sell_beyond_base_clamped():
 # ── 涨跌停拒单 ──
 
 def test_limit_up_buy_rejected():
-    from davis_analyzer.intraday.engine import DayRunner
+    from davis_analyzer.systems.intraday.engine import DayRunner
 
     ctx = make_ctx(pre_close=100.0)
     r = DayRunner(ctx, CFG)
@@ -68,7 +68,7 @@ def test_limit_up_buy_rejected():
 
 
 def test_limit_down_sell_rejected():
-    from davis_analyzer.intraday.engine import DayRunner
+    from davis_analyzer.systems.intraday.engine import DayRunner
 
     ctx = make_ctx(pre_close=100.0)
     r = DayRunner(ctx, CFG)
@@ -80,7 +80,7 @@ def test_limit_down_sell_rejected():
 # ── 成本与收益口径 ──
 
 def test_pnl_arithmetic_roundtrip():
-    from davis_analyzer.intraday.engine import DayRunner
+    from davis_analyzer.systems.intraday.engine import DayRunner
 
     ctx = make_ctx()
     r = DayRunner(ctx, CFG)
@@ -91,7 +91,7 @@ def test_pnl_arithmetic_roundtrip():
 
 
 def test_eod_flatten_pairs_inventory():
-    from davis_analyzer.intraday.engine import DayRunner
+    from davis_analyzer.systems.intraday.engine import DayRunner
 
     ctx = make_ctx(daily_close=98.0)
     r = DayRunner(ctx, CFG)

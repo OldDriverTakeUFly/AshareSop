@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import sqlite3
 
-from davis_analyzer.surge import cli, db
+from davis_analyzer.systems.surge import cli, db
 
 
 def test_cli_help(capsys):

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from davis_analyzer.recap import vision_qc
+from davis_analyzer.systems.recap import vision_qc
 
 
 def test_qc_card_parses_verdict(tmp_path, monkeypatch):

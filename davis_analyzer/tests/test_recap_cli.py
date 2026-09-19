@@ -12,7 +12,7 @@ import pytest
 @pytest.fixture()
 def env(tmp_path, monkeypatch):
     """注入:内存台账 conn + 假 bundle + 假 LLM + 假推送。"""
-    from davis_analyzer.recap import cli
+    from davis_analyzer.systems.recap import cli
 
     class _KeepOpenConn(sqlite3.Connection):
         """cli 各阶段用完即 close;同一内存库跨阶段复用需 close 变 no-op(brief 修正)。"""
@@ -21,7 +21,7 @@ def env(tmp_path, monkeypatch):
             pass
 
     conn = sqlite3.connect(":memory:", factory=_KeepOpenConn)
-    from davis_analyzer.recap import db
+    from davis_analyzer.systems.recap import db
     db.ensure_tables(conn)
     monkeypatch.setattr(cli, "_conn", lambda: conn)
     monkeypatch.setattr(cli, "EPISODES_DIR", tmp_path / "episodes")
@@ -74,7 +74,7 @@ def env(tmp_path, monkeypatch):
 
 
 def test_run_full_flow(env):
-    from davis_analyzer.recap import cli, db
+    from davis_analyzer.systems.recap import cli, db
     args = cli.build_parser().parse_args(["run", "--date", "2026-09-18"])
     args.func(args)
     row = db.get_episode(env["conn"], "2026-09-18")
@@ -89,7 +89,7 @@ def test_run_full_flow(env):
 
 def test_run_ice_day_degrades(env, monkeypatch):
     """冰点日:无候选 → 内置极简剧本照常推单。"""
-    from davis_analyzer.recap import cli, db
+    from davis_analyzer.systems.recap import cli, db
     empty = dict(env["bundle"], pool=[], boards=[], amplitude_top=[], limit_up_count=0,
                  broken=[], down=[])
     monkeypatch.setattr(cli.data, "fetch_bundle", lambda day: empty)

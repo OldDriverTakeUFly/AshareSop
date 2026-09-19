@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 from pytest import MonkeyPatch
 
-from davis_analyzer.limitup import patterns
+from davis_analyzer.systems.limitup import patterns
 
 
 def test_seal_band() -> None:

@@ -20,7 +20,7 @@ from loguru import logger; logger.remove(); logger.add(sys.stderr, level="INFO")
 
 from stockhot.data_layer.market_db import get_connection as get_market_conn
 from stockhot.storage.database import DB_PATH
-from davis_analyzer.paper_trading.account import PaperAccount
+from davis_analyzer.systems.paper_trading.account import PaperAccount
 
 sys.path.insert(0, f"{PROJECT_ROOT}/stockhot")
 import importlib

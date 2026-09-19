@@ -12,14 +12,14 @@ from loguru import logger; logger.remove(); logger.add(sys.stderr, level="WARNIN
 from datetime import datetime
 from stockhot.data_layer.market_db import get_connection as get_market_conn
 from davis_analyzer.core.tushare_client import TushareClient
-from davis_analyzer.paper_trading.strategy import FactorThresholdStrategy
-from davis_analyzer.paper_trading.executor import (
+from davis_analyzer.systems.paper_trading.strategy import FactorThresholdStrategy
+from davis_analyzer.systems.paper_trading.executor import (
     _compute_davis_scores_at, _compute_factor_scores_at,
     _compute_volume_signals, _compute_pe_percentiles, _compute_short_momentum,
     _get_industries, _get_market_regime, _infer_industry_trends,
     _compute_event_signals, _load_tech_scores,
 )
-from davis_analyzer.paper_trading.strategy import MarketSnapshot
+from davis_analyzer.systems.paper_trading.strategy import MarketSnapshot
 
 
 def get_latest_trade_date() -> str:

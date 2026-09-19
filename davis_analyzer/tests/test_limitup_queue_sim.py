@@ -6,7 +6,7 @@ import sqlite3
 
 import pandas as pd
 
-from davis_analyzer.limitup import queue_sim
+from davis_analyzer.systems.limitup import queue_sim
 
 
 def _mins(rows: list[tuple[str, float, float]]) -> pd.DataFrame:

@@ -12,7 +12,7 @@ from unittest.mock import MagicMock, patch
 
 import pandas as pd
 
-from davis_analyzer.paper_trading import live_monitor as lm
+from davis_analyzer.systems.paper_trading import live_monitor as lm
 
 
 def _mock_repo(close: float | None = None):

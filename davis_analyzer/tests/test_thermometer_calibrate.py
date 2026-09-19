@@ -23,14 +23,14 @@ def _panel(predictive: bool, n_days: int = 60, n_sec: int = 30) -> pd.DataFrame:
 
 
 def test_rank_ic_extremes():
-    from davis_analyzer.thermometer import calibrate
+    from davis_analyzer.systems.thermometer import calibrate
 
     assert calibrate.daily_rank_ic(_panel(True), 10).mean() > 0.95
     assert abs(calibrate.daily_rank_ic(_panel(False), 10).mean()) < 0.15
 
 
 def test_quintile_monotonic_and_spread():
-    from davis_analyzer.thermometer import calibrate
+    from davis_analyzer.systems.thermometer import calibrate
 
     rep = calibrate.quintile_report(_panel(True), 10)
     means = [rep[f"q{i}"] for i in range(1, 6)]
@@ -39,7 +39,7 @@ def test_quintile_monotonic_and_spread():
 
 
 def test_walk_forward_shape():
-    from davis_analyzer.thermometer import calibrate
+    from davis_analyzer.systems.thermometer import calibrate
 
     panel = _panel(True, n_days=200)
     # 缩小窗口让单折成立:200 日 → train=74/valid=26 也能出先验档
@@ -50,7 +50,7 @@ def test_walk_forward_shape():
 
 def test_verdict_targets():
     from davis_analyzer.core.constants import THERMOMETER_CALIBRATION_TARGETS
-    from davis_analyzer.thermometer import calibrate
+    from davis_analyzer.systems.thermometer import calibrate
 
     ok = calibrate._verdict({"oos_ic_mean": 0.05, "oos_icir": 0.4}, 0.01)
     assert ok is True

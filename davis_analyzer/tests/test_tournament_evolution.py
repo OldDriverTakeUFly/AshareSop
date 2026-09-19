@@ -5,8 +5,8 @@ from __future__ import annotations
 import random
 from datetime import date, timedelta
 
-from davis_analyzer.tournament.evolution import draw_segments, mutate, split_finals
-from davis_analyzer.tournament.genome import Genome, ParamSpec
+from davis_analyzer.systems.tournament.evolution import draw_segments, mutate, split_finals
+from davis_analyzer.systems.tournament.genome import Genome, ParamSpec
 
 
 def _cal(n: int = 200) -> list[date]:

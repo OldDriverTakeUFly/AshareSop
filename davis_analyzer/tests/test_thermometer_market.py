@@ -45,7 +45,7 @@ def _seed(conn, days: int = 300) -> None:
 
 
 def test_market_temperature_series(tmp_path):
-    from davis_analyzer.thermometer import market_temp
+    from davis_analyzer.systems.thermometer import market_temp
 
     conn = _conn(tmp_path)
     try:
@@ -65,7 +65,7 @@ def test_market_temperature_series(tmp_path):
 
 
 def test_short_history_no_temperature(tmp_path):
-    from davis_analyzer.thermometer import market_temp
+    from davis_analyzer.systems.thermometer import market_temp
 
     conn = _conn(tmp_path)
     try:

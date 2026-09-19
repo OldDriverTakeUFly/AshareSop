@@ -8,7 +8,7 @@ import pandas as pd
 import pytest
 
 from davis_analyzer.backtest.backtest_report import PerformanceStats
-from davis_analyzer.tournament.adapters import (
+from davis_analyzer.systems.tournament.adapters import (
     DavisPresetAdapter,
     IndexBenchmarkAdapter,
     RunResult,
@@ -58,7 +58,7 @@ def test_davis_adapter_maps_params(monkeypatch, mock_client) -> None:
                                 cash=1_000_000.0, positions_value=0.0) for i in range(45)]
         return BacktestResult(config=cfg, equity_curve=curve)
 
-    monkeypatch.setattr("davis_analyzer.tournament.adapters.run_backtest", fake_run_backtest)
+    monkeypatch.setattr("davis_analyzer.systems.tournament.adapters.run_backtest", fake_run_backtest)
     adapter = DavisPresetAdapter("davis_momentum_tilt", {"momentum_weight": 0.45, "top_n": 15})
     run = adapter.run_window(mock_client, date(2024, 1, 2), date(2024, 4, 1))
     assert run is not None
@@ -77,7 +77,7 @@ def test_davis_adapter_rejects_undeclared_param(monkeypatch, mock_client) -> Non
 def test_davis_adapter_none_on_empty_curve(monkeypatch, mock_client) -> None:
     from davis_analyzer.backtest.backtest import BacktestConfig, BacktestResult
     monkeypatch.setattr(
-        "davis_analyzer.tournament.adapters.run_backtest",
+        "davis_analyzer.systems.tournament.adapters.run_backtest",
         lambda cfg, client: BacktestResult(config=BacktestConfig(
             start_date=cfg.start_date, end_date=cfg.end_date)),
     )
@@ -119,7 +119,7 @@ def _amount_conn():
 
 
 def test_liquidity_universe_ranks_by_median_amount() -> None:
-    from davis_analyzer.tournament.adapters import liquidity_universe
+    from davis_analyzer.systems.tournament.adapters import liquidity_universe
 
     conn = _amount_conn()
     try:
@@ -130,7 +130,7 @@ def test_liquidity_universe_ranks_by_median_amount() -> None:
 
 
 def test_resolve_universe_spec_forms(tmp_path) -> None:
-    from davis_analyzer.tournament.adapters import resolve_universe
+    from davis_analyzer.systems.tournament.adapters import resolve_universe
 
     assert resolve_universe("all") is None  # 全缓存宇宙
     conn = _amount_conn()
@@ -158,8 +158,8 @@ def test_default_participants_universe_passthrough() -> None:
 
 
 def test_board_chasing_adapter_converts_trades(monkeypatch, mock_client) -> None:
-    from davis_analyzer.limitup.engine import TradeRecord
-    from davis_analyzer.tournament.adapters import BoardChasingAdapter
+    from davis_analyzer.systems.limitup.engine import TradeRecord
+    from davis_analyzer.systems.tournament.adapters import BoardChasingAdapter
 
     class _FakeConn:
         def close(self) -> None:
@@ -176,23 +176,23 @@ def test_board_chasing_adapter_converts_trades(monkeypatch, mock_client) -> None
         "cash": [1_000_000.0, 1_000_000.0, 999_500.0, 999_000.0],
     })
     monkeypatch.setattr(
-        "davis_analyzer.tournament.adapters._limitup_db.connect", lambda: _FakeConn())
+        "davis_analyzer.systems.tournament.adapters._limitup_db.connect", lambda: _FakeConn())
     monkeypatch.setattr(
-        "davis_analyzer.tournament.adapters._build_ev",
+        "davis_analyzer.systems.tournament.adapters._build_ev",
         lambda conn, s, e: pd.DataFrame({"ts_code": ["600000.SH"]}))
     monkeypatch.setattr(
-        "davis_analyzer.tournament.adapters._attach_pat", lambda ev, conn, s, e: ev)
+        "davis_analyzer.systems.tournament.adapters._attach_pat", lambda ev, conn, s, e: ev)
     monkeypatch.setattr(
-        "davis_analyzer.tournament.adapters._build_regime",
+        "davis_analyzer.systems.tournament.adapters._build_regime",
         lambda conn, s, e: pd.DataFrame())
     monkeypatch.setattr(
-        "davis_analyzer.tournament.adapters._lap",
+        "davis_analyzer.systems.tournament.adapters._lap",
         lambda ev, preset, regime=None: pd.DataFrame({"ts_code": ["600000.SH"]}))
     monkeypatch.setattr(
-        "davis_analyzer.tournament.adapters._limitup_db.read_daily_prices",
+        "davis_analyzer.systems.tournament.adapters._limitup_db.read_daily_prices",
         lambda conn, codes, s, e: pd.DataFrame({"ts_code": ["600000.SH"]}))
     monkeypatch.setattr(
-        "davis_analyzer.tournament.adapters._lrun",
+        "davis_analyzer.systems.tournament.adapters._lrun",
         lambda cands, prices, preset, cfg, scenario: ([record], nav))
 
     run = BoardChasingAdapter().run_window(mock_client, date(2024, 1, 2), date(2024, 1, 31))

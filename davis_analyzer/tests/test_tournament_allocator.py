@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from davis_analyzer.tournament.allocator import allocate
+from davis_analyzer.systems.tournament.allocator import allocate
 
 
 def test_three_valid_participants() -> None:

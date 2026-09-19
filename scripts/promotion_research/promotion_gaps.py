@@ -23,8 +23,8 @@ import numpy as np
 import pandas as pd
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
-from davis_analyzer.limitup import db as ldb  # noqa: E402
-from davis_analyzer.limitup import events as lev  # noqa: E402
+from davis_analyzer.systems.limitup import db as ldb  # noqa: E402
+from davis_analyzer.systems.limitup import events as lev  # noqa: E402
 
 START, END = "20210104", "20260826"
 OUT_DIR = "studies/output/promotion"

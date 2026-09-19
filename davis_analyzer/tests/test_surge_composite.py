@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import math
 
-from davis_analyzer.surge.factors import compute_composite
+from davis_analyzer.systems.surge.factors import compute_composite
 
 _BASE = dict(
     money={"elg_net_d0": 5000.0, "lg_net_5d": 20000.0,

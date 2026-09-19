@@ -6,9 +6,9 @@ import sqlite3
 
 import pytest
 
-from davis_analyzer.metrics import db as mdb
-from davis_analyzer.metrics.collector import _to_int
-from davis_analyzer.metrics.report import report
+from davis_analyzer.systems.metrics import db as mdb
+from davis_analyzer.systems.metrics.collector import _to_int
+from davis_analyzer.systems.metrics.report import report
 
 
 @pytest.fixture()

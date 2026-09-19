@@ -1,0 +1,30 @@
+{
+  "pass": true,
+  "frames": [
+    {
+      "file": "banner_01.png",
+      "pass": true,
+      "issues": []
+    },
+    {
+      "file": "rankintro_01.png",
+      "pass": true,
+      "issues": []
+    },
+    {
+      "file": "replay_badge.png",
+      "pass": true,
+      "issues": []
+    },
+    {
+      "file": "scoreboard.png",
+      "pass": true,
+      "issues": []
+    },
+    {
+      "file": "stock_01_601091.png",
+      "pass": true,
+      "issues": []
+    }
+  ]
+}

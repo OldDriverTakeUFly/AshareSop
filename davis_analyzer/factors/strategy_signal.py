@@ -36,7 +36,7 @@ def _get_market_regime(trade_date: str) -> dict:
         regime = "neutral"
 
     try:
-        from davis_analyzer.paper_trading.executor import _get_market_vol_regime
+        from davis_analyzer.systems.paper_trading.executor import _get_market_vol_regime
         vol_regime, vol_mult = _get_market_vol_regime(trade_date)
     except Exception:
         vol_regime, vol_mult = "normal_vol", 1.0
@@ -119,7 +119,7 @@ def _get_sector_rules() -> list[dict]:
 
 def _get_strategy_config() -> dict:
     """获取当前策略配置参数."""
-    from davis_analyzer.paper_trading.strategy import FactorThresholdStrategy
+    from davis_analyzer.systems.paper_trading.strategy import FactorThresholdStrategy
     s = FactorThresholdStrategy()
     return {
         "max_positions": s.max_positions,

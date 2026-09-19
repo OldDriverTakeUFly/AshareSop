@@ -9,18 +9,18 @@ from unittest.mock import MagicMock
 
 import pytest
 
-import davis_analyzer.tournament.evolution as evolution_mod
+import davis_analyzer.systems.tournament.evolution as evolution_mod
 import davis_analyzer.core.tushare_client as tushare_client_mod
-from davis_analyzer.tournament import judge as judge_mod
-from davis_analyzer.tournament import ledger as ledger_mod
-from davis_analyzer.tournament.cli import main
-from davis_analyzer.tournament.evolution import (
+from davis_analyzer.systems.tournament import judge as judge_mod
+from davis_analyzer.systems.tournament import ledger as ledger_mod
+from davis_analyzer.systems.tournament.cli import main
+from davis_analyzer.systems.tournament.evolution import (
     check_promotion,
     improvement_distribution,
     perturb_decay,
     run_campaign,
 )
-from davis_analyzer.tournament.ledger import LedgerRecord, append_record
+from davis_analyzer.systems.tournament.ledger import LedgerRecord, append_record
 
 
 def _mutate(params, rng):
@@ -134,7 +134,7 @@ def _patch_evolve_env(monkeypatch: pytest.MonkeyPatch, n_days: int = 900) -> sql
     ledger_mod.ensure_tables(conn)
     monkeypatch.setattr(ledger_mod, "open_db", lambda: conn)
     monkeypatch.setattr(tushare_client_mod, "TushareClient", MagicMock)
-    import davis_analyzer.tournament.adapters as adapters_mod
+    import davis_analyzer.systems.tournament.adapters as adapters_mod
     monkeypatch.setattr(adapters_mod, "resolve_universe", lambda spec, conn=None: None)
     calendar = [date(2023, 1, 2) + timedelta(days=i) for i in range(n_days)]
     monkeypatch.setattr(judge_mod, "trading_calendar", lambda client, start, end: calendar)
@@ -168,8 +168,8 @@ def test_evolve_cli_contract(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_evolve_cli_seed_defaults_fill_empty_preset(monkeypatch: pytest.MonkeyPatch) -> None:
     """I2：空预设参与者（davis_balanced）的 incumbent 由种子补全全部 8 键。"""
-    from davis_analyzer.tournament.evolution import DAVIS_SEED_DEFAULTS
-    from davis_analyzer.tournament.genome import DAVIS_GENOME
+    from davis_analyzer.systems.tournament.evolution import DAVIS_SEED_DEFAULTS
+    from davis_analyzer.systems.tournament.genome import DAVIS_GENOME
 
     conn = _patch_evolve_env(monkeypatch)
     try:

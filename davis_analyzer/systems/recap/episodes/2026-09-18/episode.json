@@ -1,0 +1,289 @@
+{
+  "trade_date": "2026-09-18",
+  "title": "沈鼓深V，A股再现神逆转",
+  "segments": [
+    {
+      "seg_id": "open",
+      "kind": "scoreboard",
+      "ts_code": null,
+      "lines": [
+        {
+          "speaker": "pb",
+          "text": "沈鼓深V，A股再现神逆转！"
+        }
+      ]
+    },
+    {
+      "seg_id": "s1",
+      "kind": "stock",
+      "ts_code": "601091.SH",
+      "lines": [
+        {
+          "speaker": "pb",
+          "text": "这波啊，沈鼓开盘直接低开27.88%，开盘价15元，这哪是开盘，这是跳水啊！"
+        },
+        {
+          "speaker": "color",
+          "text": "别急，这可是新股上市第二天，情绪波动大属于正常现象。"
+        },
+        {
+          "speaker": "pb",
+          "text": "正常？我告诉你，这可是从海底捞针直接跃龙门，最高点82.59元，振幅326.49%，史诗级深V！"
+        },
+        {
+          "speaker": "color",
+          "text": "没错，这含金量还在上升，今日收盘57.77元，涨幅177.74%，简直天秀！"
+        },
+        {
+          "speaker": "pb",
+          "text": "这可是开盘就主打一个拿捏，收盘一看，泼天的富贵啊！"
+        },
+        {
+          "speaker": "color",
+          "text": "这也很合理，机械基件板块需求旺盛，这波大逆转，格局大，卷王无疑。"
+        },
+        {
+          "speaker": "pb",
+          "text": "你说得我都快忍不住了，这要是NBA，妥妥的压哨扣篮绝杀！"
+        },
+        {
+          "speaker": "color",
+          "text": "是啊，A股的魅力就在这种无法预测的戏剧性，但记住，不构成投资建议。"
+        }
+      ]
+    },
+    {
+      "seg_id": "close",
+      "kind": "outlook",
+      "ts_code": null,
+      "lines": [
+        {
+          "speaker": "color",
+          "text": "波动大，谨慎吃瓜，不构成投资建议。"
+        }
+      ]
+    }
+  ],
+  "facts": [
+    {
+      "id": "idx_sh_close",
+      "value": "3912",
+      "unit": "点",
+      "display": "上证指数3912点",
+      "as_of": "2026-09-18",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:index_daily@2026-09-18:000001.SH:close"
+      }
+    },
+    {
+      "id": "idx_sh_chg",
+      "value": "0.94",
+      "unit": "%",
+      "display": "上证指数+0.94%",
+      "as_of": "2026-09-18",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:index_daily@2026-09-18:000001.SH:pct_chg"
+      }
+    },
+    {
+      "id": "idx_sz_close",
+      "value": "13641",
+      "unit": "点",
+      "display": "深证成指13641点",
+      "as_of": "2026-09-18",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:index_daily@2026-09-18:399001.SZ:close"
+      }
+    },
+    {
+      "id": "idx_sz_chg",
+      "value": "1.72",
+      "unit": "%",
+      "display": "深证成指+1.72%",
+      "as_of": "2026-09-18",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:index_daily@2026-09-18:399001.SZ:pct_chg"
+      }
+    },
+    {
+      "id": "idx_cyb_close",
+      "value": "3373",
+      "unit": "点",
+      "display": "创业板指3373点",
+      "as_of": "2026-09-18",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:index_daily@2026-09-18:399006.SZ:close"
+      }
+    },
+    {
+      "id": "idx_cyb_chg",
+      "value": "2.25",
+      "unit": "%",
+      "display": "创业板指+2.25%",
+      "as_of": "2026-09-18",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:index_daily@2026-09-18:399006.SZ:pct_chg"
+      }
+    },
+    {
+      "id": "breadth_up",
+      "value": "4234",
+      "unit": "家",
+      "display": "上涨4234家",
+      "as_of": "2026-09-18",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:daily_price@2026-09-18:pct_chg>0"
+      }
+    },
+    {
+      "id": "breadth_down",
+      "value": "1152",
+      "unit": "家",
+      "display": "下跌1152家",
+      "as_of": "2026-09-18",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:daily_price@2026-09-18:pct_chg<0"
+      }
+    },
+    {
+      "id": "limit_up_count",
+      "value": "78",
+      "unit": "家",
+      "display": "涨停78家",
+      "as_of": "2026-09-18",
+      "source": {
+        "kind": "stockhot",
+        "ref": "stockhot.db:limit_up_pool@2026-09-18:count"
+      }
+    },
+    {
+      "id": "601091.SH_day2",
+      "value": 2,
+      "unit": "天",
+      "display": "上市第2天",
+      "as_of": "2026-09-18",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:daily_price@2026-09-18:601091.SH"
+      }
+    },
+    {
+      "id": "601091.SH_ipo",
+      "value": "4.39",
+      "unit": "元",
+      "display": "发行价4.39元",
+      "as_of": "2026-09-18",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:daily_price@2026-09-18:601091.SH"
+      }
+    },
+    {
+      "id": "601091.SH_day1chg",
+      "value": "373.80",
+      "unit": "%",
+      "display": "首日大涨373.80%",
+      "as_of": "2026-09-18",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:daily_price@2026-09-18:601091.SH"
+      }
+    },
+    {
+      "id": "601091.SH_preclose",
+      "value": "20.80",
+      "unit": "元",
+      "display": "昨收20.80元",
+      "as_of": "2026-09-18",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:daily_price@2026-09-18:601091.SH"
+      }
+    },
+    {
+      "id": "601091.SH_open",
+      "value": "15.00",
+      "unit": "元",
+      "display": "今开15.00元",
+      "as_of": "2026-09-18",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:daily_price@2026-09-18:601091.SH"
+      }
+    },
+    {
+      "id": "601091.SH_openchg",
+      "value": "27.88",
+      "unit": "%",
+      "display": "低开27.88%",
+      "as_of": "2026-09-18",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:daily_price@2026-09-18:601091.SH"
+      }
+    },
+    {
+      "id": "601091.SH_low",
+      "value": "14.68",
+      "unit": "元",
+      "display": "最低14.68元",
+      "as_of": "2026-09-18",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:daily_price@2026-09-18:601091.SH"
+      }
+    },
+    {
+      "id": "601091.SH_high",
+      "value": "82.59",
+      "unit": "元",
+      "display": "最高82.59元",
+      "as_of": "2026-09-18",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:daily_price@2026-09-18:601091.SH"
+      }
+    },
+    {
+      "id": "601091.SH_close",
+      "value": "57.77",
+      "unit": "元",
+      "display": "收盘57.77元",
+      "as_of": "2026-09-18",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:daily_price@2026-09-18:601091.SH"
+      }
+    },
+    {
+      "id": "601091.SH_chg",
+      "value": "177.74",
+      "unit": "%",
+      "display": "今日收涨177.74%",
+      "as_of": "2026-09-18",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:daily_price@2026-09-18:601091.SH"
+      }
+    },
+    {
+      "id": "601091.SH_amp",
+      "value": "326.49",
+      "unit": "%",
+      "display": "全天振幅326.49%",
+      "as_of": "2026-09-18",
+      "source": {
+        "kind": "stockhot",
+        "ref": "market_data.db:daily_price@2026-09-18:601091.SH"
+      }
+    }
+  ]
+}

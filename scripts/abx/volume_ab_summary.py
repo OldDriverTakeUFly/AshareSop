@@ -9,7 +9,7 @@ os.environ["PROJECT_ROOT"] = PROJECT_ROOT
 os.chdir(PROJECT_ROOT)
 
 from stockhot.storage.database import DB_PATH, init_database
-from davis_analyzer.paper_trading.account import PaperAccount
+from davis_analyzer.systems.paper_trading.account import PaperAccount
 
 init_database()
 INITIAL_CAPITAL = 1_000_000

@@ -6,10 +6,10 @@ from dataclasses import replace
 
 import pandas as pd
 
-from davis_analyzer.limitup.engine import (
+from davis_analyzer.systems.limitup.engine import (
     LimitupBacktestConfig, TradeRecord, fill_probability, run_backtest,
 )
-from davis_analyzer.limitup.strategies import PRESETS, ExitRule, StrategyPreset
+from davis_analyzer.systems.limitup.strategies import PRESETS, ExitRule, StrategyPreset
 
 
 def _cand(**kw) -> pd.DataFrame:
@@ -115,7 +115,7 @@ def test_compute_limitup_performance() -> None:
     import pytest
 
     from davis_analyzer.backtest.backtest_report import PerformanceStats
-    from davis_analyzer.limitup.engine import compute_limitup_performance
+    from davis_analyzer.systems.limitup.engine import compute_limitup_performance
 
     nav = pd.DataFrame({
         "date": ["20240102", "20240103", "20240104"],
@@ -194,7 +194,7 @@ def test_open_hold_locked_limit_down_still_postpones() -> None:
 
 def test_dynamic_slots_super_hot_day() -> None:
     """高潮增强仓位：dynamic_slots 覆盖指定日期的 max_positions."""
-    from davis_analyzer.limitup.engine import LimitupBacktestConfig
+    from davis_analyzer.systems.limitup.engine import LimitupBacktestConfig
 
     # 两候选同日（用 _cand 的 base dict 拼帧）
     base = {"trade_date": "20240102", "limit_price": 11.0,

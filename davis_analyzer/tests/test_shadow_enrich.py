@@ -6,8 +6,8 @@ import sqlite3
 
 import pytest
 
-from davis_analyzer.intraday.engine import Bar, IntradayConfig
-from davis_analyzer.intraday.paper_shadow import (
+from davis_analyzer.systems.intraday.engine import Bar, IntradayConfig
+from davis_analyzer.systems.intraday.paper_shadow import (
     SMART_CONFIG,
     classify_state,
     ensure_shadow_tables,

@@ -6,8 +6,8 @@ from dataclasses import dataclass, field
 from datetime import date, timedelta
 
 from davis_analyzer.backtest.backtest import EquitySnapshot, Trade
-from davis_analyzer.tournament.adapters import RunResult
-from davis_analyzer.tournament.judge import JudgeHarness, WindowReport
+from davis_analyzer.systems.tournament.adapters import RunResult
+from davis_analyzer.systems.tournament.judge import JudgeHarness, WindowReport
 
 
 def _cal(n: int = 200) -> list[date]:

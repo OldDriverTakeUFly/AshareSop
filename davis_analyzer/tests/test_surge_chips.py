@@ -7,7 +7,7 @@ import sqlite3
 import pandas as pd
 import pytest
 
-from davis_analyzer.surge import chips, db
+from davis_analyzer.systems.surge import chips, db
 
 
 class FakePro:

@@ -1,0 +1,79 @@
+{
+  "lines": [
+    {
+      "seg_id": "open",
+      "speaker": "pb",
+      "text": "沈鼓深V，A股再现神逆转！",
+      "dur": 3.67,
+      "file": "audio/open_00_pb.mp3"
+    },
+    {
+      "seg_id": "s1",
+      "speaker": "pb",
+      "text": "这波啊，沈鼓开盘直接低开27.88%，开盘价15元，这哪是开盘，这是跳水啊！",
+      "dur": 9.22,
+      "file": "audio/s1_00_pb.mp3"
+    },
+    {
+      "seg_id": "s1",
+      "speaker": "color",
+      "text": "别急，这可是新股上市第二天，情绪波动大属于正常现象。",
+      "dur": 6.17,
+      "file": "audio/s1_01_color.mp3"
+    },
+    {
+      "seg_id": "s1",
+      "speaker": "pb",
+      "text": "正常？我告诉你，这可是从海底捞针直接跃龙门，最高点82.59元，振幅326.49%，史诗级深V！",
+      "dur": 12.26,
+      "file": "audio/s1_02_pb.mp3"
+    },
+    {
+      "seg_id": "s1",
+      "speaker": "color",
+      "text": "没错，这含金量还在上升，今日收盘57.77元，涨幅177.74%，简直天秀！",
+      "dur": 8.78,
+      "file": "audio/s1_03_color.mp3"
+    },
+    {
+      "seg_id": "s1",
+      "speaker": "pb",
+      "text": "这可是开盘就主打一个拿捏，收盘一看，泼天的富贵啊！",
+      "dur": 5.42,
+      "file": "audio/s1_04_pb.mp3"
+    },
+    {
+      "seg_id": "s1",
+      "speaker": "color",
+      "text": "这也很合理，机械基件板块需求旺盛，这波大逆转，格局大，卷王无疑。",
+      "dur": 7.73,
+      "file": "audio/s1_05_color.mp3"
+    },
+    {
+      "seg_id": "s1",
+      "speaker": "pb",
+      "text": "你说得我都快忍不住了，这要是NBA，妥妥的压哨扣篮绝杀！",
+      "dur": 6.26,
+      "file": "audio/s1_06_pb.mp3"
+    },
+    {
+      "seg_id": "s1",
+      "speaker": "color",
+      "text": "是啊，A股的魅力就在这种无法预测的戏剧性，但记住，不构成投资建议。",
+      "dur": 7.51,
+      "file": "audio/s1_07_color.mp3"
+    },
+    {
+      "seg_id": "close",
+      "speaker": "color",
+      "text": "波动大，谨慎吃瓜，不构成投资建议。",
+      "dur": 4.42,
+      "file": "audio/close_00_color.mp3"
+    }
+  ],
+  "segments": {
+    "open": 3.67,
+    "s1": 64.75,
+    "close": 4.42
+  }
+}

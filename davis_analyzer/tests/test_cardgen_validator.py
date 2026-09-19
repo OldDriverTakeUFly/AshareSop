@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from davis_analyzer.cardgen.validator import run_validation
+from davis_analyzer.systems.cardgen.validator import run_validation
 
 
 def _write(path: Path, obj: object) -> None:

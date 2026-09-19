@@ -3,7 +3,7 @@
 import json
 from pathlib import Path
 
-from davis_analyzer.cardgen.compliance import (
+from davis_analyzer.systems.cardgen.compliance import (
     REQUIRED_PHRASES, iter_content_strings, load_waivers, scan_compliance,
 )
 

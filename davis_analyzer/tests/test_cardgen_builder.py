@@ -8,10 +8,10 @@ from pathlib import Path
 
 import pytest
 
-from davis_analyzer.cardgen import ledger
-from davis_analyzer.cardgen.builder import load_release, render
-from davis_analyzer.cardgen.facts import DEFAULT_TTL_DAYS
-from davis_analyzer.cardgen.validator import run_validation
+from davis_analyzer.systems.cardgen import ledger
+from davis_analyzer.systems.cardgen.builder import load_release, render
+from davis_analyzer.systems.cardgen.facts import DEFAULT_TTL_DAYS
+from davis_analyzer.systems.cardgen.validator import run_validation
 
 NODE = shutil.which("node")
 

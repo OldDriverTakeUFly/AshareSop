@@ -34,7 +34,7 @@ class _FakeConn:
 
 def _mk_cands(rows: list[dict]) -> pd.DataFrame:
     """合成候选帧（对齐 candidates.CANDIDATE_COLUMNS 契约列）."""
-    from davis_analyzer.limitup.candidates import CANDIDATE_COLUMNS
+    from davis_analyzer.systems.limitup.candidates import CANDIDATE_COLUMNS
 
     df = pd.DataFrame(rows)
     for col in CANDIDATE_COLUMNS:
@@ -71,20 +71,20 @@ def _patch_candidates(monkeypatch, frame_or_exc):
         return frame_or_exc
 
     monkeypatch.setattr(
-        "davis_analyzer.limitup.candidates.build_candidates", _fake_build_candidates
+        "davis_analyzer.systems.limitup.candidates.build_candidates", _fake_build_candidates
     )
-    monkeypatch.setattr("davis_analyzer.limitup.db.connect", lambda: fake_conn)
+    monkeypatch.setattr("davis_analyzer.systems.limitup.db.connect", lambda: fake_conn)
     return calls, fake_conn
 
 
 def _snapshot(date: str = "20260818"):
-    from davis_analyzer.paper_trading.strategy import MarketSnapshot
+    from davis_analyzer.systems.paper_trading.strategy import MarketSnapshot
 
     return MarketSnapshot(trade_date=date, prices={})
 
 
 def _position(code: str = "600001.SH", name: str = "持仓A"):
-    from davis_analyzer.paper_trading.account import Position
+    from davis_analyzer.systems.paper_trading.account import Position
 
     return Position(code, name, 100, 10.0, "20260817")
 
@@ -102,7 +102,7 @@ def _sell_map(signals: list) -> dict:
 
 class TestFactoryRegistration:
     def test_board_chasing_base(self):
-        from davis_analyzer.paper_trading.strategy import (
+        from davis_analyzer.systems.paper_trading.strategy import (
             BoardChasingStrategy, create_strategy,
         )
 
@@ -112,7 +112,7 @@ class TestFactoryRegistration:
         assert strategy.name == "board_chasing"
 
     def test_board_chasing_enhanced(self):
-        from davis_analyzer.paper_trading.strategy import (
+        from davis_analyzer.systems.paper_trading.strategy import (
             BoardChasingStrategy, create_strategy,
         )
 
@@ -122,7 +122,7 @@ class TestFactoryRegistration:
         assert strategy.name == "board_chasing_enhanced"
 
     def test_existing_strategies_unchanged(self):
-        from davis_analyzer.paper_trading.strategy import (
+        from davis_analyzer.systems.paper_trading.strategy import (
             STRATEGY_REGISTRY, DavisDoubleStrategy, FactorThresholdStrategy,
         )
 
@@ -135,7 +135,7 @@ class TestFactoryRegistration:
 
 class TestLevelSell:
     def test_position_gets_sell_with_sell_at_open(self, monkeypatch):
-        from davis_analyzer.paper_trading.strategy import BoardChasingStrategy
+        from davis_analyzer.systems.paper_trading.strategy import BoardChasingStrategy
 
         calls, _ = _patch_candidates(
             monkeypatch, _mk_cands([_cand("600002.SH", enhanced=True)])
@@ -151,7 +151,7 @@ class TestLevelSell:
 
     def test_sell_is_level_triggered_not_edge(self, monkeypatch):
         """同一持仓连续两次 evaluate 都发 SELL（顺延漏卖防线）."""
-        from davis_analyzer.paper_trading.strategy import BoardChasingStrategy
+        from davis_analyzer.systems.paper_trading.strategy import BoardChasingStrategy
 
         _patch_candidates(monkeypatch, _mk_cands([_cand("600002.SH")]))
         strategy = BoardChasingStrategy()
@@ -169,7 +169,7 @@ class TestLevelSell:
 
 class TestBuy:
     def test_buy_weight_is_one_third(self, monkeypatch):
-        from davis_analyzer.paper_trading.strategy import BoardChasingStrategy
+        from davis_analyzer.systems.paper_trading.strategy import BoardChasingStrategy
 
         _patch_candidates(monkeypatch, _mk_cands([
             _cand("600002.SH"), _cand("600003.SH"),
@@ -183,7 +183,7 @@ class TestBuy:
             assert sig.target_weight == pytest.approx(1 / 3)
 
     def test_buy_reason_contains_key_fields(self, monkeypatch):
-        from davis_analyzer.paper_trading.strategy import BoardChasingStrategy
+        from davis_analyzer.systems.paper_trading.strategy import BoardChasingStrategy
 
         _patch_candidates(monkeypatch, _mk_cands([
             _cand("600002.SH", name="突破股", pattern="突破型",
@@ -202,7 +202,7 @@ class TestBuy:
 
     def test_buy_capped_at_max_positions_in_frame_order(self, monkeypatch):
         """候选多于名额时按帧序（封单比降序）取前 max_positions 个."""
-        from davis_analyzer.paper_trading.strategy import BoardChasingStrategy
+        from davis_analyzer.systems.paper_trading.strategy import BoardChasingStrategy
 
         codes = [f"60000{i}.SH" for i in range(2, 7)]
         _patch_candidates(monkeypatch, _mk_cands([_cand(c) for c in codes]))
@@ -215,7 +215,7 @@ class TestBuy:
 
     def test_held_code_not_rebought(self, monkeypatch):
         """持仓 code 出现在候选里也不发 BUY（当日已 SELL）."""
-        from davis_analyzer.paper_trading.strategy import BoardChasingStrategy
+        from davis_analyzer.systems.paper_trading.strategy import BoardChasingStrategy
 
         _patch_candidates(monkeypatch, _mk_cands([
             _cand("600001.SH"), _cand("600002.SH"),
@@ -233,7 +233,7 @@ class TestBuy:
 
 class TestEnhancedArm:
     def test_base_arm_buys_both_enhanced_and_not(self, monkeypatch):
-        from davis_analyzer.paper_trading.strategy import BoardChasingStrategy
+        from davis_analyzer.systems.paper_trading.strategy import BoardChasingStrategy
 
         calls, _ = _patch_candidates(monkeypatch, _mk_cands([
             _cand("600002.SH", enhanced=False),
@@ -248,7 +248,7 @@ class TestEnhancedArm:
 
     def test_enhanced_arm_buys_only_enhanced_subset(self, monkeypatch):
         """enhanced 版只对 enhanced=True 子集发 BUY（本地双保险过滤）."""
-        from davis_analyzer.paper_trading.strategy import BoardChasingStrategy
+        from davis_analyzer.systems.paper_trading.strategy import BoardChasingStrategy
 
         calls, _ = _patch_candidates(monkeypatch, _mk_cands([
             _cand("600002.SH", enhanced=False),
@@ -262,7 +262,7 @@ class TestEnhancedArm:
         assert calls[0]["enhanced_filter"] is True
 
     def test_enhanced_arm_reason_marks_flag(self, monkeypatch):
-        from davis_analyzer.paper_trading.strategy import BoardChasingStrategy
+        from davis_analyzer.systems.paper_trading.strategy import BoardChasingStrategy
 
         _patch_candidates(monkeypatch, _mk_cands([
             _cand("600003.SH", enhanced=True),
@@ -279,7 +279,7 @@ class TestEnhancedArm:
 class TestDataGuards:
     def test_build_candidates_raises_returns_empty_no_raise(self, monkeypatch):
         """build_candidates 抛异常 → evaluate 返回 [] 不抛（不炸 run_day）."""
-        from davis_analyzer.paper_trading.strategy import BoardChasingStrategy
+        from davis_analyzer.systems.paper_trading.strategy import BoardChasingStrategy
 
         _patch_candidates(monkeypatch, RuntimeError("limit_pool 读取失败"))
         strategy = BoardChasingStrategy()
@@ -287,7 +287,7 @@ class TestDataGuards:
         assert signals == []
 
     def test_build_candidates_raises_with_position_still_no_raise(self, monkeypatch):
-        from davis_analyzer.paper_trading.strategy import BoardChasingStrategy
+        from davis_analyzer.systems.paper_trading.strategy import BoardChasingStrategy
 
         _patch_candidates(monkeypatch, RuntimeError("db locked"))
         strategy = BoardChasingStrategy()
@@ -296,7 +296,7 @@ class TestDataGuards:
 
     def test_empty_candidates_sells_positions_only(self, monkeypatch):
         """空帧 → 仅持仓 SELL，无 BUY."""
-        from davis_analyzer.paper_trading.strategy import BoardChasingStrategy
+        from davis_analyzer.systems.paper_trading.strategy import BoardChasingStrategy
 
         _patch_candidates(monkeypatch, _mk_cands([]))
         strategy = BoardChasingStrategy()
@@ -308,7 +308,7 @@ class TestDataGuards:
         assert _buy_map(signals) == {}
 
     def test_empty_candidates_no_positions_no_signals(self, monkeypatch):
-        from davis_analyzer.paper_trading.strategy import BoardChasingStrategy
+        from davis_analyzer.systems.paper_trading.strategy import BoardChasingStrategy
 
         _patch_candidates(monkeypatch, _mk_cands([]))
         strategy = BoardChasingStrategy()
@@ -321,7 +321,7 @@ class TestDataGuards:
 class TestWiring:
     def test_date_and_conn_passed_to_build_candidates(self, monkeypatch):
         """snapshot.trade_date 透传 + conn 来自 limitup.db.connect()."""
-        from davis_analyzer.paper_trading.strategy import BoardChasingStrategy
+        from davis_analyzer.systems.paper_trading.strategy import BoardChasingStrategy
 
         calls, fake_conn = _patch_candidates(
             monkeypatch, _mk_cands([_cand("600002.SH")])
@@ -335,7 +335,7 @@ class TestWiring:
 
     def test_conn_closed_after_evaluate(self, monkeypatch):
         """conn 短生命周期：evaluate 结束后恰好关闭一次."""
-        from davis_analyzer.paper_trading.strategy import BoardChasingStrategy
+        from davis_analyzer.systems.paper_trading.strategy import BoardChasingStrategy
 
         _, fake_conn = _patch_candidates(
             monkeypatch, _mk_cands([_cand("600002.SH")])
@@ -346,7 +346,7 @@ class TestWiring:
 
     def test_conn_closed_even_when_build_raises(self, monkeypatch):
         """异常路径也走 try/finally close."""
-        from davis_analyzer.paper_trading.strategy import BoardChasingStrategy
+        from davis_analyzer.systems.paper_trading.strategy import BoardChasingStrategy
 
         _, fake_conn = _patch_candidates(monkeypatch, RuntimeError("boom"))
         strategy = BoardChasingStrategy()
@@ -368,12 +368,12 @@ def test_required_codes_hook_and_cache(monkeypatch) -> None:
         }])
 
     monkeypatch.setattr(
-        "davis_analyzer.limitup.candidates.build_candidates", fake_build)
+        "davis_analyzer.systems.limitup.candidates.build_candidates", fake_build)
     monkeypatch.setattr(
-        "davis_analyzer.limitup.db.connect",
+        "davis_analyzer.systems.limitup.db.connect",
         lambda: __import__("sqlite3").connect(":memory:"))
 
-    from davis_analyzer.paper_trading.strategy import BoardChasingStrategy
+    from davis_analyzer.systems.paper_trading.strategy import BoardChasingStrategy
 
     strat = BoardChasingStrategy()
     assert strat.required_codes("20260812") == ["600572.SH"]
@@ -382,20 +382,20 @@ def test_required_codes_hook_and_cache(monkeypatch) -> None:
     # 异常安全
     strat2 = BoardChasingStrategy()
     monkeypatch.setattr(
-        "davis_analyzer.limitup.candidates.build_candidates",
+        "davis_analyzer.systems.limitup.candidates.build_candidates",
         lambda *a, **k: (_ for _ in ()).throw(RuntimeError("db down")))
     assert strat2.required_codes("20260813") == []
 
 
 def test_disable_default_risk_flag() -> None:
     """板-chasing 策略自带 disable_default_risk=True，executor 跳过传统风控."""
-    from davis_analyzer.paper_trading.strategy import BoardChasingStrategy
+    from davis_analyzer.systems.paper_trading.strategy import BoardChasingStrategy
 
     strat = BoardChasingStrategy()
     assert strat.disable_default_risk is True
     # executor 侧验证
     from unittest.mock import MagicMock
-    from davis_analyzer.paper_trading.executor import DailyExecutor
+    from davis_analyzer.systems.paper_trading.executor import DailyExecutor
     account = MagicMock()
     account.name = "test"
     ex = DailyExecutor(account, strat)
@@ -406,7 +406,7 @@ def test_disable_default_risk_flag() -> None:
 
 def test_consecutive_loss_circuit_breaker(monkeypatch) -> None:
     """连亏 5 笔 → 熔断暂停（evaluate 仅持仓卖出，不发 BUY）."""
-    from davis_analyzer.paper_trading.strategy import BoardChasingStrategy
+    from davis_analyzer.systems.paper_trading.strategy import BoardChasingStrategy
 
     strat = BoardChasingStrategy()
     assert strat._is_paused("20260818") is False

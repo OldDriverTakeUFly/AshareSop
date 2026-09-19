@@ -216,7 +216,7 @@ def _collect_holdings() -> tuple[list[dict], object | None, float, float]:
 
     # 多模拟账户持仓（2026-08-18：live_factor_test + mini_100k）
     try:
-        from davis_analyzer.paper_trading.account import PaperAccount
+        from davis_analyzer.systems.paper_trading.account import PaperAccount
 
         conn = sqlite3.connect(str(DB_PATH))
         conn.row_factory = sqlite3.Row

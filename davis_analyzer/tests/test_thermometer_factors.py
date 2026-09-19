@@ -25,7 +25,7 @@ def _panel() -> pd.DataFrame:
 
 
 def test_add_factor_columns_windows():
-    from davis_analyzer.thermometer import factors
+    from davis_analyzer.systems.thermometer import factors
 
     p = factors.add_factor_columns(_panel())
     a = p[p["index_code"] == "801010.SI"].reset_index(drop=True)
@@ -49,7 +49,7 @@ def test_add_factor_columns_windows():
 
 
 def test_family_scores_z_and_ordering():
-    from davis_analyzer.thermometer import factors
+    from davis_analyzer.systems.thermometer import factors
 
     p = factors.family_scores(factors.add_factor_columns(_panel()))
     last_day = p["trade_date"].max()
@@ -66,7 +66,7 @@ def test_family_scores_z_and_ordering():
 
 def test_single_member_cross_section_zero():
     """单成员截面(无横截面对比)族分应为 0(std=0 分支)."""
-    from davis_analyzer.thermometer import factors
+    from davis_analyzer.systems.thermometer import factors
 
     p = factors.add_factor_columns(_panel())
     solo = p[p["index_code"] == "801010.SI"].reset_index(drop=True)

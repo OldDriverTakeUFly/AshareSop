@@ -29,9 +29,9 @@ mr._MA120_BEAR_THRESHOLD = -999.0
 
 from stockhot.data_layer.market_db import get_connection as get_market_conn
 from stockhot.storage.database import init_database, DB_PATH
-from davis_analyzer.paper_trading.account import PaperAccount
-from davis_analyzer.paper_trading.strategy import FactorThresholdStrategy
-from davis_analyzer.paper_trading.executor import run_backfill_auto
+from davis_analyzer.systems.paper_trading.account import PaperAccount
+from davis_analyzer.systems.paper_trading.strategy import FactorThresholdStrategy
+from davis_analyzer.systems.paper_trading.executor import run_backfill_auto
 init_database()
 
 OUT_DIR = "logs/g2_signals"
@@ -104,7 +104,7 @@ def sample_verify(codes: list[str], as_of: str):
     """预注册抽样核验: 放行股的动量/次维度确实过闸."""
     from davis_analyzer.core.tushare_client import TushareClient
     client = TushareClient()
-    from davis_analyzer.paper_trading.executor import _compute_factor_scores_at
+    from davis_analyzer.systems.paper_trading.executor import _compute_factor_scores_at
     fs = _compute_factor_scores_at(client, datetime.strptime(as_of, "%Y%m%d").date(), codes)
     for code in codes:
         f = fs.get(code, {})

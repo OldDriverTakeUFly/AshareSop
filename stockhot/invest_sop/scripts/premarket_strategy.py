@@ -67,7 +67,7 @@ def _load_paper_positions() -> list[dict]:
 
     holdings = []
     try:
-        from davis_analyzer.paper_trading.account import PaperAccount
+        from davis_analyzer.systems.paper_trading.account import PaperAccount
 
         conn = sqlite3.connect(str(DB_PATH))
         conn.row_factory = sqlite3.Row

@@ -1,4 +1,4 @@
-"""Tests for davis_analyzer.paper_trading — account, strategy, executor."""
+"""Tests for davis_analyzer.systems.paper_trading — account, strategy, executor."""
 
 import os
 import tempfile
@@ -34,7 +34,7 @@ def temp_db():
 
 class TestPaperAccount:
     def test_create_and_load(self, temp_db):
-        from davis_analyzer.paper_trading.account import PaperAccount
+        from davis_analyzer.systems.paper_trading.account import PaperAccount
 
         account = PaperAccount.create("test_v1", "davis_double", 1_000_000)
         assert account.name == "test_v1"
@@ -47,14 +47,14 @@ class TestPaperAccount:
         loaded.close()
 
     def test_create_duplicate_raises(self, temp_db):
-        from davis_analyzer.paper_trading.account import PaperAccount
+        from davis_analyzer.systems.paper_trading.account import PaperAccount
 
         PaperAccount.create("dup_test", "davis_double", 500_000)
         with pytest.raises(ValueError, match="already exists"):
             PaperAccount.create("dup_test", "davis_double", 500_000)
 
     def test_buy_creates_position(self, temp_db):
-        from davis_analyzer.paper_trading.account import PaperAccount
+        from davis_analyzer.systems.paper_trading.account import PaperAccount
 
         account = PaperAccount.create("buy_test", "davis_double", 1_000_000)
         trade = account.buy("000001.SZ", "平安银行", 1000, 10.0, "20260101", signal_reason="test")
@@ -72,7 +72,7 @@ class TestPaperAccount:
         account.close()
 
     def test_buy_board_lot_enforced(self, temp_db):
-        from davis_analyzer.paper_trading.account import PaperAccount
+        from davis_analyzer.systems.paper_trading.account import PaperAccount
 
         account = PaperAccount.create("lot_test", "davis_double", 1_000_000)
         # Request 150 shares → should round to 100
@@ -82,7 +82,7 @@ class TestPaperAccount:
         account.close()
 
     def test_sell_reduces_position(self, temp_db):
-        from davis_analyzer.paper_trading.account import PaperAccount
+        from davis_analyzer.systems.paper_trading.account import PaperAccount
 
         account = PaperAccount.create("sell_test", "davis_double", 1_000_000)
         account.buy("000002.SZ", "万科A", 1000, 20.0, "20260101")
@@ -103,7 +103,7 @@ class TestPaperAccount:
         account.close()
 
     def test_sell_all_closes_position(self, temp_db):
-        from davis_analyzer.paper_trading.account import PaperAccount
+        from davis_analyzer.systems.paper_trading.account import PaperAccount
 
         account = PaperAccount.create("sellall_test", "davis_double", 1_000_000)
         account.buy("000003.SZ", "测试C", 500, 15.0, "20260101")
@@ -114,7 +114,7 @@ class TestPaperAccount:
         account.close()
 
     def test_market_value(self, temp_db):
-        from davis_analyzer.paper_trading.account import PaperAccount
+        from davis_analyzer.systems.paper_trading.account import PaperAccount
 
         account = PaperAccount.create("mv_test", "davis_double", 1_000_000)
         account.buy("000004.SZ", "测试D", 1000, 10.0, "20260101")
@@ -125,7 +125,7 @@ class TestPaperAccount:
         account.close()
 
     def test_record_nav(self, temp_db):
-        from davis_analyzer.paper_trading.account import PaperAccount
+        from davis_analyzer.systems.paper_trading.account import PaperAccount
 
         account = PaperAccount.create("nav_test", "davis_double", 1_000_000)
         account.buy("000005.SZ", "测试E", 500, 20.0, "20260101")
@@ -139,7 +139,7 @@ class TestPaperAccount:
         account.close()
 
     def test_has_run_on(self, temp_db):
-        from davis_analyzer.paper_trading.account import PaperAccount
+        from davis_analyzer.systems.paper_trading.account import PaperAccount
 
         account = PaperAccount.create("hasrun_test", "davis_double", 1_000_000)
         assert not account.has_run_on("20260101")
@@ -153,7 +153,7 @@ class TestPaperAccount:
 
 class TestDavisDoubleStrategy:
     def test_rebalance_day_buys_top_n(self):
-        from davis_analyzer.paper_trading.strategy import (
+        from davis_analyzer.systems.paper_trading.strategy import (
             DavisDoubleStrategy,
             MarketSnapshot,
         )
@@ -176,11 +176,11 @@ class TestDavisDoubleStrategy:
         assert "D.SZ" not in [s.ts_code for s in buys]
 
     def test_non_rebalance_day_holds(self):
-        from davis_analyzer.paper_trading.strategy import (
+        from davis_analyzer.systems.paper_trading.strategy import (
             DavisDoubleStrategy,
             MarketSnapshot,
         )
-        from davis_analyzer.paper_trading.account import Position
+        from davis_analyzer.systems.paper_trading.account import Position
 
         strategy = DavisDoubleStrategy(top_n=3, frequency=5, min_score=50.0)
         positions = [Position("A.SZ", "A公司", 100, 10.0, "20260101")]
@@ -191,11 +191,11 @@ class TestDavisDoubleStrategy:
         assert all(s.action == "HOLD" for s in signals)
 
     def test_sells_dropped_positions(self):
-        from davis_analyzer.paper_trading.strategy import (
+        from davis_analyzer.systems.paper_trading.strategy import (
             DavisDoubleStrategy,
             MarketSnapshot,
         )
-        from davis_analyzer.paper_trading.account import Position
+        from davis_analyzer.systems.paper_trading.account import Position
 
         strategy = DavisDoubleStrategy(top_n=2, frequency=1, min_score=50.0)
         positions = [
@@ -216,7 +216,7 @@ class TestDavisDoubleStrategy:
 
 class TestFactorThresholdStrategy:
     def test_buy_signal_strong_momentum_holder(self):
-        from davis_analyzer.paper_trading.strategy import (
+        from davis_analyzer.systems.paper_trading.strategy import (
             FactorThresholdStrategy,
             MarketSnapshot,
         )
@@ -234,7 +234,7 @@ class TestFactorThresholdStrategy:
         assert buys[0].ts_code == "X.SZ"
 
     def test_no_buy_weak_holder(self):
-        from davis_analyzer.paper_trading.strategy import (
+        from davis_analyzer.systems.paper_trading.strategy import (
             FactorThresholdStrategy,
             MarketSnapshot,
         )
@@ -252,7 +252,7 @@ class TestFactorThresholdStrategy:
 
     def test_bull_relaxed_rank_behind_protects_strict_candidates(self):
         """实验0005 G4: 放宽带候选综合分更高时, 默认挤占唯一槽位; rank_behind 让严门槛候选优先."""
-        from davis_analyzer.paper_trading.strategy import (
+        from davis_analyzer.systems.paper_trading.strategy import (
             FactorThresholdStrategy,
             MarketSnapshot,
         )
@@ -286,11 +286,11 @@ class TestFactorThresholdStrategy:
         assert [b.ts_code for b in buys_g4] == ["S.SZ"]
 
     def test_sell_signal_momentum_collapse(self):
-        from davis_analyzer.paper_trading.strategy import (
+        from davis_analyzer.systems.paper_trading.strategy import (
             FactorThresholdStrategy,
             MarketSnapshot,
         )
-        from davis_analyzer.paper_trading.account import Position
+        from davis_analyzer.systems.paper_trading.account import Position
 
         strategy = FactorThresholdStrategy(sell_momentum=40)
         positions = [Position("Y.SZ", "Y公司", 100, 10.0, "20260101")]
@@ -305,11 +305,11 @@ class TestFactorThresholdStrategy:
         assert len(sells) == 1
 
     def test_sell_signal_holder_distribution(self):
-        from davis_analyzer.paper_trading.strategy import (
+        from davis_analyzer.systems.paper_trading.strategy import (
             FactorThresholdStrategy,
             MarketSnapshot,
         )
-        from davis_analyzer.paper_trading.account import Position
+        from davis_analyzer.systems.paper_trading.account import Position
 
         strategy = FactorThresholdStrategy()
         positions = [Position("Z.SZ", "Z公司", 100, 10.0, "20260101")]
@@ -324,11 +324,11 @@ class TestFactorThresholdStrategy:
         assert len(sells) == 1
 
     def test_respects_max_positions(self):
-        from davis_analyzer.paper_trading.strategy import (
+        from davis_analyzer.systems.paper_trading.strategy import (
             FactorThresholdStrategy,
             MarketSnapshot,
         )
-        from davis_analyzer.paper_trading.account import Position
+        from davis_analyzer.systems.paper_trading.account import Position
 
         strategy = FactorThresholdStrategy(max_positions=2)
         # A.SZ is held AND qualified (in factor_scores)
@@ -358,7 +358,7 @@ class TestFactorThresholdStrategy:
 class TestMarketRegimeGate:
     def test_bear_market_blocks_buys(self):
         """In bear market, no buys even if momentum/holder are strong."""
-        from davis_analyzer.paper_trading.strategy import (
+        from davis_analyzer.systems.paper_trading.strategy import (
             FactorThresholdStrategy,
             MarketSnapshot,
         )
@@ -375,7 +375,7 @@ class TestMarketRegimeGate:
         assert len(buys) == 0  # bear market: no new buys
 
     def test_bull_market_allows_buys(self):
-        from davis_analyzer.paper_trading.strategy import (
+        from davis_analyzer.systems.paper_trading.strategy import (
             FactorThresholdStrategy,
             MarketSnapshot,
         )
@@ -392,7 +392,7 @@ class TestMarketRegimeGate:
         assert len(buys) == 1
 
     def test_mixed_market_halves_positions(self):
-        from davis_analyzer.paper_trading.strategy import (
+        from davis_analyzer.systems.paper_trading.strategy import (
             FactorThresholdStrategy,
             MarketSnapshot,
         )
@@ -415,7 +415,7 @@ class TestMarketRegimeGate:
 class TestSectorRotation:
     def test_buy_skips_declining_sector(self):
         """Buy candidates in declining sectors are filtered out."""
-        from davis_analyzer.paper_trading.strategy import (
+        from davis_analyzer.systems.paper_trading.strategy import (
             FactorThresholdStrategy,
             MarketSnapshot,
         )
@@ -439,11 +439,11 @@ class TestSectorRotation:
 
     def test_sell_on_sector_decline(self):
         """Holding in a declining sector triggers proactive sell."""
-        from davis_analyzer.paper_trading.strategy import (
+        from davis_analyzer.systems.paper_trading.strategy import (
             FactorThresholdStrategy,
             MarketSnapshot,
         )
-        from davis_analyzer.paper_trading.account import Position
+        from davis_analyzer.systems.paper_trading.account import Position
 
         strategy = FactorThresholdStrategy()
         positions = [Position("HELD.SZ", "持仓股", 100, 10.0, "20260101")]
@@ -464,9 +464,9 @@ class TestSectorRotation:
 class TestDynamicRiskThresholds:
     def test_bear_down_sector_tight_stop(self, temp_db):
         """Bear market + declining sector → 7% stop (tightest)."""
-        from davis_analyzer.paper_trading.account import PaperAccount
-        from davis_analyzer.paper_trading.strategy import create_strategy
-        from davis_analyzer.paper_trading.executor import DailyExecutor
+        from davis_analyzer.systems.paper_trading.account import PaperAccount
+        from davis_analyzer.systems.paper_trading.strategy import create_strategy
+        from davis_analyzer.systems.paper_trading.executor import DailyExecutor
         from unittest.mock import patch
 
         account = PaperAccount.create("risk_bear_down", "factor_threshold", 100_000)
@@ -475,7 +475,7 @@ class TestDynamicRiskThresholds:
         executor = DailyExecutor(account, strategy)
 
         # Price at 9.2 → loss of 8% → should trigger 7% stop in bear+down
-        with patch("davis_analyzer.paper_trading.executor._get_close_prices",
+        with patch("davis_analyzer.systems.paper_trading.executor._get_close_prices",
                    return_value={"000050.SZ": 9.2}):
             risk_signals = executor._check_risk_signals(
                 account.get_positions(), {"000050.SZ": 9.2}, "20260102",
@@ -493,9 +493,9 @@ class TestDynamicRiskThresholds:
         Note: uses risk_stop_multiplier=1.0 explicitly to test the BASE rule
         (bull/up → 12%); the default multiplier is now 0.70 (Sharpe-optimized).
         """
-        from davis_analyzer.paper_trading.account import PaperAccount
-        from davis_analyzer.paper_trading.strategy import FactorThresholdStrategy
-        from davis_analyzer.paper_trading.executor import DailyExecutor
+        from davis_analyzer.systems.paper_trading.account import PaperAccount
+        from davis_analyzer.systems.paper_trading.strategy import FactorThresholdStrategy
+        from davis_analyzer.systems.paper_trading.executor import DailyExecutor
 
         account = PaperAccount.create("risk_bull_up", "factor_threshold", 100_000)
         account.buy("000051.SZ", "测试", 1000, 10.0, "20260101")
@@ -518,9 +518,9 @@ class TestDynamicRiskThresholds:
         Note: uses risk_stop_multiplier=1.0 explicitly to test the BASE rule
         (bull/up → 30% take-profit); default multiplier is now 0.70.
         """
-        from davis_analyzer.paper_trading.account import PaperAccount
-        from davis_analyzer.paper_trading.strategy import FactorThresholdStrategy
-        from davis_analyzer.paper_trading.executor import DailyExecutor
+        from davis_analyzer.systems.paper_trading.account import PaperAccount
+        from davis_analyzer.systems.paper_trading.strategy import FactorThresholdStrategy
+        from davis_analyzer.systems.paper_trading.executor import DailyExecutor
 
         account = PaperAccount.create("risk_tp", "factor_threshold", 100_000)
         account.buy("000052.SZ", "测试", 1000, 10.0, "20260101")
@@ -543,8 +543,8 @@ class TestDynamicRiskThresholds:
 
 class TestReport:
     def test_empty_account_report(self, temp_db):
-        from davis_analyzer.paper_trading.account import PaperAccount
-        from davis_analyzer.paper_trading.report import generate_report
+        from davis_analyzer.systems.paper_trading.account import PaperAccount
+        from davis_analyzer.systems.paper_trading.report import generate_report
 
         account = PaperAccount.create("report_empty", "davis_double", 500_000)
         report = generate_report(account)
@@ -552,8 +552,8 @@ class TestReport:
         account.close()
 
     def test_report_with_data(self, temp_db):
-        from davis_analyzer.paper_trading.account import PaperAccount
-        from davis_analyzer.paper_trading.report import generate_report
+        from davis_analyzer.systems.paper_trading.account import PaperAccount
+        from davis_analyzer.systems.paper_trading.report import generate_report
 
         account = PaperAccount.create("report_data", "davis_double", 1_000_000)
         account.buy("000010.SZ", "测试", 1000, 10.0, "20260101")
@@ -573,7 +573,7 @@ class TestReport:
 
 class TestLiveMonitor:
     def test_is_market_open_weekday_morning(self):
-        from davis_analyzer.paper_trading.live_monitor import is_market_open
+        from davis_analyzer.systems.paper_trading.live_monitor import is_market_open
         from datetime import datetime
         from zoneinfo import ZoneInfo
 
@@ -582,7 +582,7 @@ class TestLiveMonitor:
         assert is_market_open(wed) is True
 
     def test_is_market_closed_weekend(self):
-        from davis_analyzer.paper_trading.live_monitor import is_market_open
+        from davis_analyzer.systems.paper_trading.live_monitor import is_market_open
         from datetime import datetime
         from zoneinfo import ZoneInfo
 
@@ -591,7 +591,7 @@ class TestLiveMonitor:
         assert is_market_open(sat) is False
 
     def test_is_market_closed_lunch_break(self):
-        from davis_analyzer.paper_trading.live_monitor import is_market_open
+        from davis_analyzer.systems.paper_trading.live_monitor import is_market_open
         from datetime import datetime
         from zoneinfo import ZoneInfo
 
@@ -600,7 +600,7 @@ class TestLiveMonitor:
         assert is_market_open(noon) is False
 
     def test_is_market_closed_after_hours(self):
-        from davis_analyzer.paper_trading.live_monitor import is_market_open
+        from davis_analyzer.systems.paper_trading.live_monitor import is_market_open
         from datetime import datetime
         from zoneinfo import ZoneInfo
 
@@ -610,9 +610,9 @@ class TestLiveMonitor:
 
     def test_sell_signal_hard_stop(self, temp_db):
         """Hard stop triggers sell when price drops below cost × (1 - 12%)."""
-        from davis_analyzer.paper_trading.account import PaperAccount
-        from davis_analyzer.paper_trading.strategy import create_strategy
-        from davis_analyzer.paper_trading.live_monitor import LiveMonitor
+        from davis_analyzer.systems.paper_trading.account import PaperAccount
+        from davis_analyzer.systems.paper_trading.strategy import create_strategy
+        from davis_analyzer.systems.paper_trading.live_monitor import LiveMonitor
         from unittest.mock import patch
 
         account = PaperAccount.create("live_stop_test", "factor_threshold", 100_000)
@@ -624,7 +624,7 @@ class TestLiveMonitor:
         monitor = LiveMonitor(account, strategy, interval_seconds=1)
 
         # Mock get_realtime_price to return 8.5 (below 8.8 stop)
-        with patch("davis_analyzer.paper_trading.live_monitor.get_realtime_price", return_value=8.5):
+        with patch("davis_analyzer.systems.paper_trading.live_monitor.get_realtime_price", return_value=8.5):
             monitor._check_sell_signals("20260102")
 
         # Position should be sold
@@ -635,9 +635,9 @@ class TestLiveMonitor:
 
     def test_sell_signal_target_reached(self, temp_db):
         """Take-profit triggers sell when price rises above cost × (1 + 20%)."""
-        from davis_analyzer.paper_trading.account import PaperAccount
-        from davis_analyzer.paper_trading.strategy import create_strategy
-        from davis_analyzer.paper_trading.live_monitor import LiveMonitor
+        from davis_analyzer.systems.paper_trading.account import PaperAccount
+        from davis_analyzer.systems.paper_trading.strategy import create_strategy
+        from davis_analyzer.systems.paper_trading.live_monitor import LiveMonitor
         from unittest.mock import patch
 
         account = PaperAccount.create("live_target_test", "factor_threshold", 100_000)
@@ -648,7 +648,7 @@ class TestLiveMonitor:
         monitor = LiveMonitor(account, strategy, interval_seconds=1)
 
         # Mock price at 12.5 (above 12.0 target)
-        with patch("davis_analyzer.paper_trading.live_monitor.get_realtime_price", return_value=12.5):
+        with patch("davis_analyzer.systems.paper_trading.live_monitor.get_realtime_price", return_value=12.5):
             monitor._check_sell_signals("20260102")
 
         assert len(account.get_positions()) == 0
@@ -658,9 +658,9 @@ class TestLiveMonitor:
 
     def test_no_sell_when_price_normal(self, temp_db):
         """No sell signal when price is within normal range."""
-        from davis_analyzer.paper_trading.account import PaperAccount
-        from davis_analyzer.paper_trading.strategy import create_strategy
-        from davis_analyzer.paper_trading.live_monitor import LiveMonitor
+        from davis_analyzer.systems.paper_trading.account import PaperAccount
+        from davis_analyzer.systems.paper_trading.strategy import create_strategy
+        from davis_analyzer.systems.paper_trading.live_monitor import LiveMonitor
         from unittest.mock import patch
 
         account = PaperAccount.create("live_normal_test", "factor_threshold", 100_000)
@@ -670,7 +670,7 @@ class TestLiveMonitor:
         monitor = LiveMonitor(account, strategy, interval_seconds=1)
 
         # Price at 10.5 — within range (not below 8.8, not above 12.0)
-        with patch("davis_analyzer.paper_trading.live_monitor.get_realtime_price", return_value=10.5):
+        with patch("davis_analyzer.systems.paper_trading.live_monitor.get_realtime_price", return_value=10.5):
             monitor._check_sell_signals("20260102")
 
         # Position should still be held
@@ -686,9 +686,9 @@ class TestVolumePriceRiskSell:
 
     def test_high_vol_with_profit_triggers_sell(self, temp_db):
         """High-position volume + ≥10% profit → SELL signal."""
-        from davis_analyzer.paper_trading.account import PaperAccount, Position
-        from davis_analyzer.paper_trading.strategy import create_strategy
-        from davis_analyzer.paper_trading.executor import DailyExecutor
+        from davis_analyzer.systems.paper_trading.account import PaperAccount, Position
+        from davis_analyzer.systems.paper_trading.strategy import create_strategy
+        from davis_analyzer.systems.paper_trading.executor import DailyExecutor
 
         account = PaperAccount.create("vol_high_test", "factor_threshold", 100_000)
         strategy = create_strategy("factor_threshold", account.config)
@@ -719,9 +719,9 @@ class TestVolumePriceRiskSell:
 
     def test_high_vol_without_profit_no_trigger(self, temp_db):
         """High-position volume but profit < 10% → no SELL (avoid killing fresh buys)."""
-        from davis_analyzer.paper_trading.account import PaperAccount, Position
-        from davis_analyzer.paper_trading.strategy import create_strategy
-        from davis_analyzer.paper_trading.executor import DailyExecutor
+        from davis_analyzer.systems.paper_trading.account import PaperAccount, Position
+        from davis_analyzer.systems.paper_trading.strategy import create_strategy
+        from davis_analyzer.systems.paper_trading.executor import DailyExecutor
 
         account = PaperAccount.create("vol_low_pnl_test", "factor_threshold", 100_000)
         strategy = create_strategy("factor_threshold", account.config)
@@ -750,11 +750,11 @@ class TestVolumePriceRiskSell:
 
     def test_high_vol_with_enable_volume_risk_off(self, temp_db):
         """When enable_volume_risk=False, high-vol signal is ignored."""
-        from davis_analyzer.paper_trading.account import PaperAccount, Position
-        from davis_analyzer.paper_trading.strategy import (
+        from davis_analyzer.systems.paper_trading.account import PaperAccount, Position
+        from davis_analyzer.systems.paper_trading.strategy import (
             FactorThresholdStrategy,
         )
-        from davis_analyzer.paper_trading.executor import DailyExecutor
+        from davis_analyzer.systems.paper_trading.executor import DailyExecutor
 
         account = PaperAccount.create("vol_disabled_test", "factor_threshold", 100_000)
         # Disable volume-risk sell explicitly
@@ -783,9 +783,9 @@ class TestVolumePriceRiskSell:
 
     def test_neutral_volume_no_trigger(self, temp_db):
         """Neutral volume signal (no high_vol) → no risk sell."""
-        from davis_analyzer.paper_trading.account import PaperAccount, Position
-        from davis_analyzer.paper_trading.strategy import create_strategy
-        from davis_analyzer.paper_trading.executor import DailyExecutor
+        from davis_analyzer.systems.paper_trading.account import PaperAccount, Position
+        from davis_analyzer.systems.paper_trading.strategy import create_strategy
+        from davis_analyzer.systems.paper_trading.executor import DailyExecutor
 
         account = PaperAccount.create("vol_neutral_test", "factor_threshold", 100_000)
         strategy = create_strategy("factor_threshold", account.config)
@@ -817,7 +817,7 @@ class TestVolumeCompositeScore:
 
     def test_volume_score_boosts_composite(self):
         """A high volume score (low_vol/platform_breakout) raises composite rating."""
-        from davis_analyzer.paper_trading.strategy import (
+        from davis_analyzer.systems.paper_trading.strategy import (
             FactorThresholdStrategy,
             MarketSnapshot,
         )
@@ -846,7 +846,7 @@ class TestVolumeCompositeScore:
 
     def test_volume_weight_zero_legacy_behavior(self):
         """When volume_weight=0, volume signal doesn't affect ranking."""
-        from davis_analyzer.paper_trading.strategy import (
+        from davis_analyzer.systems.paper_trading.strategy import (
             FactorThresholdStrategy,
             MarketSnapshot,
         )
@@ -872,7 +872,7 @@ class TestVolumeCompositeScore:
 
     def test_volume_signal_field_in_snapshot(self):
         """MarketSnapshot accepts a volume_signal field."""
-        from davis_analyzer.paper_trading.strategy import MarketSnapshot
+        from davis_analyzer.systems.paper_trading.strategy import MarketSnapshot
 
         snap = MarketSnapshot(
             trade_date="20260101",
@@ -891,7 +891,7 @@ class TestEventFilter:
 
     def test_blocked_stock_excluded_from_buys(self):
         """A stock with blocked=True event_signal should not be bought."""
-        from davis_analyzer.paper_trading.strategy import (
+        from davis_analyzer.systems.paper_trading.strategy import (
             FactorThresholdStrategy, MarketSnapshot,
         )
 
@@ -916,7 +916,7 @@ class TestEventFilter:
 
     def test_filter_disabled_allows_blocked_stock(self):
         """When enable_event_filter=False, blocked stocks can still be bought."""
-        from davis_analyzer.paper_trading.strategy import (
+        from davis_analyzer.systems.paper_trading.strategy import (
             FactorThresholdStrategy, MarketSnapshot,
         )
 
@@ -936,7 +936,7 @@ class TestEventFilter:
 
     def test_missing_event_signal_does_not_block(self):
         """Stock not in event_signal dict should NOT be blocked (graceful degradation)."""
-        from davis_analyzer.paper_trading.strategy import (
+        from davis_analyzer.systems.paper_trading.strategy import (
             FactorThresholdStrategy, MarketSnapshot,
         )
 
@@ -959,7 +959,7 @@ class TestEventSoftPenalty:
 
     def test_penalized_stock_still_buys_but_ranks_lower(self):
         """Stock with event penalty should still be buyable, just rank below peers."""
-        from davis_analyzer.paper_trading.strategy import (
+        from davis_analyzer.systems.paper_trading.strategy import (
             FactorThresholdStrategy, MarketSnapshot,
         )
 
@@ -988,7 +988,7 @@ class TestEventSoftPenalty:
 
     def test_zero_penalty_weight_no_effect(self):
         """When event_penalty_weight=0, penalty has no effect."""
-        from davis_analyzer.paper_trading.strategy import (
+        from davis_analyzer.systems.paper_trading.strategy import (
             FactorThresholdStrategy, MarketSnapshot,
         )
 
@@ -1014,7 +1014,7 @@ class TestEventSoftPenalty:
 
     def test_hard_filter_overrides_soft_penalty(self):
         """When both hard filter and soft penalty are on, hard filter wins (skip)."""
-        from davis_analyzer.paper_trading.strategy import (
+        from davis_analyzer.systems.paper_trading.strategy import (
             FactorThresholdStrategy, MarketSnapshot,
         )
 
@@ -1042,21 +1042,21 @@ class TestSharpeOptimizedDefaults:
 
     def test_default_max_positions_is_5(self):
         """Sharpe sweep showed pos=5 beats pos=10/12 in all stop_mult settings."""
-        from davis_analyzer.paper_trading.strategy import FactorThresholdStrategy
+        from davis_analyzer.systems.paper_trading.strategy import FactorThresholdStrategy
         s = FactorThresholdStrategy()
         assert s.max_positions == 5  # was 10 before Sharpe optimization
 
     def test_default_risk_stop_multiplier_is_0_70(self):
         """Sharpe sweep showed stop_mult=0.70 + pos=5 = best Sharpe (-0.133)."""
-        from davis_analyzer.paper_trading.strategy import FactorThresholdStrategy
+        from davis_analyzer.systems.paper_trading.strategy import FactorThresholdStrategy
         s = FactorThresholdStrategy()
         assert s.risk_stop_multiplier == 0.70  # was 1.0 before
 
     def test_tighter_stop_actually_reduces_threshold(self, temp_db):
         """Verify risk_stop_multiplier=0.70 gives 8.4% stop (not 12%) in bull/up."""
-        from davis_analyzer.paper_trading.account import PaperAccount
-        from davis_analyzer.paper_trading.strategy import FactorThresholdStrategy
-        from davis_analyzer.paper_trading.executor import DailyExecutor
+        from davis_analyzer.systems.paper_trading.account import PaperAccount
+        from davis_analyzer.systems.paper_trading.strategy import FactorThresholdStrategy
+        from davis_analyzer.systems.paper_trading.executor import DailyExecutor
 
         account = PaperAccount.create("sharpe_default_test", "factor_threshold", 100_000)
         account.buy("000060.SZ", "测试", 1000, 10.0, "20260101")
@@ -1084,7 +1084,7 @@ class TestPEExemptionForVolume:
 
     def test_high_pe_blocks_buy_when_no_volume_signal(self):
         """PE > 80% blocks buy when there's no volume signal exemption."""
-        from davis_analyzer.paper_trading.strategy import (
+        from davis_analyzer.systems.paper_trading.strategy import (
             FactorThresholdStrategy, MarketSnapshot,
         )
         strategy = FactorThresholdStrategy(
@@ -1105,7 +1105,7 @@ class TestPEExemptionForVolume:
 
     def test_high_pe_allows_buy_with_platform_breakout(self):
         """PE > 80% is exempted when volume signal is platform_breakout."""
-        from davis_analyzer.paper_trading.strategy import (
+        from davis_analyzer.systems.paper_trading.strategy import (
             FactorThresholdStrategy, MarketSnapshot,
         )
         strategy = FactorThresholdStrategy(
@@ -1126,7 +1126,7 @@ class TestPEExemptionForVolume:
 
     def test_high_pe_allows_buy_with_low_vol(self):
         """PE > 80% is exempted when volume signal is low_vol."""
-        from davis_analyzer.paper_trading.strategy import (
+        from davis_analyzer.systems.paper_trading.strategy import (
             FactorThresholdStrategy, MarketSnapshot,
         )
         strategy = FactorThresholdStrategy(
@@ -1147,7 +1147,7 @@ class TestPEExemptionForVolume:
 
     def test_no_exemption_when_disabled(self):
         """Default behavior (pe_exemption_for_volume=False) blocks all high-PE."""
-        from davis_analyzer.paper_trading.strategy import (
+        from davis_analyzer.systems.paper_trading.strategy import (
             FactorThresholdStrategy, MarketSnapshot,
         )
         strategy = FactorThresholdStrategy(
@@ -1172,9 +1172,9 @@ class TestLowVolStopExemption:
 
     def test_low_vol_position_gets_wider_stop(self, temp_db):
         """Position with low_vol signal should survive a dip that triggers normal stop."""
-        from davis_analyzer.paper_trading.account import PaperAccount
-        from davis_analyzer.paper_trading.strategy import FactorThresholdStrategy
-        from davis_analyzer.paper_trading.executor import DailyExecutor
+        from davis_analyzer.systems.paper_trading.account import PaperAccount
+        from davis_analyzer.systems.paper_trading.strategy import FactorThresholdStrategy
+        from davis_analyzer.systems.paper_trading.executor import DailyExecutor
 
         account = PaperAccount.create("lv_stop_test", "factor_threshold", 100_000)
         account.buy("LV.SZ", "测试", 1000, 10.0, "20260101")
@@ -1200,9 +1200,9 @@ class TestLowVolStopExemption:
 
     def test_normal_position_not_exempted(self, temp_db):
         """Position without low_vol signal uses normal stop (no exemption)."""
-        from davis_analyzer.paper_trading.account import PaperAccount
-        from davis_analyzer.paper_trading.strategy import FactorThresholdStrategy
-        from davis_analyzer.paper_trading.executor import DailyExecutor
+        from davis_analyzer.systems.paper_trading.account import PaperAccount
+        from davis_analyzer.systems.paper_trading.strategy import FactorThresholdStrategy
+        from davis_analyzer.systems.paper_trading.executor import DailyExecutor
 
         account = PaperAccount.create("lv_normal_test", "factor_threshold", 100_000)
         account.buy("N.SZ", "测试", 1000, 10.0, "20260101")
@@ -1232,7 +1232,7 @@ class TestTechScoreComposite:
 
     def test_high_tech_score_ranks_higher(self):
         """Stock with higher tech_score ranks above same-factor peer."""
-        from davis_analyzer.paper_trading.strategy import (
+        from davis_analyzer.systems.paper_trading.strategy import (
             FactorThresholdStrategy, MarketSnapshot,
         )
 
@@ -1253,7 +1253,7 @@ class TestTechScoreComposite:
 
     def test_tech_weight_zero_ignores_score(self):
         """When tech_weight=0, tech_score doesn't affect ranking."""
-        from davis_analyzer.paper_trading.strategy import (
+        from davis_analyzer.systems.paper_trading.strategy import (
             FactorThresholdStrategy, MarketSnapshot,
         )
 
@@ -1273,7 +1273,7 @@ class TestTechScoreComposite:
 
     def test_tech_score_defaults_to_neutral_when_missing(self):
         """Missing tech_score should default to neutral (50), not crash."""
-        from davis_analyzer.paper_trading.strategy import (
+        from davis_analyzer.systems.paper_trading.strategy import (
             FactorThresholdStrategy, MarketSnapshot,
         )
 

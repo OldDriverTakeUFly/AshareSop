@@ -42,7 +42,7 @@ def temp_db():
 
 
 def _make_account(name: str, capital: float):
-    from davis_analyzer.paper_trading.account import PaperAccount
+    from davis_analyzer.systems.paper_trading.account import PaperAccount
 
     PaperAccount.create(name, "davis_double", capital)
     return PaperAccount.load(name)
@@ -52,7 +52,7 @@ def _make_account(name: str, capital: float):
 
 
 def _buy_worker(account_name: str, n_buys: int, ts_code: str, price: float):
-    from davis_analyzer.paper_trading.account import PaperAccount
+    from davis_analyzer.systems.paper_trading.account import PaperAccount
 
     account = PaperAccount.load(account_name)
     for i in range(n_buys):
@@ -61,7 +61,7 @@ def _buy_worker(account_name: str, n_buys: int, ts_code: str, price: float):
 
 
 def _sell_worker(account_name: str, ts_code: str):
-    from davis_analyzer.paper_trading.account import PaperAccount
+    from davis_analyzer.systems.paper_trading.account import PaperAccount
 
     account = PaperAccount.load(account_name)
     for _ in range(64):  # keep trying until nothing left to sell
@@ -89,7 +89,7 @@ class TestConcurrentTrades:
             p.join(timeout=60)
         assert all(p.exitcode == 0 for p in procs)
 
-        from davis_analyzer.paper_trading.account import PaperAccount
+        from davis_analyzer.systems.paper_trading.account import PaperAccount
 
         acc = PaperAccount.load(name)
         cash = acc.cash
@@ -131,7 +131,7 @@ class TestConcurrentTrades:
             p.join(timeout=60)
         assert all(p.exitcode == 0 for p in procs)
 
-        from davis_analyzer.paper_trading.account import PaperAccount
+        from davis_analyzer.systems.paper_trading.account import PaperAccount
 
         acc = PaperAccount.load(name)
         sells = [t for t in acc.get_trades() if t.action == "SELL"]
@@ -147,7 +147,7 @@ class TestConcurrentTrades:
 
 
 def _make_account_cash(name: str) -> float:
-    from davis_analyzer.paper_trading.account import PaperAccount
+    from davis_analyzer.systems.paper_trading.account import PaperAccount
 
     acc = PaperAccount.load(name)
     cash = acc.cash
@@ -164,9 +164,9 @@ class TestRunLock:
         before any market-data access happens."""
         import fcntl
 
-        from davis_analyzer.paper_trading.account import PaperAccount
-        from davis_analyzer.paper_trading.executor import DailyExecutor
-        from davis_analyzer.paper_trading.runlock import _lock_path
+        from davis_analyzer.systems.paper_trading.account import PaperAccount
+        from davis_analyzer.systems.paper_trading.executor import DailyExecutor
+        from davis_analyzer.systems.paper_trading.runlock import _lock_path
 
         PaperAccount.create("busy_test", "davis_double", 100_000)
         account = PaperAccount.load("busy_test")
@@ -190,10 +190,10 @@ class TestRunLock:
 
     def test_run_lock_reentrant_in_process(self, temp_db):
         """run_day inside an already-held lock (backfill nesting) proceeds."""
-        from davis_analyzer.paper_trading.runlock import account_run_lock
+        from davis_analyzer.systems.paper_trading.runlock import account_run_lock
 
         PaperAccount = __import__(
-            "davis_analyzer.paper_trading.account", fromlist=["PaperAccount"]
+            "davis_analyzer.systems.paper_trading.account", fromlist=["PaperAccount"]
         ).PaperAccount
         PaperAccount.create("reent_test", "davis_double", 100_000)
         account = PaperAccount.load("reent_test")
@@ -205,8 +205,8 @@ class TestRunLock:
 
     def test_delete_account_if_idle_refuses_when_running(self, temp_db):
         """Reset must refuse while another process holds the run lock."""
-        from davis_analyzer.paper_trading.account import PaperAccount
-        from davis_analyzer.paper_trading.runlock import (
+        from davis_analyzer.systems.paper_trading.account import PaperAccount
+        from davis_analyzer.systems.paper_trading.runlock import (
             account_run_lock,
             delete_account_if_idle,
         )

@@ -6,7 +6,7 @@ import sqlite3
 
 import pandas as pd
 
-from davis_analyzer.intraday import paper_shadow
+from davis_analyzer.systems.intraday import paper_shadow
 
 
 def _mk_conn(tmp_path, tables: dict[str, str]) -> sqlite3.Connection:
