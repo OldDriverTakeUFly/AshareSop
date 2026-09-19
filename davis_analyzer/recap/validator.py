@@ -12,7 +12,7 @@ from davis_analyzer.recap.constants import (
 )
 from davis_analyzer.recap.types import Episode
 
-_MIN_SECONDS, _MAX_SECONDS = 40.0, 125.0
+_MIN_SECONDS, _MAX_SECONDS = 25.0, 125.0   # 2026-09-18 v4:open/close 砍到各约3s,下限放宽
 _CHARS_PER_SECOND = 4.2          # edge-tts 中文语速经验值
 _MAX_LINE_SECONDS = 20.0
 
