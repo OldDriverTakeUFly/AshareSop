@@ -88,3 +88,37 @@ def test_make_pack_end_to_end(tmp_path, monkeypatch):
     assert (out / "音频守恒报告.txt").exists()
     durs = json.loads((out / "durations.json").read_text("utf-8"))
     assert durs["segments"]["s1"] == pytest.approx(4.2)   # 两句 2s + 2×0.2 间隙? → 4.4-0.2
+
+
+def test_make_pack_purges_stale_audio(tmp_path, monkeypatch):
+    """重跑幂等:剧本改短后,旧段残留 mp3 必须被清掉,否则合成段通配会把旧解说拼回去
+    (2026-09-19 实锤:v3 的 open_01_color 残留导致 v4 开场仍是 16s 全场播报)。"""
+    day = "2026-09-18"
+    ep_dir = tmp_path / "episodes" / day
+    ep_dir.mkdir(parents=True)
+    (ep_dir / "episode.json").write_text(json.dumps(_ep().to_dict(), ensure_ascii=False), "utf-8")
+    pack = ep_dir / "原料包"
+    (pack / "audio").mkdir(parents=True)
+    (pack / "audio" / "open_01_color.mp3").write_bytes(b"stale-v3")   # 剧本已无此句
+    inbox = tmp_path / "inbox" / day
+    inbox.mkdir(parents=True)
+    (inbox / "20260918_605577.SH_01.mp4").write_bytes(b"x")
+    from davis_analyzer.recap import recorder_sheet as rs
+    monkeypatch.setattr(rs, "INBOX_DIR", tmp_path / "inbox")
+
+    def fake_communicate(text, voice):
+        class _C:
+            async def save(self, path):
+                Path(path).write_bytes(b"mp3")
+        return _C()
+
+    import edge_tts
+    monkeypatch.setattr(edge_tts, "Communicate", fake_communicate)
+    monkeypatch.setattr(ap, "audio_duration", lambda p: 2.0)
+    monkeypatch.setattr(ap, "EPISODES_DIR", tmp_path / "episodes")
+    ap.make_pack(day)
+    assert not (pack / "audio" / "open_01_color.mp3").exists()        # 旧音轨已清
+    names = {p.name for p in (pack / "audio").glob("*.mp3")}
+    expect = {f"{s.seg_id}_{i:02d}_{l.speaker}.mp3"
+              for s in _ep().segments for i, l in enumerate(s.lines)}
+    assert names == expect                                            # 与台词一一对应

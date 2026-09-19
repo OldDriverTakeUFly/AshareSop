@@ -93,6 +93,13 @@ def make_pack(day_dash: str) -> Path:
     ep_dir = EPISODES_DIR / day_dash
     ep = Episode.from_dict(json.loads((ep_dir / "episode.json").read_text(encoding="utf-8")))
     out = ep_dir / "原料包"
+    # 重跑幂等:先清空旧音轨——剧本改短后旧段残留的 mp3 会被合成段通配拼回
+    # (2026-09-19 实锤:v3 的 open_01_color 残留导致 v4 开场仍是 16s 全场播报)
+    stale = list((out / "audio").glob("*.mp3")) if (out / "audio").exists() else []
+    for p in stale:
+        p.unlink()
+    if stale:
+        logger.info(f"recap 清理旧音轨 {len(stale)} 个(剧本重跑)")
     timings = synth_lines(ep, out)
     (out / "durations.json").write_text(
         json.dumps({"lines": timings, "segments": seg_durations(timings)},
