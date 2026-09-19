@@ -35,7 +35,7 @@ jobs:
         # artifacts, frontends). Mirrors the local formatting invocation.
         run: |
           black --check \
-            --exclude '(\.venv|node_modules|\.git|src/stockhot\.egg-info|dashboard|davis_webui)' \
+            --exclude '(\.venv|node_modules|\.git)' \
             .
 
   test:
