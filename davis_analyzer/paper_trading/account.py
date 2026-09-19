@@ -1,6 +1,6 @@
 """DB-backed paper-trading account.
 
-Wraps the trade-execution math from ``davis_analyzer.backtest`` (A-share 100-lot
+Wraps the trade-execution math from ``davis_analyzer.backtest.backtest`` (A-share 100-lot
 board size, commission both sides, stamp duty sell-only) with SQLite persistence
 in ``stockhot.db`` (``paper_*`` tables).
 
@@ -21,7 +21,7 @@ from stockhot.core.config import DB_PATH
 from stockhot.storage.database import get_connection
 
 # Reuse the exact trade-cost function from the backtest engine.
-from davis_analyzer.backtest import _trade_cost
+from davis_analyzer.backtest.backtest import _trade_cost
 
 _BOARD_LOT = 100  # A-share minimum lot
 

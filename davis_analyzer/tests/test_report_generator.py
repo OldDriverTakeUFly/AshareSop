@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from davis_analyzer.report_generator import (
+from davis_analyzer.report.report_generator import (
     _compute_dupont_conclusion,
     _get_investment_conclusion,
     _get_valuation_judgment,

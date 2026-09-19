@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import date, timedelta
 
-from davis_analyzer.backtest_report import PerformanceStats
+from davis_analyzer.backtest.backtest_report import PerformanceStats
 from davis_analyzer.tournament.judge import WindowReport
 from davis_analyzer.tournament.replay import _window_return, export_replay, replay
 

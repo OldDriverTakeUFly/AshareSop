@@ -27,7 +27,7 @@ from datetime import date
 import pandas as pd
 from loguru import logger
 
-from davis_analyzer.backtest_factors import FactorConfig, score_universe_at
+from davis_analyzer.backtest.backtest_factors import FactorConfig, score_universe_at
 from davis_analyzer.core.tushare_client import TushareClient
 
 

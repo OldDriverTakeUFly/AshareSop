@@ -1,6 +1,6 @@
 """Performance statistics and CSV export for backtest results.
 
-Reads a :class:`~davis_analyzer.backtest.BacktestResult` and produces:
+Reads a :class:`~davis_analyzer.backtest.backtest.BacktestResult` and produces:
   * :class:`PerformanceStats` — summary metrics (return, Sharpe, drawdown, …)
   * Trade-detail CSV — one row per executed order
   * Equity-curve CSV — daily mark-to-market snapshots
@@ -18,7 +18,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from davis_analyzer.backtest import BacktestResult, EquitySnapshot, Trade
+from davis_analyzer.backtest.backtest import BacktestResult, EquitySnapshot, Trade
 
 
 @dataclass

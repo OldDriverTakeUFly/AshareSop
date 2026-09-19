@@ -7,7 +7,7 @@ from datetime import date, timedelta
 import pandas as pd
 import pytest
 
-from davis_analyzer.backtest_report import PerformanceStats
+from davis_analyzer.backtest.backtest_report import PerformanceStats
 from davis_analyzer.tournament.adapters import (
     DavisPresetAdapter,
     IndexBenchmarkAdapter,
@@ -41,7 +41,7 @@ def test_index_benchmark_none_when_no_data(mock_client) -> None:
 
 
 def test_stats_from_run_roundtrip() -> None:
-    from davis_analyzer.backtest import EquitySnapshot
+    from davis_analyzer.backtest.backtest import EquitySnapshot
     curve = [EquitySnapshot(date=date(2024, 1, i + 1), equity=1_000_000.0 * (1 + 0.001 * i),
                             cash=0.0, positions_value=1_000_000.0) for i in range(30)]
     stats = stats_from_run(RunResult(curve, [], {}), date(2024, 1, 1), date(2024, 1, 30))
@@ -53,7 +53,7 @@ def test_davis_adapter_maps_params(monkeypatch, mock_client) -> None:
     captured: dict = {}
     def fake_run_backtest(cfg, client):
         captured["cfg"] = cfg
-        from davis_analyzer.backtest import BacktestResult, EquitySnapshot
+        from davis_analyzer.backtest.backtest import BacktestResult, EquitySnapshot
         curve = [EquitySnapshot(date=date(2024, 1, 2) + timedelta(days=i), equity=1_000_000.0,
                                 cash=1_000_000.0, positions_value=0.0) for i in range(45)]
         return BacktestResult(config=cfg, equity_curve=curve)
@@ -75,7 +75,7 @@ def test_davis_adapter_rejects_undeclared_param(monkeypatch, mock_client) -> Non
 
 
 def test_davis_adapter_none_on_empty_curve(monkeypatch, mock_client) -> None:
-    from davis_analyzer.backtest import BacktestConfig, BacktestResult
+    from davis_analyzer.backtest.backtest import BacktestConfig, BacktestResult
     monkeypatch.setattr(
         "davis_analyzer.tournament.adapters.run_backtest",
         lambda cfg, client: BacktestResult(config=BacktestConfig(

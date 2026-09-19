@@ -2745,7 +2745,7 @@ def _compute_davis_scores_at(
     Uses ``score_universe_at`` from backtest_factors (point-in-time correct).
     Returns ``{ts_code: {"final_score": float, "name": str}}``.
     """
-    from davis_analyzer.backtest_factors import score_universe_at
+    from davis_analyzer.backtest.backtest_factors import score_universe_at
 
     # Filter stock_infos to the requested universe
     filtered = {c: stock_infos[c] for c in universe if c in stock_infos}

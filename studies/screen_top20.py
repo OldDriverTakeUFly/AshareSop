@@ -33,7 +33,7 @@ from loguru import logger
 logger.remove()
 logger.add(sys.stderr, level="WARNING")
 
-from davis_analyzer.backtest_factors import (
+from davis_analyzer.backtest.backtest_factors import (
     FactorConfig,
     _blend,
     _count_consecutive_positive_delta_g,

@@ -14,7 +14,7 @@ from unittest.mock import MagicMock
 import pandas as pd
 import pytest
 
-from davis_analyzer.backtest_factors import (
+from davis_analyzer.backtest.backtest_factors import (
     FactorConfig,
     FactorScore,
     _blend,

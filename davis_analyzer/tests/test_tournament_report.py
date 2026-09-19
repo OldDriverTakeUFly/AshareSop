@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import date
 
-from davis_analyzer.backtest_report import PerformanceStats
+from davis_analyzer.backtest.backtest_report import PerformanceStats
 from davis_analyzer.tournament.judge import WindowReport
 from davis_analyzer.tournament.report import HONESTY_NOTE, render_report, write_report
 from davis_analyzer.tournament.scorecard import CompositeScore

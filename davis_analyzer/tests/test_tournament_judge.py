@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import date, timedelta
 
-from davis_analyzer.backtest import EquitySnapshot, Trade
+from davis_analyzer.backtest.backtest import EquitySnapshot, Trade
 from davis_analyzer.tournament.adapters import RunResult
 from davis_analyzer.tournament.judge import JudgeHarness, WindowReport
 

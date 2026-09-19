@@ -108,7 +108,7 @@ def _run_command(args: argparse.Namespace) -> None:
         )
 
     if args.output:
-        from davis_analyzer.report_generator import save_all_reports
+        from davis_analyzer.report.report_generator import save_all_reports
 
         logger.info("Generating reports to directory: {}", args.output)
         try:
@@ -120,7 +120,7 @@ def _run_command(args: argparse.Namespace) -> None:
 
 
 def _deep_research_command(args: argparse.Namespace) -> None:
-    from davis_analyzer.checklist_generator import generate_batch_checklists
+    from davis_analyzer.report.checklist_generator import generate_batch_checklists
 
     run_args = argparse.Namespace(dry_run=False, top=args.top)
     results = _run_pipeline(run_args)
@@ -138,7 +138,7 @@ def _deep_research_command(args: argparse.Namespace) -> None:
 
 
 def _rescore_command(args: argparse.Namespace) -> None:
-    from davis_analyzer.rescorer import batch_rescore
+    from davis_analyzer.report.rescorer import batch_rescore
 
     run_args = argparse.Namespace(dry_run=False, top=30)
     results = _run_pipeline(run_args)

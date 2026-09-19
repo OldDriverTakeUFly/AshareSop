@@ -16,7 +16,7 @@ from unittest.mock import MagicMock
 import pandas as pd
 import pytest
 
-from davis_analyzer.backtest import (
+from davis_analyzer.backtest.backtest import (
     BacktestConfig,
     BacktestResult,
     EquitySnapshot,
@@ -24,7 +24,7 @@ from davis_analyzer.backtest import (
     Position,
     _trade_cost,
 )
-from davis_analyzer.backtest_report import (
+from davis_analyzer.backtest.backtest_report import (
     PerformanceStats,
     compute_performance,
     export_equity_curve,
@@ -239,7 +239,7 @@ class TestPerformanceStats:
 
     def test_win_rate_from_trades(self):
         """Buy at 10, sell at 12 (win); buy at 20, sell at 18 (loss)."""
-        from davis_analyzer.backtest import Trade
+        from davis_analyzer.backtest.backtest import Trade
 
         trades = [
             Trade(date(2026, 1, 5), date(2026, 1, 6), "A.SZ", "BUY", 10.0, 100, 1000, 0),
@@ -262,7 +262,7 @@ class TestPerformanceStats:
 
     def test_turnover_calculation(self):
         """4 trades / 2 rebalances → turnover = 4/2/2 = 1.0."""
-        from davis_analyzer.backtest import Trade
+        from davis_analyzer.backtest.backtest import Trade
 
         trades = [
             Trade(date(2026, 1, 5), date(2026, 1, 6), "A.SZ", "BUY", 10.0, 100, 1000, 0),
@@ -289,7 +289,7 @@ class TestPerformanceStats:
 
 class TestCsvExport:
     def test_export_trades_writes_file(self, tmp_path: Path):
-        from davis_analyzer.backtest import Trade
+        from davis_analyzer.backtest.backtest import Trade
 
         trades = [
             Trade(date(2026, 1, 5), date(2026, 1, 6), "A.SZ", "BUY", 10.0, 100, 1000, 2.5),

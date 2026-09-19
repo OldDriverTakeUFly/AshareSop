@@ -19,7 +19,7 @@ from davis_analyzer.core.constants import (
     TOURNAMENT_MIN_TRADES,
     TOURNAMENT_MIN_WINDOW_DAYS,
 )
-from davis_analyzer.backtest_report import PerformanceStats
+from davis_analyzer.backtest.backtest_report import PerformanceStats
 from davis_analyzer.tournament.adapters import ModuleAdapter, stats_from_run
 from davis_analyzer.core.tushare_client import TushareClient
 

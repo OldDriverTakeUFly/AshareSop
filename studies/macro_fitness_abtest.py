@@ -121,8 +121,8 @@ def _filter_by_macro(
 
 def run_ab_test() -> dict:
     """运行 A/B 对比回测."""
-    from davis_analyzer.backtest_factors import score_universe_at, FactorConfig
-    from davis_analyzer.backtest import (
+    from davis_analyzer.backtest.backtest_factors import score_universe_at, FactorConfig
+    from davis_analyzer.backtest.backtest import (
         BacktestConfig, _get_trading_calendar, _build_stock_infos,
         _all_cached_stock_codes,
     )

@@ -2,8 +2,8 @@
 
 Usage::
 
-    python -m davis_analyzer.migrate_cache            # perform migration
-    python -m davis_analyzer.migrate_cache --dry-run  # report counts only
+    python -m davis_analyzer.migrations.migrate_cache            # perform migration
+    python -m davis_analyzer.migrations.migrate_cache --dry-run  # report counts only
 
 Each legacy row stores a JSON serialisation of a pandas DataFrame under
 ``response``. The script parses that JSON, routes it to the matching structured

@@ -1,6 +1,6 @@
 import pytest
 
-from davis_analyzer.rescorer import (
+from davis_analyzer.report.rescorer import (
     batch_rescore,
     parse_checklist,
     rescore,

@@ -15,7 +15,7 @@ from typing import Protocol, runtime_checkable
 
 import pandas as pd
 
-from davis_analyzer.backtest import (
+from davis_analyzer.backtest.backtest import (
     BacktestConfig,
     BacktestResult,
     EquitySnapshot,
@@ -23,8 +23,8 @@ from davis_analyzer.backtest import (
     _trade_cost,
     run_backtest,
 )
-from davis_analyzer.backtest_factors import FactorConfig
-from davis_analyzer.backtest_report import PerformanceStats, compute_performance
+from davis_analyzer.backtest.backtest_factors import FactorConfig
+from davis_analyzer.backtest.backtest_report import PerformanceStats, compute_performance
 from davis_analyzer.core.constants import CHAMPION_PRESETS, TOURNAMENT_DAVIS_PRESETS
 from davis_analyzer.tournament.genome import DAVIS_GENOME, SIX_VEIN_GENOME, Genome
 from davis_analyzer.tournament.six_vein import (

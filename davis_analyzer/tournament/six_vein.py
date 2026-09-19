@@ -26,7 +26,7 @@ from datetime import date, datetime
 import numpy as np
 import pandas as pd
 
-from davis_analyzer.backtest import EquitySnapshot, Trade
+from davis_analyzer.backtest.backtest import EquitySnapshot, Trade
 
 
 # ── data loading ──

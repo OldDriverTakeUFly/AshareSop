@@ -2,7 +2,7 @@
 
 This module produces a point-in-time factor score for every stock in the
 universe as of a given historical date (``as_of``).  The score drives
-the rebalance logic in :mod:`davis_analyzer.backtest`.
+the rebalance logic in :mod:`davis_analyzer.backtest.backtest`.
 
 Four factors are blended (all point-in-time correct):
 

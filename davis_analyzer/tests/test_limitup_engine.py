@@ -114,7 +114,7 @@ def test_pessimistic_scenario_reduces_fills() -> None:
 def test_compute_limitup_performance() -> None:
     import pytest
 
-    from davis_analyzer.backtest_report import PerformanceStats
+    from davis_analyzer.backtest.backtest_report import PerformanceStats
     from davis_analyzer.limitup.engine import compute_limitup_performance
 
     nav = pd.DataFrame({

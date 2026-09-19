@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from davis_analyzer.backtest_report import PerformanceStats
+from davis_analyzer.backtest.backtest_report import PerformanceStats
 from davis_analyzer.tournament.scorecard import (
     composite,
     regime_match_score,

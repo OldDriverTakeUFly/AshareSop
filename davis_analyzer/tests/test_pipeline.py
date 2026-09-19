@@ -285,7 +285,7 @@ class TestImportChain:
         assert callable(run_screening_pipeline)
 
     def test_import_checklist_generator(self):
-        from davis_analyzer.checklist_generator import (
+        from davis_analyzer.report.checklist_generator import (
             generate_batch_checklists,
             generate_checklist,
         )
@@ -294,14 +294,14 @@ class TestImportChain:
         assert callable(generate_checklist)
 
     def test_import_rescorer(self):
-        from davis_analyzer.rescorer import batch_rescore, parse_checklist, rescore
+        from davis_analyzer.report.rescorer import batch_rescore, parse_checklist, rescore
 
         assert callable(batch_rescore)
         assert callable(parse_checklist)
         assert callable(rescore)
 
     def test_import_report_generator(self):
-        from davis_analyzer.report_generator import (
+        from davis_analyzer.report.report_generator import (
             generate_stock_report,
             save_all_reports,
         )
@@ -339,8 +339,8 @@ class TestChecklistRescorerIntegration:
         mock_pipeline_result,
         tmp_path,
     ):
-        from davis_analyzer.checklist_generator import generate_batch_checklists
-        from davis_analyzer.rescorer import batch_rescore
+        from davis_analyzer.report.checklist_generator import generate_batch_checklists
+        from davis_analyzer.report.rescorer import batch_rescore
 
         saved = generate_batch_checklists(mock_pipeline_result, str(tmp_path), top_n=2)
         assert len(saved) == 2
@@ -355,7 +355,7 @@ class TestChecklistRescorerIntegration:
         mock_pipeline_result,
         tmp_path,
     ):
-        from davis_analyzer.rescorer import batch_rescore
+        from davis_analyzer.report.rescorer import batch_rescore
 
         result = batch_rescore(mock_pipeline_result, str(tmp_path))
         assert result == {}
@@ -365,7 +365,7 @@ class TestChecklistRescorerIntegration:
         mock_pipeline_result,
         tmp_path,
     ):
-        from davis_analyzer.checklist_generator import generate_batch_checklists
+        from davis_analyzer.report.checklist_generator import generate_batch_checklists
 
         saved = generate_batch_checklists(mock_pipeline_result, str(tmp_path), top_n=1)
         assert len(saved) == 1
