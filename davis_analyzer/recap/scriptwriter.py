@@ -99,11 +99,13 @@ def build_user_prompt(cands: list[Candidate], bundle: dict) -> str:
     lines.append(
         "## 输出 JSON schema(严格照此结构)\n"
         '{"title": "本期标题(15字内,有NBA味)", "segments": ['
-        '{"seg_id": "open", "kind": "scoreboard", "ts_code": null, "lines": [1句钩子,≤16字]},'
+        '{"seg_id": "open", "kind": "scoreboard", "ts_code": null, '
+        '"lines": [{"speaker": "pb", "text": "一句钩子,≤16字"}]},'
         '... 每只候选一个 {"seg_id": "s1", "kind": "stock", "ts_code": "605577.SH", '
-        '"lines": [pb/color 交替 5-10 句,回放窗时间内讲故事,包袱密集]} ...,'
+        '"lines": [pb/color 交替 5-10 句,每句都是 {"speaker": "...", "text": "..."} 对象,'
+        '回放窗时间内讲故事,包袱密集]} ...,'
         '{"seg_id": "close", "kind": "outlook", "ts_code": null, '
-        '"lines": [1句,≤18字,含免责原话]}]}\n'
+        '"lines": [{"speaker": "color", "text": "一句收尾,≤18字,含不构成投资建议"}]}]}\n'
         "总时长预算:全部台词合计 150-400 字,其中 open+close 合计不超过 35 字(画面各约3秒)。")
     return "\n\n".join(lines)
 
