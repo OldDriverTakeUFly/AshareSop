@@ -92,6 +92,6 @@ for i, (name, wr, total, note) in enumerate(cases):
     ax.text(0.5, -0.62, note, transform=ax.transAxes, ha="center", fontsize=8.8, color="#475569")
     ax.spines[["top", "right", "bottom"]].set_visible(False)
 
-out = "/home/leo/Projects/CodeAgentDashboard/docs/方法论/动量分计算可视化_2026-09-17.png"
+out = "/home/leo/Projects/CodeAgentDashboard/docs/研报/方法论/动量分计算可视化_2026-09-17.png"
 fig.savefig(out, bbox_inches="tight", facecolor="white")
 print("saved:", out)

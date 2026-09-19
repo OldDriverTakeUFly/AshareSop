@@ -5,7 +5,7 @@ Designed for crontab — 每日盘后（19:00）运行。扫描指定报告目�
 变更，有则 add + commit + push，无则静默退出（return 0）。
 
 监控的报告产物（与 .gitignore 配合，仅这些路径纳入自动同步）：
-- docs/盘后总结/*.md          盘后总结（after-hours-review skill）
+- docs/复盘/盘后/*.md          盘后总结（after-hours-review skill）
 - docs/盘后复盘/*.md          盘后复盘
 - docs/回测记录/*.md          回测记录
 - storage/files/reports/invest_sop/*.md   盘前报告
@@ -36,7 +36,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[3]
 
 # 纳入自动同步的报告路径模式（相对仓库根，传给 git 的 pathspec）
 REPORT_PATHSPECS: list[str] = [
-    "docs/盘后总结/*.md",
+    "docs/复盘/盘后/*.md",
     "docs/盘后复盘/*.md",
     "docs/回测记录/*.md",
     "storage/files/reports/invest_sop/*.md",

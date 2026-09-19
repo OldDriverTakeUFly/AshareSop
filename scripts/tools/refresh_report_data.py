@@ -1,6 +1,6 @@
 """Batch-refresh quantitative data snapshots for existing research reports.
 
-Scans docs/个股研报/*.md, extracts each report's ts_code, re-runs the
+Scans docs/研报/个股/*.md, extracts each report's ts_code, re-runs the
 davis_analyzer valuation + prosperity engines against the latest cached
 data, and writes a comparison table (old snapshot from the report text vs
 new engine output) to studies/output/report_refresh_{date}.csv.
@@ -32,7 +32,7 @@ from loguru import logger
 logger.remove()
 logger.add(sys.stderr, level="WARNING")
 
-REPORTS_DIR = PROJECT_ROOT / "docs" / "个股研报"
+REPORTS_DIR = PROJECT_ROOT / "docs" / "研报" / "个股"
 OUTPUT_CSV = PROJECT_ROOT / "studies" / "output" / f"report_refresh_{date.today().strftime('%Y%m%d')}.csv"
 
 _TS_CODE_RE = re.compile(r"(\d{6}\.[A-Z]{2})")

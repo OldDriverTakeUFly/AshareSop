@@ -503,7 +503,7 @@ class FactorThresholdStrategy:
         # ── Event hard filter (减持/解禁) ──
         # When True, stocks with recent >1% reductions (last 60d) or upcoming
         # >=5% unlocks (next 30d) are excluded from buy candidates.
-        # Empirical basis: docs/方法论/A股事件因子实证研究方法论.md
+        # Empirical basis: docs/研报/方法论/A股事件因子实证研究方法论.md
         #
         # NOTE: 4-way backtest on 2026-07-20 showed enabling this REDUCES return
         # by -3.92pp (V3 vs V2), because the filter is too aggressive in our
@@ -524,7 +524,7 @@ class FactorThresholdStrategy:
         event_penalty_weight: float = 0.0,
         # ── Technical factor weight ──
         # Weight of tech_score (0-100) in the composite rating.
-        # Empirical basis: docs/方法论/A股技术因子实证研究方法论.md (Q5-Q1=+1.14%, 20d)
+        # Empirical basis: docs/研报/方法论/A股技术因子实证研究方法论.md (Q5-Q1=+1.14%, 20d)
         # When > 0, the composite blends in tech_score. Set to 0 to disable.
         #
         # NOTE: 4-way backtest showed +1.29pp improvement when combined with
@@ -605,7 +605,7 @@ class FactorThresholdStrategy:
         self.enable_event_filter = enable_event_filter
         # Negative-factor veto (2026-08-06 post-mortem): one-strike filter
         # that blocks known loss-making patterns before buy + force-sells
-        # zombie holdings. See docs/方法论/负因子选股方法论_20260806.md.
+        # zombie holdings. See docs/研报/方法论/负因子选股方法论_20260806.md.
         self.enable_negative_factors = enable_negative_factors
         self.event_penalty_weight = event_penalty_weight
         self.tech_weight = tech_weight

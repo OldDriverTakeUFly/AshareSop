@@ -3,7 +3,7 @@
 
 由盘后总结 cron（每工作日 18:30）在 after-hours-review skill 生成报告后调用。
 流程：
-1. 提交并推送 docs/盘后总结/{date}_盘后总结.md 到 GitHub（保证飞书链接有效）
+1. 提交并推送 docs/复盘/盘后/{date}_盘后总结.md 到 GitHub（保证飞书链接有效）
 2. 从 SQLite 读取当日盘面数据，生成飞书纯文本摘要
 3. 推送到飞书群（企业自建应用，未配置则静默跳过）
 
@@ -35,7 +35,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 PYTHON = str(PROJECT_ROOT / ".venv" / "bin" / "python")
 
 # 盘后总结在仓库中的相对路径（git add 的 pathspec）
-_REPORT_PATHSPEC = "docs/盘后总结/"
+_REPORT_PATHSPEC = "docs/复盘/盘后/"
 _GITHUB_REPO = "OldDriverTakeUFly/AshareSop"
 _GITHUB_BRANCH = "master"
 
@@ -46,7 +46,7 @@ _PUSH_LOCK_DIR = PROJECT_ROOT / "logs" / ".eod_feishu_push"
 
 
 def commit_push_report(trade_date: str) -> bool:
-    """提交并推送盘后总结到 GitHub（仅 docs/盘后总结/ 目录，不动其他改动）.
+    """提交并推送盘后总结到 GitHub（仅 docs/复盘/盘后/ 目录，不动其他改动）.
 
     幂等：无变更则跳过。SSH 免密无人值守。
 
@@ -199,7 +199,7 @@ def build_eod_feishu_summary(trade_date: str) -> str:
     fname = f"{trade_date}_盘后总结.md"
     # URL encode 中文名（盘后总结）
     from urllib.parse import quote
-    rel_path = f"docs/盘后总结/{fname}"
+    rel_path = f"docs/复盘/盘后/{fname}"
     lines.append("")
     lines.append("📄 完整报告")
     lines.append(f"  https://github.com/{_GITHUB_REPO}/blob/{_GITHUB_BRANCH}/{quote(rel_path)}")

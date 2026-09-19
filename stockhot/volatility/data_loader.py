@@ -14,7 +14,7 @@ ts_code 转换规则（统一输入为 Tushare 格式 XXXXXX.SS/SZ）：
     - 输入 "000001.SH" → AKShare symbol "sh000001"
     - 输入 "399001.SZ" → AKShare symbol "sz399001"
 
-与方法论研报（``docs/方法论/A股波动率观察框架方法论深度研报.md``）Layer 1/5 对应。
+与方法论研报（``docs/研报/方法论/A股波动率观察框架方法论深度研报.md``）Layer 1/5 对应。
 """
 
 from __future__ import annotations

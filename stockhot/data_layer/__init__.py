@@ -44,7 +44,7 @@ tushare_cache.db / daily_data JSON blob）和四套 Tushare 客户端并存的�
     # 采集日志
     repo.log_scan("2026-07-15", "limit_up", "success", rows_affected=72)
 
-详见 ``docs/方法论/统一市场数据架构.md``。
+详见 ``docs/研报/方法论/统一市场数据架构.md``。
 """
 
 from stockhot.data_layer.market_db import (

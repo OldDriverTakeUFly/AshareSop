@@ -29,7 +29,7 @@
 **Interfaces:**
 - Produces: 干净工作区 + 基线数字(5 failed / 1527 passed),后续所有 Task 的回退锚点。
 
-- [ ] **Step 1: .gitignore 补运行时产物**
+- [x] **Step 1: .gitignore 补运行时产物**
 
 在 `.gitignore` 末尾追加(先 `cat .gitignore` 确认不重复):
 
@@ -40,12 +40,12 @@ storage/diag_*.png
 storage/metrics_capture.png
 ```
 
-- [ ] **Step 2: 核对将提交清单无意外项**
+- [x] **Step 2: 核对将提交清单无意外项**
 
 Run: `git status --short | grep -v "^??" ; git status --short | grep "^??" | head -30`
 Expected: 未跟踪项均为报告/文档/`scripts/diag/profile_backfill_day.py`/`scripts/replay_rotation_close.py` 类;`storage/` 下的 png 与 browser_profile 已被新 ignore 规则吞掉(不再出现在 `??`)。
 
-- [ ] **Step 3: 归零提交**
+- [x] **Step 3: 归零提交**
 
 ```bash
 git add -A
@@ -53,7 +53,7 @@ git commit -m "chore: 重组前工作区归零——日报积压入库+storage�
 git status --short   # 必须为空
 ```
 
-- [ ] **Step 4: 基线锚定**
+- [x] **Step 4: 基线锚定**
 
 Run: `.venv/bin/python -m pytest tests/ davis_analyzer/tests -q 2>&1 | tail -2`
 Expected: `5 failed, 1527 passed`,失败全在 `test_publisher_m3.py`。
@@ -68,7 +68,7 @@ Expected: `5 failed, 1527 passed`,失败全在 `test_publisher_m3.py`。
 **Interfaces:**
 - Produces: 顶层只剩 stockhot / davis_analyzer / scripts / docs / studies / storage / tests / archive / 配置文件;后续 Task 的 grep 验证以 `archive/` 为排除前缀。
 
-- [ ] **Step 1: 停用 webui 服务**
+- [x] **Step 1: 停用 webui 服务**
 
 ```bash
 systemctl --user stop davis-webui-backend.service davis-webui-frontend.service
@@ -76,7 +76,7 @@ systemctl --user disable davis-webui-backend.service davis-webui-frontend.servic
 systemctl --user is-active davis-webui-backend.service davis-webui-frontend.service  # 两者均 inactive/failed 即可
 ```
 
-- [ ] **Step 2: 建归档区并移入看板集群**
+- [x] **Step 2: 建归档区并移入看板集群**
 
 ```bash
 mkdir -p archive
@@ -98,7 +98,7 @@ git mv SPEC.md archive/ 2>/dev/null || true   # SPEC.md 若属看板叙事则归
 
 注:根 `package.json`(`main: src/app/main.js`,Express 看板)与 `docker-compose.yml`(backend/frontend/cloudflared)均属看板集群,一并归档;`.github/` 服务 Python 单仓,**保留**。
 
-- [ ] **Step 3: 根杂物清理**
+- [x] **Step 3: 根杂物清理**
 
 ```bash
 rm -rf data __pycache__ .coverage .pytest_cache .ruff_cache   # data 为空壳;cache 类无提交价值
@@ -107,7 +107,7 @@ git status --short | head    # 确认无意外删除(这些应本就未跟踪或
 
 若 `git status` 出现 `.coverage` 等的 `D`(说明曾被跟踪):`git rm --cached` 后并入本次 commit。
 
-- [ ] **Step 4: 删 webui systemd unit**
+- [x] **Step 4: 删 webui systemd unit**
 
 ```bash
 rm ~/.config/systemd/user/davis-webui-backend.service ~/.config/systemd/user/davis-webui-frontend.service
@@ -116,7 +116,7 @@ systemctl --user daemon-reload
 systemctl --user list-timers | head -25       # 无 davis-webui 行
 ```
 
-- [ ] **Step 5: 写归档说明**
+- [x] **Step 5: 写归档说明**
 
 `archive/README.md`:
 
@@ -134,12 +134,12 @@ systemctl --user list-timers | head -25       # 无 davis-webui 行
 | SPEC.md | SPEC.md | 2026-09-19 | 看板时代规格书(若 Step 2 判断归档) |
 ```
 
-- [ ] **Step 6: 残留引用验证**
+- [x] **Step 6: 残留引用验证**
 
 Run: `grep -rn -E "davis_webui|dashboard/|quick-tunnel" --include="*.py" --include="*.sh" --include="*.yml" stockhot/ davis_analyzer/ scripts/ tests/ studies/ .github/ 2>/dev/null | grep -v archive | head`
 Expected: 空或仅注释性提及(记录下来,若为活代码引用则现场修复后再继续)。
 
-- [ ] **Step 7: 门禁 + commit**
+- [x] **Step 7: 门禁 + commit**
 
 ```bash
 .venv/bin/python -m pytest tests/ davis_analyzer/tests -q 2>&1 | tail -2   # 5 failed / 1527 passed
@@ -156,7 +156,7 @@ git add -A && git commit -m "chore(reorg): 顶层归档——看板集群/webui/
 **Interfaces:**
 - Produces: `davis_analyzer.core.{config,constants,types,tushare_client,financial_fetcher,stock_universe,pipeline,scoring,price_estimator}`、`davis_analyzer.factors.{valuation,valuation_forward,prosperity,prosperity_sector,prosperity_inflection,momentum,trend,distress,dividend,forecast,profitability,holder_concentration,quality_factor,sub_industry,international_overlay,market_regime,sector_pipeline,strategy_signal,cyclical}`;Task 3/4 复用 Step 3 的重写脚本。
 
-- [ ] **Step 1: git mv 分层**
+- [x] **Step 1: git mv 分层**
 
 ```bash
 cd davis_analyzer
@@ -169,7 +169,7 @@ cd ..
 
 注意:`config/`(数据目录,sub_industry_map.json)**原地不动**;`cli.py __main__.py __init__.py` 留根。
 
-- [ ] **Step 2: 写 import 重写脚本**
+- [x] **Step 2: 写 import 重写脚本**
 
 创建 `/tmp/rewrite_imports.py`(Task 2/3/4 共用,只改 MAPPING):
 
@@ -226,7 +226,7 @@ if __name__ == "__main__":
     sys.exit(main())
 ```
 
-- [ ] **Step 3: 执行重写并检查 `from davis_analyzer import X` 裸形式**
+- [x] **Step 3: 执行重写并检查 `from davis_analyzer import X` 裸形式**
 
 ```bash
 .venv/bin/python /tmp/rewrite_imports.py
@@ -235,7 +235,7 @@ grep -rn "from davis_analyzer import" --include="*.py" stockhot/ scripts/ tests/
 
 Expected: 第二条命令输出为空(若不为空,逐行手工改成 `from davis_analyzer.core import X` 形式)。
 
-- [ ] **Step 4: 残留验证**
+- [x] **Step 4: 残留验证**
 
 ```bash
 grep -rnE "davis_analyzer\.(config|constants|types|tushare_client|financial_fetcher|stock_universe|pipeline|scoring|price_estimator|valuation|valuation_forward|prosperity|prosperity_sector|prosperity_inflection|momentum|trend|distress|dividend|forecast|profitability|holder_concentration|quality_factor|sub_industry|international_overlay|market_regime|sector_pipeline|strategy_signal|cyclical)\b" \
@@ -244,7 +244,7 @@ grep -rnE "davis_analyzer\.(config|constants|types|tushare_client|financial_fetc
 
 Expected: 空(`.md` 命中若属历史文档不动,属 AGENTS/SKILL 记录到 Task 6 清单)。
 
-- [ ] **Step 5: 门禁 + commit**
+- [x] **Step 5: 门禁 + commit**
 
 ```bash
 .venv/bin/python -m pytest tests/ davis_analyzer/tests -q 2>&1 | tail -2   # 5 failed / 1527 passed
@@ -258,7 +258,7 @@ git add -A && git commit -m "refactor(davis): core/factors 分层——28模块g
 - Create: `davis_analyzer/report/`、`davis_analyzer/backtest/`、`davis_analyzer/migrations/`(各含 `__init__.py`)
 - Move: 4 + 3 + 2 个模块
 
-- [ ] **Step 1: git mv**
+- [x] **Step 1: git mv**
 
 ```bash
 cd davis_analyzer
@@ -270,7 +270,7 @@ git mv migrate_cache.py migrate_to_market_db.py migrations/
 cd ..
 ```
 
-- [ ] **Step 2: 更新重写脚本 MAPPING 并执行**
+- [x] **Step 2: 更新重写脚本 MAPPING 并执行**
 
 `/tmp/rewrite_imports.py` 的 MAPPING 替换为:
 
@@ -286,7 +286,7 @@ MAPPING = {
 
 Run: `.venv/bin/python /tmp/rewrite_imports.py`
 
-- [ ] **Step 3: 残留验证**
+- [x] **Step 3: 残留验证**
 
 ```bash
 grep -rnE "davis_analyzer\.(templates|report_generator|checklist_generator|rescorer|backtest|backtest_factors|backtest_report|migrate_cache|migrate_to_market_db)\b" \
@@ -295,13 +295,13 @@ grep -rnE "davis_analyzer\.(templates|report_generator|checklist_generator|resco
 
 Expected: 活代码为空。
 
-- [ ] **Step 4: 回测烟测(模块可导入即过,不真跑回测)**
+- [x] **Step 4: 回测烟测(模块可导入即过,不真跑回测)**
 
 ```bash
 .venv/bin/python -c "from davis_analyzer.backtest import backtest; from davis_analyzer.report import templates; from davis_analyzer.migrations import migrate_cache; print('ok')"
 ```
 
-- [ ] **Step 5: 门禁 + commit**
+- [x] **Step 5: 门禁 + commit**
 
 ```bash
 .venv/bin/python -m pytest tests/ davis_analyzer/tests -q 2>&1 | tail -2
@@ -318,7 +318,7 @@ git add -A && git commit -m "refactor(davis): report/backtest/migrations 分层+
 **Interfaces:**
 - Produces: CLI 形式 `python -m davis_analyzer.systems.<name>`;`davis_analyzer.systems.{limitup,tournament,thermometer,intraday,cardgen,recap,surge,paper_trading,metrics}`。
 
-- [ ] **Step 1: git mv 子系统**
+- [x] **Step 1: git mv 子系统**
 
 ```bash
 cd davis_analyzer
@@ -327,7 +327,7 @@ git mv limitup tournament thermometer intraday cardgen recap surge paper_trading
 cd ..
 ```
 
-- [ ] **Step 2: 更新 MAPPING 并执行重写**
+- [x] **Step 2: 更新 MAPPING 并执行重写**
 
 ```python
 MAPPING = {
@@ -341,7 +341,7 @@ MAPPING = {
 
 Run: `.venv/bin/python /tmp/rewrite_imports.py`
 
-- [ ] **Step 3: 写 systems/README.md 导航**
+- [x] **Step 3: 写 systems/README.md 导航**
 
 `davis_analyzer/systems/README.md`,每子系统四行信息(名字/一句话职责/CLI/关键表),内容取自根 AGENTS.md 对应段落浓缩。格式:
 
@@ -363,7 +363,7 @@ Run: `.venv/bin/python /tmp/rewrite_imports.py`
 > 各子系统详细纪律见仓库根 AGENTS.md 对应章节;本文件只做导航。
 ```
 
-- [ ] **Step 4: 改 4 个 systemd unit + reload**
+- [x] **Step 4: 改 4 个 systemd unit + reload**
 
 ```bash
 sed -i 's/davis_analyzer\.thermometer/davis_analyzer.systems.thermometer/' \
@@ -376,7 +376,7 @@ grep -h ExecStart ~/.config/systemd/user/{thermometer-run,thermometer-universe,r
 
 Expected: 4 行 ExecStart 均含 `davis_analyzer.systems.`。
 
-- [ ] **Step 5: CLI 烟测(选不触网/只读子命令)**
+- [x] **Step 5: CLI 烟测(选不触网/只读子命令)**
 
 ```bash
 .venv/bin/python -m davis_analyzer.systems.thermometer status 2>&1 | head -5
@@ -387,7 +387,7 @@ Expected: 4 行 ExecStart 均含 `davis_analyzer.systems.`。
 
 Expected: 三条 status 正常输出(读库即返回),import ok。
 
-- [ ] **Step 6: 门禁 + commit**
+- [x] **Step 6: 门禁 + commit**
 
 ```bash
 .venv/bin/python -m pytest tests/ davis_analyzer/tests -q 2>&1 | tail -2
@@ -403,7 +403,7 @@ git add -A && git commit -m "refactor(davis): 九子系统归拢systems/+CLI升�
 - Move: 13 个运维脚本 → `ops/`;6 个研究目录 → `research/`;3 个散脚本归位
 - Modify: 10 个 systemd unit 的 ExecStart
 
-- [ ] **Step 1: git mv 运维脚本**
+- [x] **Step 1: git mv 运维脚本**
 
 ```bash
 cd scripts
@@ -415,7 +415,7 @@ git mv after_hours_inhibit.sh chase_shadow_daily.py distress_signal_export.py g2
 cd ..
 ```
 
-- [ ] **Step 2: git mv 研究目录与散脚本**
+- [x] **Step 2: git mv 研究目录与散脚本**
 
 ```bash
 cd scripts
@@ -426,7 +426,7 @@ git mv run_5yr_backtest.sh run_all_abx.sh abx/
 cd ..
 ```
 
-- [ ] **Step 3: 改 10 个 systemd unit**
+- [x] **Step 3: 改 10 个 systemd unit**
 
 对以下 unit 把 `scripts/<name>` 替换为 `scripts/ops/<name>`(逐个 sed 或手工,注意 daily-longpic 与 thermometer-card 是 `bash -c` 双命令都要改):
 
@@ -451,13 +451,13 @@ grep -h ExecStart ~/.config/systemd/user/*.service | grep -oE "scripts[^ ;]*" | 
 
 Expected: 输出仅含 `scripts/ops/...`、`scripts/content_publisher/...`、`scripts/abx/...` 三类。
 
-- [ ] **Step 4: 代码内 scripts 路径引用同步**
+- [x] **Step 4: 代码内 scripts 路径引用同步**
 
 Run: `grep -rn -E "scripts/(daily_|chase_|g2_|distress_|replay_|pool_|after_hours|unlock_|wait_|longpic_numbers|publish_reconcile)" --include="*.py" --include="*.md" --include="*.sh" stockhot/ davis_analyzer/ scripts/ tests/ studies/ .agents/ 2>/dev/null | grep -v archive | grep -v "scripts/ops/" | head -20`
 
 对每一条**代码**(.py/.sh)引用改为 `scripts/ops/`;`.md` 命中若属 AGENTS/SKILL/cron prompts 记入 Task 6 清单,属历史文档不动。
 
-- [ ] **Step 5: 门禁 + commit**
+- [x] **Step 5: 门禁 + commit**
 
 ```bash
 .venv/bin/python -m pytest tests/ davis_analyzer/tests -q 2>&1 | tail -2
@@ -471,7 +471,7 @@ git add -A && git commit -m "chore(scripts): ops/research分组——13运维脚
 - Modify: 6 处代码默认路径、`publish_sync.py` 双标记兼容、两份 AGENTS.md、`docs/README.md`、`docs/代码库索引.md`、6 个 SKILL.md、1 个 cron prompt
 - Modify(DB): `storage/database/content_cards.db`、`content_publisher.db`、`content_publisher_archive.db`(若存在)路径前缀 UPDATE
 
-- [ ] **Step 1: 目录重分(git mv)**
+- [x] **Step 1: 目录重分(git mv)**
 
 ```bash
 cd docs
@@ -493,7 +493,7 @@ cd ..
 ls docs/    # 期望:superpowers 研报 复盘 回测记录 发布 开发 README.md 代码库索引.md
 ```
 
-- [ ] **Step 2: 代码默认路径同步(6 处)**
+- [x] **Step 2: 代码默认路径同步(6 处)**
 
 ```bash
 # 1) cardgen 工程根
@@ -509,7 +509,7 @@ sed -i 's|docs/小红书卡片/未发布|docs/发布/小红书/未发布|' scrip
 grep -rn "小红书卡片" --include="*.py" davis_analyzer/ scripts/ | grep -v archive    # 仅 publish_sync.py 应命中
 ```
 
-- [ ] **Step 3: publish_sync 双标记兼容**
+- [x] **Step 3: publish_sync 双标记兼容**
 
 `davis_analyzer/systems/cardgen/publish_sync.py`:
 
@@ -531,7 +531,7 @@ _MARKERS = ("小红书卡片", "小红书")  # 新旧两代根名;历史行=小�
 
 (即把 `if _MARKER in parts:` 块改为上述;其余剥归档层级逻辑不动。)
 
-- [ ] **Step 4: 台账 DB 一次性路径 UPDATE(先备份)**
+- [x] **Step 4: 台账 DB 一次性路径 UPDATE(先备份)**
 
 ```bash
 cp storage/database/content_cards.db /tmp/content_cards.db.bak
@@ -558,7 +558,7 @@ EOF
 
 (archive 库的 publish_log 列名执行时先 `PRAGMA table_info` 核对,不对则改列名;SKIP 输出可接受——记录即可。)
 
-- [ ] **Step 5: skills 与 cron prompt 路径同步**
+- [x] **Step 5: skills 与 cron prompt 路径同步**
 
 ```bash
 sed -i 's|docs/盘后总结|docs/复盘/盘后|g; s|docs/方法论|docs/研报/方法论|g' .agents/skills/after-hours-review/SKILL.md
@@ -571,7 +571,7 @@ grep -rn "盘后总结\|小红书卡片\|个股研报\|产业链研报\|盘前�
 
 Expected: 末条 grep 为空或仅注释性行(逐条处理)。
 
-- [ ] **Step 6: AGENTS.md ×2 + README + 索引重写**
+- [x] **Step 6: AGENTS.md ×2 + README + 索引重写**
 
 逐节更新(不是重写全文,是路径与叙事同步):
 
@@ -580,7 +580,7 @@ Expected: 末条 grep 为空或仅注释性行(逐条处理)。
 3. `docs/README.md`:docs 新树导航(四大树+superpowers+回测记录)。
 4. `docs/代码库索引.md`:顶层目录总览更新(去归档项、加 archive/),工具类/引擎类表格中全部 davis 模块路径、scripts 路径按新结构改;「最近更新」改 2026-09-19。
 
-- [ ] **Step 7: cardgen 冒烟 + 门禁 + commit**
+- [x] **Step 7: cardgen 冒烟 + 门禁 + commit**
 
 ```bash
 .venv/bin/python -m davis_analyzer.systems.cardgen status 2>&1 | head -5      # 走新路径读台账不炸
@@ -592,7 +592,7 @@ git add -A && git commit -m "chore(docs): 激进重分四大树+cardgen/长图�
 
 **Files:** 无新改动,只验证与报告。
 
-- [ ] **Step 1: 全量测试(含 stockhot)**
+- [x] **Step 1: 全量测试(含 stockhot)**
 
 ```bash
 .venv/bin/python -m pytest -q 2>&1 | tail -2   # 按 pyproject testpaths 跑全集
@@ -601,7 +601,7 @@ git add -A && git commit -m "chore(docs): 激进重分四大树+cardgen/长图�
 
 Expected: 与基线口径一致(testpaths 全集同样只有那 5 个 publisher 既有失败;若 stockhot 测试另有环境性失败,与重组前对照——可先在 git stash 前提下抽验,执行者记录差异并判断是否重组引入)。
 
-- [ ] **Step 2: timer 全量核对**
+- [x] **Step 2: timer 全量核对**
 
 ```bash
 systemctl --user daemon-reload
@@ -611,7 +611,7 @@ grep -h ExecStart ~/.config/systemd/user/*.service | grep -E "davis_analyzer|scr
 
 Expected: 模块 CLI 均为 `davis_analyzer.systems.*`;scripts 均为 `scripts/ops/|content_publisher/|abx/`;无任何指向不存在文件的行(可再跑 `while read -r u; do systemctl --user cat $u >/dev/null || echo "BAD $u"; done < <(systemctl --user list-units --type=service --no-legend | awk '{print $1}'))`。
 
-- [ ] **Step 3: 旧路径残留全库审计**
+- [x] **Step 3: 旧路径残留全库审计**
 
 ```bash
 grep -rn -E "davis_analyzer\.(thermometer|surge|recap|cardgen|limitup|tournament|intraday|paper_trading|metrics|valuation|pipeline|scoring|config|constants)\b" \
@@ -623,7 +623,7 @@ grep -rn "docs/小红书卡片\|docs/盘后总结\|docs/个股研报\|docs/方�
 
 Expected: 均为空(命中项逐条归属:历史文档豁免/活代码必须修)。
 
-- [ ] **Step 4: CLI 抽查矩阵**
+- [x] **Step 4: CLI 抽查矩阵**
 
 ```bash
 for m in thermometer surge cardgen limitup; do echo "== $m"; .venv/bin/python -m davis_analyzer.systems.$m status 2>&1 | head -3; done
@@ -631,7 +631,7 @@ for m in thermometer surge cardgen limitup; do echo "== $m"; .venv/bin/python -m
 
 Expected: 全部正常返回(不触网)。
 
-- [ ] **Step 5: 收尾报告**
+- [x] **Step 5: 收尾报告**
 
 向用户输出:7 个 commit 清单(`git log --oneline -8`)、测试基线对比、timer 核对结论、遗留事项(如 5 个既有 publisher 测试失败与本次无关、cron prompt 若有历史引用豁免明细)。
 

@@ -7,7 +7,7 @@ Creates two accounts with identical FactorThresholdStrategy configs, except:
 Runs both through run_backfill_auto over the same window, then prints a
 comparison table (return / Sharpe / max-drawdown / win-rate / zombie-count).
 
-This is the empirical validation of docs/方法论/负因子选股方法论_20260806.md.
+This is the empirical validation of docs/研报/方法论/负因子选股方法论_20260806.md.
 
 Usage:
     PYTHONPATH=. .venv/bin/python scripts/abx/negative_factor_abx.py \

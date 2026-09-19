@@ -1,7 +1,7 @@
 """Negative factor veto — filters out known loss-making patterns before buy.
 
 Derived from a post-mortem of 5 zombie accounts (see
-docs/方法论/负因子选股方法论_20260806.md). The philosophy: avoiding
+docs/研报/方法论/负因子选股方法论_20260806.md). The philosophy: avoiding
 mistakes is more reliable than chasing alpha, so this module is a
 *one-strike veto* gate — any single rule firing blocks the buy.
 

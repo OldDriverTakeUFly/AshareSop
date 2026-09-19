@@ -67,7 +67,7 @@ def _format_analysis(result: dict, top_n: int = 10) -> str:
         )
 
     lines.append(
-        f"\n---\n*方法论：`docs/方法论/A股波动率观察框架方法论深度研报.md` §2.2（板块等权 RV + 各板块自身历史分位）*"
+        f"\n---\n*方法论：`docs/研报/方法论/A股波动率观察框架方法论深度研报.md` §2.2（板块等权 RV + 各板块自身历史分位）*"
     )
     return "\n".join(lines)
 

@@ -14,17 +14,17 @@
   零依赖、可重复、离线可用。
 
 Usage:
-    .venv/bin/python scripts/report_to_speech_text.py <markdown_file> [--no-llm] [--output FILE]
+    .venv/bin/python scripts/tools/report_to_speech_text.py <markdown_file> [--no-llm] [--output FILE]
 
 Examples:
     # 默认（LLM 叙述化，镜像到 docs_speech/）
-    python scripts/report_to_speech_text.py "docs/盘后总结/2026-06-26_盘后总结.md"
+    python scripts/tools/report_to_speech_text.py "docs/复盘/盘后/2026-06-26_盘后总结.md"
 
     # 关闭 LLM，纯规则降级（离线/省成本）
-    python scripts/report_to_speech_text.py report.md --no-llm
+    python scripts/tools/report_to_speech_text.py report.md --no-llm
 
     # 指定输出路径
-    python scripts/report_to_speech_text.py report.md --output /tmp/x.txt
+    python scripts/tools/report_to_speech_text.py report.md --output /tmp/x.txt
 """
 
 from __future__ import annotations

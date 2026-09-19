@@ -1337,7 +1337,7 @@ def _compute_volume_signals(ts_codes: list[str], trade_date: str) -> dict[str, d
 # ── Event signal computation (实证驱动) ─────────────────────────────────
 #
 # Implements hard-gate filters based on the event CAR study
-# (docs/方法论/A股事件因子实证研究方法论.md). Two empirically validated
+# (docs/研报/方法论/A股事件因子实证研究方法论.md). Two empirically validated
 # signals are included:
 #
 #   1. 股东减持 (holder reduction)

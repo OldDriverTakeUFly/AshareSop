@@ -1,7 +1,7 @@
 """eod_review 报告生成器 — 将 EODReviewResult 渲染为结构化 markdown.
 
 产出 ``docs/盘后复盘/{date}_量化复盘.md``（与 after-hours-review 的
-``docs/盘后总结/`` 并存，不冲突）。
+``docs/复盘/盘后/`` 并存，不冲突）。
 
 报告核心章节：
 1. 情绪温度计（多维交叉）⭐

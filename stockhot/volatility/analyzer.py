@@ -4,7 +4,7 @@
 表（由 daily_scan 17:30 跑，此时已收盘，数据完整）。如果当日收盘数据未入库，
 宁可不算也不要用盘中价凑。盘中实时预警（panic_detector）是独立场景，不在此约束内。
 
-实现方法论研报（``docs/方法论/A股波动率观察框架方法论深度研报.md``）中的：
+实现方法论研报（``docs/研报/方法论/A股波动率观察框架方法论深度研报.md``）中的：
 
 Layer 1（已实现波动率 RV，主轴）— ``realized_vol`` + ``analyze_single_index``
 Layer 2（RV 历史分位数，标准化刻度）— ``percentile_rank`` + ``classify_panic_level``

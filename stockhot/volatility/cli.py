@@ -87,7 +87,7 @@ def _format_analysis(result: dict) -> str:
             for e in cross["overheat_confirmed"]:
                 lines.append(f"- {e['name']}（RV20 P{e['rv20_pct']:.0f} + 技术面{e['stage']}）")
 
-    lines.append("\n---\n*方法论：`docs/方法论/A股波动率观察框架方法论深度研报.md`*")
+    lines.append("\n---\n*方法论：`docs/研报/方法论/A股波动率观察框架方法论深度研报.md`*")
     return "\n".join(lines)
 
 

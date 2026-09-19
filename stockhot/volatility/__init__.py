@@ -1,7 +1,7 @@
 """Volatility observation module — A 股"中国版 VIX"五层观察体系。
 
 为大盘/指数提供波动率分析能力，补全 daily-market-scan 缺失的"恐慌温度计"维度。
-方法论详见 ``docs/方法论/A股波动率观察框架方法论深度研报.md``。
+方法论详见 ``docs/研报/方法论/A股波动率观察框架方法论深度研报.md``。
 
 核心能力（Layer 1/2/5，可日频计算部分）：
 - 采集指数日线 + iVIX 历史（AKShare + Tushare 双源 fallback）

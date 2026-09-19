@@ -9,7 +9,7 @@ Usage:
 
 Examples:
     # 基本用法（默认女声晓晓，语速+10%）
-    python scripts/report_to_audio.py "docs/个股研报/半导体电子/昊华科技深度研报.md"
+    python scripts/report_to_audio.py "docs/研报/个股/半导体电子/昊华科技深度研报.md"
 
     # 男声云希，语速 +20%
     python scripts/report_to_audio.py report.md --voice zh-CN-YunxiNeural --rate +20%

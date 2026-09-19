@@ -17,7 +17,7 @@
    fund_flow_sector / fund_flow_market / index_technical
 4. 元数据表：macro_indicator（宏观缓存）/ scan_log（采集日志）
 
-详见 ``docs/方法论/统一市场数据架构.md``。
+详见 ``docs/研报/方法论/统一市场数据架构.md``。
 """
 
 from __future__ import annotations
