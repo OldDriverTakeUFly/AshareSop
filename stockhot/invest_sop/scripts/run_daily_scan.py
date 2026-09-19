@@ -14,8 +14,8 @@ Usage:
     .venv/bin/python stockhot/invest_sop/scripts/run_daily_scan.py [--date YYYY-MM-DD]
 
 Crontab example (17:00 Mon–Fri):
-    0 17 * * 1-5 cd /home/leo/Projects/CodeAgentDashboard && \\
-        PYTHONPATH=/home/leo/Projects/CodeAgentDashboard \\
+    0 17 * * 1-5 cd /home/leo/Projects/AshareSop && \\
+        PYTHONPATH=/home/leo/Projects/AshareSop \\
         .venv/bin/python stockhot/invest_sop/scripts/run_daily_scan.py \\
         >> stockhot/invest_sop/logs/daily_scan.log 2>&1
 """

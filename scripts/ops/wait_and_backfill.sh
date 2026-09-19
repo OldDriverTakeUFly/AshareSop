@@ -2,12 +2,12 @@
 # 监控 A/B 实验，完成后自动执行 daily_basic PE 回填
 #
 # 用法：
-#   cd /home/leo/Projects/CodeAgentDashboard
+#   cd /home/leo/Projects/AshareSop
 #   nohup bash scripts/ops/wait_and_backfill.sh > logs/wait_and_backfill.log 2>&1 &
 
 set -e
-cd /home/leo/Projects/CodeAgentDashboard
-export PROJECT_ROOT=/home/leo/Projects/CodeAgentDashboard
+cd /home/leo/Projects/AshareSop
+export PROJECT_ROOT=/home/leo/Projects/AshareSop
 export PYTHONPATH=$PROJECT_ROOT
 
 LOG_PREFIX="[wait_and_backfill]"

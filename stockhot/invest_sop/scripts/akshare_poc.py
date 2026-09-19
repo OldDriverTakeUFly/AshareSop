@@ -5,7 +5,7 @@ Tests all AKShare endpoints needed for the invest_sop project,
 outputting PASS/FAIL for each along with return field information.
 
 Usage:
-    PYTHONPATH=/home/leo/Projects/CodeAgentDashboard python3 stockhot/invest_sop/scripts/akshare_poc.py
+    PYTHONPATH=/home/leo/Projects/AshareSop python3 stockhot/invest_sop/scripts/akshare_poc.py
 """
 
 import json

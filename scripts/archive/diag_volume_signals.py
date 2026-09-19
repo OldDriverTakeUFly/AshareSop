@@ -1,6 +1,6 @@
 """Diagnostic: trace volume signal computation for specific cases."""
 import os, sys
-PROJECT_ROOT = "/home/leo/Projects/CodeAgentDashboard"
+PROJECT_ROOT = "/home/leo/Projects/AshareSop"
 os.environ["PROJECT_ROOT"] = PROJECT_ROOT
 os.chdir(PROJECT_ROOT)
 from loguru import logger; logger.remove(); logger.add(sys.stderr, level="WARNING")
