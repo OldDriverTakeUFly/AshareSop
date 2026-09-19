@@ -374,6 +374,7 @@ def run_longpics(conn: sqlite3.Connection, day: str,
     import asyncio
     day = day.replace("-", "")
     out_dir = out_dir or SURGE_REPORTS_DIR
+    out_dir = out_dir / day  # 按日期分目录归档
     out_dir.mkdir(parents=True, exist_ok=True)
     stats = collect_stats(conn, day)
     facts = snapshot_facts(conn, day, stats)

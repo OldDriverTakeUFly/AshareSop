@@ -46,6 +46,7 @@ def _parse_tags(s) -> str:
 
 def render_full_report(day: str, out: dict, *, out_dir: Path | None = None) -> Path:
     out_dir = out_dir or SURGE_REPORTS_DIR
+    out_dir = out_dir / day  # 按日期分目录归档(2026-09-19 用户拍板)
     out_dir.mkdir(parents=True, exist_ok=True)
     lines: list[str] = [f"# Surge 全量筛选报告 {day}", ""]
     lines.append(f"- 命中数: {out['pool_n']}(当日涨幅>7%)")
@@ -119,6 +120,7 @@ def render_full_report(day: str, out: dict, *, out_dir: Path | None = None) -> P
 
 def render_pattern_report(day: str, out: dict, *, out_dir: Path | None = None) -> Path:
     out_dir = out_dir or SURGE_REPORTS_DIR
+    out_dir = out_dir / day
     out_dir.mkdir(parents=True, exist_ok=True)
     pat: pd.DataFrame = out["pattern_df"]
     snap: pd.DataFrame = out["snapshot_df"]

@@ -25,6 +25,9 @@ def _cmd_run(args: argparse.Namespace) -> int:
             conn, out["day"], out["snapshot_df"], out["pattern_df"],
             out["tags_df"])
         print("长图(出口数字闸放行): " + " / ".join(str(x) for x in paths))
+    if not args.no_push:
+        from davis_analyzer.surge.push_feishu import push_day
+        push_day(out["day"])
     return 0
 
 
@@ -88,6 +91,8 @@ def main(argv: list[str] | None = None) -> int:
     p_run.add_argument("--no-report", action="store_true")
     p_run.add_argument("--no-longpic", action="store_true",
                        help="跳过750px长图(出口数字闸)")
+    p_run.add_argument("--no-push", action="store_true",
+                       help="跳过飞书财经博主运营群推送")
     p_run.set_defaults(func=_cmd_run)
     p_bf = sub.add_parser("backfill", help="回补")
     p_bf.add_argument("--cyq-days", type=int, default=0, help="cyq_perf 回补日数")
