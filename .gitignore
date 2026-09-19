@@ -90,3 +90,7 @@ storage/files/smb_event/adj_factor_*.csv.gz
 davis_analyzer/recap/episodes/
 davis_analyzer/recap/inbox/
 davis_analyzer/recap/assets/
+
+# 运行时诊断产物(2026-09-19 重组清点)
+storage/browser_profile_xhs/
+storage/*.png
