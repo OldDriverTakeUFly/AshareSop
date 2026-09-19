@@ -7,13 +7,14 @@
 
 仓库经数月生长,顶层 10+ 单元、`davis_analyzer/` 根平铺 30 个引擎 py + 12 个子系统目录、`scripts/` 研究脚本无分类堆积、`docs/` 16 个分类目录口径不一。定位与导航成本随子系统(recap/长图卡/板块热点复盘等近期新增)持续上升。
 
-取证事实(2026-09-18):
+取证事实(2026-09-18 首扫,**2026-09-19 执行日复核更新**):
 
-- 包外 108 个 py 文件 import `davis_analyzer.*`。
-- systemd user units 约 15 个引用仓库内脚本/模块路径;`davis-webui-backend/frontend.service` 仍在运行(服务着闲置的 davis_webui)。
+- 包外 98 个 py 文件 import `davis_analyzer.*`(复核口径:stockhot/scripts/tests/studies,不含待归档的 dashboard/webui)。
+- systemd user units 16 路仓库内引用:3 个模块 CLI(recap/**surge(9-18 晚新部署,19:30 timer)**/thermometer)+ 11 个 scripts 路径 + content_publisher 4 个(不动);`davis-webui-backend.service` 仍 active、frontend inactive——归档前两者都要 stop+disable。
 - `docs/小红书卡片` 被 4 个脚本 + cardgen 代码引用;两个支持 `CARDGEN_PROJECT_ROOT` 环境变量覆盖。
 - 顶层闲置:dashboard/src/test-results(5月起)、davis_webui(7月起)、public(5月起);studies 8月仍有活动,保留。
 - 执行窗口约束:周六无定时任务;**周日 08:00 thermometer-universe.timer** 是重组后首个触发的 timer,所有引用必须在周六内修复并 daemon-reload。
+- 复核新增:①run_output.log 技术债已不存在(git 不再跟踪、文件已删,AGENTS.md 旧叙述重写时清除);②工作区积压 61 条(日报类未跟踪报告、docs_audio/.gitkeep 删除、storage 诊断图与 browser_profile_xhs/ 运行时产物——后者走 .gitignore 不提交);③`scripts/replay_rotation_close.py` 被 systemd 引用但**尚未跟踪**,归零提交时必须入库。
 
 ## 二、目标布局
 
@@ -75,7 +76,7 @@ import 策略:**不留兼容 shim**,全局机械改写,例:
 
 覆盖面:包内互引、包内 tests、根 conftest.py、包外 108 文件(scripts/studies/tests/dashboard/webui 中活着的)。
 
-CLI 变化:子系统统一变为 `python -m davis_analyzer.systems.<name>`,同步修约 15 个 systemd unit 的 ExecStart 与 cron prompts。**历史 spec/回测记录/实验日志不改**(历史真相);AGENTS.md(两份)与 docs/代码库索引.md 重写(现行真相)。
+CLI 变化:子系统统一变为 `python -m davis_analyzer.systems.<name>`,同步修 systemd unit 的 ExecStart(3 个模块 CLI:recap/surge/thermometer)与 cron prompts。**历史 spec/回测记录/实验日志不改**(历史真相);AGENTS.md(两份)与 docs/代码库索引.md 重写(现行真相)。
 
 ### 2.3 scripts/ 分组
 
