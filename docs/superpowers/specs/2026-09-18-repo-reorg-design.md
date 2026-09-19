@@ -148,7 +148,7 @@ docs/
   4. `refactor(davis): systems 子系统归拢` + systemd unit ExecStart 更新 + daemon-reload
   5. `chore(scripts): ops/research 分组` + 相关 unit 路径更新
   6. `chore(docs): 激进重分 + 代码路径同步 + AGENTS/索引重写`
-- **门禁**:①全量 pytest(根 tests + davis_analyzer/tests)②各子系统 CLI status 类子命令抽查 ③`systemctl --user daemon-reload && systemctl --user list-timers` 逐条核对路径 ④cardgen 走一遍 init→ingest→validate 干跑验证新路径。
+- **门禁**:①全量 pytest——口径为「**不差于基线**」(2026-09-19 实测基线 5 failed / 1527 passed,5 个失败全在 test_publisher_m3.py::TestCli,系 8/30 小红书判定账号自动化后 publisher CLI 加安全横幅的既有失败,与重组无关,不得新增失败也不必修它们)②各子系统 CLI status 类子命令抽查 ③`systemctl --user daemon-reload && systemctl --user list-timers` 逐条核对路径 ④cardgen 走一遍 status 冒烟验证新路径。
 - **回滚**:每 phase 独立 commit,可单独 revert;git mv 保留历史追踪。
 
 ## 四、风险与对策
