@@ -208,9 +208,140 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--start", default="20260101")
     ap.add_argument("--out", default=None)
+    ap.add_argument("--windows", type=int, default=0,
+                    help=">0 时走随机窗口验证模式")
+    ap.add_argument("--win-days", type=int, default=60)
+    ap.add_argument("--seed", type=int, default=42)
     a = ap.parse_args()
-    run(a.start, Path(a.out) if a.out else None)
+    if a.windows > 0:
+        run_window_validation(a.start, windows=a.windows, win_days=a.win_days,
+                              seed=a.seed, out_path=Path(a.out) if a.out else None)
+    else:
+        run(a.start, Path(a.out) if a.out else None)
     return 0
+
+
+
+
+# ── v2: 随机窗口 + 正规因子验证(2026-09-19 用户拍板) ──
+
+import random
+
+
+def _window_ic(df: pd.DataFrame, factor: str, horizon: int) -> tuple[float, float]:
+    ics = []
+    for _, g in df.groupby("trade_date"):
+        g = g[[factor, f"fwd{horizon}"]].dropna()
+        if len(g) < 20:
+            continue
+        ic = g[factor].rank().corr(g[f"fwd{horizon}"].rank())
+        if pd.notna(ic):
+            ics.append(ic)
+    if not ics:
+        return (np.nan, np.nan)
+    arr = np.array(ics)
+    return (float(arr.mean()),
+            float(arr.mean() / arr.std()) if arr.std() > 0 else np.nan)
+
+
+def run_window_validation(start: str, *, windows: int = 24, win_days: int = 60,
+                          seed: int = 42, out_path: Path | None = None) -> Path:
+    """随机窗口抽样验证: 因子 IC 窗口分布(胜率/t值) + 五分位多空 + 分段环境."""
+    conn = db.connect()
+    snap = _load_snapshots(conn, start)
+    snap = _forward_returns(conn, snap)
+    snap["composite_quintile"] = snap.groupby("trade_date")["composite"] \
+        .transform(lambda s: pd.qcut(s, 5, labels=False, duplicates="drop") + 1)
+    days = sorted(snap["trade_date"].unique())
+    rng = random.Random(seed)
+
+    # 随机不重叠窗口
+    picked: list[tuple[str, str]] = []
+    tries = 0
+    while len(picked) < windows and tries < 5000:
+        tries += 1
+        i = rng.randrange(0, max(1, len(days) - win_days))
+        cand = (days[i], days[min(i + win_days, len(days)) - 1])
+        ok = all(cand[1] < p[0] or cand[0] > p[1] for p in picked)
+        if ok:
+            picked.append(cand)
+
+    lines = [f"# Surge 因子五年验证(随机窗口){snap['trade_date'].min()}~{snap['trade_date'].max()}",
+             "",
+             f"- 截面 {len(days)},样本 {len(snap)};随机窗口 {len(picked)}×{win_days}日"
+             f"(seed={seed},不重叠);IC 口径 N=10",
+             "- 覆盖限制: sw_daily 2022起(2021Q4行业截面缺)/research 2026起/"
+             "巨潮 major_events 仅2026-09后积累(事件标签历史缺失)",
+             ""]
+    # 因子窗口分布
+    lines += ["## 因子随机窗口 IC 分布(N=10)", "",
+              "| 因子 | 窗口IC均值 | 中位 | 胜率(正IC窗口占比) | t值 | 全期IC | 全期ICIR |",
+              "|" + "---|" * 7]
+    for f in _FACTORS:
+        full_ic, full_icir, _ = _rank_ic(snap, f, 10)
+        wics = []
+        for lo, hi in picked:
+            sub = snap[(snap.trade_date >= lo) & (snap.trade_date <= hi)]
+            ic, _ = _window_ic(sub, f, 10)
+            if ic == ic:
+                wics.append(ic)
+        if not wics:
+            continue
+        arr = np.array(wics)
+        t = arr.mean() / (arr.std() / np.sqrt(len(arr))) if arr.std() > 0 else np.nan
+        lines.append(
+            f"| {f} | {arr.mean():+.4f} | {np.median(arr):+.4f} | "
+            f"{(arr > 0).mean():.0%} | {t:+.2f} | "
+            f"{full_ic:+.4f} | {full_icir:+.2f} |")
+    # 五分位多空(逐期等权 Q1-Q5, 报多空均值与胜率)
+    lines += ["", "## 综合分五分位多空(Q1−Q5, N=10)", ""]
+    spreads = []
+    for _, g in snap.groupby("trade_date"):
+        q1 = g[g.composite_quintile == 1]["fwd10"].mean()
+        q5 = g[g.composite_quintile == 5]["fwd10"].mean()
+        if pd.notna(q1) and pd.notna(q5):
+            spreads.append(q1 - q5)
+    if spreads:
+        arr = np.array(spreads)
+        t = arr.mean() / (arr.std() / np.sqrt(len(arr))) if arr.std() > 0 else np.nan
+        lines.append(f"逐期多空均值 {arr.mean():+.4%}(胜率 {(arr > 0).mean():.0%},"
+                     f"t={t:+.2f},期数 {len(arr)})")
+    # 分段环境(按年)
+    lines += ["", "## 分年环境与关键标签", "",
+              "| 年 | 样本 | 基线10日% | 超跌反弹超额% | 天量超额% | 形态命中数 | 形态命中10日% |",
+              "|" + "---|" * 7]
+    pat = pd.read_sql_query(
+        "SELECT DISTINCT trade_date, ts_code FROM surge_pattern_hits "
+        "WHERE trade_date>=?", conn, params=(start,))
+    pat_keys = set(map(tuple, pat[["trade_date", "ts_code"]].values))
+    tags = pd.read_sql_query(
+        "SELECT trade_date, ts_code, tag FROM surge_tags WHERE trade_date>=?",
+        conn, params=(start,))
+    snap["pattern_hit"] = [int((d, c) in pat_keys)
+                           for c, d in zip(snap.ts_code, snap.trade_date)]
+    for year, g in snap.groupby(snap["trade_date"].str[:4]):
+        base = g["fwd10"].mean()
+        def _excess(tag: str) -> str:
+            keys = set(map(tuple, tags[(tags.tag == tag)
+                                       & tags.trade_date.isin(set(g.trade_date))]
+                           [["trade_date", "ts_code"]].values))
+            sub = g[[tuple(x) in keys for x in g[["trade_date", "ts_code"]].values]]
+            if len(sub) < 10:
+                return "样本不足"
+            return f"{(sub['fwd10'].mean() - base) * 100:+.2f}"
+        ph = g[g.pattern_hit == 1]
+        lines.append(
+            f"| {year} | {len(g)} | {base * 100:+.2f} | {_excess('超跌反弹')} | "
+            f"{_excess('天量')} | {len(ph)} | "
+            f"{ph['fwd10'].mean() * 100:+.2f} |")
+    lines += ["", "> 随机窗口口径:窗口内逐日截面IC的均值分布;"
+               "胜率=IC为正的窗口占比;t=窗口IC均值的抽样t统计。", ""]
+    out = out_path or (Path(__file__).resolve().parents[2] / "docs" / "回测记录"
+                       / f"surge因子回测_五年.md")
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text("\n".join(lines), encoding="utf-8")
+    print(f"报告 → {out}")
+    return out
 
 
 if __name__ == "__main__":
