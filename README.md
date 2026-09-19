@@ -8,19 +8,15 @@
 
 ## 能力总览
 
-本项目由五个相对独立的子系统组成，共享同一仓库：
+本仓库为 **stockhot 基础仓**（2026-09-19 与 davis-analyzer 拆分后），由三个子系统组成：
 
 | 子系统 | 目录 | 解决什么问题 | 数据源 |
 |--------|------|--------------|--------|
 | **StockHot 盘面分析** | `stockhot/` | 每日盘面数据采集 + 热点分析 + 报告图片生成 | AKShare |
-| **Davis 估值选股** | `davis_analyzer/` | 戴维斯双击选股 + 景气度周期 + 困境反转估值 | Tushare Pro |
-| **量化模拟盘** | `davis_analyzer/paper_trading/` | 因子策略回测 + HMM 牛熊判定 + 实盘监控（Sharpe +1.4）| Tushare Pro |
-| **AI 交易建议** | `stockhot/advisor/` | 多源信号聚合 → 确定性仲裁 → LLM 生成建议 | 上述引擎输出 |
-| **盘前 SOP 报告** | `stockhot/invest_sop/` | 持仓决策矩阵 + 盘前报告 + 晨间指令（接入策略信号）| 采集入库的数据 |
+| **AI 交易建议** | `stockhot/advisor/` | 多源信号聚合 → 确定性仲裁 → LLM 生成建议 | 引擎输出 |
+| **盘前 SOP 报告** | `stockhot/invest_sop/` | 持仓决策矩阵 + 盘前报告 + 晨间指令 | 采集入库的数据 |
 
-外加两个前端（均 Next.js 15 + React 19）和一套 Agent 技能规范（`.agents/skills/`）。
-
----
+**姊妹仓 `~/Projects/davis-analyzer`**（davis 应用仓）：戴维斯双击选股引擎、景气度/困境反转估值、量化模拟盘、研报与发布流水线、其 WebUI。该仓 `.venv` 以 editable 安装本仓 `stockhot`。数据真身两仓共享于 `~/Projects/.ashare-data/storage/`，各自 `storage/` symlink 回接。
 
 ## 一、StockHot 盘面分析（`stockhot/`）
 
@@ -43,125 +39,6 @@
 - **卖出监控 `sell_monitor/`** — 4 个独立卖出信号：硬止损 / 移动止损 / 目标价达成 / 逻辑破坏，各自触发不仲裁。
 - **AI 分析 `ai_analyzer/`** + **研报 `research_report/`** + **图片生成 `image_generator/`** — 热点归因、结构化报告、小红书尺寸图片。
 - **FastAPI 后端 `api/`**（端口 8321）— 上述数据的 REST 接口，Basic Auth 保护。
-
----
-
-## 二、Davis 估值选股（`davis_analyzer/`）
-
-基于**戴维斯双击**理论（低估值 + 基本面改善 → 盈利与估值双升）的量化选股引擎。
-
-### CLI
-
-```bash
-python -m davis_analyzer run --top 30          # 全市场筛选，输出排名表
-python -m davis_analyzer deep-research --top 3 # 生成可手动填写的调研 checklist
-python -m davis_analyzer rescore               # 读 checklist 人工调整值，重算
-```
-
-### 筛选管线（`pipeline.run_screening_pipeline`）
-
-8 步漏斗：构建股票池（剔 ST/退市）→ 拉 3 年估值历史 → **估值预过滤**（仅留 `valuation_score > 50`）→ 拉财务 → 景气度评分 → 困境评分 + 趋势评分 → 戴维斯双击综合分 → 取 Top N。
-
-### 四大分析引擎
-
-| 引擎 | 文件 | 计算内容 |
-|------|------|----------|
-| **估值** `valuation.py` | PE/PB 百分位（3 年窗口），周期股/亏损股降级为 PB-only | 越被低估分越高 |
-| **景气度** `prosperity.py` | 营收/净利/斜率/时长四维，含 ΔG（增速边际）与杜邦分解 | G+ΔG 框架 |
-| **困境反转** `distress.py` | 三层框架：困境确认(0.3) + 反转可能(0.3) + 反转激活(0.4) | 连续信号，非二元 |
-| **趋势** `trend.py` | PE/PB 月均回归斜率 + 二阶导加速 | 估值下行 = 看多 |
-
-景气度周期框架（`prosperity_sector.py` / `prosperity_inflection.py`）：四阶段分类（加速 / 减速 / 上升拐点 / 下降拐点）、行业相对 ΔG、二次点火筛选。
-
-### 输出
-
-深度研报（`{rank}_{code}_{name}_深度研报.md`，纯模板无 LLM）、汇总索引、调研 checklist（含 `rescore` 消费的两个手动调整槽，范围 -20..+20）。
-
----
-
-## 二b、量化模拟盘（`davis_analyzer/paper_trading/`）
-
-基于因子引擎的 A 股量化策略模拟盘系统，支持历史回测 + 实盘监控。**经多轮 A/B 优化，127 天回测 Sharpe 达 +1.398。**
-
-### CLI
-
-```bash
-# 创建模拟盘
-python -m davis_analyzer.paper_trading init --name davis_v1 --strategy factor_threshold --capital 1000000
-
-# 全自动历史回测（自动计算因子评分）
-python -m davis_analyzer.paper_trading backfill --name davis_v1 --start 20260105
-
-# 实盘监控（盘中止损/止盈 + 收盘自动执行策略）
-python -m davis_analyzer.paper_trading live --name davis_v1
-
-# 生成绩效报告
-python -m davis_analyzer.paper_trading report --name davis_v1
-```
-
-### 策略架构（`FactorThresholdStrategy`）
-
-**7 层买入过滤 + 复合评分 + 动态风险管理**：
-
-```
-买入过滤链：
-  1. 动量 ≥65（主筛）
-  2. 板块趋势 ≠ down（行业 MA 双确认）
-  3. ≥1 个次维度通过（筹码/分红/前瞻/景气）
-  4. 5 日短期动量 > 0（防死猫跳）
-  5. PE 百分位 < 80%（量价信号确认时可豁免）
-  6. 市场环境判定（HMM 熊市不开仓）
-  7. 涨停概率过滤
-
-复合评分 = 动量 38% + 次维度 38% + 景气 19% + 量价 5%
-
-风险管理：
-  - 动态止损（市场×板块×波动率 3D 查表，止损乘数 0.70）
-  - 高位放量卖出（量价风险层）
-  - 动量崩溃卖出（sell_momentum=30）
-```
-
-### 牛熊状态识别（`market_regime.py`）
-
-3 状态 GaussianHMM（隐马尔科夫模型），用 5 年指数收益率训练：
-
-```python
-from davis_analyzer.market_regime import get_market_regime
-regime = get_market_regime("20260721")  # → "bull" / "bear" / "neutral"
-```
-
-- **HMM + MA60 双确认**：HMM 输出概率 + 均线排列交叉验证
-- **波动率独立调整**：高波动自动降仓（×0.5-0.8），不进入牛熊判断
-- **行业双确认**：20 日涨幅（±3%）+ 成分股 MA 多头排列占比（60%/30%）
-
-### 策略信号输出（`strategy_signal.py`）
-
-统一 JSON 输出，供盘前盘后总结等外部服务调用：
-
-```python
-from davis_analyzer.strategy_signal import generate_daily_signal
-signal = generate_daily_signal("20260721")
-# 包含：市场环境 + 策略配置 + 持仓 + 止损止盈 + 模拟盘信号
-```
-
-### 回测性能（127 天，2026-01-05 → 2026-07-15）
-
-| 优化阶段 | 收益率 | 最大回撤 | Sharpe |
-|----------|-------:|--------:|-------:|
-| V1 原始 baseline | -10.31% | 19.15% | -0.54 |
-| +量价策略 | -3.35% | 17.11% | -0.20 |
-| +Sharpe 优化（pos=5, stop=0.70）| -1.88% | 14.13% | -0.13 |
-| +PE 豁免 | +0.86% | 10.17% | +0.085 |
-| +sell_momentum=30 | +2.80% | 11.10% | +0.252 |
-| **+HMM 市场环境自适应** 🏆 | **+18.85%** | **12.39%** | **+1.521** |
-
-### 实证研究（3 份方法论报告）
-
-| 报告 | 核心发现 |
-|------|----------|
-| **事件因子** `docs/方法论/A股事件因子实证研究方法论.md` | 减持后 60 天 CAR -1.76%（t=-7）；但强势股池子集成反向 |
-| **技术因子** `docs/方法论/A股技术因子实证研究方法论.md` | RSI 20d Q5-Q1 +1.98%（t=7.8）；IC 噪音大需分组验证 |
-| **研究进度总览** `docs/方法论/量化因子研究进度总览.md` | 完整优化脉络 + 8 条关键教训 |
 
 ---
 
@@ -218,33 +95,17 @@ Telegram Bot 推送，纯 `httpx` 调用（不引入 `python-telegram-bot`）。
 
 ---
 
-## 前端
-
-两套独立的 Next.js 应用，服务于不同引擎：
-
-| 前端 | 目录 | 后端 | 端口 | 主要页面 |
-|------|------|------|------|----------|
-| **StockHot Dashboard** | `dashboard/` | `stockhot/api` (8321) | 3000 | 涨停 / 龙虎榜 / 资金流 / 风险提示 / 历史对比 / 盘前 SOP / 持仓管理 |
-| **Davis WebUI** | `davis_webui/` | `davis_webui/backend` (8322) | 3100 | 筛选 / 困境 / 研报 / 个股 / 趋势 / 景气度热力图 / 历史 |
-
----
-
 ## Agent 技能规范（`.agents/skills/`）
 
-6 个 ZCode 自动发现的 skill，定义各分析任务的方法论与硬编码参数（权重/阈值/执行顺序），agent 执行对应任务时必须遵循：
+ZCode 自动发现的 skill，定义各分析任务的方法论与硬编码参数（权重/阈值/执行顺序），agent 执行对应任务时必须遵循：
 
 | Skill | 适用场景 |
 |-------|----------|
 | `local-development-environment` | 本地环境搭建 / 依赖 / 运行时选择 |
 | `daily-market-scan` | 盘面扫描四模块编排 |
-| `industry-prosperity` | 景气度 G+ΔG 框架 / 周期定位 |
-| `multi-factor-screening` | 多因子三层管线选股 |
-| `valuation-loss-making-targets` | 亏损标的 PS+DCF 三角估值 |
-| `invest-sop-pre-market` | 盘前报告生成 SOP |
+| `after-hours-review` | 盘后总结 / 热点催化归因 |
 
-详见 [`AGENTS.md`](AGENTS.md)。
-
----
+研报写作/景气度/多因子/估值/盘前 SOP 五个 skill 文档在 davis 仓 `.agents/skills/`。详见 [`AGENTS.md`](AGENTS.md)。
 
 ## 快速开始
 
@@ -253,7 +114,6 @@ Telegram Bot 推送，纯 `httpx` 调用（不引入 `python-telegram-bot`）。
 复制 `.env.template` → `.env`，按需填入：
 
 - **通用** — `PROJECT_ROOT`、`STOCKHOT_API_PASSWORD`、`CORS_ORIGINS`
-- **Davis**（`.env.davis`）— `TUSHARE_TOKEN`（必填，否则 `davis_analyzer` 无法跑）
 - **AI 建议** — `LLM_PROVIDER`（默认 `glm`）、`LLM_API_KEY`
 - **推送** — `TELEGRAM_BOT_TOKEN`、`TELEGRAM_CHAT_ID`、`TELEGRAM_ALLOWED_USER_IDS`
 
@@ -265,22 +125,8 @@ pip install -e ".[dev]"
 
 # StockHot API
 uvicorn stockhot.api.main:app --port 8321
-
-# Davis WebUI API
-uvicorn davis_webui.backend.main:app --port 8322
 ```
 
-### 前端
-
-```bash
-# StockHot Dashboard
-cd dashboard && npm install && npm run dev
-
-# Davis WebUI
-cd davis_webui/frontend && npm install && npm run dev
-```
-
----
 
 ## 项目结构
 
@@ -295,60 +141,23 @@ stockhot/                  # 盘面分析后端
 ├── invest_sop/            # 盘前 SOP 报告（接入策略信号）
 ├── api/ core/ storage/    # FastAPI + 配置 + 存储
 
-davis_analyzer/            # 戴维斯双击选股 + 量化模拟盘
-├── pipeline.py sector_pipeline.py   # 筛选管线
-├── scoring.py valuation.py prosperity*.py distress.py trend.py  # 分析引擎
-├── market_regime.py       # HMM 牛熊状态识别（3 状态 + MA 确认）
-├── strategy_signal.py     # 统一策略信号输出（供外部服务调用）
-├── sub_industry.py        # 细分行业分类（半导体设备/存储芯片等）
-├── paper_trading/         # 量化模拟盘（回测 + 实盘监控）
-│   ├── strategy.py        # FactorThresholdStrategy（7 层过滤 + 复合评分）
-│   ├── executor.py        # DailyExecutor（风控 + 量价 + 行业双确认）
-│   ├── account.py         # DB 持久化账户
-│   ├── live_monitor.py    # 实盘监控守护进程
-│   └── report.py          # 绩效报告
-├── config/                # 细分行业手动映射表
-└── cli.py                 # run / deep-research / rescore
-
-davis_webui/               # Davis 引擎的 Web UI（backend + frontend）
-dashboard/                 # StockHot 的 Web UI（Next.js）
-
-scripts/                   # 研究与分析脚本
-├── event_research/        # 事件因子实证（CAR 计算）
-├── tech_research/         # 技术因子实证（IC + 分组回测）
-├── sharpe_sweep.py        # Sharpe 参数扫描
-├── fine_params_sweep.py   # 精细参数扫描
-├── regime_abx.py          # HMM 牛熊 A/B 验证
-├── premarket_candidates.py# 盘后选股分析
-└── backfill_*.py          # 数据补全脚本
-
+scripts/ops/               # 运维 shell（盘后/交易时段 inhibit、补数等待）
+docs/复盘/盘后/            # 每日盘后总结
 .agents/skills/            # Agent 技能规范（ZCode 自动发现）
-storage/                   # 运行时数据（gitignore）
-├── database/market_data.db # 统一市场数据库（行情/财务/事件/因子）
-└── database/stockhot.db   # 应用数据库（持仓/模拟盘/选股任务）
-docs/                      # 行业研究报告 + 方法论
-docker/                    # 部署配置
-.github/workflows/ci.yml   # CI：ruff + black + pytest (3.11/3.12)
+storage/ -> ~/Projects/.ashare-data/storage/   # 数据真身 symlink（gitignore）
 ```
 
----
+Davis 引擎/模拟盘/研报流水线结构 → davis 仓 README。
 
 ## 文档
 
 - [`SPEC.md`](SPEC.md) — 项目需求规格说明书
-- [`AGENTS.md`](AGENTS.md) — Agent 行为规范（各 skill 的强制行为与护栏）
-- [`docs/方法论/`](docs/方法论/) — 19 篇方法论深度研报，包括：
-  - `量化因子研究进度总览.md` — 完整优化脉络 + 关键教训
-  - `A股事件因子实证研究方法论.md` — 减持/解禁/回购 CAR 分析
-  - `A股技术因子实证研究方法论.md` — RSI/MA/Bollinger IC + 分组回测
-- [`docs/`](docs/) — 行业研究报告 + 个股研报 + 盘后总结
-- [`docker/DEPLOY.md`](docker/DEPLOY.md) — NAS 部署指南
+- [`AGENTS.md`](AGENTS.md) — Agent 行为规范（双仓拓扑 + 各 skill 强制行为与护栏）
+- [`docs/复盘/盘后/`](docs/复盘/盘后/) — 每日盘后总结（当日产物，不进索引）
+- 研报/方法论/回测记录 → davis 仓 `docs/`（见该仓 README）
 - [`.agents/skills/`](.agents/skills/) — Agent 技能规范
 
 ## 部署
 
-Docker + docker-compose（NAS），见 `docker-compose.yml` / `docker-compose.davis.yml` 与 `docker/DEPLOY.md`。
+Docker + docker-compose（NAS），见 `docker-compose.yml` 与 `docker/DEPLOY.md`。
 
----
-
-*本项目仅提供数据分析与辅助决策，不构成投资建议。所有交易决策由使用者自行承担风险。*

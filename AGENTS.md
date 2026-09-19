@@ -2,6 +2,15 @@
 
 This repository expects coding agents to follow the local development environment skill for any environment-related work.
 
+## 双仓拓扑（2026-09-19 拆分后）
+
+本仓库（`~/Projects/AshareSop`，原 CodeAgentDashboard）是 **stockhot 基础仓**：盘面采集、热点分析、AI 建议、盘前 SOP、通知推送。姊妹仓 `~/Projects/davis-analyzer` 是 **davis 应用仓**：戴维斯选股引擎、景气度、估值、模拟盘、研报/发布流水线。
+
+- **数据真身**在 workspace 级 `~/Projects/.ashare-data/storage/`，两仓各自以 `storage/` symlink 回接共享（DB/缓存/发布素材）。
+- davis 仓 `.venv` 以 editable 方式安装本仓库 `stockhot`（`import stockhot` 可用）；本仓不依赖 davis。
+- 研报写作、估值分析、景气度分析任务在 **davis 仓**执行，其 AGENTS.md 与 skills 在该仓 `.agents/skills/`。
+- 系统服务已分家：本仓 2 路 inhibit unit + davis 仓 19 路 davis unit（见 `~/.config/systemd/user/`）。
+
 ## Agent 工作方式（Karpathy 四条，本地化版）
 
 1. 动手前先想清楚方案，非平凡改动先出计划再写代码。
@@ -51,7 +60,6 @@ This repository expects coding agents to follow the local development environmen
 
 涉及**研报写作、数据分析、财务取数**时，**使用原生命令**，不加 `rtk` 前缀：
 
-- `davis_analyzer` 引擎取数脚本输出（需要完整 JSON 数据做研报，压缩会丢数字）
 - `tushare` / `stockhot` 取数与数据库查询
 - 读取要精读的研报模板、财务表格、checklist
 - 任何输出需要完整进入上下文的场景
@@ -116,98 +124,6 @@ Agents must not:
 - introduce new environment tools without explaining why they are needed
 - claim an environment is reproducible without checking versions, lockfiles, or startup paths
 
-## Post-Report Push Rule (MANDATORY)
-
-After **every** research report is completed and verified in `docs/`, the agent MUST:
-
-1. **Verify** the report file: check chapter completeness, no PART markers, proper start/end
-2. **Commit** with semantic style: `feat(docs): add {report-name}`
-3. **Push** to `origin/master` immediately
-4. **Confirm** push succeeded before reporting completion to user
-
-This is a non-negotiable step. A report is not "done" until it is on GitHub.
-
-Commit message format (match existing repo style):
-```
-feat(docs): add {short-description}
-```
-
-Always include agent attribution footer:
-```
-Ultraworked with [Sisyphus](https://github.com/code-yeongyu/oh-my-openagent)
-Co-authored-by: Sisyphus <clio-agent@sisyphuslabs.ai>
-```
-
-Report naming: use **Chinese filenames** (e.g. `docs/研报/个股/ai算力全景研报.md`, `docs/研报/产业链/固态电池产业链报告.md`). Do NOT use English filenames for research reports.
-
-Remote: `origin` → `git@github.com:OldDriverTakeUFly/AshareSop.git`
-
-## Source of Truth
-
-If this file and the skill differ in detail, treat `.agents/skills/local-development-environment/SKILL.md` as the source of truth for environment-management behavior.
-
-# 估值分析 Skill（valuation-loss-making-targets）
-
-This repository expects coding agents to follow the loss-making target valuation skill for any 估值分析 work involving companies that are currently unprofitable.
-
-## Default Rule
-
-For tasks involving 估值分析、亏损标的估值、困境反转定价、或 PS+DCF 三角验证建模, agents must read and follow:
-
-- `.agents/skills/valuation-loss-making-targets/SKILL.md`
-
-Companion materials are available here:
-
-- `.agents/skills/valuation-loss-making-targets/README.zh-CN.md`
-- `.agents/skills/valuation-loss-making-targets/references/distress-probability-rules.md`
-- `.agents/skills/valuation-loss-making-targets/references/valuation-model-schema.md`
-- `.agents/skills/valuation-loss-making-targets/references/study-script-templates/financial_deep_template.py`
-- `.agents/skills/valuation-loss-making-targets/references/study-script-templates/scoring_template.py`
-- `.agents/skills/valuation-loss-making-targets/references/study-script-templates/quant_data_template.py`
-- `.agents/skills/valuation-loss-making-targets/checklists/differentiation-audit.md`
-- `.agents/skills/valuation-loss-making-targets/checklists/source-traceability.md`
-
-## When This Applies
-
-Use the skill whenever the task includes any of the following:
-
-- 估值分析（target valuation）for an acquisition or investment target
-- 亏损标的（loss-making targets）—— net income 为负、PE 估值失效的场景
-- 困境反转（distress / turnaround）候选公司定价
-- DCF for loss-making companies —— 需要对负自由现金流做情景化处理
-- 同业对比估值（global peer anchoring）—— 跨市场可比公司映射
-- PS + DCF 双模型建模与三角验证（Triangle Framework）
-
-## Required Agent Behavior
-
-The requirements below are a non-exhaustive summary. They do not replace `.agents/skills/valuation-loss-making-targets/SKILL.md`.
-
-Agents working on 估值分析 tasks must:
-
-1. inspect the target company before valuing —— 先读取标的的财务数据、行业地位、亏损原因
-2. reuse existing engines when coherent —— 复用 `research_report/` 与 `invest_sop/` 中已有的财务分析脚本，避免重写
-3. tag every number with a named source —— 报告中每个数字必须可追溯到具名数据源（年报、券商研报、行业数据库）
-4. produce scenario-weighted ranges, never a single price —— 输出悲观/中性/乐观三情景概率加权区间，权重由客观 distress 信号调整
-5. apply the Triangle Framework —— 困境评分、PS+DCF 双模型、全球同业锚定三角度必须同时给出，发散本身是风险信号
-6. report what was computed, reused, assumed, or left unresolved —— 区分实算、复用、假设与未决项
-
-## Guardrails
-
-This skill is guidance for 估值分析 work only.
-
-Agents must not:
-
-- 改动既有估值引擎（`research_report/`、`invest_sop/`）的实现 —— 复用而非修改，如需扩展请另起模块
-- 复制粘贴财务表格而不附数据源 —— 未标注来源的数字一律视为不可信
-- 给出单一目标价 —— 亏损标的必须以概率加权区间输出，禁止单点定价
-- 使用未标注数据或未公开内幕信息作为估值输入
-- 用 PE / PEG 等依赖正盈利的指标对亏损标的做主估值（仅可作为辅助参照）
-- 跳过 distress 信号核查而直接给乐观结论
-
-## Source of Truth
-
-If this section and the skill differ in detail, treat `.agents/skills/valuation-loss-making-targets/SKILL.md` as the source of truth for loss-making target valuation methodology.
-
 # 日常盘面扫描 Skill（daily-market-scan）
 
 This repository expects coding agents to follow the daily market scan skill for any 盘面扫描、每日复盘、热点数据采集 work involving the four stockhot hot-topic modules.
@@ -226,7 +142,7 @@ Companion materials are available here:
 
 ## When This Applies
 
-Use the skill whenever the task includes any of the following:
+Use this skill whenever the task includes any of the following:
 
 - 日常盘面扫描（daily market scan）—— 调用涨停、龙虎榜、资金流、风险提示四个模块
 - 涨停分析（limit_up）—— 涨停池、炸板池、连板梯队、板块联动、封单强度
@@ -236,8 +152,6 @@ Use the skill whenever the task includes any of the following:
 - 为下游 skill（invest-sop-pre-market）采集当日市场数据
 
 ## Required Agent Behavior
-
-The requirements below are a non-exhaustive summary. They do not replace `.agents/skills/daily-market-scan/SKILL.md`.
 
 Agents working on 盘面扫描 tasks must:
 
@@ -264,121 +178,6 @@ Agents must not:
 ## Source of Truth
 
 If this section and the skill differ in detail, treat `.agents/skills/daily-market-scan/SKILL.md` as the source of truth for daily market scan orchestration methodology.
-
-# 景气度投资 Skill（industry-prosperity）
-
-This repository expects coding agents to follow the industry prosperity skill for any 景气度投资分析 work involving growth cycle classification, ΔG signaling, or six-dimension indicator assessment.
-
-## Default Rule
-
-For tasks involving 景气度分析、G+ΔG 框架、周期定位、二次点火筛选、或六维指标监控, agents must read and follow:
-
-- `.agents/skills/industry-prosperity/SKILL.md`
-
-Companion materials are available here:
-
-- `.agents/skills/industry-prosperity/README.zh-CN.md`
-- `.agents/skills/industry-prosperity/references/six-dimension-indicators.md`
-- `.agents/skills/industry-prosperity/references/scoring-template.py`
-- `.agents/skills/industry-prosperity/checklists/prosperity-audit.md`
-
-## When This Applies
-
-Use the skill whenever the task includes any of the following:
-
-- 景气度投资分析（prosperity analysis）—— 判断行业或个股处于加速期、减速期还是拐点
-- G+ΔG 框架 —— 增速绝对值（G）与增速边际变化（ΔG）的联合分析
-- 周期定位（cycle classification）—— 用山峰理论或成长股投资时钟分类标的当前位置
-- 二次点火筛选（secondary ignition screening）—— 筛选 G 和 ΔG 同时为正的标的
-- 六维指标监控（six-dimension indicators）—— BB Ratio / 稼动率 / 交期 / 库存 / 排产 / LTA
-- 景气预期追踪（prosperity expectation）—— 分析师一致预期的边际变化
-
-## Required Agent Behavior
-
-The requirements below are a non-exhaustive summary. They do not replace `.agents/skills/industry-prosperity/SKILL.md`.
-
-Agents working on 景气度投资 tasks must:
-
-1. inspect the target before classifying —— 先获取至少 4 个季度的财务数据，确认 ΔG 可计算
-2. reuse davis_analyzer engines —— 复用 `davis_analyzer/factors/prosperity.py`、`prosperity_inflection.py`、`prosperity_sector.py` 的函数，不重写评分逻辑
-3. tag every indicator reading with a named source —— 六维指标的每个读数必须标注数据来源（厂商法说会、分销商报告、行业调研）
-4. classify cycle position honestly —— 如实分类周期位置，不因"行业景气"就强行说个股在加速期
-5. apply the G+ΔG framework —— G 和 ΔG 必须同时给出，ΔG 符号决定山峰位置（左山坡/右山坡/山后）
-6. report what was computed, reused, assumed, or left unresolved —— 区分实算、复用、假设与未决项
-
-## Guardrails
-
-This skill is guidance for 景气度投资 work only.
-
-Agents must not:
-
-- 修改 `davis_analyzer` 景气度引擎（`davis_analyzer/factors/prosperity.py`、`prosperity_inflection.py`、`prosperity_sector.py`）的源码 —— 复用而非修改
-- 复制 prosperity.py 代码到 skill 文件 —— 只描述映射关系，不复制实现
-- 自动抓取六维指标数据 —— skill 定义框架和计算逻辑，数据需手动收集
-- 在 ΔG 数据不足 2 个季度时强行给出周期定位 —— 必须标注"ΔG 不可靠"
-- 混淆行业景气（β）与个股表现（α）—— 行业景气不等于每只个股都在加速
-- 忽视 30% 阈值 —— 净利润增速降至 30% 以下时超额收益大概率下滑，必须标注
-
-## Source of Truth
-
-If this section and the skill differ in detail, treat `.agents/skills/industry-prosperity/SKILL.md` as the source of truth for industry prosperity investment methodology.
-
-# 多因子量化选股 Skill（multi-factor-screening）
-
-This repository expects coding agents to follow the multi-factor screening skill for any 多因子量化选股、因子打分、分域选股 work involving systematic stock universe ranking.
-
-## Default Rule
-
-For tasks involving 多因子选股、量化选股、因子打分、分域选股、三层结构选股管线, agents must read and follow:
-
-- `.agents/skills/multi-factor-screening/SKILL.md`
-
-Companion materials are available here:
-
-- `.agents/skills/multi-factor-screening/README.zh-CN.md`
-- `.agents/skills/multi-factor-screening/checklists/factor-audit.md`
-- `.agents/skills/multi-factor-screening/references/three-layer-pipeline.md`
-- `.agents/skills/multi-factor-screening/references/screening-template.py`
-
-## When This Applies
-
-Use the skill whenever the task includes any of the following:
-
-- 多因子量化选股（multi-factor screening）—— 从股票池中系统化筛选和排名候选标的
-- 因子打分（factor scoring）—— 成长/质量/估值/技术/资金情绪五大因子族加权
-- 分域选股（domain-specific selection）—— 红利型/成长型/价值型/周期型四域差异化权重
-- 三层结构管线（three-layer pipeline）—— 硬过滤 → 打分 → 加分
-- 季度组合调仓（quarterly rebalancing）—— 重新评估和排序持仓候选
-
-## Required Agent Behavior
-
-The requirements below are a non-exhaustive summary. They do not replace `.agents/skills/multi-factor-screening/SKILL.md`.
-
-Agents working on 多因子选股 tasks must:
-
-1. follow the three-layer pipeline strictly —— 硬过滤层先行 → 打分层 → 加分层，三层不可跳过或打乱
-2. score within industry peer groups —— 所有因子打分在行业内部排序，不做全市场一刀切
-3. apply domain-specific weights —— 红利型/成长型/价值型/周期型四域使用不同权重，分别输出排名
-4. use hardcoded constants only —— 所有权重和阈值固定在 SKILL.md 和模板脚本中，不提供运行时配置
-5. report present-day ranking only —— 只输出当日截面排名，不做回测、IC 分析或因子衰减曲线
-6. call davis_analyzer functions as-is —— 复用而非修改，权重体系不同时以本 skill 为准
-
-## Guardrails
-
-This skill is guidance for 多因子选股 work only.
-
-Agents must not:
-
-- 修改 davis_analyzer 源码 —— 复用 `davis_analyzer/core/scoring.py`、`core/pipeline.py` 等模块，不修改其实现
-- 将权重设为可配置参数 —— 30/20/25/25 默认权重和四域覆盖权重均为硬编码常量
-- 做回测或 IC 分析 —— 本 skill 只做当日截面排名，回测属于独立流程
-- 跳过硬过滤层直接打分 —— 硬过滤是底线，不可为"特殊标的"破例
-- 跨域混合排名 —— 四域综合分不可比，必须分域输出排名清单
-- 加分层对信号缺位减分 —— 加分只加不减，无信号不等于差公司
-
-## Source of Truth
-
-If this section and the skill differ in detail, treat `.agents/skills/multi-factor-screening/SKILL.md` as the source of truth for multi-factor quantitative screening methodology.
 
 # AI 交易建议引擎（ai-trading-advisor）
 
@@ -410,8 +209,6 @@ Use this module whenever the task includes any of the following:
 
 ## Required Agent Behavior
 
-The requirements below are a non-exhaustive summary.
-
 Agents working on AI 交易建议 tasks must:
 
 1. use the prompt registry —— 所有 LLM prompt 从 prompt registry 加载，永远不在代码中内联 prompt 文本
@@ -420,6 +217,8 @@ Agents working on AI 交易建议 tasks must:
 4. respect `MAX_STOCKS_PER_DAILY_RUN` —— `daily` 命令处理的股票数不得超过此上限（当前为 20），超出时截断并告警
 5. call `run_for_stock()` as the entry point —— 单股分析通过 `run_for_stock(code, trade_date, holding=...)` 调用
 6. report what was generated, skipped, or errored —— 区分 `generated`（有建议）、`skipped`（无建议或出错）
+
+davis_analyzer 数据缺位时（拆分后本仓不再安装 davis 引擎），`data_sources/fundamental.py` 已惰性降级为"数据不可用"，不得编造 fallback。
 
 ## Guardrails
 
@@ -432,7 +231,7 @@ Agents must not:
 - 捏造 fallback 数据 —— 当 davis_analyzer / technical_analyzer 数据缺失时标注"数据不可用"，不得编造
 - 超过 `MAX_STOCKS_PER_DAILY_RUN` 上限 —— 批量运行必须截断，不得动态提高上限
 - 在代码中内联 prompt 文本 —— 所有 prompt 必须从 prompt registry 加载，便于版本管理
-- 修改 `davis_analyzer` / `technical_analyzer` / `sell_monitor` 源码 —— 复用而非修改，advisor 只消费它们的输出
+- 修改 `technical_analyzer` / `sell_monitor` 源码 —— 复用而非修改，advisor 只消费它们的输出
 
 ## Source of Truth
 
@@ -463,8 +262,6 @@ Use this module whenever the task includes any of the following:
 
 ## Required Agent Behavior
 
-The requirements below are a non-exhaustive summary.
-
 Agents working on 通知推送 tasks must:
 
 1. use `httpx` for all API calls —— 直接调用 Telegram Bot API（`POST /sendMessage`），不引入 `python-telegram-bot` 依赖
@@ -489,69 +286,6 @@ Agents must not:
 ## Source of Truth
 
 If this section and the module implementation differ in detail, treat `stockhot/notification/telegram_bot.py` source code as the source of truth for notification behavior.
-
-# 盘前分析 SOP Skill（invest-sop-pre-market）
-
-This repository expects coding agents to follow the pre-market SOP skill for any 盘前分析、盘前报告生成、晨间指令、持仓决策矩阵 work involving reading collected data and producing daily markdown reports.
-
-## Default Rule
-
-For tasks involving 盘前报告、晨间指令、或 SOP 决策矩阵评估, agents must read and follow:
-
-- `.agents/skills/invest-sop-pre-market/SKILL.md`
-
-Companion materials are available here:
-
-- `.agents/skills/invest-sop-pre-market/README.zh-CN.md`
-- `.agents/skills/invest-sop-pre-market/checklists/report-completeness.md`
-- `.agents/skills/invest-sop-pre-market/references/data-flow.md`
-- `.agents/skills/invest-sop-pre-market/references/decision-matrix.md`
-
-Key entry points (do NOT modify — invoke only):
-
-- `stockhot/invest_sop/scripts/generate_premarket_report.py` — Workflow A, produces `{date}_pre_market.md`
-- `stockhot/invest_sop/scripts/generate_directive.py` — Workflow B, produces `{date}_directive.md`
-- `stockhot/invest_sop/scripts/run_daily_advisor.py` — cron orchestrator (advisor daily + report)
-
-## When This Applies
-
-Use the skill whenever the task includes any of the following:
-
-- 盘前分析（pre-market analysis）—— 读取已采集数据，对持仓套用 SOP 决策矩阵
-- 盘前报告生成（pre-market report）—— 产出 `{date}_pre_market.md`
-- 晨间指令（morning directive）—— 产出 `{date}_directive.md`
-- 持仓决策矩阵（holding decision matrix）—— 四维评估（逻辑/事件/技术/周期）+ 矩阵 A/B
-- 风控检查（risk control check）—— 仓位/板块集中度/止损距离合规校验
-
-## Required Agent Behavior
-
-The requirements below are a non-exhaustive summary. They do not replace `.agents/skills/invest-sop-pre-market/SKILL.md`.
-
-Agents working on 盘前分析 tasks must:
-
-1. read collected data only —— 只读 SQLite 的 `invest_*` 表和 `advisor_runs`，不调 AKShare、不下单、不改库
-2. invoke the existing scripts —— 复用 `generate_premarket_report.py` / `generate_directive.py`，不重写报告生成逻辑
-3. phrase operations as matrix results —— 写「决策矩阵结果：减仓30%」，不写「建议买入」「应该加仓」
-4. fill §3-7 analysis manually —— 生成器对持仓四维评估、新增备选、今日重点、风控、复盘只输出占位表，分析内容由 agent 根据 `references/decision-matrix.md` 填充
-5. handle missing data per §6 —— 缺表标「数据不可用」，NULL 列标「N/A」，核心表空时停止生成
-6. report what was filled, left as placeholder, or marked unavailable —— 区分实填、占位、不可用
-
-## Guardrails
-
-This skill is guidance for 盘前分析 work only.
-
-Agents must not:
-
-- 直接下单或下达交易指令 —— 报告只呈现分析，决策由人工
-- 调用 AKShare 采集数据 —— 采集属于 `daily-market-scan` skill 和 `stockhot/invest_sop/scripts/` 的采集脚本
-- 修改数据库 —— 所有查询必须是只读 SELECT
-- 捏造缺失数据 —— 不得估算、插值、编造数值
-- 修改 `generate_premarket_report.py` / `generate_directive.py` 源码 —— 复用而非修改
-- 跳过 §6 错误处理 —— 核心表（holdings / overseas market）全空时不得生成"看起来完整"的报告
-
-## Source of Truth
-
-If this section and the skill differ in detail, treat `.agents/skills/invest-sop-pre-market/SKILL.md` as the source of truth for pre-market SOP report-generation behavior. The SOP methodology source of truth is `.sisyphus/drafts/a-share-pre-market-sop.md`.
 
 # 盘后总结 Skill（after-hours-review）
 
@@ -601,71 +335,65 @@ Agents must not:
 
 ## Source of Truth
 
-If this section and the skill differ in detail, treat `.agents/skills/after-hours-review/SKILL.md` as the source of truth. Data format defers to `stockhot/storage/database.py` `get_daily_data()`.
+If this section and the skill differ in detail, treat `.agents/skills/after-hours-review/SKILL.md` as the source of truth for after-hours review methodology. Data format defers to `stockhot/storage/database.py` `get_daily_data()`.
 
-# 研报写作流程 Skill（research-report）
+# 盘前分析 SOP Skill（invest-sop-pre-market）【跨仓 skill】
 
-This repository expects coding agents to follow the research-report skill for any 研报写作、深度分析、产业链报告、个股研报、方法论报告 work involving producing long-form Chinese research documents under `docs/`.
+> 拆分说明：本 skill 的**执行脚本**在本仓 `stockhot/invest_sop/scripts/`，但 skill 文档（SKILL.md/references/checklists）随研报体系迁至 davis 仓 `.agents/skills/invest-sop-pre-market/`。两仓 AGENTS.md 均保留本节入口说明。
 
 ## Default Rule
 
-For tasks involving 写研报、深度报告、产业链分析、个股研报、方法论报告、估值报告, agents must read and follow:
+For tasks involving 盘前报告、晨间指令、或 SOP 决策矩阵评估, agents must read and follow:
 
-- `.agents/skills/research-report/SKILL.md`
+- `~/Projects/davis-analyzer/.agents/skills/invest-sop-pre-market/SKILL.md`
 
-Companion materials are available here:
+Key entry points (do NOT modify — invoke only):
 
-- `.agents/skills/research-report/references/engine-usage.md` — **davis_analyzer 引擎调用指南**（调引擎取数时必读，含完整模板 + 常见错误速查）
-- `.agents/skills/research-report/references/report-templates.md` — 4 种报告类型的完整章节结构（写作前必读）
-- `.agents/skills/research-report/references/data-sourcing.md` — 数据来源分级体系 + 采集方法 + 引用格式
-- `.agents/skills/research-report/checklists/report-quality.md` — 提交前的质量检查清单（18 项）
+- `stockhot/invest_sop/scripts/generate_premarket_report.py` — Workflow A, produces `{date}_pre_market.md`
+- `stockhot/invest_sop/scripts/generate_directive.py` — Workflow B, produces `{date}_directive.md`
+- `stockhot/invest_sop/scripts/run_daily_advisor.py` — cron orchestrator (advisor daily + report)
 
 ## When This Applies
 
-Use the skill whenever the task includes any of the following:
-
-- 研报写作（research report authoring）—— 在 `docs/` 下产出长篇中文研究文档
-- 个股深度研报（single-stock deep report）—— 11 章景气度结构
-- 产业链研报（industry-chain report）—— 6 节景气度结构或传统 8 章
-- 方法论研报（methodology report）—— 固定 8 章结构
-- 分析笔记/短篇（short analysis）—— 轻量 5 节结构
-- 估值报告（valuation report）—— 概率加权三情景区间
+- 盘前分析（pre-market analysis）—— 读取已采集数据，对持仓套用 SOP 决策矩阵
+- 盘前报告生成（pre-market report）—— 产出 `{date}_pre_market.md`
+- 晨间指令（morning directive）—— 产出 `{date}_directive.md`
+- 持仓决策矩阵（holding decision matrix）—— 四维评估（逻辑/事件/技术/周期）+ 矩阵 A/B
+- 风控检查（risk control check）—— 仓位/板块集中度/止损距离合规校验
 
 ## Required Agent Behavior
 
-The requirements below are a non-exhaustive summary. They do not replace `.agents/skills/research-report/SKILL.md`.
-
-Agents working on 研报 tasks must:
-
-1. reuse engines, don't reinvent —— 财务/估值/景气度数据调 `davis_analyzer` 引擎，不手算
-2. reference sibling skills —— 景气度方法论遵循 `industry-prosperity`，亏损标的估值遵循 `valuation-loss-making-targets`，本 skill 只管写作编排
-3. tag every number with a named source —— ≥80% 数字带 inline 来源标签，无来源数字不可接受
-4. output probability-weighted ranges, never a single target price —— 悲观/中性/乐观三情景概率加权
-5. declare what was computed, estimated, or unavailable —— 区分实算/估算/不可用，信息缺乏处标注，不编造
-6. verify before commit —— 用 `checklists/report-quality.md` 逐项检查，全通过才提交
-7. commit + push is mandatory —— 遵循 Post-Report Push Rule，中文文件名，`feat(docs): add {name}` 格式
+1. read collected data only —— 只读 SQLite 的 `invest_*` 表和 `advisor_runs`，不调 AKShare、不下单、不改库
+2. invoke the existing scripts —— 复用 `generate_premarket_report.py` / `generate_directive.py`，不重写报告生成逻辑
+3. phrase operations as matrix results —— 写「决策矩阵结果：减仓30%」，不写「建议买入」「应该加仓」
+4. fill §3-7 analysis manually —— 生成器只输出占位表，分析内容由 agent 按 decision-matrix.md 填充
+5. handle missing data per §6 —— 缺表标「数据不可用」，NULL 列标「N/A」，核心表空时停止生成
+6. report what was filled, left as placeholder, or marked unavailable
 
 ## Guardrails
 
-This skill is guidance for 研报写作 work only.
-
-Agents must not:
-
-- 给单一目标价 —— 必须概率加权区间
-- 编造数据 —— 无来源数字不可接受，信息缺乏标注"估算/不可用"
-- 写买卖建议 —— 合规风险，表述为"矩阵结果"/"投资框架定位"
-- 复制旧报告表格而不重新取数
-- 用 PE/PEG 对亏损标的做主估值 —— 遵循 `valuation-loss-making-targets` 的三角框架
-- 跳过验证直接提交 —— `checklists/report-quality.md` 全通过才提交
-- 提交后不 push —— "A report is not done until it is on GitHub"
+- 直接下单或下达交易指令 —— 报告只呈现分析，决策由人工
+- 调用 AKShare 采集数据 —— 采集属于 `daily-market-scan` skill
+- 修改数据库 —— 所有查询必须是只读 SELECT
+- 捏造缺失数据 —— 不得估算、插值、编造数值
+- 修改 `generate_premarket_report.py` / `generate_directive.py` 源码 —— 复用而非修改
+- 跳过 §6 错误处理 —— 核心表全空时不得生成"看起来完整"的报告
 
 ## Source of Truth
 
-If this section and the skill differ in detail, treat `.agents/skills/research-report/SKILL.md` as the source of truth for research-report authoring workflow. The methodology details defer to `docs/研报/方法论/` (9 篇方法论文档) and the `davis_analyzer` engine for all quantitative computations.
+Skill 文档以 davis 仓 `.agents/skills/invest-sop-pre-market/SKILL.md` 为准；SOP 方法论 source of truth 为 `.sisyphus/drafts/a-share-pre-market-sop.md`。
 
-## 公司中枢 · 项目管理协议（davis-analyzer 试点）
+# 研报产出与推送（Post-Report Push Rule）
 
-本仓库的 `davis_analyzer` 子系统作为首个试点接入"公司中枢"项目管理流程（数据源：`~/ZCodeProject/公司中枢/`，协议见其 `README.md`）。Agent 在本仓库工作时的约定：
+2026-09-19 拆分后，**研报（`docs/研报/`）产出与推送流程整体归属 davis 仓**——写研报、验证、commit、push 的规则见 davis 仓 AGENTS.md 同名节。
+
+本仓 docs/ 仅保留每日产物（`docs/复盘/盘后/`），盘后总结不进索引、不推送。
+
+Remote: `origin` → `git@github.com:OldDriverTakeUFly/AshareSop.git`
+
+# 公司中枢 · 项目管理协议（davis-analyzer 试点）
+
+`davis_analyzer` 子系统作为首个试点接入"公司中枢"项目管理流程（数据源：`~/ZCodeProject/公司中枢/`，协议见其 `README.md`）。Agent 在本仓工作时的约定：
 
 1. **读上下文**：涉及 davis/stockhot 的任务规划时，先读项目卡 `~/ZCodeProject/公司中枢/projects/davis-analyzer.yaml` 了解里程碑与当前状态。
 2. **写进度**：会话中完成了里程碑级进展（如某引擎上线、回测达标、部署变更），按协议直接更新项目卡（milestones/review.updated/note），新工作项追加到 `tasks.yaml`（id 规则 T+三位自增，project 填 `davis-analyzer`）。收尾按 scoped 自动提交协议：`plan check` 通过 → `git -C ~/ZCodeProject status --porcelain -- 公司中枢/` → 只 add 本会话写入的文件 → `git commit -m "plan(<项目id>): 摘要"` 并回报 hash；非本会话变更保留不提交、报告说明（详见中枢 README）。
