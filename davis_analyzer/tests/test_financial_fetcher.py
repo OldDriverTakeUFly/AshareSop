@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from davis_analyzer.financial_fetcher import (
+from davis_analyzer.core.financial_fetcher import (
     _calculate_yoy_growth,
     _is_yoy_aligned,
     _compute_date_range,
@@ -13,7 +13,7 @@ from davis_analyzer.financial_fetcher import (
     fetch_batch_financial,
     fetch_financial_data,
 )
-from davis_analyzer.types import FinancialData
+from davis_analyzer.core.types import FinancialData
 
 
 class TestSafeFloat:

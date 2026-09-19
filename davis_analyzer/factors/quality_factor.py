@@ -21,7 +21,7 @@ from typing import TYPE_CHECKING
 from loguru import logger
 
 if TYPE_CHECKING:
-    from davis_analyzer.tushare_client import TushareClient
+    from davis_analyzer.core.tushare_client import TushareClient
 
 
 @dataclass
@@ -58,7 +58,7 @@ def analyze_quality(
     Returns:
         QualityScore dataclass, or None if insufficient data.
     """
-    from davis_analyzer.financial_fetcher import fetch_financial_data
+    from davis_analyzer.core.financial_fetcher import fetch_financial_data
 
     ref = today or date.today()
     try:

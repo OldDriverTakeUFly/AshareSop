@@ -32,7 +32,7 @@ loguru.logger.add(sys.stderr, level="WARNING")
 import numpy as np
 import pandas as pd
 
-from davis_analyzer.tushare_client import _CACHE_DB
+from davis_analyzer.core.tushare_client import _CACHE_DB
 from stockhot.technical_analyzer.scoring import composite_technical_score
 from stockhot.technical_analyzer.indicators import ma, macd, rsi, kdj, bollinger
 

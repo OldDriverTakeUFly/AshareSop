@@ -49,7 +49,7 @@ def cmd_backfill(args: argparse.Namespace) -> None:
 def cmd_study(args: argparse.Namespace) -> None:
     import pandas as pd
 
-    from davis_analyzer import config
+    from davis_analyzer.core import config
     from davis_analyzer.limitup import db, patterns, report, study
     from davis_analyzer.limitup.events import build_events
     from davis_analyzer.limitup.robustness import split_is_oos
@@ -111,7 +111,7 @@ def _trades_csv_name(preset: str, start: str, end: str) -> str:
 def cmd_backtest(args: argparse.Namespace) -> None:
     import pandas as pd
 
-    from davis_analyzer import config
+    from davis_analyzer.core import config
     from davis_analyzer.limitup import db, engine, patterns, report
     from davis_analyzer.limitup.engine import LimitupBacktestConfig, run_sensitivity
     from davis_analyzer.limitup.events import build_events
@@ -175,7 +175,7 @@ def cmd_backtest(args: argparse.Namespace) -> None:
 
 
 def _write_candidates_report(day: str, md: str) -> Path:
-    from davis_analyzer import config
+    from davis_analyzer.core import config
 
     out = config.LIMITUP_REPORTS_DIR / f"candidates_{day}.md"
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -326,7 +326,7 @@ def cmd_daily(args: argparse.Namespace) -> None:
 
 def cmd_queue_sim(args: argparse.Namespace) -> None:
     from davis_analyzer.limitup import db, queue_sim
-    from davis_analyzer.tushare_client import TushareClient
+    from davis_analyzer.core.tushare_client import TushareClient
 
     conn = db.connect()
     try:
@@ -356,6 +356,6 @@ def cmd_queue_backfill(args: argparse.Namespace) -> None:
 
 
 def _make_tushare_client():
-    from davis_analyzer.tushare_client import TushareClient
+    from davis_analyzer.core.tushare_client import TushareClient
 
     return TushareClient()

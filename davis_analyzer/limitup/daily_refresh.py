@@ -396,7 +396,7 @@ def repair_daily_price_gaps(conn: sqlite3.Connection, dates: list[str], client: 
 
 def run_daily_refresh(conn: sqlite3.Connection, lookback_days: int = 7) -> dict:
     """Refresh all limitup-relevant tables for the recent window (fault-isolated)."""
-    from davis_analyzer.tushare_client import TushareClient
+    from davis_analyzer.core.tushare_client import TushareClient
 
     dates = _trading_dates(conn, lookback_days)
     if not dates:

@@ -35,8 +35,8 @@ import pandas as pd
 from loguru import logger
 from scipy import stats
 
-from davis_analyzer.momentum import analyze_momentum
-from davis_analyzer.tushare_client import TushareClient
+from davis_analyzer.factors.momentum import analyze_momentum
+from davis_analyzer.core.tushare_client import TushareClient
 
 DB_PATH = PROJECT_ROOT / "storage/database/market_data.db"
 DEFAULT_OUT = PROJECT_ROOT / "docs/回测记录/首板动量分层研究_2026-08-22.md"

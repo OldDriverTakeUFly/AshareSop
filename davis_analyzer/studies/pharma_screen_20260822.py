@@ -18,8 +18,8 @@ import pandas as pd
 
 warnings.filterwarnings("ignore")
 
-from davis_analyzer.financial_fetcher import fetch_financial_data
-from davis_analyzer.tushare_client import TushareClient
+from davis_analyzer.core.financial_fetcher import fetch_financial_data
+from davis_analyzer.core.tushare_client import TushareClient
 
 POOL = {
     # ts_code: (名称, 细分板块)

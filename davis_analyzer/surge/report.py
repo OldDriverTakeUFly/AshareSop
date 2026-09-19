@@ -8,7 +8,7 @@ from pathlib import Path
 import pandas as pd
 from loguru import logger
 
-from davis_analyzer.config import SURGE_REPORTS_DIR
+from davis_analyzer.core.config import SURGE_REPORTS_DIR
 
 _DISCLAIMER = "> 本报告为程序化筛选分析,不构成投资建议。口径见" \
     "docs/superpowers/specs/2026-09-18-surge-screener-design.md。"

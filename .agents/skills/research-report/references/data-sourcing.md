@@ -19,12 +19,12 @@ python -m davis_analyzer.cli run --top 30 --output studies/
 
 **入口 3：batch 函数（批量用）**
 ```python
-from davis_analyzer.tushare_client import TushareClient
+from davis_analyzer.core.tushare_client import TushareClient
 client = TushareClient()
-from davis_analyzer.financial_fetcher import fetch_batch_financial
-from davis_analyzer.valuation import batch_valuation
-from davis_analyzer.prosperity import batch_prosperity
-from davis_analyzer.trend import batch_trend
+from davis_analyzer.core.financial_fetcher import fetch_batch_financial
+from davis_analyzer.factors.valuation import batch_valuation
+from davis_analyzer.factors.prosperity import batch_prosperity
+from davis_analyzer.factors.trend import batch_trend
 # 每个批量函数接 client + stock_infos，返回 {ts_code: result} 字典
 ```
 

@@ -6,20 +6,20 @@ the rebalance logic in :mod:`davis_analyzer.backtest`.
 
 Four factors are blended (all point-in-time correct):
 
-    * **Momentum** — :func:`davis_analyzer.momentum.analyze_momentum`
+    * **Momentum** — :func:`davis_analyzer.factors.momentum.analyze_momentum`
       accepts a ``today`` parameter; passing ``today=as_of`` yields a score
       using only data up to ``as_of``.
 
-    * **Valuation** — :func:`davis_analyzer.valuation.fetch_valuation_history`
+    * **Valuation** — :func:`davis_analyzer.factors.valuation.fetch_valuation_history`
       accepts an ``as_of`` parameter that anchors the PE/PB look-back window
       to the rebalance date instead of ``date.today()``.
 
-    * **Prosperity (景气度)** — :func:`davis_analyzer.prosperity.calculate_prosperity_score`
+    * **Prosperity (景气度)** — :func:`davis_analyzer.factors.prosperity.calculate_prosperity_score`
       consumes quarterly ``FinancialData``.  Point-in-time correctness is
       guaranteed upstream: :func:`fetch_financial_data` now filters rows by
       ``ann_date <= as_of`` so only *already-disclosed* quarters are seen.
 
-    * **Distress (困境)** — :func:`davis_analyzer.distress.calculate_distress_score`
+    * **Distress (困境)** — :func:`davis_analyzer.factors.distress.calculate_distress_score`
       consumes the same disclosed-quarter history plus the PE/PB percentile
       from the valuation factor.
 
@@ -34,7 +34,7 @@ from datetime import date
 
 from loguru import logger
 
-from davis_analyzer.constants import (
+from davis_analyzer.core.constants import (
     ABSOLUTE_PE_CAP,
     ABSOLUTE_PE_PENALTY,
     CYCLICAL_FACTOR_WEIGHTS,
@@ -47,13 +47,13 @@ from davis_analyzer.constants import (
     SUPER_CYCLE_MIN_POSITIVE_QUARTERS,
     SUPER_CYCLE_PERSISTENCE_BONUS,
 )
-from davis_analyzer.distress import calculate_distress_score
-from davis_analyzer.financial_fetcher import fetch_financial_data
-from davis_analyzer.momentum import analyze_momentum
-from davis_analyzer.prosperity import calculate_prosperity_score
-from davis_analyzer.tushare_client import TushareClient
-from davis_analyzer.types import StockInfo
-from davis_analyzer.valuation import (
+from davis_analyzer.factors.distress import calculate_distress_score
+from davis_analyzer.core.financial_fetcher import fetch_financial_data
+from davis_analyzer.factors.momentum import analyze_momentum
+from davis_analyzer.factors.prosperity import calculate_prosperity_score
+from davis_analyzer.core.tushare_client import TushareClient
+from davis_analyzer.core.types import StockInfo
+from davis_analyzer.factors.valuation import (
     calculate_valuation_score,
     detect_cyclical,
     fetch_valuation_history,

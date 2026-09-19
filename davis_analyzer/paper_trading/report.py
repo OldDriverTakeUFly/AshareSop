@@ -90,7 +90,7 @@ def _latest_overseas_risk(trade_date: str | None) -> tuple[float, str] | None:
     if not trade_date:
         return None
     try:
-        from davis_analyzer.international_overlay import backfill_risk_scores
+        from davis_analyzer.factors.international_overlay import backfill_risk_scores
 
         # backfill_risk_scores walks calendar days; just take the last one.
         scores = backfill_risk_scores(trade_date, trade_date)

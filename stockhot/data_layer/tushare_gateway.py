@@ -3,7 +3,7 @@
 本模块是**所有 Tushare 调用的唯一入口**，替代项目中并存的 4 套客户端：
 1. ``stockhot.core.tushare_client_safe.safe_tushare_call`` — 无缓存，函数式
 2. ``stockhot.tushare_config.get_pro_api`` — 无缓存，面向对象
-3. ``davis_analyzer.tushare_client.TushareClient`` — 有结构化缓存，面向对象
+3. ``davis_analyzer.core.tushare_client.TushareClient`` — 有结构化缓存，面向对象
 4. 各处裸调 ``ts.set_token() + ts.pro_api()`` — 违反规范（macro/valuation/fund_flow）
 
 融合设计（取各家之长）：

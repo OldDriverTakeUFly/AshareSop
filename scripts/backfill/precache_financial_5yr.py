@@ -33,7 +33,7 @@ from loguru import logger; logger.remove(); logger.add(sys.stderr, level="WARNIN
 
 import pandas as pd
 from stockhot.data_layer.market_db import get_connection as get_market_conn
-from davis_analyzer.tushare_client import TushareClient
+from davis_analyzer.core.tushare_client import TushareClient
 
 UNIVERSE_SIZE = int(os.environ.get("UNIVERSE_SIZE", "200"))
 # Start from 2018 to cover periods=12 look-back from 2021-01-04

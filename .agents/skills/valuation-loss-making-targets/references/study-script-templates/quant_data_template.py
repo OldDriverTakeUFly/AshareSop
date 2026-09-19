@@ -65,8 +65,8 @@ from loguru import logger
 # 使 davis_analyzer 可导入（本脚本可被复制到任意目录执行）
 sys.path.insert(0, str(Path(__file__).resolve().parents[4]))
 
-from davis_analyzer.config import PROJECT_ROOT
-from davis_analyzer.tushare_client import TushareClient
+from davis_analyzer.core.config import PROJECT_ROOT
+from davis_analyzer.core.tushare_client import TushareClient
 
 # ========== CONFIG: 填入你的标的 ==========
 TARGET_CODE = "000000.SH"  # 目标股票 ts_code

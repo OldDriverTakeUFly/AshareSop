@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import sqlite3
 
-from davis_analyzer import config
+from davis_analyzer.core import config
 
 
 def test_package_importable() -> None:

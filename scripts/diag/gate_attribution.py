@@ -43,7 +43,7 @@ def main():
         if i >= 250:
             vr[d] = vols[i - 19:i + 1].mean() / vols[i - 249:i + 1].mean()
 
-    from davis_analyzer.market_regime import get_market_regime
+    from davis_analyzer.factors.market_regime import get_market_regime
     regime = {}
     for d in dates:
         if d >= "20230101":

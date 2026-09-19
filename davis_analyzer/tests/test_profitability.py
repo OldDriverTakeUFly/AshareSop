@@ -1,13 +1,13 @@
-"""Tests for davis_analyzer.profitability — margin-trend + R&D engine."""
+"""Tests for davis_analyzer.factors.profitability — margin-trend + R&D engine."""
 
 import pytest
 
-from davis_analyzer.profitability import (
+from davis_analyzer.factors.profitability import (
     analyze_profitability_quality,
     score_gross_margin_trend,
     score_rd_intensity,
 )
-from davis_analyzer.types import FinancialData
+from davis_analyzer.core.types import FinancialData
 
 
 def _fd(

@@ -34,7 +34,7 @@ sys.path.insert(0, PROJECT_ROOT)
 from loguru import logger; logger.remove(); logger.add(sys.stderr, level="ERROR")
 
 import numpy as np
-import davis_analyzer.market_regime as mr
+import davis_analyzer.factors.market_regime as mr
 mr._MA120_BEAR_THRESHOLD = -999.0
 
 from stockhot.data_layer.market_db import get_connection as get_market_conn, DELISTED_DB_PATH
@@ -223,7 +223,7 @@ def run_trial(arm: str, idx: int, d0: str, d1: str):
     invested = sum(1 for r in nav_rows if r.positions_value > 0) / max(len(nav_rows), 1)
 
     # 分状态日度配对差值: 策略日收益 vs 池EW日收益, 按交易日历对齐后逐日配对
-    from davis_analyzer.market_regime import get_market_regime
+    from davis_analyzer.factors.market_regime import get_market_regime
     s_daily = {nav_rows[i + 1].trade_date: float(s_rets[i]) for i in range(len(s_rets))}
     e_daily = {ew_dates[i + 1]: float(ew_vals[i + 1] / ew_vals[i] - 1) for i in range(len(ew_vals) - 1)}
     common = sorted(set(s_daily) & set(e_daily))

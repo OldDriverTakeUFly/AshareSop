@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from davis_analyzer import config, constants
+from davis_analyzer.core import config, constants
 from davis_analyzer.tournament.cli import main
 
 

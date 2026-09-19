@@ -131,7 +131,7 @@ def backfill_daily_basic_test():
     """测试 Tushare daily_basic 按日期批量拉取."""
     print("\n=== 3. daily_basic PE/PB 回填可行性 ===")
 
-    from davis_analyzer.tushare_client import TushareClient
+    from davis_analyzer.core.tushare_client import TushareClient
     client = TushareClient()
 
     # 测试拉3天
@@ -163,7 +163,7 @@ def backfill_daily_basic_test():
 
 def backfill_daily_basic(start_date, end_date):
     """正式回填 daily_basic."""
-    from davis_analyzer.tushare_client import TushareClient
+    from davis_analyzer.core.tushare_client import TushareClient
     client = TushareClient()
 
     # 获取所有交易日

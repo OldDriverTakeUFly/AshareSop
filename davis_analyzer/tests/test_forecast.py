@@ -1,4 +1,4 @@
-"""Tests for davis_analyzer.forecast — leading-indicator engine."""
+"""Tests for davis_analyzer.factors.forecast — leading-indicator engine."""
 
 from datetime import date
 from unittest.mock import MagicMock
@@ -6,7 +6,7 @@ from unittest.mock import MagicMock
 import pandas as pd
 import pytest
 
-from davis_analyzer.forecast import (
+from davis_analyzer.factors.forecast import (
     _forecast_midpoint,
     _growth_to_forecast_score,
     _is_stale,
@@ -16,7 +16,7 @@ from davis_analyzer.forecast import (
     analyze_forecast,
     analyze_forecast_revision,
 )
-from davis_analyzer.types import ProsperityScore
+from davis_analyzer.core.types import ProsperityScore
 
 TODAY = date(2026, 7, 1)
 

@@ -25,7 +25,7 @@ import numpy as np
 import pandas as pd
 from scipy.stats import spearmanr, ttest_ind
 import sqlite3
-from davis_analyzer.tushare_client import _CACHE_DB
+from davis_analyzer.core.tushare_client import _CACHE_DB
 from davis_analyzer.studies.rally_screening.utils import (
     get_trade_dates,
     load_daily_batch,

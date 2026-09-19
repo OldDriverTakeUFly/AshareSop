@@ -76,7 +76,7 @@ def test_single_member_cross_section_zero():
 
 def test_windows_single_source():
     """窗口单一真相源:constants.THERMOMETER_WINDOWS 与文档口径一致."""
-    from davis_analyzer.constants import THERMOMETER_WINDOWS
+    from davis_analyzer.core.constants import THERMOMETER_WINDOWS
     assert THERMOMETER_WINDOWS["momentum"] == (60, 120)
     assert THERMOMETER_WINDOWS["trend"] == (60, 120)
     assert THERMOMETER_WINDOWS["volume"] == (20, 120)

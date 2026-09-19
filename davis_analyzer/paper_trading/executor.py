@@ -169,11 +169,11 @@ def _get_factor_scores(trade_date: str, ts_codes: list[str]) -> dict[str, dict]:
     Calls the individual factor engines. This is the live-mode path.
     For backfill, factor computation should be point-in-time.
     """
-    from davis_analyzer.tushare_client import TushareClient
-    from davis_analyzer.momentum import analyze_momentum
-    from davis_analyzer.holder_concentration import analyze_holder_concentration
-    from davis_analyzer.dividend import analyze_dividend
-    from davis_analyzer.forecast import analyze_forecast
+    from davis_analyzer.core.tushare_client import TushareClient
+    from davis_analyzer.factors.momentum import analyze_momentum
+    from davis_analyzer.factors.holder_concentration import analyze_holder_concentration
+    from davis_analyzer.factors.dividend import analyze_dividend
+    from davis_analyzer.factors.forecast import analyze_forecast
 
     client = TushareClient()
     as_of = datetime.strptime(trade_date, "%Y%m%d").date()
@@ -254,7 +254,7 @@ def _limit_up_fill_probability(pct_chg: float | None) -> float:
 def _get_market_regime(trade_date: str) -> str:
     """Determine market regime using HMM + MA confirmation + overseas overlay.
 
-    Delegates to ``davis_analyzer.market_regime.get_market_regime_with_overseas``
+    Delegates to ``davis_analyzer.factors.market_regime.get_market_regime_with_overseas``
     which layers an international resonance overlay on the base HMM+MA regime.
     The overlay can only *downgrade* (bull→neutral on elevated overseas risk,
     →bear on extreme risk), never upgrade — so foreign turmoil forces caution.
@@ -263,7 +263,7 @@ def _get_market_regime(trade_date: str) -> str:
     Falls back to the old rule-based logic if HMM is unavailable.
     """
     try:
-        from davis_analyzer.market_regime import (
+        from davis_analyzer.factors.market_regime import (
             get_market_regime_with_overseas as regime_fn,
         )
         return regime_fn(trade_date)
@@ -280,7 +280,7 @@ def _get_overseas_risk(trade_date: str) -> float:
     MarketSnapshot.overseas_risk for display and future fine-grained use.
     """
     try:
-        from davis_analyzer.international_overlay import get_international_risk
+        from davis_analyzer.factors.international_overlay import get_international_risk
 
         risk = get_international_risk(trade_date)
         return risk.composite_score if risk.data_sufficient else 0.0
@@ -1592,7 +1592,7 @@ def _full_market_sector_trends(trade_date: str) -> dict[str, str]:
 
     # Industry mapping (use sub-industry if available)
     try:
-        from davis_analyzer.sub_industry import get_sub_industry
+        from davis_analyzer.factors.sub_industry import get_sub_industry
         use_sub_industry = True
     except Exception:
         use_sub_industry = False
@@ -2068,7 +2068,7 @@ class DailyExecutor:
             # A normal 7-9% pullback stop would kill them mid-trend.
             if getattr(self.strategy, "enable_cyclical_rules", False):
                 try:
-                    from davis_analyzer.cyclical import is_cyclical_by_code
+                    from davis_analyzer.factors.cyclical import is_cyclical_by_code
                     super_pnl = getattr(self.strategy, "cyclical_super_cycle_pnl", 0.15)
                     if pnl_pct >= super_pnl and is_cyclical_by_code(pos.ts_code):
                         hard_stop = min(hard_stop * 2.0, 0.25)  # widen ×2, cap 25%
@@ -2316,7 +2316,7 @@ class DailyExecutor:
                     _compute_factor_scores_at,
                     _compute_davis_scores_at,
                 )
-                from davis_analyzer.tushare_client import TushareClient
+                from davis_analyzer.core.tushare_client import TushareClient
                 client = TushareClient()
                 # Build a universe: held stocks + top turnover stocks
                 with get_market_conn() as conn:
@@ -2781,14 +2781,14 @@ def _compute_factor_scores_at(
     if os.environ.get("DAVIS_PARALLEL") == "1" and len(universe) >= 20:
         return _compute_factor_scores_parallel(as_of, universe)
 
-    from davis_analyzer.momentum import analyze_momentum
-    from davis_analyzer.holder_concentration import analyze_holder_concentration
-    from davis_analyzer.dividend import analyze_dividend
-    from davis_analyzer.forecast import analyze_forecast
-    from davis_analyzer.financial_fetcher import fetch_financial_data
-    from davis_analyzer.prosperity import calculate_prosperity_score
-    from davis_analyzer.prosperity_sector import classify_stock_stage
-    from davis_analyzer.quality_factor import analyze_quality
+    from davis_analyzer.factors.momentum import analyze_momentum
+    from davis_analyzer.factors.holder_concentration import analyze_holder_concentration
+    from davis_analyzer.factors.dividend import analyze_dividend
+    from davis_analyzer.factors.forecast import analyze_forecast
+    from davis_analyzer.core.financial_fetcher import fetch_financial_data
+    from davis_analyzer.factors.prosperity import calculate_prosperity_score
+    from davis_analyzer.factors.prosperity_sector import classify_stock_stage
+    from davis_analyzer.factors.quality_factor import analyze_quality
 
     scores: dict[str, dict] = {}
     for code in universe:
@@ -2824,7 +2824,7 @@ def _compute_factor_scores_at(
                 entry["dividend"] = div.dividend_score
             # Quality factor — reuse financial data already fetched for prosperity
             if fin and len(fin) >= 2:
-                from davis_analyzer.quality_factor import compute_quality_from_fin
+                from davis_analyzer.factors.quality_factor import compute_quality_from_fin
                 qscore = compute_quality_from_fin(code, fin)
                 if qscore:
                     entry["quality"] = qscore
@@ -2843,15 +2843,15 @@ def _score_one_stock(args: tuple) -> tuple[str, dict]:
     """
     code, as_of = args
     try:
-        from davis_analyzer.tushare_client import TushareClient
-        from davis_analyzer.momentum import analyze_momentum
-        from davis_analyzer.holder_concentration import analyze_holder_concentration
-        from davis_analyzer.dividend import analyze_dividend
-        from davis_analyzer.forecast import analyze_forecast
-        from davis_analyzer.financial_fetcher import fetch_financial_data
-        from davis_analyzer.prosperity import calculate_prosperity_score
-        from davis_analyzer.prosperity_sector import classify_stock_stage
-        from davis_analyzer.quality_factor import compute_quality_from_fin
+        from davis_analyzer.core.tushare_client import TushareClient
+        from davis_analyzer.factors.momentum import analyze_momentum
+        from davis_analyzer.factors.holder_concentration import analyze_holder_concentration
+        from davis_analyzer.factors.dividend import analyze_dividend
+        from davis_analyzer.factors.forecast import analyze_forecast
+        from davis_analyzer.core.financial_fetcher import fetch_financial_data
+        from davis_analyzer.factors.prosperity import calculate_prosperity_score
+        from davis_analyzer.factors.prosperity_sector import classify_stock_stage
+        from davis_analyzer.factors.quality_factor import compute_quality_from_fin
 
         # Thread-local client (one per worker process)
         if not hasattr(_score_one_stock, "_client"):
@@ -2903,15 +2903,15 @@ def _compute_factor_scores_parallel(as_of: date, universe: list[str]) -> dict[st
     from concurrent.futures import ThreadPoolExecutor, as_completed
     import multiprocessing
 
-    from davis_analyzer.tushare_client import TushareClient
-    from davis_analyzer.momentum import analyze_momentum
-    from davis_analyzer.holder_concentration import analyze_holder_concentration
-    from davis_analyzer.dividend import analyze_dividend
-    from davis_analyzer.forecast import analyze_forecast
-    from davis_analyzer.financial_fetcher import fetch_financial_data
-    from davis_analyzer.prosperity import calculate_prosperity_score
-    from davis_analyzer.prosperity_sector import classify_stock_stage
-    from davis_analyzer.quality_factor import compute_quality_from_fin
+    from davis_analyzer.core.tushare_client import TushareClient
+    from davis_analyzer.factors.momentum import analyze_momentum
+    from davis_analyzer.factors.holder_concentration import analyze_holder_concentration
+    from davis_analyzer.factors.dividend import analyze_dividend
+    from davis_analyzer.factors.forecast import analyze_forecast
+    from davis_analyzer.core.financial_fetcher import fetch_financial_data
+    from davis_analyzer.factors.prosperity import calculate_prosperity_score
+    from davis_analyzer.factors.prosperity_sector import classify_stock_stage
+    from davis_analyzer.factors.quality_factor import compute_quality_from_fin
 
     # One shared client for all threads (WAL mode allows concurrent reads)
     client = TushareClient()
@@ -2964,14 +2964,14 @@ def _compute_factor_scores_parallel(as_of: date, universe: list[str]) -> dict[st
 
 def _compute_factor_scores_at_sequential(client, as_of, universe):
     """Sequential fallback (same logic as the original loop)."""
-    from davis_analyzer.momentum import analyze_momentum
-    from davis_analyzer.holder_concentration import analyze_holder_concentration
-    from davis_analyzer.dividend import analyze_dividend
-    from davis_analyzer.forecast import analyze_forecast
-    from davis_analyzer.financial_fetcher import fetch_financial_data
-    from davis_analyzer.prosperity import calculate_prosperity_score
-    from davis_analyzer.prosperity_sector import classify_stock_stage
-    from davis_analyzer.quality_factor import compute_quality_from_fin
+    from davis_analyzer.factors.momentum import analyze_momentum
+    from davis_analyzer.factors.holder_concentration import analyze_holder_concentration
+    from davis_analyzer.factors.dividend import analyze_dividend
+    from davis_analyzer.factors.forecast import analyze_forecast
+    from davis_analyzer.core.financial_fetcher import fetch_financial_data
+    from davis_analyzer.factors.prosperity import calculate_prosperity_score
+    from davis_analyzer.factors.prosperity_sector import classify_stock_stage
+    from davis_analyzer.factors.quality_factor import compute_quality_from_fin
 
     scores: dict[str, dict] = {}
     for code in universe:
@@ -3089,7 +3089,7 @@ def run_backfill_auto(
             by cached market cap (avoid full-universe for speed).
         scoring_frequency: re-score every N trading days (default 1 = daily).
     """
-    from davis_analyzer.tushare_client import TushareClient
+    from davis_analyzer.core.tushare_client import TushareClient
 
     end_date = end_date or datetime.now().strftime("%Y%m%d")
     trading_days = _get_trading_days(start_date, end_date)
@@ -3118,7 +3118,7 @@ def run_backfill_auto(
                 "SELECT ts_code, name, industry FROM stock_basic WHERE ts_code=?", (code,)
             ).fetchone()
             if row:
-                from davis_analyzer.types import StockInfo
+                from davis_analyzer.core.types import StockInfo
 
                 stock_infos[code] = StockInfo(
                     ts_code=row["ts_code"],

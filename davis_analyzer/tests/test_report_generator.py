@@ -12,7 +12,7 @@ from davis_analyzer.report_generator import (
     generate_summary_index,
     save_all_reports,
 )
-from davis_analyzer.types import (
+from davis_analyzer.core.types import (
     DavisDoubleScore,
     DistressSignal,
     FinancialData,

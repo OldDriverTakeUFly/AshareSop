@@ -15,7 +15,7 @@ available index_daily history up to the latest trade date. Re-training
 happens automatically when new data is available (checked by date).
 
 Usage:
-    from davis_analyzer.market_regime import get_market_regime
+    from davis_analyzer.factors.market_regime import get_market_regime
     regime = get_market_regime("20260721")  # → "bull" / "bear" / "neutral"
 """
 from __future__ import annotations
@@ -337,7 +337,7 @@ def get_market_regime_with_overseas(trade_date: str) -> RegimeState:
     base = get_market_regime(trade_date)
 
     try:
-        from davis_analyzer.international_overlay import (
+        from davis_analyzer.factors.international_overlay import (
             apply_overseas_overlay,
             get_international_risk,
         )

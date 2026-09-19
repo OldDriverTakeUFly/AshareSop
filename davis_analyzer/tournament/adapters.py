@@ -25,14 +25,14 @@ from davis_analyzer.backtest import (
 )
 from davis_analyzer.backtest_factors import FactorConfig
 from davis_analyzer.backtest_report import PerformanceStats, compute_performance
-from davis_analyzer.constants import CHAMPION_PRESETS, TOURNAMENT_DAVIS_PRESETS
+from davis_analyzer.core.constants import CHAMPION_PRESETS, TOURNAMENT_DAVIS_PRESETS
 from davis_analyzer.tournament.genome import DAVIS_GENOME, SIX_VEIN_GENOME, Genome
 from davis_analyzer.tournament.six_vein import (
     SixVeinConfig,
     load_window_prices,
     run_six_vein,
 )
-from davis_analyzer.tushare_client import TushareClient
+from davis_analyzer.core.tushare_client import TushareClient
 
 
 # ── normalised run result ──
@@ -172,7 +172,7 @@ def liquidity_universe(n: int, conn: "sqlite3.Connection | None" = None) -> list
     from collections import defaultdict
 
     if conn is None:
-        from davis_analyzer.tushare_client import _CACHE_DB
+        from davis_analyzer.core.tushare_client import _CACHE_DB
         conn = sqlite3.connect(str(_CACHE_DB))
     rows = conn.execute(
         "SELECT ts_code, amount FROM daily_price "
@@ -352,7 +352,7 @@ class SixVeinAdapter:
         self._genome.validate(merged)
         warm_start = (start - timedelta(days=150)).strftime("%Y%m%d")
         s, e = warm_start, end.strftime("%Y%m%d")
-        from davis_analyzer.tushare_client import _CACHE_DB
+        from davis_analyzer.core.tushare_client import _CACHE_DB
         conn = sqlite3.connect(str(_CACHE_DB))
         try:
             prices = load_window_prices(conn, self._universe, s, e)

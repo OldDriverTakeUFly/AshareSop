@@ -1,4 +1,4 @@
-"""Tests for davis_analyzer.valuation — PE/PB percentile valuation engine."""
+"""Tests for davis_analyzer.factors.valuation — PE/PB percentile valuation engine."""
 
 from __future__ import annotations
 
@@ -8,8 +8,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from davis_analyzer.types import StockInfo, ValuationData
-from davis_analyzer.valuation import (
+from davis_analyzer.core.types import StockInfo, ValuationData
+from davis_analyzer.factors.valuation import (
     batch_valuation,
     calculate_percentile,
     calculate_valuation_score,

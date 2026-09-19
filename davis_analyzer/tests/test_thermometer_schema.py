@@ -23,7 +23,7 @@ def test_thermo_tables_created(tmp_path):
 
 
 def test_constants_and_config():
-    from davis_analyzer import config, constants
+    from davis_analyzer.core import config, constants
     assert abs(sum(constants.THERMOMETER_WEIGHTS.values()) - 1.0) < 1e-9
     assert abs(sum(constants.THERMOMETER_MARKET_DIM_WEIGHTS.values()) - 1.0) < 1e-9
     assert set(constants.THERMOMETER_WEIGHTS) == {"momentum", "flow", "volume", "trend", "limit"}

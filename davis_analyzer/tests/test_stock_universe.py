@@ -8,7 +8,7 @@ D/P 状态股票, 而 build_stock_universe 未按 list_status 过滤, 导致 339
 
 import pandas as pd
 
-from davis_analyzer.stock_universe import build_stock_universe
+from davis_analyzer.core.stock_universe import build_stock_universe
 
 
 class _FakeClient:

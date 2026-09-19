@@ -24,7 +24,7 @@ os.chdir(PROJECT_ROOT)
 sys.path.insert(0, PROJECT_ROOT)
 from loguru import logger; logger.remove(); logger.add(sys.stderr, level="WARNING")
 
-import davis_analyzer.market_regime as mr
+import davis_analyzer.factors.market_regime as mr
 mr._MA120_BEAR_THRESHOLD = -999.0
 
 from stockhot.data_layer.market_db import get_connection as get_market_conn
@@ -102,7 +102,7 @@ def drop_scratch():
 
 def sample_verify(codes: list[str], as_of: str):
     """预注册抽样核验: 放行股的动量/次维度确实过闸."""
-    from davis_analyzer.tushare_client import TushareClient
+    from davis_analyzer.core.tushare_client import TushareClient
     client = TushareClient()
     from davis_analyzer.paper_trading.executor import _compute_factor_scores_at
     fs = _compute_factor_scores_at(client, datetime.strptime(as_of, "%Y%m%d").date(), codes)

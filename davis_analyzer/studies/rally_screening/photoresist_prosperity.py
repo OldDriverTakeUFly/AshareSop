@@ -13,12 +13,12 @@ loguru.logger.remove()
 loguru.logger.add(sys.stderr, level="ERROR")
 
 import pandas as pd
-from davis_analyzer.tushare_client import TushareClient
-from davis_analyzer.financial_fetcher import fetch_batch_financial
-from davis_analyzer.prosperity import batch_prosperity
-from davis_analyzer.prosperity_sector import classify_stock_stage, compute_relative_delta_g, generate_risk_warnings
-from davis_analyzer.prosperity_inflection import analyze_inflection
-from davis_analyzer.types import StockInfo
+from davis_analyzer.core.tushare_client import TushareClient
+from davis_analyzer.core.financial_fetcher import fetch_batch_financial
+from davis_analyzer.factors.prosperity import batch_prosperity
+from davis_analyzer.factors.prosperity_sector import classify_stock_stage, compute_relative_delta_g, generate_risk_warnings
+from davis_analyzer.factors.prosperity_inflection import analyze_inflection
+from davis_analyzer.core.types import StockInfo
 
 # 国产光刻胶 A 股标的
 PHOTORESIST_STOCKS = {

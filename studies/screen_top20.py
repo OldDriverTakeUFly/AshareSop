@@ -40,25 +40,25 @@ from davis_analyzer.backtest_factors import (
     classify_stock,
     score_universe_at,
 )
-from davis_analyzer.constants import (
+from davis_analyzer.core.constants import (
     CYCLICAL_FACTOR_WEIGHTS,
     CYCLICAL_INDUSTRIES,
     SUPER_CYCLE_INDUSTRIES,
     SUPER_CYCLE_MIN_POSITIVE_QUARTERS,
     SUPER_CYCLE_PERSISTENCE_BONUS,
 )
-from davis_analyzer.distress import calculate_distress_score
-from davis_analyzer.financial_fetcher import fetch_financial_data
-from davis_analyzer.momentum import analyze_momentum
-from davis_analyzer.prosperity import calculate_prosperity_score
-from davis_analyzer.stock_universe import build_stock_universe
-from davis_analyzer.tushare_client import TushareClient
-from davis_analyzer.types import StockInfo
-from davis_analyzer.valuation import (
+from davis_analyzer.factors.distress import calculate_distress_score
+from davis_analyzer.core.financial_fetcher import fetch_financial_data
+from davis_analyzer.factors.momentum import analyze_momentum
+from davis_analyzer.factors.prosperity import calculate_prosperity_score
+from davis_analyzer.core.stock_universe import build_stock_universe
+from davis_analyzer.core.tushare_client import TushareClient
+from davis_analyzer.core.types import StockInfo
+from davis_analyzer.factors.valuation import (
     calculate_valuation_score,
     fetch_valuation_history,
 )
-from davis_analyzer.price_estimator import (
+from davis_analyzer.core.price_estimator import (
     estimate_target_price,
     estimate_technical_stop,
 )
@@ -217,7 +217,7 @@ def run_screening(as_of: date) -> dict:
 
             # ── Defect 1 fix: short-term momentum guard ──
             if mom is not None and mom.window_returns:
-                from davis_analyzer.constants import SHORT_TERM_MOMENTUM_WINDOW, SHORT_TERM_MOMENTUM_FLOOR_PCT, SHORT_TERM_MOMENTUM_PENALTY
+                from davis_analyzer.core.constants import SHORT_TERM_MOMENTUM_WINDOW, SHORT_TERM_MOMENTUM_FLOOR_PCT, SHORT_TERM_MOMENTUM_PENALTY
                 short_ret = mom.window_returns.get(SHORT_TERM_MOMENTUM_WINDOW)
                 if short_ret is not None and short_ret < SHORT_TERM_MOMENTUM_FLOOR_PCT:
                     overshoot = abs(short_ret - SHORT_TERM_MOMENTUM_FLOOR_PCT)
@@ -232,7 +232,7 @@ def run_screening(as_of: date) -> dict:
                 valuation_score, pe_pct, pb_pct = calculate_valuation_score(history, is_cyclical)
 
                 # ── Defect 2 fix: absolute PE cap ──
-                from davis_analyzer.constants import ABSOLUTE_PE_CAP, ABSOLUTE_PE_PENALTY
+                from davis_analyzer.core.constants import ABSOLUTE_PE_CAP, ABSOLUTE_PE_PENALTY
                 latest_pe = history[0].pe_ttm if history else None
                 if latest_pe is not None and latest_pe > ABSOLUTE_PE_CAP:
                     overshoot_ratio = min(1.0, (latest_pe - ABSOLUTE_PE_CAP) / ABSOLUTE_PE_CAP)
@@ -248,7 +248,7 @@ def run_screening(as_of: date) -> dict:
                 delta_g = ps.delta_g
 
                 # ── Defect 3 fix: profit-direction check ──
-                from davis_analyzer.constants import PROFIT_GROWTH_PENALTY_THRESHOLD, PROSPERITY_REVENUE_PROFIT_PENALTY
+                from davis_analyzer.core.constants import PROFIT_GROWTH_PENALTY_THRESHOLD, PROSPERITY_REVENUE_PROFIT_PENALTY
                 latest_fin = fin[0]
                 rev_g = latest_fin.yoy_revenue_growth
                 prof_g = latest_fin.yoy_profit_growth

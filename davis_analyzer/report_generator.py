@@ -9,12 +9,12 @@ from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from davis_analyzer.config import STUDIES_DIR
-from davis_analyzer.prosperity import dupont_decomposition
+from davis_analyzer.core.config import STUDIES_DIR
+from davis_analyzer.factors.prosperity import dupont_decomposition
 from davis_analyzer.templates import STOCK_REPORT_TEMPLATE, SUMMARY_INDEX_TEMPLATE
 
 if TYPE_CHECKING:
-    from davis_analyzer.types import (
+    from davis_analyzer.core.types import (
         DavisDoubleScore,
         DistressSignal,
         FinancialData,

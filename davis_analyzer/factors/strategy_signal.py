@@ -10,7 +10,7 @@
 5. 策略配置参数
 
 用法：
-    from davis_analyzer.strategy_signal import generate_daily_signal
+    from davis_analyzer.factors.strategy_signal import generate_daily_signal
     signal = generate_daily_signal("20260721")
     # signal 是一个 dict，可直接 JSON 序列化
 """
@@ -24,13 +24,13 @@ from typing import Any
 
 from stockhot.data_layer.market_db import get_connection as get_market_conn
 from stockhot.storage.database import DB_PATH, get_connection as get_stockhot_conn
-from davis_analyzer.config import get_tushare_token
+from davis_analyzer.core.config import get_tushare_token
 
 
 def _get_market_regime(trade_date: str) -> dict:
     """获取 HMM 牛熊状态 + 波动率状态."""
     try:
-        from davis_analyzer.market_regime import get_market_regime
+        from davis_analyzer.factors.market_regime import get_market_regime
         regime = get_market_regime(trade_date)
     except Exception:
         regime = "neutral"

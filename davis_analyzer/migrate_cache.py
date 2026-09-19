@@ -31,7 +31,7 @@ from pathlib import Path
 import pandas as pd
 from loguru import logger
 
-from davis_analyzer.tushare_client import _CACHE_DB, _init_cache_db
+from davis_analyzer.core.tushare_client import _CACHE_DB, _init_cache_db
 
 _FINANCIAL_ENDPOINTS = {"income", "balancesheet", "cashflow", "fina_indicator"}
 
@@ -114,7 +114,7 @@ def _migrate_financial(
 ) -> int:
     if df.empty or "end_date" not in df.columns:
         return 0
-    from davis_analyzer.tushare_client import _dedupe_financial_rows
+    from davis_analyzer.core.tushare_client import _dedupe_financial_rows
 
     deduped = _dedupe_financial_rows(df, endpoint)
     records = []

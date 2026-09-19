@@ -13,7 +13,7 @@
   周期股 + 浮盈>15% → 宽止损保护（让超级周期跑）
 
 用法：
-    from davis_analyzer.cyclical import is_cyclical, get_stock_style
+    from davis_analyzer.factors.cyclical import is_cyclical, get_stock_style
     cyc = is_cyclical("601899.SH")           # True/False
     style = get_stock_style("300750.SZ")     # "周期"/"成长"/"防御"/"其他"
 """

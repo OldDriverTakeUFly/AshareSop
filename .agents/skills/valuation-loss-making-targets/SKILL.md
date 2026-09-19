@@ -81,7 +81,7 @@ Before running this skill, verify the following:
 
 2. **Tushare API token is configured.** A valid `TUSHARE_TOKEN` must be present in `.env` at the repository root. The token must have sufficient API tier to access financial statements and chip-structure endpoints. Verify:
    ```bash
-   python -c "from davis_analyzer.config import get_config; print(get_config().tushare_token[:8] + '...')"
+   python -c "from davis_analyzer.core.config import get_config; print(get_config().tushare_token[:8] + '...')"
    ```
 
 3. **Target stock code is identified.** The agent needs the `ts_code` for the loss-making target (for example, `688XXX.SH` or `300XXX.SZ`).
@@ -96,7 +96,7 @@ Before running this skill, verify the following:
 
 ### Angle A: Quantitative Distress Engine
 
-The distress engine (`davis_analyzer.distress`) computes a three-layer score using continuous signals (not binary triggers). Each signal produces a value between 0.0 and 1.0.
+The distress engine (`davis_analyzer.factors.distress`) computes a three-layer score using continuous signals (not binary triggers). Each signal produces a value between 0.0 and 1.0.
 
 **Layer composition:**
 
@@ -149,7 +149,7 @@ Peer PS Distribution:
 
 ### Tushare endpoints
 
-The skill pulls structured financial and market data through the `davis_analyzer.tushare_client` module. The following endpoints are required:
+The skill pulls structured financial and market data through the `davis_analyzer.core.tushare_client` module. The following endpoints are required:
 
 **Core financial statements (5 endpoints):**
 

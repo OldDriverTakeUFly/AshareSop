@@ -28,17 +28,17 @@ from typing import TYPE_CHECKING
 import pandas as pd
 from loguru import logger
 
-from davis_analyzer.constants import (
+from davis_analyzer.core.constants import (
     FORECAST_HIGH_THRESHOLD,
     FORECAST_MID_THRESHOLD,
     FORECAST_REVISION_MIN_GAP_DAYS,
     FORECAST_STALE_DAYS,
 )
-from davis_analyzer.tushare_client import TushareClient
-from davis_analyzer.types import ForecastRevision, ForecastSignal
+from davis_analyzer.core.tushare_client import TushareClient
+from davis_analyzer.core.types import ForecastRevision, ForecastSignal
 
 if TYPE_CHECKING:
-    from davis_analyzer.types import ProsperityScore
+    from davis_analyzer.core.types import ProsperityScore
 
 _FORECAST_LOOKBACK_MONTHS = 18  # cover the last ~6 reporting periods
 

@@ -23,8 +23,8 @@ from __future__ import annotations
 
 from datetime import date
 
-from davis_analyzer.pipeline import run_screening_pipeline
-from davis_analyzer.types import PipelineResult
+from davis_analyzer.core.pipeline import run_screening_pipeline
+from davis_analyzer.core.types import PipelineResult
 
 from stockhot.advisor.data_sources.technical import _compute_data_age
 from stockhot.advisor.types import UnifiedSignal

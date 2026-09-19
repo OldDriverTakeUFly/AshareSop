@@ -12,7 +12,7 @@ import random
 from dataclasses import dataclass, field
 from datetime import date
 
-from davis_analyzer.constants import (
+from davis_analyzer.core.constants import (
     TOURNAMENT_EMBARGO_DAYS,
     TOURNAMENT_FINALS_WINDOW_DAYS,
     TOURNAMENT_MUTATION_SIGMA,
@@ -114,7 +114,7 @@ from typing import Callable
 
 from loguru import logger
 
-from davis_analyzer.constants import (
+from davis_analyzer.core.constants import (
     TOURNAMENT_GENERATIONS,
     TOURNAMENT_PERTURB_MAX_DECAY,
     TOURNAMENT_POPULATION,

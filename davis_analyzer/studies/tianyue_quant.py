@@ -38,8 +38,8 @@ from loguru import logger
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from davis_analyzer.config import PROJECT_ROOT
-from davis_analyzer.tushare_client import TushareClient
+from davis_analyzer.core.config import PROJECT_ROOT
+from davis_analyzer.core.tushare_client import TushareClient
 
 # ── 配置 ────────────────────────────────────────────────────────────────────
 

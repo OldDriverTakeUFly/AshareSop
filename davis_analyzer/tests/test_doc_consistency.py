@@ -14,7 +14,7 @@ from pathlib import Path
 
 import pytest
 
-from davis_analyzer import constants
+from davis_analyzer.core import constants
 
 # ── Doc locations ────────────────────────────────────────────────────────────
 _DAVIS_DIR = Path(__file__).resolve().parent.parent

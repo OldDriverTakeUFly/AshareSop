@@ -14,14 +14,14 @@ from typing import Callable
 import pandas as pd
 from loguru import logger
 
-from davis_analyzer.constants import (
+from davis_analyzer.core.constants import (
     TOURNAMENT_EVAL_STEP_DAYS,
     TOURNAMENT_MIN_TRADES,
     TOURNAMENT_MIN_WINDOW_DAYS,
 )
 from davis_analyzer.backtest_report import PerformanceStats
 from davis_analyzer.tournament.adapters import ModuleAdapter, stats_from_run
-from davis_analyzer.tushare_client import TushareClient
+from davis_analyzer.core.tushare_client import TushareClient
 
 RegimeFn = Callable[[str], str]
 
@@ -39,7 +39,7 @@ class WindowReport:
 
 
 def _default_regime_fn(trade_date: str) -> str:
-    from davis_analyzer.market_regime import get_market_regime_with_confirm
+    from davis_analyzer.factors.market_regime import get_market_regime_with_confirm
     return get_market_regime_with_confirm(trade_date)
 
 

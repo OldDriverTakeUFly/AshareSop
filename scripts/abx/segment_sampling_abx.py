@@ -20,7 +20,7 @@ os.chdir(PROJECT_ROOT)
 sys.path.insert(0, PROJECT_ROOT)
 from loguru import logger; logger.remove(); logger.add(sys.stderr, level="ERROR")
 
-import davis_analyzer.market_regime as mr
+import davis_analyzer.factors.market_regime as mr
 mr._MA120_BEAR_THRESHOLD = -999.0
 
 from stockhot.data_layer.market_db import get_connection as get_market_conn
@@ -64,7 +64,7 @@ def select_segments():
     dates = [r[0] for r in rows]
     closes = np.array([r[1] for r in rows], float)
 
-    from davis_analyzer.market_regime import get_market_regime
+    from davis_analyzer.factors.market_regime import get_market_regime
     regime = {}
     for d in dates:
         if d >= "20210101":

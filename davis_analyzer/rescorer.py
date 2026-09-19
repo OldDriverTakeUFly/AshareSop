@@ -11,10 +11,10 @@ import re
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from davis_analyzer.types import RescoredResult
+from davis_analyzer.core.types import RescoredResult
 
 if TYPE_CHECKING:
-    from davis_analyzer.types import PipelineResult
+    from davis_analyzer.core.types import PipelineResult
 
 _ADJUSTMENT_RANGE = 20.0
 _PROSPERITY_HEADER = "景气度调整幅度（-20到+20）"

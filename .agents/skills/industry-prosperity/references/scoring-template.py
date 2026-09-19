@@ -51,12 +51,12 @@ from pathlib import Path
 from loguru import logger
 
 # ── davis_analyzer 核心模块（只读调用，不修改源码，不复制实现）──
-from davis_analyzer.financial_fetcher import fetch_financial_data
-from davis_analyzer.prosperity import (
+from davis_analyzer.core.financial_fetcher import fetch_financial_data
+from davis_analyzer.factors.prosperity import (
     calculate_prosperity_score,
 )
-from davis_analyzer.prosperity_inflection import analyze_inflection
-from davis_analyzer.prosperity_sector import (
+from davis_analyzer.factors.prosperity_inflection import analyze_inflection
+from davis_analyzer.factors.prosperity_sector import (
     aggregate_industry_prosperity,
     classify_stock_stage,
     compute_relative_delta_g,
@@ -64,8 +64,8 @@ from davis_analyzer.prosperity_sector import (
     generate_risk_warnings,
     screen_g_delta_g_ignition,
 )
-from davis_analyzer.tushare_client import TushareClient
-from davis_analyzer.types import FinancialData, ProsperityScore, StockInfo
+from davis_analyzer.core.tushare_client import TushareClient
+from davis_analyzer.core.types import FinancialData, ProsperityScore, StockInfo
 
 # ========== CONFIG: 填入你的标的 ==========
 TARGET_CODE = "000000.SH"  # 目标股票 ts_code (例: "600519.SH", "000001.SZ")

@@ -8,7 +8,7 @@ and generates human-readable narratives for the four-stage classification:
 
 from __future__ import annotations
 
-from davis_analyzer.constants import (
+from davis_analyzer.core.constants import (
     INFLECTION_CF_STRENGTH,
     INFLECTION_DEBT_STRENGTH,
     INFLECTION_REVENUE_STRENGTH,
@@ -17,7 +17,7 @@ from davis_analyzer.constants import (
     INFLECTION_RISK_GROWTH_STRENGTH,
     INFLECTION_RISK_ROE_STRENGTH,
 )
-from davis_analyzer.types import (
+from davis_analyzer.core.types import (
     CatalystSignal,
     FinancialData,
     InflectionAnalysis,

@@ -17,7 +17,7 @@ os.environ.setdefault("PROJECT_ROOT", _REPO_ROOT)
 import loguru
 loguru.logger.remove()
 loguru.logger.add(sys.stderr, level="INFO")
-# Keep davis_analyzer.tushare_client logs visible.
+# Keep davis_analyzer.core.tushare_client logs visible.
 loguru.logger.add(
     lambda msg: print(msg, end=""),
     level="INFO",
@@ -29,14 +29,14 @@ def main():
     start = sys.argv[1] if len(sys.argv) > 1 else "20210101"
     end = sys.argv[2] if len(sys.argv) > 2 else "20260630"
 
-    from davis_analyzer.tushare_client import TushareClient
+    from davis_analyzer.core.tushare_client import TushareClient
 
     client = TushareClient()
     print(f"=== daily_basic backfill: {start} → {end} ===")
 
     # Pre-flight: report current state.
     import sqlite3
-    from davis_analyzer.tushare_client import _CACHE_DB
+    from davis_analyzer.core.tushare_client import _CACHE_DB
     with sqlite3.connect(str(_CACHE_DB)) as conn:
         row = conn.execute(
             "SELECT COUNT(*), COUNT(DISTINCT trade_date), MIN(trade_date), MAX(trade_date) "

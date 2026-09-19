@@ -8,7 +8,7 @@ import time
 import pandas as pd
 from loguru import logger
 
-from davis_analyzer.constants import THERMOMETER_WEIGHTS
+from davis_analyzer.core.constants import THERMOMETER_WEIGHTS
 from davis_analyzer.limitup import db as limitup_db
 from davis_analyzer.thermometer import factors
 from davis_analyzer.thermometer.universe import load_universe

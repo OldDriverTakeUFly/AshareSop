@@ -85,7 +85,7 @@ def load_market_context():
 
 
 def get_regime_series(dates):
-    from davis_analyzer.market_regime import get_market_regime
+    from davis_analyzer.factors.market_regime import get_market_regime
     out = {}
     for d in sorted(set(dates)):
         try:

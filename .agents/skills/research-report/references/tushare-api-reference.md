@@ -68,7 +68,7 @@ TUSHARE_MCP_URL=https://api.tushare.pro/mcp/?token=<同上>
 | `dividend` | 分红送股 | `ts_code` | ✅ 可用（实测返回 53 条） |
 | `forecast` | 业绩预告 | `ts_code` | ✅ 可用（实测返回 16 条） |
 
-> **注意**：研报场景一般不直接调这些底层接口，而是通过 `davis_analyzer.financial_fetcher.fetch_financial_data(client, ts_code, periods=12)` 一次性取整理好的 `list[FinancialData]`（见 `engine-usage.md` §2）。本表仅列底层接口以便灵活取数。
+> **注意**：研报场景一般不直接调这些底层接口，而是通过 `davis_analyzer.core.financial_fetcher.fetch_financial_data(client, ts_code, periods=12)` 一次性取整理好的 `list[FinancialData]`（见 `engine-usage.md` §2）。本表仅列底层接口以便灵活取数。
 
 ### 2.3 资金流与龙虎榜
 

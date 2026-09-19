@@ -23,18 +23,18 @@ os.environ["PROJECT_ROOT"] = "/home/leo/Projects/CodeAgentDashboard"
 
 import pandas as pd
 
-from davis_analyzer.distress import calculate_distress_score
-from davis_analyzer.financial_fetcher import fetch_financial_data
-from davis_analyzer.forecast import analyze_forecast, analyze_forecast_revision
-from davis_analyzer.dividend import analyze_dividend
-from davis_analyzer.holder_concentration import analyze_holder_concentration
-from davis_analyzer.momentum import analyze_momentum
-from davis_analyzer.profitability import analyze_profitability_quality
-from davis_analyzer.prosperity import calculate_prosperity_score
-from davis_analyzer.scoring import calculate_davis_double_score
-from davis_analyzer.tushare_client import TushareClient
-from davis_analyzer.types import StockInfo
-from davis_analyzer.valuation import (
+from davis_analyzer.factors.distress import calculate_distress_score
+from davis_analyzer.core.financial_fetcher import fetch_financial_data
+from davis_analyzer.factors.forecast import analyze_forecast, analyze_forecast_revision
+from davis_analyzer.factors.dividend import analyze_dividend
+from davis_analyzer.factors.holder_concentration import analyze_holder_concentration
+from davis_analyzer.factors.momentum import analyze_momentum
+from davis_analyzer.factors.profitability import analyze_profitability_quality
+from davis_analyzer.factors.prosperity import calculate_prosperity_score
+from davis_analyzer.core.scoring import calculate_davis_double_score
+from davis_analyzer.core.tushare_client import TushareClient
+from davis_analyzer.core.types import StockInfo
+from davis_analyzer.factors.valuation import (
     calculate_percentile,
     calculate_valuation_score,
     detect_cyclical,
@@ -123,7 +123,7 @@ for days, label in [(60, "60d"), (120, "120d"), (250, "250d")]:
 
 # ── 3. 四维评分 ──
 # 估值历史（用全量手工构造供引擎）
-from davis_analyzer.types import ValuationData
+from davis_analyzer.core.types import ValuationData
 val_rows = [r for _, r in db.iterrows() if not pd.isna(r["pe_ttm"]) and not pd.isna(r["pb"])]
 val_history = [
     ValuationData(ts_code=TS_CODE, trade_date=str(r["trade_date"]), pe_ttm=float(r["pe_ttm"]),
@@ -142,7 +142,7 @@ pscore = calculate_prosperity_score(fin)
 print(f"景气度: composite={pscore.composite_score:.2f} rev={pscore.revenue_score:.2f} prof={pscore.profit_score:.2f} slope={pscore.slope_score:.2f} dur={pscore.duration_score:.2f} ΔG={pscore.delta_g}")
 
 # 趋势
-from davis_analyzer.trend import batch_trend, calculate_monthly_trend, calculate_trend_slope, calculate_trend_acceleration
+from davis_analyzer.factors.trend import batch_trend, calculate_monthly_trend, calculate_trend_slope, calculate_trend_acceleration
 dates = pd.to_datetime([v.trade_date for v in val_history], format="%Y%m%d")
 daily_pe = pd.Series([v.pe_ttm for v in val_history], index=dates).sort_index()
 daily_pb = pd.Series([v.pb for v in val_history], index=dates).sort_index()

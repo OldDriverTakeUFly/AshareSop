@@ -14,7 +14,7 @@ from datetime import datetime, timedelta
 import requests
 from loguru import logger
 
-from davis_analyzer.constants import MAJOR_EVENT_RULES
+from davis_analyzer.core.constants import MAJOR_EVENT_RULES
 from davis_analyzer.surge import db
 
 _BASE = "https://www.cninfo.com.cn"  # 2026-09-18 安全审查:明文HTTP改HTTPS

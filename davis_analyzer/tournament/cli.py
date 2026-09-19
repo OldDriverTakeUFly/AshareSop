@@ -46,7 +46,7 @@ def main(argv: list[str] | None = None) -> int:
         from davis_analyzer.tournament.judge import JudgeHarness, trading_calendar
         from davis_analyzer.tournament.report import render_report, write_report
         from davis_analyzer.tournament.scorecard import score_participant
-        from davis_analyzer.tushare_client import TushareClient
+        from davis_analyzer.core.tushare_client import TushareClient
 
         client = TushareClient()
         start = datetime.strptime(args.start, "%Y%m%d").date()
@@ -55,7 +55,7 @@ def main(argv: list[str] | None = None) -> int:
         judge = JudgeHarness(adapters, client)
         calendar = trading_calendar(client, start, end)
         snap = judge.snapshot(end, calendar)
-        from davis_analyzer.market_regime import get_market_regime_with_confirm
+        from davis_analyzer.factors.market_regime import get_market_regime_with_confirm
         current_regime = get_market_regime_with_confirm(end.strftime("%Y%m%d"))
         scores = {}
         reports_by_participant: dict[str, list] = {}
@@ -87,12 +87,12 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "replay":
         from datetime import datetime
-        from davis_analyzer.config import TOURNAMENT_REPORTS_DIR
+        from davis_analyzer.core.config import TOURNAMENT_REPORTS_DIR
         from davis_analyzer.tournament.adapters import default_participants, resolve_universe
         from davis_analyzer.tournament.judge import JudgeHarness, trading_calendar
         from davis_analyzer.tournament.ledger import LedgerRecord, append_record, open_db
         from davis_analyzer.tournament.replay import export_replay, replay
-        from davis_analyzer.tushare_client import TushareClient
+        from davis_analyzer.core.tushare_client import TushareClient
 
         client = TushareClient()
         start = datetime.strptime(args.start, "%Y%m%d").date()
@@ -122,7 +122,7 @@ def main(argv: list[str] | None = None) -> int:
         import random
         from datetime import date, datetime
 
-        from davis_analyzer import constants as C
+        from davis_analyzer.core import constants as C
         from davis_analyzer.tournament.adapters import default_participants, resolve_universe
         from davis_analyzer.tournament.evolution import (
             DAVIS_SEED_DEFAULTS, build_score_fn, check_promotion, draw_segments,
@@ -134,7 +134,7 @@ def main(argv: list[str] | None = None) -> int:
         from davis_analyzer.tournament.ledger import (
             LedgerRecord, append_record, count_campaigns, open_db,
         )
-        from davis_analyzer.tushare_client import TushareClient
+        from davis_analyzer.core.tushare_client import TushareClient
 
         today = date.today()
         ledger_conn = open_db()
@@ -223,8 +223,8 @@ def main(argv: list[str] | None = None) -> int:
         print("结果已记入 tournament_ledger（通过后由 champions 流程存档）")
         return 0 if decision.ok else 2
     if args.command == "champions":
-        from davis_analyzer import constants as C
-        from davis_analyzer.config import TOURNAMENT_REPORTS_DIR
+        from davis_analyzer.core import constants as C
+        from davis_analyzer.core.config import TOURNAMENT_REPORTS_DIR
         from davis_analyzer.tournament.champions import (
             incumbents, render_deploy_note, verify_sync,
         )

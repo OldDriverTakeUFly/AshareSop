@@ -10,7 +10,7 @@ maximise score differentiation across different stock profiles.
 
 from __future__ import annotations
 
-from davis_analyzer.types import DistressSignal
+from davis_analyzer.core.types import DistressSignal
 
 # ── Layer 1: Distress Confirmation ──────────────────────────────────────────
 

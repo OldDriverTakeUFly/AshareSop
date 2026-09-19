@@ -23,7 +23,7 @@ from pathlib import Path
 import pandas as pd
 from loguru import logger
 
-from davis_analyzer.config import SURGE_REPORTS_DIR
+from davis_analyzer.core.config import SURGE_REPORTS_DIR
 
 _KIT_CSS = (Path(__file__).resolve().parents[3]
             / "docs" / "小红书卡片" / "未发布" / "longpic_kit" / "kit.css")

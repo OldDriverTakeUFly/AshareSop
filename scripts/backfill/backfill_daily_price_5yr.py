@@ -16,7 +16,7 @@ import pandas as pd
 import numpy as np
 from stockhot.data_layer.market_db import get_connection, init_db
 from stockhot.storage.database import init_database
-from davis_analyzer.tushare_client import TushareClient
+from davis_analyzer.core.tushare_client import TushareClient
 
 init_db()
 init_database()

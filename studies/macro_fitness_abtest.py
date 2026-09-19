@@ -126,7 +126,7 @@ def run_ab_test() -> dict:
         BacktestConfig, _get_trading_calendar, _build_stock_infos,
         _all_cached_stock_codes,
     )
-    from davis_analyzer.tushare_client import TushareClient
+    from davis_analyzer.core.tushare_client import TushareClient
 
     # 配置
     start_date = date(2024, 1, 1)

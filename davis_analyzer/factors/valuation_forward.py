@@ -39,7 +39,7 @@ cheapness is forward-earnings relief.
 
 from __future__ import annotations
 
-from davis_analyzer.constants import (
+from davis_analyzer.core.constants import (
     BASE_ACCELERATING_AHEAD,
     BASE_ACCELERATING_DECEL,
     BASE_DECLINING,
@@ -62,14 +62,14 @@ from davis_analyzer.constants import (
     REV_DOWNGRADE,
     REV_UPGRADE,
 )
-from davis_analyzer.types import (
+from davis_analyzer.core.types import (
     ForecastRevision,
     ForecastSignal,
     ForwardOverlay,
     PsCrossCheck,
     ValuationData,
 )
-from davis_analyzer.valuation import calculate_percentile
+from davis_analyzer.factors.valuation import calculate_percentile
 
 # ── Sub-signal 1: cycle-stage base adjustment ─────────────────────────
 

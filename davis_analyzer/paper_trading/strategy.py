@@ -1148,7 +1148,7 @@ class FactorThresholdStrategy:
         # widening) since it needs to interact with hard_stop thresholds.
         if self.enable_cyclical_rules:
             try:
-                from davis_analyzer.cyclical import is_cyclical_by_code
+                from davis_analyzer.factors.cyclical import is_cyclical_by_code
                 from datetime import datetime as _dtc
                 for pos in positions:
                     if pos.ts_code in self._bounce_positions:

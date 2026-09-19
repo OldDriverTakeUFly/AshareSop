@@ -21,15 +21,15 @@ from davis_analyzer.backtest_factors import (
     _count_consecutive_positive_delta_g,
     classify_stock,
 )
-from davis_analyzer.constants import (
+from davis_analyzer.core.constants import (
     CYCLICAL_DELTA_G_CLAMP,
     CYCLICAL_FACTOR_WEIGHTS,
     SUPER_CYCLE_INDUSTRIES,
     SUPER_CYCLE_MIN_POSITIVE_QUARTERS,
     SUPER_CYCLE_PERSISTENCE_BONUS,
 )
-from davis_analyzer.prosperity import calculate_prosperity_score
-from davis_analyzer.types import FinancialData
+from davis_analyzer.factors.prosperity import calculate_prosperity_score
+from davis_analyzer.core.types import FinancialData
 
 
 # ──────────────────────────── classify_stock ────────────────────────────

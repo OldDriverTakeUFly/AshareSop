@@ -1,4 +1,4 @@
-"""Tests for davis_analyzer.trend — PE/PB monthly trend calculation and scoring."""
+"""Tests for davis_analyzer.factors.trend — PE/PB monthly trend calculation and scoring."""
 
 from __future__ import annotations
 
@@ -6,15 +6,15 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from davis_analyzer.constants import MIN_TREND_MONTHS
-from davis_analyzer.trend import (
+from davis_analyzer.core.constants import MIN_TREND_MONTHS
+from davis_analyzer.factors.trend import (
     batch_trend,
     calculate_monthly_trend,
     calculate_trend_acceleration,
     calculate_trend_score,
     calculate_trend_slope,
 )
-from davis_analyzer.types import StockInfo
+from davis_analyzer.core.types import StockInfo
 
 
 def _make_stock(ts_code: str, is_cyclical: bool = False) -> StockInfo:

@@ -6,7 +6,7 @@ os.chdir(PROJECT_ROOT)
 sys.path.insert(0, PROJECT_ROOT)
 from loguru import logger; logger.remove(); logger.add(sys.stderr, level="ERROR")
 
-import davis_analyzer.market_regime as mr
+import davis_analyzer.factors.market_regime as mr
 mr._MA120_BEAR_THRESHOLD = -999.0
 
 from stockhot.storage.database import init_database, DB_PATH

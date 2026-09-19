@@ -10,7 +10,7 @@ from unittest.mock import MagicMock
 import pytest
 
 import davis_analyzer.tournament.evolution as evolution_mod
-import davis_analyzer.tushare_client as tushare_client_mod
+import davis_analyzer.core.tushare_client as tushare_client_mod
 from davis_analyzer.tournament import judge as judge_mod
 from davis_analyzer.tournament import ledger as ledger_mod
 from davis_analyzer.tournament.cli import main
@@ -208,7 +208,7 @@ def test_evolve_cli_quota_rejection(monkeypatch: pytest.MonkeyPatch, capsys) -> 
 
 def test_evolve_cli_short_calendar_guard(monkeypatch: pytest.MonkeyPatch, capsys) -> None:
     # I4 守卫阈值（常量表达式推导，=828）：差一天也必须拒绝且不落台账
-    from davis_analyzer import constants as C
+    from davis_analyzer.core import constants as C
 
     threshold = (
         C.TOURNAMENT_SEGMENTS_N

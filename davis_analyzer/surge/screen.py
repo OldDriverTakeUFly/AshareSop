@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 import pandas as pd
 from loguru import logger
 
-from davis_analyzer.constants import PATTERN_PARAMS
+from davis_analyzer.core.constants import PATTERN_PARAMS
 from davis_analyzer.surge import chips, cninfo, db, factors, pattern
 
 _NAN = float("nan")
@@ -18,7 +18,7 @@ _HIST_DAYS = 400  # 日线回看自然日(≥250交易日)
 
 
 def _tushare_pro():
-    from davis_analyzer.tushare_client import TushareClient
+    from davis_analyzer.core.tushare_client import TushareClient
 
     return TushareClient()._pro
 

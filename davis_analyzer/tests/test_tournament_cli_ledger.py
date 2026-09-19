@@ -14,12 +14,12 @@ from unittest.mock import MagicMock
 
 import pytest
 
-import davis_analyzer.market_regime as market_regime_mod
+import davis_analyzer.factors.market_regime as market_regime_mod
 import davis_analyzer.tournament.adapters as adapters_mod
 import davis_analyzer.tournament.judge as judge_mod
 import davis_analyzer.tournament.ledger as ledger_mod
 import davis_analyzer.tournament.report as report_mod
-import davis_analyzer.tushare_client as tushare_client_mod
+import davis_analyzer.core.tushare_client as tushare_client_mod
 from davis_analyzer.backtest_report import PerformanceStats
 from davis_analyzer.tournament.champions import incumbents
 from davis_analyzer.tournament.cli import main
@@ -141,7 +141,7 @@ def test_run_cli_report_warns_on_continual_tweaking(cli_env, monkeypatch, tmp_pa
 def test_replay_cli_writes_csvs_and_ledger(
     cli_env, monkeypatch, tmp_path, capsys,
 ) -> None:
-    import davis_analyzer.config as config_mod
+    import davis_analyzer.core.config as config_mod
 
     conn, calendar = cli_env
     monkeypatch.setattr(config_mod, "TOURNAMENT_REPORTS_DIR", tmp_path)

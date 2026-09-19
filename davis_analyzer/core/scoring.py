@@ -6,8 +6,8 @@ Weights are sourced from DAVIS_DOUBLE_WEIGHTS in constants.py.
 
 from __future__ import annotations
 
-from davis_analyzer.constants import DAVIS_DOUBLE_WEIGHTS
-from davis_analyzer.types import DavisDoubleScore
+from davis_analyzer.core.constants import DAVIS_DOUBLE_WEIGHTS
+from davis_analyzer.core.types import DavisDoubleScore
 
 
 def calculate_davis_double_score(

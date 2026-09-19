@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import date
 from pathlib import Path
 
-from davis_analyzer.config import TOURNAMENT_REPORTS_DIR
+from davis_analyzer.core.config import TOURNAMENT_REPORTS_DIR
 from davis_analyzer.tournament.judge import WindowReport
 from davis_analyzer.tournament.scorecard import CompositeScore
 

@@ -36,7 +36,7 @@ def _ts_code_to_code(ts_code: str) -> str:
 def _get_market_regime(as_of: date) -> str:
     """获取市场状态（HMM，零 API）。失败返回 'unknown'."""
     try:
-        from davis_analyzer.market_regime import get_market_regime
+        from davis_analyzer.factors.market_regime import get_market_regime
 
         regime = get_market_regime(as_of.isoformat())
         return regime or "unknown"

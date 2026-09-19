@@ -12,8 +12,8 @@ import numpy as np
 import pandas as pd
 from loguru import logger
 
-from davis_analyzer.constants import MIN_TREND_MONTHS
-from davis_analyzer.types import StockInfo
+from davis_analyzer.core.constants import MIN_TREND_MONTHS
+from davis_analyzer.core.types import StockInfo
 
 
 def calculate_monthly_trend(

@@ -25,12 +25,12 @@ from typing import TYPE_CHECKING
 import pandas as pd
 from loguru import logger
 
-from davis_analyzer.constants import (
+from davis_analyzer.core.constants import (
     HOLDER_CONCENTRATION_FULL_DECLINE,
     HOLDER_LOOKBACK_PERIODS,
 )
-from davis_analyzer.tushare_client import TushareClient
-from davis_analyzer.types import HolderConcentration
+from davis_analyzer.core.tushare_client import TushareClient
+from davis_analyzer.core.types import HolderConcentration
 
 _LOOKBACK_MONTHS = max(HOLDER_LOOKBACK_PERIODS, 4) * 3 * 2  # ~2 years cushion
 

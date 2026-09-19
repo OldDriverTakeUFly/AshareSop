@@ -1,4 +1,4 @@
-"""Tests for davis_analyzer.valuation_forward — forward overlay + PS cross-check.
+"""Tests for davis_analyzer.factors.valuation_forward — forward overlay + PS cross-check.
 
 The overlay is a bounded [+15, −20] adjustment to the backward-looking PE
 percentile. These tests pin every rule in the rule table and every correction
@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import pytest
 
-from davis_analyzer.constants import (
+from davis_analyzer.core.constants import (
     BASE_ACCELERATING_AHEAD,
     BASE_ACCELERATING_DECEL,
     BASE_DECLINING,
@@ -27,12 +27,12 @@ from davis_analyzer.constants import (
     REV_DOWNGRADE,
     REV_UPGRADE,
 )
-from davis_analyzer.types import (
+from davis_analyzer.core.types import (
     ForecastRevision,
     ForecastSignal,
     ValuationData,
 )
-from davis_analyzer.valuation_forward import (
+from davis_analyzer.factors.valuation_forward import (
     _base_adjustment,
     _forecast_adjustment,
     _ignition_adjustment,
@@ -56,7 +56,7 @@ DEFAULT_KW = dict(
 
 def _overlay(**overrides) -> "ForwardOverlay":
     """Call calculate_forward_overlay with DEFAULT_KW plus overrides."""
-    from davis_analyzer.types import ForwardOverlay  # noqa: F401 (type hint)
+    from davis_analyzer.core.types import ForwardOverlay  # noqa: F401 (type hint)
     return calculate_forward_overlay(**{**DEFAULT_KW, **overrides})
 
 

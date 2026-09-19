@@ -6,7 +6,7 @@ import math
 
 import pandas as pd
 
-from davis_analyzer.constants import PATTERN_PARAMS as PP
+from davis_analyzer.core.constants import PATTERN_PARAMS as PP
 
 _NAN = float("nan")
 

@@ -24,7 +24,7 @@ import sqlite3
 import pandas as pd
 from stockhot.data_layer.market_db import get_connection, DELISTED_DB_PATH
 from stockhot.storage.database import init_database
-from davis_analyzer.tushare_client import TushareClient
+from davis_analyzer.core.tushare_client import TushareClient
 
 init_database()
 client = TushareClient()

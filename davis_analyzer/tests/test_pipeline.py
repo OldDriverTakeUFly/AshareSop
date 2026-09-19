@@ -7,7 +7,7 @@ from unittest.mock import patch
 import pytest
 
 from davis_analyzer.cli import main as cli_main
-from davis_analyzer.types import (
+from davis_analyzer.core.types import (
     DavisDoubleScore,
     DistressSignal,
     FinancialData,
@@ -280,7 +280,7 @@ class TestDavisDoubleScoreTrendScore:
 
 class TestImportChain:
     def test_import_pipeline(self):
-        from davis_analyzer.pipeline import run_screening_pipeline
+        from davis_analyzer.core.pipeline import run_screening_pipeline
 
         assert callable(run_screening_pipeline)
 
@@ -310,12 +310,12 @@ class TestImportChain:
         assert callable(save_all_reports)
 
     def test_import_trend_module(self):
-        from davis_analyzer import trend
+        from davis_analyzer.factors import trend
 
         assert hasattr(trend, "calculate_trend_score")
 
     def test_import_scoring(self):
-        from davis_analyzer.scoring import (
+        from davis_analyzer.core.scoring import (
             calculate_davis_double_score,
             rank_stocks,
         )

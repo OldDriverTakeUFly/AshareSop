@@ -231,7 +231,7 @@ class TestFetchRealtimePrice:
 def _make_pipeline_result_with_stock(
     ts_code="000001.SZ", final_score=78.5, distress=65.0, rank=3, total=30
 ):
-    from davis_analyzer.types import DavisDoubleScore, PipelineResult
+    from davis_analyzer.core.types import DavisDoubleScore, PipelineResult
 
     scores = []
     for i in range(1, total + 1):
@@ -316,7 +316,7 @@ class TestGetCurrentDavisScore:
         assert result["error"] == "no_data"
 
     def test_empty_scores_returns_no_data(self, monkeypatch):
-        from davis_analyzer.types import PipelineResult
+        from davis_analyzer.core.types import PipelineResult
 
         empty_result = PipelineResult(
             scores=[],

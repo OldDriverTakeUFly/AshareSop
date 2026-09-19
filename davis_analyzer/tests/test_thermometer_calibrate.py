@@ -49,7 +49,7 @@ def test_walk_forward_shape():
 
 
 def test_verdict_targets():
-    from davis_analyzer.constants import THERMOMETER_CALIBRATION_TARGETS
+    from davis_analyzer.core.constants import THERMOMETER_CALIBRATION_TARGETS
     from davis_analyzer.thermometer import calibrate
 
     ok = calibrate._verdict({"oos_ic_mean": 0.05, "oos_icir": 0.4}, 0.01)

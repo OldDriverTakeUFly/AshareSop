@@ -26,12 +26,12 @@ from typing import TYPE_CHECKING
 import pandas as pd
 from loguru import logger
 
-from davis_analyzer.constants import (
+from davis_analyzer.core.constants import (
     DIVIDEND_FULL_YIELD_PCT,
     DIVIDEND_LOOKBACK_YEARS,
 )
-from davis_analyzer.tushare_client import TushareClient
-from davis_analyzer.types import DividendSignal
+from davis_analyzer.core.tushare_client import TushareClient
+from davis_analyzer.core.types import DividendSignal
 
 if TYPE_CHECKING:
     pass

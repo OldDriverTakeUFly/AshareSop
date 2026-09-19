@@ -1,7 +1,7 @@
 import pytest
 
-from davis_analyzer.constants import DAVIS_DOUBLE_WEIGHTS
-from davis_analyzer.distress import (
+from davis_analyzer.core.constants import DAVIS_DOUBLE_WEIGHTS
+from davis_analyzer.factors.distress import (
     calculate_distress_score,
     check_balance_sheet,
     check_delta_g_positive,
@@ -13,8 +13,8 @@ from davis_analyzer.distress import (
     check_revenue_inflection,
     check_roe_trend,
 )
-from davis_analyzer.scoring import calculate_davis_double_score, rank_stocks
-from davis_analyzer.types import DavisDoubleScore
+from davis_analyzer.core.scoring import calculate_davis_double_score, rank_stocks
+from davis_analyzer.core.types import DavisDoubleScore
 
 # ── Layer 1 signal tests ────────────────────────────────────────────────────
 

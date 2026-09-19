@@ -6,7 +6,7 @@ os.chdir(PROJECT_ROOT)
 from loguru import logger; logger.remove(); logger.add(sys.stderr, level="WARNING")
 
 from stockhot.data_layer.market_db import get_connection, init_db
-from davis_analyzer.tushare_client import TushareClient
+from davis_analyzer.core.tushare_client import TushareClient
 
 init_db()
 client = TushareClient()

@@ -50,7 +50,7 @@ import pandas as pd
 from loguru import logger
 
 # ── davis_analyzer 核心模块（只读调用，不修改源码）──
-from davis_analyzer.distress import (
+from davis_analyzer.factors.distress import (
     check_balance_sheet,
     check_delta_g_positive,
     check_eps_decline,
@@ -62,18 +62,18 @@ from davis_analyzer.distress import (
     check_roe_trend,
     calculate_distress_score,
 )
-from davis_analyzer.financial_fetcher import fetch_financial_data
-from davis_analyzer.prosperity import calculate_prosperity_score
-from davis_analyzer.scoring import calculate_davis_double_score
-from davis_analyzer.trend import (
+from davis_analyzer.core.financial_fetcher import fetch_financial_data
+from davis_analyzer.factors.prosperity import calculate_prosperity_score
+from davis_analyzer.core.scoring import calculate_davis_double_score
+from davis_analyzer.factors.trend import (
     batch_trend,
     calculate_monthly_trend,
     calculate_trend_acceleration,
     calculate_trend_slope,
 )
-from davis_analyzer.tushare_client import TushareClient
-from davis_analyzer.types import StockInfo
-from davis_analyzer.valuation import (
+from davis_analyzer.core.tushare_client import TushareClient
+from davis_analyzer.core.types import StockInfo
+from davis_analyzer.factors.valuation import (
     calculate_percentile,
     calculate_valuation_score,
     detect_cyclical,

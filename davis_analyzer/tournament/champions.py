@@ -10,7 +10,7 @@ from datetime import date
 
 from loguru import logger
 
-from davis_analyzer.constants import TOURNAMENT_CHAMPION_SLOTS
+from davis_analyzer.core.constants import TOURNAMENT_CHAMPION_SLOTS
 
 CHAMPIONS_DDL = """
 CREATE TABLE IF NOT EXISTS tournament_champions (

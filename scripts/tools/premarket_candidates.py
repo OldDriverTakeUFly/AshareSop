@@ -11,7 +11,7 @@ from loguru import logger; logger.remove(); logger.add(sys.stderr, level="WARNIN
 
 from datetime import datetime
 from stockhot.data_layer.market_db import get_connection as get_market_conn
-from davis_analyzer.tushare_client import TushareClient
+from davis_analyzer.core.tushare_client import TushareClient
 from davis_analyzer.paper_trading.strategy import FactorThresholdStrategy
 from davis_analyzer.paper_trading.executor import (
     _compute_davis_scores_at, _compute_factor_scores_at,
@@ -82,7 +82,7 @@ def main():
                 (code,)
             ).fetchone()
             if row:
-                from davis_analyzer.types import StockInfo
+                from davis_analyzer.core.types import StockInfo
                 stock_infos[code] = StockInfo(
                     ts_code=row["ts_code"], name=row["name"],
                     industry=row["industry"] or "",

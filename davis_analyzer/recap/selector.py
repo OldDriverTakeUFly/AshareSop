@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 
-from davis_analyzer.constants import RECAP_DRAMA_WEIGHTS as W
+from davis_analyzer.core.constants import RECAP_DRAMA_WEIGHTS as W
 from davis_analyzer.recap.types import Candidate, DramaEvent
 
 _LATE_SEAL = "14:30:00"

@@ -73,7 +73,7 @@
 
 ### 2.5 与 davis_analyzer 的映射
 
-`davis_analyzer.pipeline` 的 Step 4（pre-filter，valuation_score > 50）是硬过滤层的简化版本。本 skill 的硬过滤层是 davis_analyzer 预筛逻辑的泛化扩展，增加了 ROE、CAGR、杠杆、现金流等多维过滤。
+`davis_analyzer.core.pipeline` 的 Step 4（pre-filter，valuation_score > 50）是硬过滤层的简化版本。本 skill 的硬过滤层是 davis_analyzer 预筛逻辑的泛化扩展，增加了 ROE、CAGR、杠杆、现金流等多维过滤。
 
 ---
 

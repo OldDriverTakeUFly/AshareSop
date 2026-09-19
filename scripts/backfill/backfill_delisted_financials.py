@@ -24,7 +24,7 @@ from loguru import logger; logger.remove(); logger.add(sys.stderr, level="WARNIN
 import sqlite3
 from stockhot.data_layer.market_db import get_connection, DELISTED_DB_PATH
 from stockhot.storage.database import init_database
-from davis_analyzer.tushare_client import TushareClient
+from davis_analyzer.core.tushare_client import TushareClient
 
 init_database()
 client = TushareClient()

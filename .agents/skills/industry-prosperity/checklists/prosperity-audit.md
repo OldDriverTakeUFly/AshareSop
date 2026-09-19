@@ -15,7 +15,7 @@
 ## ΔG 信号验证
 
 - [ ] 财务数据覆盖至少 4 个季度（ΔG 计算的最低要求）
-- [ ] ΔG 符号已确认：通过 `davis_analyzer.prosperity.calculate_prosperity_score` 的 `delta_g` 字段获取
+- [ ] ΔG 符号已确认：通过 `davis_analyzer.factors.prosperity.calculate_prosperity_score` 的 `delta_g` 字段获取
 - [ ] ΔG 为正时：标注"增速加速中"，对应左山峰/加速期，确认是否为"二次点火"候选
 - [ ] ΔG 为负时：标注"增速减速中"，对应右山峰/减速期，确认是否触发 30% 阈值预警
 - [ ] ΔG 符号翻转时点已追踪：通过 `prosperity_inflection.identify_inflection_quarter` 确认拐点季度

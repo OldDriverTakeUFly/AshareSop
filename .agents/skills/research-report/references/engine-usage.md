@@ -11,7 +11,7 @@
 ```python
 import os
 os.environ.setdefault("PROJECT_ROOT", ".")  # 防止 config.py import-time mkdir 报错
-from davis_analyzer.tushare_client import TushareClient
+from davis_analyzer.core.tushare_client import TushareClient
 
 client = TushareClient()  # 需要 TUSHARE_TOKEN 环境变量，否则 raise EnvironmentError
 ```
@@ -27,7 +27,7 @@ client = TushareClient()  # 需要 TUSHARE_TOKEN 环境变量，否则 raise Env
 ## 2. 财务数据——fetch_financial_data
 
 ```python
-from davis_analyzer.financial_fetcher import fetch_financial_data
+from davis_analyzer.core.financial_fetcher import fetch_financial_data
 
 fin_list = fetch_financial_data(client, "603690.SH", periods=12)
 # 返回: list[FinancialData]，长度 ≤ periods（实际可用期数）
@@ -63,7 +63,7 @@ for item in fin_list[:4]:
 
 ```python
 # 方法 A：fetch_valuation_history（封装版）
-from davis_analyzer.valuation import fetch_valuation_history
+from davis_analyzer.factors.valuation import fetch_valuation_history
 vh = fetch_valuation_history(client, "603690.SH")  # days 默认 PERCENTILE_DAYS=1095
 # 返回: list[ValuationData]，可能为空 list（坑点 3）
 ```
@@ -105,7 +105,7 @@ for p in [10, 25, 50, 75, 90, 95]:
 ### 3.3 周期股判定（detect_cyclical）
 
 ```python
-from davis_analyzer.valuation import detect_cyclical
+from davis_analyzer.factors.valuation import detect_cyclical
 # detect_cyclical(industry: str) → bool
 # 注意：参数是行业名字符串，不是 ts_code！
 is_cyc = detect_cyclical("半导体")  # ✓ 正确
@@ -117,7 +117,7 @@ is_cyc = detect_cyclical("半导体")  # ✓ 正确
 ## 4. 景气度——calculate_prosperity_score
 
 ```python
-from davis_analyzer.prosperity import calculate_prosperity_score
+from davis_analyzer.factors.prosperity import calculate_prosperity_score
 pscore = calculate_prosperity_score(fin_list)
 # 返回: ProsperityScore dataclass（需要 ≥4 个季度数据，否则结果不可靠）
 ```
@@ -144,7 +144,7 @@ print(f"营收分: {pscore.revenue_score}, 利润分: {pscore.profit_score}")
 ## 5. 困境反转——calculate_distress_score
 
 ```python
-from davis_analyzer.distress import calculate_distress_score
+from davis_analyzer.factors.distress import calculate_distress_score
 # 12 个参数，从 fin_list + 估值分位手动组装
 dscore = calculate_distress_score(
     eps_history=[f.eps for f in fin_list],
@@ -170,7 +170,7 @@ dscore = calculate_distress_score(
 ## 6. 综合评分——calculate_davis_double_score
 
 ```python
-from davis_analyzer.scoring import calculate_davis_double_score
+from davis_analyzer.core.scoring import calculate_davis_double_score
 final = calculate_davis_double_score(
     valuation_score=vscore,      # float
     prosperity_score=pscore,     # ProsperityScore（注意：传对象不是分数）
@@ -194,11 +194,11 @@ os.environ.setdefault("PROJECT_ROOT", os.getcwd())
 from datetime import date, timedelta
 import pandas as pd
 
-from davis_analyzer.tushare_client import TushareClient
-from davis_analyzer.financial_fetcher import fetch_financial_data
-from davis_analyzer.valuation import fetch_valuation_history, detect_cyclical
-from davis_analyzer.prosperity import calculate_prosperity_score
-from davis_analyzer.prosperity_sector import classify_stock_stage
+from davis_analyzer.core.tushare_client import TushareClient
+from davis_analyzer.core.financial_fetcher import fetch_financial_data
+from davis_analyzer.factors.valuation import fetch_valuation_history, detect_cyclical
+from davis_analyzer.factors.prosperity import calculate_prosperity_score
+from davis_analyzer.factors.prosperity_sector import classify_stock_stage
 
 TS_CODE = "603690.SH"  # 改这里
 NAME = "至纯科技"       # 改这里
@@ -305,12 +305,12 @@ result.forecast_signals  # dict[ts_code, ForecastSignal]  # 无预告的股票�
 **单股按需调用**（不跑全 pipeline 时）：
 
 ```python
-from davis_analyzer.tushare_client import TushareClient
-from davis_analyzer.momentum import analyze_momentum
-from davis_analyzer.dividend import analyze_dividend
-from davis_analyzer.forecast import analyze_forecast, analyze_forecast_revision
-from davis_analyzer.holder_concentration import analyze_holder_concentration
-from davis_analyzer.profitability import analyze_profitability_quality
+from davis_analyzer.core.tushare_client import TushareClient
+from davis_analyzer.factors.momentum import analyze_momentum
+from davis_analyzer.factors.dividend import analyze_dividend
+from davis_analyzer.factors.forecast import analyze_forecast, analyze_forecast_revision
+from davis_analyzer.factors.holder_concentration import analyze_holder_concentration
+from davis_analyzer.factors.profitability import analyze_profitability_quality
 
 client = TushareClient()
 mom = analyze_momentum(client, "603690.SH")        # MomentumSignal | None

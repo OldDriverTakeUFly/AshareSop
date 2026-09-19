@@ -5,7 +5,7 @@ from __future__ import annotations
 import statistics
 from collections.abc import Iterable
 
-from davis_analyzer.constants import (
+from davis_analyzer.core.constants import (
     HIGH_GROWTH_CONFIRMED_THRESHOLD,
     HIGH_GROWTH_LOWER_BOUND,
     IGNITION_SLOPE_THRESHOLD,
@@ -17,9 +17,9 @@ from davis_analyzer.constants import (
     TRANSITION_DELTA_G_NEGATIVE,
     TRANSITION_DELTA_G_POSITIVE,
 )
-from davis_analyzer.prosperity import dupont_decomposition
-from davis_analyzer.prosperity_inflection import analyze_inflection
-from davis_analyzer.types import (
+from davis_analyzer.factors.prosperity import dupont_decomposition
+from davis_analyzer.factors.prosperity_inflection import analyze_inflection
+from davis_analyzer.core.types import (
     FinancialData,
     IndustryProsperityScore,
     ProsperityScore,

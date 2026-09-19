@@ -25,20 +25,20 @@ os.environ["PROJECT_ROOT"] = os.getcwd()  # 坑点2b: 防 .env 的 /app 破坏 m
 import pandas as pd  # noqa: E402
 from loguru import logger  # noqa: E402
 
-from davis_analyzer.distress import calculate_distress_score  # noqa: E402
-from davis_analyzer.financial_fetcher import fetch_financial_data  # noqa: E402
-from davis_analyzer.forecast import analyze_forecast  # noqa: E402
-from davis_analyzer.dividend import analyze_dividend  # noqa: E402
-from davis_analyzer.holder_concentration import analyze_holder_concentration  # noqa: E402
-from davis_analyzer.momentum import analyze_momentum  # noqa: E402
-from davis_analyzer.profitability import analyze_profitability_quality  # noqa: E402
-from davis_analyzer.prosperity import calculate_prosperity_score  # noqa: E402
-from davis_analyzer.prosperity_sector import classify_stock_stage  # noqa: E402
-from davis_analyzer.scoring import calculate_davis_double_score  # noqa: E402
-from davis_analyzer.trend import batch_trend  # noqa: E402
-from davis_analyzer.tushare_client import TushareClient  # noqa: E402
-from davis_analyzer.types import StockInfo  # noqa: E402
-from davis_analyzer.valuation import (  # noqa: E402
+from davis_analyzer.factors.distress import calculate_distress_score  # noqa: E402
+from davis_analyzer.core.financial_fetcher import fetch_financial_data  # noqa: E402
+from davis_analyzer.factors.forecast import analyze_forecast  # noqa: E402
+from davis_analyzer.factors.dividend import analyze_dividend  # noqa: E402
+from davis_analyzer.factors.holder_concentration import analyze_holder_concentration  # noqa: E402
+from davis_analyzer.factors.momentum import analyze_momentum  # noqa: E402
+from davis_analyzer.factors.profitability import analyze_profitability_quality  # noqa: E402
+from davis_analyzer.factors.prosperity import calculate_prosperity_score  # noqa: E402
+from davis_analyzer.factors.prosperity_sector import classify_stock_stage  # noqa: E402
+from davis_analyzer.core.scoring import calculate_davis_double_score  # noqa: E402
+from davis_analyzer.factors.trend import batch_trend  # noqa: E402
+from davis_analyzer.core.tushare_client import TushareClient  # noqa: E402
+from davis_analyzer.core.types import StockInfo  # noqa: E402
+from davis_analyzer.factors.valuation import (  # noqa: E402
     calculate_percentile,
     calculate_valuation_score,
     detect_cyclical,

@@ -5,7 +5,7 @@ from davis_analyzer.rescorer import (
     parse_checklist,
     rescore,
 )
-from davis_analyzer.types import DavisDoubleScore, PipelineResult, RescoredResult
+from davis_analyzer.core.types import DavisDoubleScore, PipelineResult, RescoredResult
 
 # ── Fixtures ─────────────────────────────────────────────────────────
 

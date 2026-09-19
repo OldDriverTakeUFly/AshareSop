@@ -23,7 +23,7 @@ import pandas as pd
 from loguru import logger
 
 # ── davis_analyzer 核心模块（只读调用，不修改源码）──
-from davis_analyzer.distress import (
+from davis_analyzer.factors.distress import (
     check_balance_sheet,
     check_delta_g_positive,
     check_eps_decline,
@@ -35,18 +35,18 @@ from davis_analyzer.distress import (
     check_roe_trend,
     calculate_distress_score,
 )
-from davis_analyzer.financial_fetcher import fetch_financial_data
-from davis_analyzer.prosperity import calculate_prosperity_score
-from davis_analyzer.scoring import calculate_davis_double_score
-from davis_analyzer.trend import (
+from davis_analyzer.core.financial_fetcher import fetch_financial_data
+from davis_analyzer.factors.prosperity import calculate_prosperity_score
+from davis_analyzer.core.scoring import calculate_davis_double_score
+from davis_analyzer.factors.trend import (
     batch_trend,
     calculate_monthly_trend,
     calculate_trend_acceleration,
     calculate_trend_slope,
 )
-from davis_analyzer.tushare_client import TushareClient
-from davis_analyzer.types import StockInfo
-from davis_analyzer.valuation import (
+from davis_analyzer.core.tushare_client import TushareClient
+from davis_analyzer.core.types import StockInfo
+from davis_analyzer.factors.valuation import (
     calculate_percentile,
     calculate_valuation_score,
     detect_cyclical,
@@ -641,11 +641,11 @@ def collect_extended() -> dict:
 
     # ── 5. 五因子 ──
     try:
-        from davis_analyzer.dividend import analyze_dividend
-        from davis_analyzer.forecast import analyze_forecast, analyze_forecast_revision
-        from davis_analyzer.holder_concentration import analyze_holder_concentration
-        from davis_analyzer.momentum import analyze_momentum
-        from davis_analyzer.profitability import analyze_profitability_quality
+        from davis_analyzer.factors.dividend import analyze_dividend
+        from davis_analyzer.factors.forecast import analyze_forecast, analyze_forecast_revision
+        from davis_analyzer.factors.holder_concentration import analyze_holder_concentration
+        from davis_analyzer.factors.momentum import analyze_momentum
+        from davis_analyzer.factors.profitability import analyze_profitability_quality
 
         fin_list = fetch_financial_data(client, TS_CODE, periods=PERIODS)
         pscore = calculate_prosperity_score(fin_list)

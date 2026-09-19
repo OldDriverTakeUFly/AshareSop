@@ -122,7 +122,7 @@ def _collect_overseas_risk(trade_date_str: str) -> dict | None:
     Never raises — overseas data gaps must not block the screening report.
     """
     try:
-        from davis_analyzer.international_overlay import get_international_risk
+        from davis_analyzer.factors.international_overlay import get_international_risk
 
         risk = get_international_risk(trade_date_str)
         if not risk.data_sufficient:
@@ -216,7 +216,7 @@ def main() -> int:
     # Lazy import so the bootstrap/logger config takes effect first, and so a
     # failed import surfaces as a clear error rather than a traceback mid-run.
     try:
-        from davis_analyzer.pipeline import run_screening_pipeline
+        from davis_analyzer.core.pipeline import run_screening_pipeline
     except Exception as exc:
         print(f"[davis_nightly] FATAL — cannot import pipeline: {exc}")
         return 1

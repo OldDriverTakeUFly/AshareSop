@@ -148,9 +148,9 @@ def main() -> int:
         universe = [c.strip() for c in args.universe_codes.split(",") if c.strip()]
         print(f"[abx] Custom universe: {len(universe)} stocks")
     else:
-        from davis_analyzer.tushare_client import TushareClient
+        from davis_analyzer.core.tushare_client import TushareClient
         client = TushareClient()
-        from davis_analyzer.stock_universe import build_stock_universe
+        from davis_analyzer.core.stock_universe import build_stock_universe
         universe = [s.ts_code for s in build_stock_universe(client)[:args.universe_size]]
     print(f"[abx] Universe: {len(universe)} stocks")
 

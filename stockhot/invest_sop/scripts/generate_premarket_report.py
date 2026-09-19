@@ -21,7 +21,7 @@ NA = "数据不可用"
 def _fetch_strategy_signal(trade_date: str) -> dict | None:
     """获取 AI 选股策略信号（HMM 牛熊 + 持仓 + 买卖信号）."""
     try:
-        from davis_analyzer.strategy_signal import generate_daily_signal
+        from davis_analyzer.factors.strategy_signal import generate_daily_signal
         # trade_date is YYYY-MM-DD, convert to YYYYMMDD
         td = trade_date.replace("-", "")
         return generate_daily_signal(td)

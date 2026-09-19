@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import math
 
-from davis_analyzer.constants import (
+from davis_analyzer.core.constants import (
     TOURNAMENT_ALLOCATOR_TAU,
     TOURNAMENT_WEIGHT_BOUNDS,
 )

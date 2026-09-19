@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from davis_analyzer.backtest_report import PerformanceStats
-from davis_analyzer.constants import (
+from davis_analyzer.core.constants import (
     TOURNAMENT_COMPOSITE_WEIGHTS,
     TOURNAMENT_DRAWDOWN_PENALTY,
     TOURNAMENT_TRAILING_HALF_LIFE,

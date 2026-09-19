@@ -28,7 +28,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[4]))
-from davis_analyzer.config import PROJECT_ROOT
+from davis_analyzer.core.config import PROJECT_ROOT
 
 # ========== CONFIG: 填入你的标的 ==========
 TARGET_CODE = "000000.SH"  # 目标股票ts_code

@@ -97,8 +97,8 @@ with open("/tmp/pharma_valfix.txt", "w", encoding="utf-8") as fh:
 print("saved /tmp/pharma_valfix.txt")
 
 # ── 财务口径校验: fetch_financial_data 是单季还是累计 ──
-from davis_analyzer.financial_fetcher import fetch_financial_data
-from davis_analyzer.tushare_client import TushareClient
+from davis_analyzer.core.financial_fetcher import fetch_financial_data
+from davis_analyzer.core.tushare_client import TushareClient
 
 client = TushareClient()
 for code in ["600276.SH", "603259.SH"]:

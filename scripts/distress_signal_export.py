@@ -24,7 +24,7 @@ from loguru import logger; logger.remove(); logger.add(sys.stderr, level="WARNIN
 
 from stockhot.data_layer.market_db import get_connection as get_market_conn
 from stockhot.storage.database import init_database
-from davis_analyzer.tushare_client import TushareClient
+from davis_analyzer.core.tushare_client import TushareClient
 init_database()
 
 OUT_DIR = "logs/distress_signals"
@@ -107,8 +107,8 @@ def main():
         return
 
     # ② 估值分位(valuation 模块, 与研报管线同源)
-    from davis_analyzer.types import StockInfo
-    from davis_analyzer.valuation import batch_valuation
+    from davis_analyzer.core.types import StockInfo
+    from davis_analyzer.factors.valuation import batch_valuation
     infos = [StockInfo(ts_code=code, name=fs.get(code, {}).get("name", code),
                        industry="", list_status="L", is_cyclical=False)
              for code, _, _ in inflected]

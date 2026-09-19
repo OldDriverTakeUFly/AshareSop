@@ -230,23 +230,23 @@ The `davis_analyzer` package implements a related but distinct scoring engine. T
 
 When implementing this skill's scoring layer, the agent may call these `davis_analyzer` functions for data and sub-scores. Do not modify these functions. Call them as-is.
 
-**Valuation percentile** (`davis_analyzer.valuation`):
+**Valuation percentile** (`davis_analyzer.factors.valuation`):
 - `batch_valuation` computes PE and PB 3-year percentiles for the stock universe. Use the PE percentile for the valuation factor score. For cyclical-domain stocks, use the PB percentile instead.
 - `fetch_valuation_history` returns the daily PE/PB series used for technical momentum scoring.
 
-**Prosperity score** (`davis_analyzer.prosperity`):
+**Prosperity score** (`davis_analyzer.factors.prosperity`):
 - `batch_prosperity` computes a composite prosperity score from revenue growth, profit growth, trend slope, and duration. Map this to the growth factor family score.
 
-**Pipeline reference** (`davis_analyzer.pipeline`):
+**Pipeline reference** (`davis_analyzer.core.pipeline`):
 - `run_screening_pipeline` implements an 8-step process: create client, build universe, fetch valuation data, pre-filter (valuation score above 50), fetch financial data, calculate prosperity scores, calculate distress plus trend scores, calculate final Davis Double scores and rank.
 - This skill's three-layer structure is a generalization. The pipeline's step 4 (pre-filter) maps to this skill's hard filter layer. Steps 6 and 7 map to the scoring layer. There is no enhancement layer equivalent in the pipeline.
 
-**Davis Double scoring** (`davis_analyzer.scoring`):
+**Davis Double scoring** (`davis_analyzer.core.scoring`):
 - `calculate_davis_double_score` combines four sub-scores: valuation (0.30), trend (0.15), prosperity (0.30), distress (0.25). These weights are fixed in `constants.py` and are different from this skill's 30/20/25/25 split. The Davis Double score is useful as a secondary validation signal but should not replace this skill's composite score.
 
 ### What this skill does NOT call from davis_analyzer
 
-- The distress scoring layer (`davis_analyzer.distress`) targets loss-making reversal candidates, which is the domain of the `valuation-loss-making-targets` skill. This skill's hard filter already excludes distressed stocks.
+- The distress scoring layer (`davis_analyzer.factors.distress`) targets loss-making reversal candidates, which is the domain of the `valuation-loss-making-targets` skill. This skill's hard filter already excludes distressed stocks.
 - The report generator (`davis_analyzer.report_generator`) produces per-stock deep-dive reports. This skill outputs a ranked list, not individual reports.
 
 ## 8. Limitations and Risk Awareness

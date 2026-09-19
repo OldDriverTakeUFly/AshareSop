@@ -14,7 +14,7 @@ from stockhot.storage.database import init_database, DB_PATH
 from davis_analyzer.paper_trading.account import PaperAccount
 from davis_analyzer.paper_trading.strategy import FactorThresholdStrategy
 from davis_analyzer.paper_trading.executor import run_backfill_auto
-import davis_analyzer.market_regime as mr
+import davis_analyzer.factors.market_regime as mr
 import davis_analyzer.paper_trading.executor as exec_mod
 
 init_database()

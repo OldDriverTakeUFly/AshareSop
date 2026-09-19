@@ -46,14 +46,14 @@ print("\n== forecast ==")
 print(fc.to_string() if len(fc) else "无")
 
 # ═══ 2. davis_analyzer 四维评分 ═══
-from davis_analyzer.tushare_client import TushareClient
-from davis_analyzer.financial_fetcher import fetch_financial_data
-from davis_analyzer.valuation import fetch_valuation_history, calculate_percentile, detect_cyclical
-from davis_analyzer.prosperity import calculate_prosperity_score
-from davis_analyzer.trend import batch_trend
-from davis_analyzer.distress import calculate_distress_score
-from davis_analyzer.scoring import calculate_davis_double_score
-from davis_analyzer.types import StockInfo
+from davis_analyzer.core.tushare_client import TushareClient
+from davis_analyzer.core.financial_fetcher import fetch_financial_data
+from davis_analyzer.factors.valuation import fetch_valuation_history, calculate_percentile, detect_cyclical
+from davis_analyzer.factors.prosperity import calculate_prosperity_score
+from davis_analyzer.factors.trend import batch_trend
+from davis_analyzer.factors.distress import calculate_distress_score
+from davis_analyzer.core.scoring import calculate_davis_double_score
+from davis_analyzer.core.types import StockInfo
 
 client = TushareClient()
 
@@ -125,11 +125,11 @@ result["davis"] = {"final": davis.final_score, "val": val_score, "prosp": pscore
                    "distress": dscore.total_score, "trend": trend_score, "rank": davis.rank}
 
 # ═══ 3. 五个补充因子引擎 ═══
-from davis_analyzer.momentum import analyze_momentum
-from davis_analyzer.dividend import analyze_dividend
-from davis_analyzer.forecast import analyze_forecast, analyze_forecast_revision
-from davis_analyzer.holder_concentration import analyze_holder_concentration
-from davis_analyzer.profitability import analyze_profitability_quality
+from davis_analyzer.factors.momentum import analyze_momentum
+from davis_analyzer.factors.dividend import analyze_dividend
+from davis_analyzer.factors.forecast import analyze_forecast, analyze_forecast_revision
+from davis_analyzer.factors.holder_concentration import analyze_holder_concentration
+from davis_analyzer.factors.profitability import analyze_profitability_quality
 
 print("\n== 补充因子 ==")
 try:

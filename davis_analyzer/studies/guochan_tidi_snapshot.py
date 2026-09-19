@@ -11,7 +11,7 @@ from datetime import date, timedelta
 
 import pandas as pd
 
-from davis_analyzer.tushare_client import TushareClient
+from davis_analyzer.core.tushare_client import TushareClient
 
 # ── 标的池:环节 → [(ts_code, name)] ──
 POOLS: dict[str, list[tuple[str, str]]] = {

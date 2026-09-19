@@ -22,9 +22,9 @@ from loguru import logger
 load_dotenv("/home/leo/Projects/CodeAgentDashboard/.env", override=True)
 os.environ["PROJECT_ROOT"] = os.getcwd()
 
-from davis_analyzer.financial_fetcher import fetch_financial_data
-from davis_analyzer.profitability import analyze_profitability_quality
-from davis_analyzer.tushare_client import TushareClient
+from davis_analyzer.core.financial_fetcher import fetch_financial_data
+from davis_analyzer.factors.profitability import analyze_profitability_quality
+from davis_analyzer.core.tushare_client import TushareClient
 from stockhot.tushare_config import get_pro_api
 from stockhot.valuation import analyze_relative_valuation
 

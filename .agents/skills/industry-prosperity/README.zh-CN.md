@@ -48,8 +48,8 @@
 1. 先读 `SKILL.md`，理解 G+ΔG 框架、六维指标体系、山峰理论、成长股投资时钟和位置感框架
 2. 确认 `davis_analyzer` 已安装且 Tushare token 已配置（见 SKILL.md 第 2 节 Prerequisites）
 3. 获取标的至少 4 个季度的财务数据（营收和利润的 YoY 增速）
-4. 调用 `davis_analyzer.prosperity.calculate_prosperity_score` 计算景气度复合评分和 ΔG
-5. 调用 `davis_analyzer.prosperity_sector.classify_stock_stage` 做周期位置分类
+4. 调用 `davis_analyzer.factors.prosperity.calculate_prosperity_score` 计算景气度复合评分和 ΔG
+5. 调用 `davis_analyzer.factors.prosperity_sector.classify_stock_stage` 做周期位置分类
 6. 如需行业对比，调用 `prosperity_sector.aggregate_industry_prosperity` 做行业聚合
 7. 如需筛选"二次点火"标的，调用 `prosperity_sector.screen_g_delta_g_ignition`
 8. 调用 `prosperity_inflection.analyze_inflection` 生成拐点分析和叙述

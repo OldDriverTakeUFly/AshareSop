@@ -70,9 +70,9 @@ def fetch_latest_valuation(ts_code: str) -> dict:
     """Re-run valuation engine for one stock. Failures return empty dict."""
     out = {}
     try:
-        from davis_analyzer.tushare_client import TushareClient
-        from davis_analyzer.valuation import fetch_valuation_history, calculate_valuation_score
-        from davis_analyzer.stock_universe import build_stock_universe
+        from davis_analyzer.core.tushare_client import TushareClient
+        from davis_analyzer.factors.valuation import fetch_valuation_history, calculate_valuation_score
+        from davis_analyzer.core.stock_universe import build_stock_universe
 
         client = TushareClient()
         history = fetch_valuation_history(client, ts_code)
@@ -118,9 +118,9 @@ def fetch_latest_valuation(ts_code: str) -> dict:
 def fetch_latest_prosperity(ts_code: str) -> dict:
     """Re-run prosperity engine for one stock."""
     try:
-        from davis_analyzer.tushare_client import TushareClient
-        from davis_analyzer.financial_fetcher import fetch_financial_data
-        from davis_analyzer.prosperity import calculate_prosperity_score
+        from davis_analyzer.core.tushare_client import TushareClient
+        from davis_analyzer.core.financial_fetcher import fetch_financial_data
+        from davis_analyzer.factors.prosperity import calculate_prosperity_score
 
         client = TushareClient()
         fin = fetch_financial_data(client, ts_code, periods=8)

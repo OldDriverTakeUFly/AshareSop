@@ -18,7 +18,7 @@ loguru.logger.remove()
 loguru.logger.add(sys.stderr, level="WARNING")
 
 import pandas as pd
-from davis_analyzer.tushare_client import TushareClient, _CACHE_DB
+from davis_analyzer.core.tushare_client import TushareClient, _CACHE_DB
 from stockhot.data_layer.market_db import init_db
 
 

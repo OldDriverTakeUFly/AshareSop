@@ -34,17 +34,17 @@ from typing import TYPE_CHECKING
 import pandas as pd
 from loguru import logger
 
-from davis_analyzer.constants import (
+from davis_analyzer.core.constants import (
     MOMENTUM_FULL_RETURN_PCT_BY_WINDOW,
     MOMENTUM_MIN_PRICES,
     MOMENTUM_WINDOW_WEIGHTS,
     MOMENTUM_WINDOWS_DAYS,
 )
-from davis_analyzer.tushare_client import TushareClient
-from davis_analyzer.types import MomentumSignal
+from davis_analyzer.core.tushare_client import TushareClient
+from davis_analyzer.core.types import MomentumSignal
 
 if TYPE_CHECKING:
-    from davis_analyzer.types import StockInfo
+    from davis_analyzer.core.types import StockInfo
 
 # We fetch ~1 year more than the longest window so the longest-window return
 # has a real base price, and to support RS over a stable window.

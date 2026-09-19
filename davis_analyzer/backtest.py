@@ -28,7 +28,7 @@ import pandas as pd
 from loguru import logger
 
 from davis_analyzer.backtest_factors import FactorConfig, score_universe_at
-from davis_analyzer.tushare_client import TushareClient
+from davis_analyzer.core.tushare_client import TushareClient
 
 
 # ──────────────────────────── configuration ────────────────────────────
@@ -280,7 +280,7 @@ def _calendar_from_union(client: TushareClient, config: BacktestConfig) -> list[
     """Last-resort calendar: union of all trade dates present in the price cache."""
     import sqlite3
 
-    from davis_analyzer.tushare_client import _CACHE_DB
+    from davis_analyzer.core.tushare_client import _CACHE_DB
 
     start = config.start_date.strftime("%Y%m%d")
     end = config.end_date.strftime("%Y%m%d")
@@ -669,7 +669,7 @@ def _all_cached_stock_codes() -> list[str]:
     """Return every ts_code that has at least one cached daily price row."""
     import sqlite3
 
-    from davis_analyzer.tushare_client import _CACHE_DB
+    from davis_analyzer.core.tushare_client import _CACHE_DB
 
     with sqlite3.connect(str(_CACHE_DB)) as conn:
         rows = conn.execute(
@@ -685,7 +685,7 @@ def _build_stock_infos(
 
     Falls back to ``is_cyclical=False`` when industry data is unavailable.
     """
-    from davis_analyzer.types import StockInfo
+    from davis_analyzer.core.types import StockInfo
 
     infos: dict[str, StockInfo] = {}
     try:
@@ -703,7 +703,7 @@ def _build_stock_infos(
         name_map = {}
         list_status_map = {}
 
-    from davis_analyzer.constants import CYCLICAL_INDUSTRIES
+    from davis_analyzer.core.constants import CYCLICAL_INDUSTRIES
 
     cyclical_set = set(CYCLICAL_INDUSTRIES)
     for code in codes:

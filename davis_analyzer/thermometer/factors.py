@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-from davis_analyzer.constants import (
+from davis_analyzer.core.constants import (
     THERMOMETER_FAMILY_INNER_WEIGHTS,
     THERMOMETER_PRICE_VOLUME_DECAY,
     THERMOMETER_WINDOWS,

@@ -49,7 +49,7 @@ TABLE_MAP: dict[str, tuple[str, str | None]] = {
 
 def get_db_paths() -> tuple[Path, Path]:
     """返回 (源 davis cache 路径, 目标 market_data 路径)."""
-    from davis_analyzer.config import CACHE_DIR
+    from davis_analyzer.core.config import CACHE_DIR
     from stockhot.data_layer.market_db import MARKET_DB_PATH
 
     src = CACHE_DIR / "tushare_cache.db"

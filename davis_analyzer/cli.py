@@ -71,7 +71,7 @@ def _add_rescore_parser(subparsers) -> None:
 
 def _run_pipeline(args: argparse.Namespace):
     """Shared pipeline invocation for run / deep-research / rescore."""
-    from davis_analyzer.pipeline import run_screening_pipeline
+    from davis_analyzer.core.pipeline import run_screening_pipeline
 
     logger.info("Starting Davis Double screening pipeline...")
     try:

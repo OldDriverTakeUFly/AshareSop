@@ -68,7 +68,7 @@ Before running this skill, verify the following:
 
 2. **Tushare API token is configured.** A valid `TUSHARE_TOKEN` must be present in `.env` at the repository root. The token must have sufficient API tier to access financial statements (income, fina_indicator, daily_basic) for at least 3 to 4 quarters of history. Verify:
    ```bash
-   python -c "from davis_analyzer.config import get_config; print(get_config().tushare_token[:8] + '...')"
+   python -c "from davis_analyzer.core.config import get_config; print(get_config().tushare_token[:8] + '...')"
    ```
 
 3. **Target stock code or industry classification is identified.** The agent needs either a `ts_code` for a single stock, or a set of `ts_code` values representing an industry for sector-level analysis.
@@ -325,7 +325,7 @@ When applying this skill, the typical computation flow is:
 
 ```
 1. Fetch financial data (4+ quarters)
-   via davis_analyzer.financial_fetcher
+   via davis_analyzer.core.financial_fetcher
          ↓
 2. Calculate ProsperityScore per stock
    via prosperity.calculate_prosperity_score

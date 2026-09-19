@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 from loguru import logger
 
-from davis_analyzer.constants import THERMOMETER_MARKET_DIM_WEIGHTS
+from davis_analyzer.core.constants import THERMOMETER_MARKET_DIM_WEIGHTS
 from davis_analyzer.limitup import db as limitup_db
 from davis_analyzer.thermometer.moneyflow_agg import market_flow_from_sectors
 

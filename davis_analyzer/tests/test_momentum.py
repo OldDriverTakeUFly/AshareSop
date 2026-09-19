@@ -1,4 +1,4 @@
-"""Tests for davis_analyzer.momentum — price-momentum + RS engine."""
+"""Tests for davis_analyzer.factors.momentum — price-momentum + RS engine."""
 
 from datetime import date
 from unittest.mock import MagicMock
@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from davis_analyzer.momentum import (
+from davis_analyzer.factors.momentum import (
     _absolute_score,
     _raw_return_pct,
     _return_to_score,
@@ -16,7 +16,7 @@ from davis_analyzer.momentum import (
     analyze_momentum_batch,
     compute_rs_percentile,
 )
-from davis_analyzer.types import StockInfo
+from davis_analyzer.core.types import StockInfo
 
 TODAY = date(2026, 7, 1)
 

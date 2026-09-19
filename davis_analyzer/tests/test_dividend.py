@@ -1,4 +1,4 @@
-"""Tests for davis_analyzer.dividend — 红利 factor engine."""
+"""Tests for davis_analyzer.factors.dividend — 红利 factor engine."""
 
 from datetime import date
 from unittest.mock import MagicMock
@@ -6,7 +6,7 @@ from unittest.mock import MagicMock
 import pandas as pd
 import pytest
 
-from davis_analyzer.dividend import (
+from davis_analyzer.factors.dividend import (
     _consecutive_trailing_years,
     _continuity_score,
     _executed_cash_per_year,

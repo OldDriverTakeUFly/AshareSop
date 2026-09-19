@@ -1,9 +1,9 @@
-"""Tests for davis_analyzer.prosperity — 景气度 scoring engine."""
+"""Tests for davis_analyzer.factors.prosperity — 景气度 scoring engine."""
 
 import pytest
 
-from davis_analyzer.constants import PROSPERITY_WEIGHTS
-from davis_analyzer.prosperity import (
+from davis_analyzer.core.constants import PROSPERITY_WEIGHTS
+from davis_analyzer.factors.prosperity import (
     batch_prosperity,
     calculate_delta_g,
     calculate_duration_score,
@@ -16,7 +16,7 @@ from davis_analyzer.prosperity import (
     _growth_to_raw_score,
     _growth_to_raw_score_profit,
 )
-from davis_analyzer.types import FinancialData, ProsperityScore
+from davis_analyzer.core.types import FinancialData, ProsperityScore
 
 
 def _fd(ts_code: str = "000001.SZ", period: str = "2024Q1", **kw) -> FinancialData:

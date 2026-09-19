@@ -30,8 +30,8 @@ os.environ["PROJECT_ROOT"] = "/home/leo/Projects/CodeAgentDashboard"
 
 import pandas as pd
 
-from davis_analyzer.tushare_client import TushareClient
-from davis_analyzer.valuation import detect_cyclical
+from davis_analyzer.core.tushare_client import TushareClient
+from davis_analyzer.factors.valuation import detect_cyclical
 from stockhot.tushare_config import get_pro_api
 
 # ── 标的清单: 9 家 A 股锂企 ──

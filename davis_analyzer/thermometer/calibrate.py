@@ -10,8 +10,8 @@ import pandas as pd
 from loguru import logger
 from scipy import stats
 
-from davis_analyzer.config import THERMOMETER_REPORTS_DIR
-from davis_analyzer.constants import THERMOMETER_CALIBRATION_TARGETS
+from davis_analyzer.core.config import THERMOMETER_REPORTS_DIR
+from davis_analyzer.core.constants import THERMOMETER_CALIBRATION_TARGETS
 
 _FAMILY_COLS = ["mom_score", "flow_score", "vol_score", "trend_score", "limit_score"]
 
@@ -93,7 +93,7 @@ def _eval_score_ic(va: pd.DataFrame, score: pd.Series) -> list[float]:
 def walk_forward(panel: pd.DataFrame,
                  train_days: int = 486, valid_days: int = 126) -> dict:
     """滚动 2年训练/6月验证;返回 ①先验 ②IC加权 ③ridge 三档的 OOS IC 汇总."""
-    from davis_analyzer.constants import THERMOMETER_WEIGHTS
+    from davis_analyzer.core.constants import THERMOMETER_WEIGHTS
 
     dates = sorted(panel["trade_date"].unique())
     oof: dict[str, list[float]] = {"prior": [], "ic_weighted": [], "ridge": []}

@@ -9,7 +9,7 @@
 3. 手动映射表 —— 精确细分层（用户维护）
 
 用法：
-    from davis_analyzer.sub_industry import get_sub_industry
+    from davis_analyzer.factors.sub_industry import get_sub_industry
     sub = get_sub_industry("002371.SZ")  # → "半导体设备"
 """
 from __future__ import annotations

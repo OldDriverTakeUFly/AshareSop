@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import math
 
-from davis_analyzer.constants import (
+from davis_analyzer.core.constants import (
     CYCLICAL_DELTA_G_CLAMP,
     DURATION_BASE_PER_QUARTER,
     DURATION_BONUS_GROWTH_FACTOR,
@@ -13,7 +13,7 @@ from davis_analyzer.constants import (
     SCORING_DECAY_FACTOR,
     SLOPE_SIGMOID_K,
 )
-from davis_analyzer.types import FinancialData, ProsperityScore
+from davis_analyzer.core.types import FinancialData, ProsperityScore
 
 
 def calculate_revenue_score(revenue_history: list[float]) -> float:

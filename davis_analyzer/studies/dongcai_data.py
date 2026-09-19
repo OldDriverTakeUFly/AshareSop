@@ -164,14 +164,14 @@ for _, r in mb.iterrows():
           f"占比={r.get('main_business_ratio')}% 毛利率={r.get('gross_profit_margin')}%")
 
 # ── 8. 5 因子引擎 ──
-from davis_analyzer.tushare_client import TushareClient  # noqa: E402
-from davis_analyzer.financial_fetcher import fetch_financial_data  # noqa: E402
-from davis_analyzer.prosperity import calculate_prosperity_score  # noqa: E402
-from davis_analyzer.momentum import analyze_momentum  # noqa: E402
-from davis_analyzer.dividend import analyze_dividend  # noqa: E402
-from davis_analyzer.forecast import analyze_forecast, analyze_forecast_revision  # noqa: E402
-from davis_analyzer.holder_concentration import analyze_holder_concentration  # noqa: E402
-from davis_analyzer.profitability import analyze_profitability_quality  # noqa: E402
+from davis_analyzer.core.tushare_client import TushareClient  # noqa: E402
+from davis_analyzer.core.financial_fetcher import fetch_financial_data  # noqa: E402
+from davis_analyzer.factors.prosperity import calculate_prosperity_score  # noqa: E402
+from davis_analyzer.factors.momentum import analyze_momentum  # noqa: E402
+from davis_analyzer.factors.dividend import analyze_dividend  # noqa: E402
+from davis_analyzer.factors.forecast import analyze_forecast, analyze_forecast_revision  # noqa: E402
+from davis_analyzer.factors.holder_concentration import analyze_holder_concentration  # noqa: E402
+from davis_analyzer.factors.profitability import analyze_profitability_quality  # noqa: E402
 
 client = TushareClient()
 fin_list = fetch_financial_data(client, TS, periods=12)

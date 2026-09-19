@@ -18,8 +18,8 @@ from __future__ import annotations
 import statistics
 from datetime import date, timedelta
 
-from davis_analyzer.constants import EPS_NEAR_ZERO_THRESHOLD
-from davis_analyzer.types import ValuationData
+from davis_analyzer.core.constants import EPS_NEAR_ZERO_THRESHOLD
+from davis_analyzer.core.types import ValuationData
 
 # 目标价 ratio 合理区间（防异常值）
 _TARGET_RATIO_MIN = 0.8  # 目标价不低于现价 80%（否则"看跌"无意义）

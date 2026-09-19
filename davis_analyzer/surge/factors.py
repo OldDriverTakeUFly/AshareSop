@@ -285,7 +285,7 @@ def compute_composite(
     hype: list[str], risk: list[str],
 ) -> float:
     """各维 0~100 加权(SURGE_WEIGHTS 单一真相源);NaN 安全."""
-    from davis_analyzer.constants import SURGE_WEIGHTS as W
+    from davis_analyzer.core.constants import SURGE_WEIGHTS as W
 
     def s_money() -> float:
         r = _clip01(money.get("net_ratio_d0", _NAN) / 0.15)

@@ -72,7 +72,7 @@ def run_wave_0(trade_date: str) -> bool:
         # 同步更新 daily_basic（PE/PB/turnover 等）—— 用于策略 PE 百分位计算
         n_basic = 0
         try:
-            from davis_analyzer.tushare_client import TushareClient
+            from davis_analyzer.core.tushare_client import TushareClient
 
             client = TushareClient()
             basic_df = client.get_daily_basic_by_date(

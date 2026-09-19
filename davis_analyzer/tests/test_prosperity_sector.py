@@ -1,9 +1,9 @@
-"""Tests for davis_analyzer.prosperity_sector — sector-level 景气度 engine."""
+"""Tests for davis_analyzer.factors.prosperity_sector — sector-level 景气度 engine."""
 
 import pytest
 
-from davis_analyzer.prosperity import calculate_prosperity_score
-from davis_analyzer.prosperity_sector import (
+from davis_analyzer.factors.prosperity import calculate_prosperity_score
+from davis_analyzer.factors.prosperity_sector import (
     aggregate_industry_prosperity,
     build_stock_details,
     classify_industry_stage,
@@ -12,7 +12,7 @@ from davis_analyzer.prosperity_sector import (
     generate_risk_warnings,
     screen_g_delta_g_ignition,
 )
-from davis_analyzer.types import (
+from davis_analyzer.core.types import (
     FinancialData,
     IndustryProsperityScore,
     ProsperityScore,
@@ -813,7 +813,7 @@ class TestBuildStockDetails:
         infos = {"x.SZ": _si(ts_code="x.SZ")}
         result = build_stock_details(scores, infos, fd, set())
         driver = result["x.SZ"].dupont_driver
-        from davis_analyzer.prosperity import dupont_decomposition
+        from davis_analyzer.factors.prosperity import dupont_decomposition
 
         expected = dupont_decomposition(
             roe=15.0,

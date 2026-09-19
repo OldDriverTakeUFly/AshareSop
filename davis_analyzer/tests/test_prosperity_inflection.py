@@ -1,6 +1,6 @@
-"""Tests for davis_analyzer.prosperity_inflection — rule-based inflection engine."""
+"""Tests for davis_analyzer.factors.prosperity_inflection — rule-based inflection engine."""
 
-from davis_analyzer.prosperity_inflection import (
+from davis_analyzer.factors.prosperity_inflection import (
     _find_crossing_quarter,
     _assess_risk_factors,
     analyze_inflection,
@@ -8,12 +8,12 @@ from davis_analyzer.prosperity_inflection import (
     generate_inflection_narrative,
     identify_inflection_quarter,
 )
-from davis_analyzer.prosperity_sector import (
+from davis_analyzer.factors.prosperity_sector import (
     classify_industry_stage,
     classify_stock_stage,
     generate_ignition_reasons,
 )
-from davis_analyzer.types import (
+from davis_analyzer.core.types import (
     CatalystSignal,
     FinancialData,
     InflectionAnalysis,

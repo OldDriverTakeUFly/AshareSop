@@ -7,8 +7,8 @@ import pandas as pd
 from dateutil.relativedelta import relativedelta
 from loguru import logger
 
-from davis_analyzer.tushare_client import TushareClient
-from davis_analyzer.types import FinancialData
+from davis_analyzer.core.tushare_client import TushareClient
+from davis_analyzer.core.types import FinancialData
 
 _MERGE_KEY = "end_date"
 
@@ -142,9 +142,9 @@ def _fetch_financial_data_fast(
     """
     import json
     import sqlite3
-    from davis_analyzer.config import CACHE_DIR
+    from davis_analyzer.core.config import CACHE_DIR
     from stockhot.data_layer.market_db import MARKET_DB_PATH
-    from davis_analyzer.types import FinancialData
+    from davis_analyzer.core.types import FinancialData
 
     start_date, end_date = _compute_date_range(periods, as_of)
     as_of_str = as_of.strftime("%Y%m%d")

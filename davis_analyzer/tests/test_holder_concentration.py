@@ -1,4 +1,4 @@
-"""Tests for davis_analyzer.holder_concentration — chip-concentration engine."""
+"""Tests for davis_analyzer.factors.holder_concentration — chip-concentration engine."""
 
 from datetime import date
 from unittest.mock import MagicMock
@@ -6,7 +6,7 @@ from unittest.mock import MagicMock
 import pandas as pd
 import pytest
 
-from davis_analyzer.holder_concentration import analyze_holder_concentration
+from davis_analyzer.factors.holder_concentration import analyze_holder_concentration
 
 TODAY = date(2026, 7, 1)
 

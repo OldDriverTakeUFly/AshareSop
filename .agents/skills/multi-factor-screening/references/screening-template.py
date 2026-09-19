@@ -54,15 +54,15 @@ from pathlib import Path
 from loguru import logger
 
 # ── davis_analyzer 核心模块（只读调用，不修改源码）──
-from davis_analyzer.constants import CYCLICAL_INDUSTRIES
-from davis_analyzer.pipeline import run_screening_pipeline
-from davis_analyzer.types import (
+from davis_analyzer.core.constants import CYCLICAL_INDUSTRIES
+from davis_analyzer.core.pipeline import run_screening_pipeline
+from davis_analyzer.core.types import (
     FinancialData,
     PipelineResult,
     ProsperityScore,
     StockInfo,
 )
-from davis_analyzer.valuation import detect_cyclical
+from davis_analyzer.factors.valuation import detect_cyclical
 
 # ========== CONFIG: 填入你的筛选参数 ==========
 TOP_N_PER_DOMAIN = 20  # 每个域输出的前 N 名候选标的数量
@@ -216,7 +216,7 @@ def classify_domain(industry: str) -> str:
             if kw in industry:
                 return domain
 
-    # 周期股常量检测（来自 davis_analyzer.constants）
+    # 周期股常量检测（来自 davis_analyzer.core.constants）
     if industry in CYCLICAL_INDUSTRIES:
         return "cyclical"
 
@@ -476,7 +476,7 @@ def run_multi_factor_screening() -> dict:
     """执行完整的三层结构多因子选股管线，返回 JSON 可序列化的 dict.
 
     流程:
-        Step1  调用 davis_analyzer.pipeline.run_screening_pipeline 获取全市场数据
+        Step1  调用 davis_analyzer.core.pipeline.run_screening_pipeline 获取全市场数据
         Step2  执行硬过滤层 — ROE/CAGR/杠杆/现金流/估值 多维过滤
         Step3  执行打分层 — 0/1/2 三档分位打分，分域加权
         Step4  执行加分层 — 稀缺信号奖励（占位，需接入实际数据源）
@@ -528,8 +528,8 @@ def run_multi_factor_screening() -> dict:
     # the hard-filter-passed set only, keeping it off the always-on path.
     holder_signals: dict = {}
     try:
-        from davis_analyzer.holder_concentration import analyze_holder_concentration
-        from davis_analyzer.tushare_client import TushareClient
+        from davis_analyzer.factors.holder_concentration import analyze_holder_concentration
+        from davis_analyzer.core.tushare_client import TushareClient
 
         hc_client = TushareClient()
         for code in passed_codes:

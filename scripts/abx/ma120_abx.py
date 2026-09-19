@@ -98,7 +98,7 @@ def run_variant(label, use_ma120, universe):
     print(f"\n{'='*70}\n  {label}\n{'='*70}", flush=True)
 
     # 控制 MA120 触发
-    import davis_analyzer.market_regime as mr
+    import davis_analyzer.factors.market_regime as mr
     if use_ma120:
         mr._MA120_BEAR_THRESHOLD = -0.05
     else:

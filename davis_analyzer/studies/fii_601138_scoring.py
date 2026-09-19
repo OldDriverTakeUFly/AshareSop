@@ -15,20 +15,20 @@ os.environ["PROJECT_ROOT"] = "/home/leo/Projects/CodeAgentDashboard"
 
 import pandas as pd
 
-from davis_analyzer.distress import calculate_distress_score
-from davis_analyzer.financial_fetcher import fetch_financial_data
-from davis_analyzer.forecast import analyze_forecast, analyze_forecast_revision
-from davis_analyzer.dividend import analyze_dividend
-from davis_analyzer.holder_concentration import analyze_holder_concentration
-from davis_analyzer.momentum import analyze_momentum
-from davis_analyzer.profitability import analyze_profitability_quality
-from davis_analyzer.prosperity import calculate_prosperity_score
-from davis_analyzer.prosperity_sector import classify_stock_stage
-from davis_analyzer.scoring import calculate_davis_double_score
-from davis_analyzer.trend import batch_trend
-from davis_analyzer.tushare_client import TushareClient
-from davis_analyzer.types import StockInfo
-from davis_analyzer.valuation import calculate_valuation_score, detect_cyclical, fetch_valuation_history
+from davis_analyzer.factors.distress import calculate_distress_score
+from davis_analyzer.core.financial_fetcher import fetch_financial_data
+from davis_analyzer.factors.forecast import analyze_forecast, analyze_forecast_revision
+from davis_analyzer.factors.dividend import analyze_dividend
+from davis_analyzer.factors.holder_concentration import analyze_holder_concentration
+from davis_analyzer.factors.momentum import analyze_momentum
+from davis_analyzer.factors.profitability import analyze_profitability_quality
+from davis_analyzer.factors.prosperity import calculate_prosperity_score
+from davis_analyzer.factors.prosperity_sector import classify_stock_stage
+from davis_analyzer.core.scoring import calculate_davis_double_score
+from davis_analyzer.factors.trend import batch_trend
+from davis_analyzer.core.tushare_client import TushareClient
+from davis_analyzer.core.types import StockInfo
+from davis_analyzer.factors.valuation import calculate_valuation_score, detect_cyclical, fetch_valuation_history
 from stockhot.tushare_config import get_pro_api
 
 TS_CODE = "601138.SH"

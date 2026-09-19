@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from davis_analyzer.config import THERMOMETER_REPORTS_DIR
+from davis_analyzer.core.config import THERMOMETER_REPORTS_DIR
 from davis_analyzer.limitup import db as limitup_db
 from davis_analyzer.thermometer.scoring import rotation_signals
 
