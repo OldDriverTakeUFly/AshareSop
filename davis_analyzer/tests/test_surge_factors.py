@@ -147,3 +147,11 @@ def test_gap_down_becomes_resistance():
     assert "gap_down" in r["resistance_ladder"]
     lad = r["resistance_ladder"]
     assert lad.index("gap_down") < lad.index("high_120d")  # 缺口档位先于滚动高点
+
+
+def test_resistance_support_none_adjfactor():
+    # 历史数据个别日 adj_factor NULL——不崩,均线换算退化(20260205 回放实锤)
+    px = _px([10.0] * 130, highs=[11.0] * 130, lows=[9.0] * 130)
+    px.iloc[-1, px.columns.get_loc("adj_factor")] = None
+    r = compute_resistance_support(px, None)
+    assert r["resistance_price"] == r["resistance_price"]  # 有值不崩

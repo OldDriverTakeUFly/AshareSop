@@ -105,9 +105,11 @@ def compute_resistance_support(
     add("high_120d", float(win120["high"].max()), above=True)
     add("low_120d", float(win120["low"].min()), above=False)
 
-    # 均线(后复权均值 / 当日adj_factor → 未复权口径)
+    # 均线(后复权均值 / 当日adj_factor → 未复权口径;历史个别日 adj_factor
+    # 为 NULL——退化 1.0(均线换算近似),宁缺毋错不崩)
     a = _adj(px)
-    adj_today = float(px["adj_factor"].iloc[-1])
+    adj_raw = px["adj_factor"].iloc[-1]
+    adj_today = float(adj_raw) if pd.notna(adj_raw) else 1.0
     for n in (60, 120, 250, 20):
         ma_raw = _ma_adj(a, n) / adj_today
         add(f"MA{n}", ma_raw, above=close < ma_raw)
@@ -115,10 +117,14 @@ def compute_resistance_support(
     # 缺口(120日窗口内最近一个;向上缺口=支撑,向下缺口=阻力)
     lo = max(0, len(px) - 120)
     for i in range(len(px) - 1, lo, -1):
-        prev_high = float(px["high"].iloc[i - 1])
-        prev_low = float(px["low"].iloc[i - 1])
-        cur_high = float(px["high"].iloc[i])
-        cur_low = float(px["low"].iloc[i])
+        prev_high = px["high"].iloc[i - 1]
+        prev_low = px["low"].iloc[i - 1]
+        cur_high = px["high"].iloc[i]
+        cur_low = px["low"].iloc[i]
+        if any(pd.isna(v) for v in (prev_high, prev_low, cur_high, cur_low)):
+            continue  # 历史个别行 high/low NULL——跳过该日缺口判定
+        prev_high, prev_low = float(prev_high), float(prev_low)
+        cur_high, cur_low = float(cur_high), float(cur_low)
         if cur_low > prev_high:
             add("gap_up", prev_high, above=False)
             break
