@@ -757,7 +757,10 @@ class MarketDataRepository:
         """清理过期缓存行，返回各表删除行数.
 
         清理策略（与数据生命周期对齐）：
-        - daily_basic: 删除 30 天前的行（24h TTL，但保留近期供查询）
+        - daily_basic: **不删**（2026-10-09 T160 起改为永久保留，与 daily_price
+          同级——历史行不可变；此前 30 天滚动剪裁曾静默废掉 davis_analyzer
+          戴维斯夜跑线的 3 年估值回看(活路径仅得 ~15 行)与 PE/PB 趋势腿
+          (全量恒 50)。表增长 ~140 万行/年，量级可承受）
         - scan_log: 删除 max_age_days 天前（默认 90 天）的日志
         - daily_price / financial / hk_hold: **不删**（历史数据不可变，永久保留）
         - ivix_history: 删除 5 年前的行（够算长周期分位）
@@ -766,13 +769,11 @@ class MarketDataRepository:
         """
         from datetime import datetime, timedelta
 
-        cutoff_30d = (datetime.now() - timedelta(days=30)).strftime("%Y%m%d")
         cutoff_5y = (datetime.now() - timedelta(days=365 * 5)).strftime("%Y%m%d")
         cutoff_log = now_ts() - max_age_days * 86400
 
         deleted: dict[str, int] = {}
         cleanup_sql = [
-            ("daily_basic", f"DELETE FROM daily_basic WHERE trade_date < '{cutoff_30d}'"),
             ("scan_log", f"DELETE FROM scan_log WHERE created_at < {cutoff_log}"),
             ("ivix_history", f"DELETE FROM ivix_history WHERE trade_date < '{cutoff_5y}'"),
         ]
