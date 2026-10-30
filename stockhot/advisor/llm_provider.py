@@ -33,6 +33,7 @@ from dataclasses import dataclass
 from openai import OpenAI
 from openai.types.chat import ChatCompletionMessageParam
 
+from stockhot import llm_pool
 from stockhot.advisor.exceptions import LLMUnavailableError
 
 # ── Defaults per provider ────────────────────────────────────────────────
@@ -108,9 +109,11 @@ class GLMProvider(LLMProvider):
     """Zhipu GLM via OpenAI-compatible endpoint (primary provider)."""
 
     def __init__(self, api_key: str, base_url: str | None = None, model: str | None = None) -> None:
+        self._api_key = api_key
+        self._base_url = (base_url or _GLM_BASE_URL).rstrip("/")
         super().__init__(
             api_key=api_key,
-            base_url=base_url or _GLM_BASE_URL,
+            base_url=self._base_url,
             model=model or _GLM_DEFAULT_MODEL,
         )
 
@@ -121,9 +124,38 @@ class GLMProvider(LLMProvider):
         max_tokens: int = 800,
         temperature: float = 0.3,
     ) -> LLMResponse:
-        return _complete_with_retry(
-            self._client, self._model, prompt, system, max_tokens, temperature
-        )
+        """T277 池轮换:主配置三元组恒为第一候选(复用 self._client,内层保持
+        3 次退避语义),其后按 llm_pool 候选序轮换(去重);单候选失败按错误
+        分类记账(quota 冷却/auth 池死),全部枯竭抛带摘要的 LLMUnavailableError。"""
+        entries: list[tuple] = [(
+            llm_pool.Candidate(
+                "legacy", self._base_url, self._api_key, self._model),
+            self._client,
+        )]
+        seen = {(entries[0][0].base_url, entries[0][0].api_key, entries[0][0].model)}
+        for c in llm_pool.candidates():
+            k = (c.base_url, c.api_key, c.model)
+            if k not in seen:
+                seen.add(k)
+                entries.append((c, None))
+        last_exc: LLMUnavailableError | None = None
+        for cand, client in entries:
+            try:
+                if client is None:
+                    client = OpenAI(api_key=cand.api_key, base_url=cand.base_url)
+                return _complete_with_retry(
+                    client, cand.model, prompt, system, max_tokens, temperature
+                )
+            except LLMUnavailableError as exc:
+                last_exc = exc
+                cause = exc.__cause__
+                body = f"{cause or exc} {getattr(cause, 'body', '') or ''}".strip()
+                verdict = llm_pool.classify(getattr(cause, "status_code", None), body)
+                llm_pool.note(cand, verdict, body)
+                continue
+        raise LLMUnavailableError(
+            f"LLM 全部候选不可用: {llm_pool.summarize()}"
+        ) from last_exc
 
 
 class OpenAIProvider(LLMProvider):

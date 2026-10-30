@@ -294,7 +294,8 @@ class TestAntiHallucination:
 class TestProviderDefaults:
     def test_glm_defaults(self, monkeypatch):
         _, captured = _build_provider(GLMProvider, monkeypatch)
-        assert captured["base_url"] == "https://open.bigmodel.cn/api/paas/v4/"
+        # T277:base_url 尾斜杠规范化(池候选去重需要),端点语义不变
+        assert captured["base_url"] == "https://open.bigmodel.cn/api/paas/v4"
 
     def test_glm_default_model(self, monkeypatch):
         provider, _ = _build_provider(GLMProvider, monkeypatch)
@@ -435,3 +436,84 @@ class TestABCContract:
     def test_cannot_instantiate_abc_directly(self):
         with pytest.raises(TypeError):
             LLMProvider(api_key="k", base_url="x", model="m")  # type: ignore[abstract]
+
+
+# ── Pool rotation (T277) ─────────────────────────────────────────────────
+
+
+class _QuotaError(Exception):
+    """形如 openai APIStatusError 的 429/1310 额度异常(status_code 可被 classify 读到)。"""
+
+    status_code = 429
+
+    def __init__(self, message: str) -> None:
+        super().__init__(message)
+        self.body = {"error": {"code": "1310", "message": message}}
+
+
+class _FakeOpenAI:
+    """池路径测试用假客户端工厂:按 base_url 脚本化 create 行为。"""
+
+    def __init__(self, behavior: dict[str, object]) -> None:
+        self._behavior = behavior
+        self.chat = MagicMock()
+        self.created_for: list[str] = []
+
+    @classmethod
+    def factory(cls, behavior: dict[str, object]):
+        built: list[_FakeOpenAI] = []
+
+        def _make(api_key=None, base_url=None, **kw):
+            inst = cls(behavior)
+            inst.created_for.append(base_url)
+            built.append(inst)
+            action = behavior.get(base_url, "ok")
+            if action == "quota":
+                inst.chat.completions.create.side_effect = _QuotaError("1310 限额将在 2099-01-01 08:00:00 重置")
+            else:
+                inst.chat.completions.create.return_value = _make_mock_response(
+                    content=f"from-{base_url}")
+            return inst
+
+        _make.built = built
+        return _make
+
+
+class TestPoolRotation:
+    def test_falls_back_to_pool_candidate_on_quota(self, monkeypatch):
+        monkeypatch.setattr(lp_module, "OpenAI", _FakeOpenAI.factory({"https://std": "ok"}))
+        monkeypatch.setenv("LLM_POOL_1", "https://std|keyB|glm-4-flash")
+        monkeypatch.setattr(lp_module.time, "sleep", lambda s: None)  # 内层退避免真等
+        provider = GLMProvider(api_key="test-key")
+        provider._client.chat.completions.create.side_effect = _QuotaError("1310 限额")
+
+        result = provider.complete(prompt="x")
+
+        assert result.content == "from-https://std"
+        assert result.model == "glm-4-flash"
+
+    def test_all_exhausted_raises_with_summary(self, monkeypatch):
+        fake_cls = _FakeOpenAI.factory({"https://std": "quota"})
+        monkeypatch.setattr(lp_module, "OpenAI", fake_cls)
+        monkeypatch.setenv("LLM_POOL_1", "https://std|keyB|glm-4-flash")
+        monkeypatch.setattr(lp_module.time, "sleep", lambda s: None)
+        provider = GLMProvider(api_key="test-key")
+        provider._client.chat.completions.create.side_effect = RuntimeError("boom")
+
+        with pytest.raises(LLMUnavailableError, match="候选"):
+            provider.complete(prompt="x")
+
+    def test_primary_dedup_against_identical_pool(self, monkeypatch):
+        fake_cls = _FakeOpenAI.factory({"https://open.bigmodel.cn/api/paas/v4": "ok"})
+        monkeypatch.setattr(lp_module, "OpenAI", fake_cls)
+        # 与主配置同三元组(尾斜杠差异)的池候选应被去重,不再建第二个 client
+        monkeypatch.setenv("LLM_POOL_1",
+                           "https://open.bigmodel.cn/api/paas/v4/|test-key|glm-5.2")
+        provider = GLMProvider(api_key="test-key")
+        built_after_ctor = list(fake_cls.built)  # 构造本身建了主 client
+        provider._client.chat.completions.create.return_value = _make_mock_response()
+
+        result = provider.complete(prompt="x")
+
+        assert result.content == "mocked completion"
+        assert fake_cls.built == built_after_ctor  # 主 client 复用,complete 零新建
