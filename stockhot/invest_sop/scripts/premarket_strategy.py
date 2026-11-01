@@ -119,7 +119,8 @@ def _load_paper_positions() -> list[dict]:
                 })
             acc.close()
     except Exception as e:
-        print(f"[WARN] 加载模拟持仓失败: {e}")
+        SECTION_ISSUES.append(f"持仓段失败: {e}")
+        print(f"[ERROR] 加载模拟持仓失败: {e}")
         holdings_initial = 0
         holdings_cash = 0
 
@@ -309,18 +310,22 @@ def generate_strategy_report() -> str:
         score = snap.prosperity_score
         label = snap.prosperity_label
         lines.append("")
-        lines.append(f"🏛️ 宏观景气度：{score:.0f}/100（{label}）")
+        def _f(v, spec, suffix=""):
+            return (format(v, spec) + suffix) if isinstance(v, (int, float)) else "N/A"
+        lines.append(f"🏛️ 宏观景气度：{_f(score, '.0f')}/100（{label or 'N/A'}）")
         macro_parts = []
-        macro_parts.append(f"PMI {snap.pmi:.1f}{'⚠️低于荣枯线' if snap.pmi < 50 else ''}")
-        macro_parts.append(f"CPI {snap.cpi_yoy:+.1f}%")
-        macro_parts.append(f"M2 {snap.m2_yoy:.1f}%")
-        macro_parts.append(f"Shibor隔夜 {snap.shibor_on:.2f}%")
+        macro_parts.append(f"PMI {_f(snap.pmi, '.1f')}"
+                           + ("⚠️低于荣枯线" if isinstance(snap.pmi, (int, float)) and snap.pmi < 50 else ""))
+        macro_parts.append(f"CPI {_f(snap.cpi_yoy, '+.1f', '%')}")
+        macro_parts.append(f"M2 {_f(snap.m2_yoy, '.1f', '%')}")
+        macro_parts.append(f"Shibor隔夜 {_f(snap.shibor_on, '.2f', '%')}")
         lines.append(f"  {' | '.join(macro_parts)}")
         if snap.signals:
             for sig in snap.signals[:2]:
                 lines.append(f"  💡 {sig}")
     except Exception as e:
-        print(f"[WARN] 宏观数据加载失败: {e}")
+        SECTION_ISSUES.append(f"宏观段失败: {e}")
+        print(f"[ERROR] 宏观数据加载失败: {e}")
 
     # ── 概念板块 top5 ──
     try:
@@ -359,6 +364,10 @@ def main(argv: list[str] | None = None) -> int:
 
     report = generate_strategy_report()
     print(report)
+
+    if SECTION_ISSUES:
+        print(f"[ERROR] 完整性闸: {len(SECTION_ISSUES)} 个关键段失败,拒绝推送 → {SECTION_ISSUES}")
+        return 1
 
     if args.dry_run:
         print("\n[DRY-RUN] 不推送飞书")
