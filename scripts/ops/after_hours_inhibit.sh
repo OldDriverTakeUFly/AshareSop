@@ -41,4 +41,8 @@ case "$MODE" in
 esac
 
 echo "$(date '+%F %T') [$MODE] inhibit sleep:idle for ${dur}s until $(date -d "@$((now + dur))" '+%F %T')"
-exec /usr/bin/systemd-inhibit --what=sleep:idle:handle-lid-switch --mode=block --who="$who" --why="$why" /bin/sleep "$dur"
+if ! /usr/bin/systemd-inhibit --what=sleep:idle:handle-lid-switch --mode=block --who="$who" --why="$why" /bin/sleep "$dur"; then
+    echo "$(date '+%F %T') [$MODE] inhibit 冲突,15s 后重试一次"
+    sleep 15
+    /usr/bin/systemd-inhibit --what=sleep:idle:handle-lid-switch --mode=block --who="$who" --why="$why" /bin/sleep "$dur" || exit 1
+fi
