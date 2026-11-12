@@ -109,6 +109,30 @@ def run_wave_0(trade_date: str) -> bool:
             # daily_basic 失败不阻断 daily_price
 
         print(f"[{trade_date}] Wave 0 market_data: {n_prices} prices + {n_basic} basic ✓")
+
+        # T352(D8): 写后完整性自检——20261030 曾发生 thermometer 骨架行铺满
+        # (total_mv 全 NULL)静默事故;NULL>100 即告警,不静默
+        try:
+            from stockhot.data_layer.market_db import get_connection as _gc
+            with _gc() as _c:
+                _nulls = _c.execute(
+                    "SELECT COUNT(*) FROM daily_basic WHERE trade_date=?"
+                    " AND total_mv IS NULL", (trade_date,)).fetchone()[0]
+            if _nulls > 100:
+                _msg = (f"🚨 daily_basic 完整性告警 {trade_date}: total_mv NULL {_nulls} 行"
+                        f"(全市场~5570)——疑似骨架行污染,amp-pool 等下游将回退旧快照")
+                print(_msg)
+                try:
+                    from stockhot.notification.feishu_bot import get_feishu_notifier as _gf
+                    import asyncio as _a
+                    _n = _gf()
+                    if _n is not None:
+                        _a.run(_n.send_text(_msg))
+                except Exception as _e2:
+                    print(f"[WARN] 告警推送失败: {_e2}")
+        except Exception as _e:
+            print(f"[WARN] 完整性自检失败(不阻断): {_e}")
+
         _log_scan(trade_date, "market_data", "success", started_at=t0,
                   rows=n_prices + n_basic)
         return n_prices > 0
@@ -116,6 +140,16 @@ def run_wave_0(trade_date: str) -> bool:
         msg = f"{type(e).__name__}: {e}"
         print(f"[{trade_date}] Wave 0 market_data: FAILED — {msg}")
         _log_scan(trade_date, "market_data", "failed", error_msg=msg, started_at=t0)
+        # T352(D8): 失败即告警(2026-10-27~29 曾静默三晚,bug 由画像线下游发现)
+        try:
+            from stockhot.notification.feishu_bot import get_feishu_notifier as _gf
+            import asyncio as _a
+            _n = _gf()
+            if _n is not None:
+                _a.run(_n.send_text(f"🚨 daily_scan Wave 0 失败 {trade_date}: {msg}"
+                                    f"——daily_price/daily_basic 今日未更新"))
+        except Exception as _e2:
+            print(f"[WARN] 失败告警推送异常: {_e2}")
         return False
 
 
