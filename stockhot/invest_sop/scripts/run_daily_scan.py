@@ -275,6 +275,45 @@ def run_wave_3(trade_date: str) -> bool:
         return False
 
 
+def _guard_index_gap(trade_date: str) -> None:
+    """index_daily 缺口守卫(T364):最近开市日未入库即飞书告警。
+
+    2026-11-18 实锤:Tushare 空响应时增量写入守卫静默跳过(index_technical
+    波次照常报 OK),当晚无任何告警,次日全球科技早报据此误判「休市精简」。
+    交易日判定走 AKShare 日历(非交易日不判缺口,防节假日误报);告警失败只
+    打日志,不改变 scan 退出码。仅统计意义告警——触发后人工用
+    `run_daily_scan.py --date <缺口日>` 补采。
+    """
+    from contextlib import closing
+
+    from stockhot.data_layer.market_db import get_connection
+    from stockhot.invest_sop.utils.trading_calendar import (
+        get_recent_trade_day, is_trading_day)
+
+    expected_dash = get_recent_trade_day(trade_date)
+    if not expected_dash or not is_trading_day(expected_dash):
+        return  # 日历不可用/非交易日 → 不判缺口
+    expected = expected_dash.replace("-", "")
+    with closing(get_connection()) as conn:
+        row = conn.execute("SELECT MAX(trade_date) FROM index_daily").fetchone()
+    latest = (row[0] or "") if row else ""
+    if latest >= expected:
+        return
+    msg = (f"⚠️ 行情采集缺口:{trade_date} 扫描后 index_daily 最新={latest},"
+           f"预期≥{expected}——次日全球科技早报将误判「休市精简」。"
+           f"处置:补跑 run_daily_scan.py --date {expected_dash} 后复核。")
+    print(f"[{trade_date}] {msg}")
+    try:
+        import asyncio
+
+        from stockhot.notification.feishu_bot import get_feishu_notifier
+        notifier = get_feishu_notifier()
+        if notifier:
+            asyncio.run(notifier.send_text(msg))
+    except Exception as e:
+        print(f"[{trade_date}] feishu alert failed: {type(e).__name__}: {e}")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run daily market scan (6 modules)")
     parser.add_argument("--date", default=None, help="Trade date YYYY-MM-DD (default: today)")
@@ -335,6 +374,14 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"[{trade_date}] Wave 4 cleanup: {deleted}")
         except Exception:
             pass  # cleanup 失败不影响主流程
+
+    # T364 采集缺口守卫:scan 完成后 index_daily 必须已推进到最近已开市日——
+    # 2026-11-18 Tushare 空响应被增量写入守卫静默跳过(波次照常报 OK),次日
+    # globaltech 早报误判「休市精简」并带出硬编码「国庆假期」横幅的实锤。
+    try:
+        _guard_index_gap(trade_date)
+    except Exception as e:  # 守卫自身故障不拖垮 scan 退出码
+        print(f"[{trade_date}] index freshness guard error: {type(e).__name__}: {e}")
 
     # Exit 0 if at least limit_up succeeded (core data), else 1
     return 0 if results["limit_up"] else 1
